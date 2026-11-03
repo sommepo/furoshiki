@@ -1,0 +1,25 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Yomitan dark, after the maintainer's screenshot: black, serif glosses, glowing tag boxes,
+   furigana over the headword, a blue triangle beside it. */
+:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #c8c8d8; }
+.popup { background: #0b0b0b; border: 1px solid #555; border-radius: 8px; padding: 10px 14px 10px 18px; color: #f2f2f2; }
+.entry::before { content: ""; position: absolute; left: -15px; top: calc(20px * var(--scale)); border: 7px solid transparent; border-left: 8px solid #3b8cf0; }
+.headword { font-weight: 400; font-size: calc(26px * var(--scale)); }
+.headword rt { display: ruby-text; }
+.reading { display: none; }
+.tags { gap: 6px; }
+.tag {
+  font-family: "Noto Sans JP", sans-serif; font-weight: 700; font-size: calc(12.5px * var(--scale));
+  background: #000; color: #e6e6ff; border: 1px solid #c9c9ee; border-radius: 5px; padding: 1px 6px;
+  box-shadow: 0 0 6px rgba(200, 200, 255, 0.7);
+}
+/* The frequency as one small box: its source and number on a line, no bigger than a tag. */
+.tag.frequency { font-size: calc(10.5px * var(--scale)); padding: 0 5px; }
+.tag.frequency .tag-name { color: #bfe6c8; }
+.tag.frequency .tag-value { font-weight: 400; color: #fff; }
+.glosses, .forms .form { font-size: calc(16px * var(--scale)); }
+.number { display: none; }
+.entry.unknown .headword { background: linear-gradient(transparent 62%, rgba(59, 140, 240, 0.35) 62%); box-shadow: none; }
+.card { background: transparent; border: none; color: #5cbf5c; }
+.card.book { color: #6aa0ff; }

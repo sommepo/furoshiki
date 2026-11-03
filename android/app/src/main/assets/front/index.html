@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Furoshiki</title>
+<link rel="stylesheet" href="front.css">
+</head>
+<body>
+<div id="sheet">
+  <header id="head">
+    <div id="tab"><span id="tab-text"></span></div>
+    <div id="clock"></div>
+  </header>
+  <main id="main">
+    <section id="card" class="panel">
+      <i class="ac"></i>
+      <div id="card-text">
+        <div id="file"></div>
+        <h1 id="title"></h1>
+        <div id="sub"></div>
+      </div>
+      <div id="art"><img id="cover" alt=""><div id="bars"></div><div id="value"></div></div>
+      <dl id="figures"></dl>
+      <button id="go" type="button"></button>
+      <button id="also" type="button" hidden></button>
+    </section>
+    <section id="list" class="panel">
+      <i class="ac"></i>
+      <ol id="rows"></ol>
+    </section>
+  </main>
+  <footer id="foot">
+    <span class="lr">L</span>
+    <nav id="tabs"></nav>
+    <span class="lr">R</span>
+  </footer>
+  <div id="pick" hidden><div id="pick-box" class="panel"><h2 id="pick-title"></h2><ol id="pick-rows"></ol></div></div>
+  <div id="say"></div>
+  <div id="scan"></div>
+</div>
+<script src="front.js"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+{
+  "format": 1,
+  "system": "psp",
+  "scripts": [
+    {
+      "id": "NPJH50372",
+      "title": "ダンガンロンパ 希望の学園と絶望の高校生 (Danganronpa)",
+      "reads": "The message box with speakers: the story, investigation talk, the tutorial",
+      "version": "NPJH-50372",
+      "api": 1,
+      "file": "NPJH50372.lua",
+      "size": 12800,
+      "sha256": "20be927cd1ff7e23a918fc09897a719a1c204c070f7c1e1af7d2f29766a7b9bc"
+    },
+    {
+      "id": "ULJM05078",
+      "title": "ときめきメモリアル forever with you (Tokimeki Memorial Forever with You)",
+      "reads": "The message window with speakers, and choices",
+      "version": "ULJM-05078",
+      "api": 1,
+      "file": "ULJM05078.lua",
+      "size": 13220,
+      "sha256": "f08f026f597b68099ad6d765d6dbe202f5ca4f1188a257b25d66f9ea3ae31df8"
+    },
+    {
+      "id": "ULJM05170",
+      "title": "英雄伝説 空の軌跡FC (The Legend of Heroes: Trails in the Sky, PSP)",
+      "reads": "The talk windows of the story and of people in the field, with speakers and furigana, and choices",
+      "version": "ULJM-05170, disc version 1.01",
+      "api": 1,
+      "file": "ULJM05170.lua",
+      "size": 14991,
+      "sha256": "012e8ee681f164c9d0016a812ae57e64d0540ecb3a8b8d1b2a8ab535e91ce40d"
+    },
+    {
+      "id": "ULJM05603",
+      "title": "My Merry May with be",
+      "reads": "The story's text with speakers, in the message box and on the full-screen page, and choices",
+      "version": "ULJM-05603",
+      "api": 1,
+      "file": "ULJM05603.lua",
+      "size": 15027,
+      "sha256": "6715e757d0b368376ba3082c32782854a5946f4d1fb7d338510a9cb5609d8532"
+    },
+    {
+      "id": "ULJM05718",
+      "title": "D.C.I&II P.S.P. ～ダ・カーポI&II～ プラスシチュエーション ポータブル, disc 1: D.C.P.S.",
+      "reads": "The message window with speakers and furigana, and choices",
+      "version": "ULJM-05718",
+      "api": 1,
+      "file": "ULJM05718.lua",
+      "size": 12174,
+      "sha256": "0f7f86d615af5b4f264af2dbc342b7330af2de7eeb2bb339b81f61320a694560"
+    },
+    {
+      "id": "ULJM05719",
+      "title": "D.C.I&II P.S.P. ～ダ・カーポI&II～ プラスシチュエーション ポータブル, disc 2: D.C.II P.S.",
+      "reads": "The message window with speakers and furigana, and choices",
+      "version": "ULJM-05719",
+      "api": 1,
+      "file": "ULJM05719.lua",
+      "size": 12180,
+      "sha256": "5948f7f71ba6fce4c92ee004e05533547f0666396d24c4bfff052bf9b1f1b6d0"
+    },
+    {
+      "id": "ULJM05821",
+      "title": "CHAOS;HEAD らぶChu☆Chu! (Chaos;Head Love Chu Chu!)",
+      "reads": "The message window and the lines in the middle of the screen, with furigana",
+      "version": "ULJM-05821",
+      "api": 1,
+      "file": "ULJM05821.lua",
+      "size": 9010,
+      "sha256": "7cc26664772f5c3d5d77c73c697e576b1e0ba21065af5c22849a068c82caabcd"
+    },
+    {
+      "id": "ULJM05887",
+      "title": "STEINS;GATE (PSP)",
+      "reads": "The message window with speakers and furigana, and the phone's mails",
+      "version": "ULJM-05887",
+      "api": 1,
+      "file": "ULJM05887.lua",
+      "size": 19510,
+      "sha256": "c29c87116b803fa0ab0ee248a97bb0025eaffdfe7839631dc77f6b987016ec43"
+    },
+    {
+      "id": "ULJM06119",
+      "title": "DUNAMIS15",
+      "reads": "The message window with speakers and furigana",
+      "version": "ULJM-06119",
+      "api": 1,
+      "file": "ULJM06119.lua",
+      "size": 15152,
+      "sha256": "152c193fe07a89e75bcfe9944f9a92119f2dc80bfdd5ddc09fd3fd957f540c6f"
+    },
+    {
+      "id": "ULJM06232",
+      "title": "グリザイアの果実 -LE FRUIT DE LA GRISAIA-, started from disc 1",
+      "reads": "The message window with speakers, and choices",
+      "version": "ULJM-06232",
+      "api": 1,
+      "file": "ULJM06232.lua",
+      "size": 14281,
+      "sha256": "9e58a69f2ef76a6d81778b7b02dcff646111b6e7d5749e218dab35d8fca3f841"
+    },
+    {
+      "id": "ULJM06233",
+      "title": "グリザイアの果実 -LE FRUIT DE LA GRISAIA-, started from disc 2",
+      "reads": "The message window with speakers, and choices",
+      "version": "ULJM-06233",
+      "api": 1,
+      "file": "ULJM06233.lua",
+      "size": 14281,
+      "sha256": "ddc2b4862c42a3c231c2a767a243742e7bbb5a6e84fee8f4d91db47be4b74184"
+    },
+    {
+      "id": "ULJS00219",
+      "title": "428 ～封鎖された渋谷で～ (428: Shibuya Scramble)",
+      "reads": "The story's text with furigana, TIPS and choices",
+      "version": "ULJS-00219, disc version 1.01",
+      "api": 1,
+      "file": "ULJS00219.lua",
+      "size": 17129,
+      "sha256": "bd6826aac7b4cf3c5942c6bfb8b75373073847282d5b25e7b56a8421a87386bd"
+    }
+  ]
+}

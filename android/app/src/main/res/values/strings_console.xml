@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The strings that a fork keeps as its console's own; here for every console (the rest, strings_reader.xml, are the same
+     in every reader fork: the repository's shared/). -->
+<resources>
+    <!-- The button "Next line" and touch play press: the bit of the button in libretro's
+         word; the first is what is pressed at first. -->
+    <string name="reader_advance_button_default" translatable="false">-1</string>
+    <string-array name="reader_advance_button_entries">
+        <item>The console\'s yes</item>
+        <item>East (○, Dreamcast B, 3DS A)</item>
+        <item>South (×, Dreamcast A, 3DS B)</item>
+        <item>West (□, Dreamcast X, 3DS Y)</item>
+        <item>North (△, Dreamcast Y, 3DS X)</item>
+    </string-array>
+    <string-array name="reader_advance_button_values" translatable="false">
+        <item>-1</item>
+        <item>8</item>
+        <item>0</item>
+        <item>1</item>
+        <item>9</item>
+    </string-array>
+    <!-- The controller's buttons the reader's settings offer for its own (the cursor's, the
+         statistics', the next choice's), by Android's numbers for them (KeyEvent.KEYCODE_BUTTON_…):
+         what the device's controller sends, whatever the emulator maps it to. -->
+    <string name="reader_cursor_button_default" translatable="false">104</string>
+    <string-array name="reader_cursor_button_entries">
+        <item>None</item>
+        <item>L2</item>
+        <item>R2</item>
+        <item>L1</item>
+        <item>R1</item>
+        <item>Left stick (press)</item>
+        <item>Right stick (press)</item>
+        <item>Select</item>
+        <item>Start</item>
+    </string-array>
+    <string-array name="reader_cursor_button_values" translatable="false">
+        <item>-1</item>
+        <item>104</item>
+        <item>105</item>
+        <item>102</item>
+        <item>103</item>
+        <item>106</item>
+        <item>107</item>
+        <item>109</item>
+        <item>108</item>
+    </string-array>
+    <!-- Reader settings' page of this app's own (Console.CONSOLE_PAGE): none here. -->
+    <string name="reader_pref_category_console" translatable="false"></string>
+    <string name="reader_section_console_summary" translatable="false"></string>
+</resources>

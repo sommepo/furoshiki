@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader fork: the look of the reading layer's own screens and dialogs, in the colours of
+         the popup (reader/qt/reader_look.cpp, ui/ConsoleLook.kt): the warm light grey of the
+         console's case, dark ink, the deep blue of its menus for what is chosen. Light by day
+         and by night, as the case is. -->
+    <color name="reader_ps_ground">#EEEDE8</color>
+    <color name="reader_ps_panel">#F7F6F2</color>
+    <color name="reader_ps_shade">#DCDBD5</color>
+    <color name="reader_ps_ink">#23242B</color>
+    <color name="reader_ps_ink_soft">#6B6C74</color>
+    <color name="reader_ps_blue">#2B3A8C</color>
+    <color name="reader_ps_blue_deep">#1A245C</color>
+    <color name="reader_ps_edge">#9C9B95</color>
+
+    <style name="Theme.Reader" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/reader_ps_blue</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorPrimaryContainer">@color/reader_ps_shade</item>
+        <item name="colorOnPrimaryContainer">@color/reader_ps_ink</item>
+        <item name="colorSecondary">@color/reader_ps_ink</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="colorSecondaryContainer">@color/reader_ps_shade</item>
+        <item name="colorOnSecondaryContainer">@color/reader_ps_ink</item>
+        <item name="colorTertiary">@color/reader_ps_blue_deep</item>
+        <item name="colorSurface">@color/reader_ps_ground</item>
+        <item name="colorOnSurface">@color/reader_ps_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_ps_shade</item>
+        <item name="colorOnSurfaceVariant">@color/reader_ps_ink_soft</item>
+        <item name="colorSurfaceContainer">@color/reader_ps_panel</item>
+        <item name="colorSurfaceContainerLow">@color/reader_ps_panel</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_ps_panel</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_ps_shade</item>
+        <item name="colorOutline">@color/reader_ps_edge</item>
+        <item name="colorOutlineVariant">@color/reader_ps_edge</item>
+        <item name="android:colorBackground">@color/reader_ps_ground</item>
+        <item name="android:windowBackground">@color/reader_ps_ground</item>
+        <item name="android:textColorPrimary">@color/reader_ps_ink</item>
+        <item name="android:textColorSecondary">@color/reader_ps_ink_soft</item>
+        <item name="android:statusBarColor">@color/reader_ps_shade</item>
+        <item name="android:navigationBarColor">@color/reader_ps_ground</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

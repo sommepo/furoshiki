@@ -1,0 +1,38 @@
+// SPDX-FileCopyrightText: Reader fork contributors
+// SPDX-License-Identifier: GPL-2.0-or-later
+//
+// The reader layer's Kotlin, its JVM tests and its resources, written once here (kotlin/,
+// test/, res/) in the package org.readers.app.reader for every reader app. An app's
+// build.gradle.kts applies this file after its android { } block. Before anything is compiled
+// the files are written into the app's build/generated/reader with the app's own package
+// (android.namespace: com.flycast.emulator.reader and so on, its R and BuildConfig) and added
+// to its sources, so each app is built from the same text as when it kept a copy. What is the
+// app's own (Console.kt, ReaderGlue.kt, ui/ConsoleLook.kt, ui/ReaderStyle.kt,
+// strings_console.xml, its themes...) stays in the app, in the same package.
+
+def readerShared = buildscript.sourceFile.parentFile
+def readerOut = layout.buildDirectory.dir("generated/reader").get().asFile
+def readerPlaceholder = "org.readers.app"
+
+def readerSources = tasks.register("readerSharedSources", Sync) {
+    def app = android.namespace
+    inputs.property("app", app)
+    into readerOut
+    from(new File(readerShared, "kotlin/org/readers/app")) { into "kotlin/" + app.replace(".", "/") }
+    from(new File(readerShared, "test/org/readers/app")) { into "test/" + app.replace(".", "/") }
+    from(new File(readerShared, "res")) { into "res" }
+    // The popup's page and its themes, as the desktop has them (shared/popup), in the assets.
+    from(new File(readerShared, "../popup")) { into "assets/reader/popup" }
+    filteringCharset = "UTF-8"
+    filter { String line -> line.replace(readerPlaceholder, app) }
+}
+
+// AGP 9 has `directories`, AGP 8 `srcDir`.
+def readerAdd = { set, File dir ->
+    if (set.hasProperty("directories")) set.directories.add(dir.absolutePath) else set.srcDir(dir)
+}
+readerAdd(android.sourceSets.main.kotlin, new File(readerOut, "kotlin"))
+readerAdd(android.sourceSets.main.res, new File(readerOut, "res"))
+readerAdd(android.sourceSets.main.assets, new File(readerOut, "assets"))
+readerAdd(android.sourceSets.test.kotlin, new File(readerOut, "test"))
+tasks.named("preBuild") { dependsOn readerSources }

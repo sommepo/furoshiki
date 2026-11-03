@@ -1,0 +1,3 @@
+
+# Reader fork: the maintainer's own notes are not part of an exported source tree.
+MAINTAINER.md export-ignore

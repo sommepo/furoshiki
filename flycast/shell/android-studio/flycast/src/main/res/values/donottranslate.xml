@@ -1,0 +1,4 @@
+<resources>
+    <!-- Reader fork: the app's own name. -->
+    <string name="app_name" translatable="false">Flycast Reader</string>
+</resources>

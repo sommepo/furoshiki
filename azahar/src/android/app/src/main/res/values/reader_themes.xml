@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader fork: the theme the reader's dialogs over the game are built on (ReaderHost,
+         Routes): the app's own, which this build gives the 3DS's colours (vanilla/res/values*/
+         reader_3ds_theme.xml). The reader's pages take the theme the user chose (ConsoleLook). -->
+    <style name="Theme.Reader" parent="Theme.Citra.Main" />
+</resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader fork: the whole app in the manner of the 3DS's own menus (white and grey, the console's blue). These take the
+     place of the default theme's colours of the same names for this build; the emulator's
+     own files are left as they are. -->
+<resources>
+    <color name="citra_primary_blue">#1F9FD6</color>
+    <color name="citra_onPrimary_blue">#FFFFFF</color>
+    <color name="citra_primaryContainer_blue">#CFEAF7</color>
+    <color name="citra_onPrimaryContainer_blue">#0B4560</color>
+    <color name="citra_secondary_blue">#5F6B73</color>
+    <color name="citra_onSecondary_blue">#FFFFFF</color>
+    <color name="citra_secondaryContainer_blue">#D5E6EF</color>
+    <color name="citra_onSecondaryContainer_blue">#22313A</color>
+    <color name="citra_tertiary_blue">#D9412B</color>
+    <color name="citra_onTertiary_blue">#FFFFFF</color>
+    <color name="citra_tertiaryContainer_blue">#FFDAD3</color>
+    <color name="citra_onTertiaryContainer_blue">#5A1409</color>
+    <color name="citra_background_blue">#F2F2F2</color>
+    <color name="citra_onBackground_blue">#3C3C3C</color>
+    <color name="citra_surface_blue">#F2F2F2</color>
+    <color name="citra_onSurface_blue">#3C3C3C</color>
+    <color name="citra_surfaceVariant_blue">#E2E2E2</color>
+    <color name="citra_onSurfaceVariant_blue">#5A5A5A</color>
+    <color name="citra_outline_blue">#A9A9A9</color>
+    <color name="citra_inverseOnSurface_blue">#F2F2F2</color>
+    <color name="citra_inverseSurface_blue">#3C3C3C</color>
+    <color name="citra_inversePrimary_blue">#7FD3F2</color>
+    <color name="citra_surfaceTint_blue">#1F9FD6</color>
+</resources>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader fork: the reading layer's own screens and dialogs in the colours of the PS2's
+         system menu: a blue so deep that it is nearly black, pale blue type, and the light
+         blue of what is chosen. One face, as the console has, whatever the system's theme. -->
+    <style name="Theme.Reader" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/reader_ps2_ground</item>
+        <item name="android:colorBackground">@color/reader_ps2_ground</item>
+        <item name="android:statusBarColor">@color/reader_ps2_ground_low</item>
+        <item name="android:navigationBarColor">@color/reader_ps2_ground_low</item>
+        <item name="colorSurface">@color/reader_ps2_ground</item>
+        <item name="colorSurfaceContainer">@color/reader_ps2_raised</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_ps2_raised</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_ps2_pressed</item>
+        <item name="colorSurfaceContainerLow">@color/reader_ps2_ground</item>
+        <item name="colorSurfaceVariant">@color/reader_ps2_raised</item>
+        <item name="colorOnSurface">@color/reader_ps2_text</item>
+        <item name="colorOnSurfaceVariant">@color/reader_ps2_faint</item>
+        <item name="colorOnBackground">@color/reader_ps2_text</item>
+        <item name="colorPrimary">@color/reader_ps2_accent</item>
+        <item name="colorOnPrimary">@color/reader_ps2_ground</item>
+        <item name="colorPrimaryContainer">@color/reader_ps2_pressed</item>
+        <item name="colorOnPrimaryContainer">@color/reader_ps2_text</item>
+        <item name="colorSecondary">@color/reader_ps2_accent</item>
+        <item name="colorSecondaryContainer">@color/reader_ps2_pressed</item>
+        <item name="colorOnSecondaryContainer">@color/reader_ps2_text</item>
+        <item name="colorOutline">@color/reader_ps2_line</item>
+        <item name="colorOutlineVariant">@color/reader_ps2_line</item>
+        <item name="colorError">#FF6E6E</item>
+    </style>
+
+    <color name="reader_ps2_ground">#060A1E</color>
+    <color name="reader_ps2_ground_low">#010208</color>
+    <color name="reader_ps2_text">#C9D8F6</color>
+    <color name="reader_ps2_faint">#7082AE</color>
+    <color name="reader_ps2_line">#2B3A68</color>
+    <color name="reader_ps2_accent">#9CD4FF</color>
+    <color name="reader_ps2_raised">#111A3A</color>
+    <color name="reader_ps2_pressed">#1D3570</color>
+</resources>

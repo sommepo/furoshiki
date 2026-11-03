@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The reader's strings that are this console's own (the rest, strings_reader.xml, are the same
+     in every reader fork: the repository's shared/). -->
+<resources>
+    <!-- The button "Next line" and touch play press, by the emulator's numbers for the 3DS's
+         buttons (NativeLibrary.ButtonType); the first is what is pressed at first. -->
+    <string name="reader_advance_button_default" translatable="false">700</string>
+    <string-array name="reader_advance_button_entries">
+        <item>A</item>
+        <item>B</item>
+        <item>X</item>
+        <item>Y</item>
+        <item>R</item>
+    </string-array>
+    <string-array name="reader_advance_button_values" translatable="false">
+        <item>700</item>
+        <item>701</item>
+        <item>702</item>
+        <item>703</item>
+        <item>774</item>
+    </string-array>
+    <!-- The 3DS's buttons the reader's settings offer for its own (the cursor's, the
+         statistics', the next choice's), by the emulator's numbers (NativeLibrary.ButtonType):
+         every emulated button passes the reader on its way to the game (ReaderGlue.onButton). -->
+    <string name="reader_cursor_button_default" translatable="false">707</string>
+    <string-array name="reader_cursor_button_entries">
+        <item>None</item>
+        <item>ZL</item>
+        <item>ZR</item>
+        <item>L</item>
+        <item>R</item>
+        <item>Select</item>
+        <item>Start</item>
+    </string-array>
+    <string-array name="reader_cursor_button_values" translatable="false">
+        <item>-1</item>
+        <item>707</item>
+        <item>708</item>
+        <item>773</item>
+        <item>774</item>
+        <item>705</item>
+        <item>704</item>
+    </string-array>
+    <!-- Reader settings' page of this app's own (Console.CONSOLE_PAGE, reader_prefs_console.xml):
+         how the list of games looks, and the HOME menu (ui/ThreeDsHome). -->
+    <string name="reader_pref_category_console">Game list</string>
+    <string name="reader_section_console_summary">How the list of games looks</string>
+    <string name="reader_home_3ds">3DS-style game list</string>
+    <string name="reader_home_3ds_summary">Two screens: the chosen game above, the icons below. Touch one to choose it, again to start it.</string>
+    <string name="reader_readable_only">Only games that can be read</string>
+    <string name="reader_readable_only_summary">Games without a text profile are left out of the list.</string>
+    <string name="reader_home_3ds_open">Open</string>
+    <string name="reader_home_3ds_choose">Choose a game</string>
+    <string name="reader_home_3ds_readable">Text can be read</string>
+    <string name="reader_3ds_back">Back</string>
+</resources>

@@ -1,0 +1,85 @@
+{
+  "name": "Silver",
+  "order": 3,
+  "about": "Pale brushed silver, orange accents, the clock in a small green LCD panel",
+  "page": "#c3cad6",
+  "bg": "repeating-linear-gradient(0deg,rgba(255,255,255,.22) 0 1px,rgba(255,255,255,0) 1px 3px),radial-gradient(ellipse at 30% 0%,rgba(255,255,255,.75),rgba(255,255,255,0) 55%),linear-gradient(180deg,#e9edf3 0%,#cbd2dd 58%,#b4bcca 100%)",
+
+  "panel-bg": "rgba(255,255,255,.34)",
+  "panel-blur": 1.5,
+  "panel-shadow": "inset 0 2px 0 var(--frame-dk),inset 0 -2px 0 var(--frame-dk),5px 6px 0 rgba(60,70,90,.16),0 14px 28px rgba(60,70,90,.2)",
+  "frame": "#ffffff",
+  "frame-dk": "rgba(84,96,118,.5)",
+  "card-frame": "#ffffff",
+
+  "txt": "#2a3346",
+  "txt-sh": "1px 1px 0 rgba(255,255,255,.85),2px 2px 2px rgba(60,70,90,.18)",
+  "sel-txt": "#ffffff",
+  "sel-sh": "1px 1px 1px rgba(120,50,0,.55)",
+  "dim": "rgba(88,98,118,.42)",
+  "dim-sh": "1px 1px 0 rgba(255,255,255,.75)",
+
+
+  "accent": "#ff7a1a",
+  "accent-glow": "0 0 5px rgba(255,130,40,.5)",
+  "accent-groove": "linear-gradient(90deg,rgba(60,70,90,.45) 0 1px,var(--accent) 1px 2.5px,#ffd2a8 2.5px 3.5px,var(--accent) 3.5px 5px,rgba(255,255,255,.8) 5px 6px)",
+  "rail-hi": "#ffffff",
+  "rail-lo": "#9ea8b8",
+  "divot": "#7d8798",
+  "divot-sh": "inset -1px 1px 0 rgba(0,0,0,.4),1px 0 0 rgba(255,255,255,.7)",
+  "line": "rgba(255,255,255,.85)",
+  "line-sh": "1px 0 0 rgba(60,70,90,.18)",
+
+  "tab-bg": "linear-gradient(#ffffff,#d5dbe5)",
+  "tab-txt": "#2a3346",
+  "tab-sh": "1px 1px 0 #fff,2px 2px 2px rgba(60,70,90,.2)",
+  "tab-shadow": "inset 0 -2px 0 var(--frame-dk),4px 5px 0 rgba(60,70,90,.18),0 10px 22px rgba(60,70,90,.18)",
+  "tab-height": 54,
+  "tab-on": "rgba(255,122,26,.88)",
+  "tab-on-shadow": "2px 3px 0 rgba(60,70,90,.18)",
+
+  "thumb-frame": "#ffffff",
+  "thumb-shadow": "inset 0 0 0 1px rgba(60,70,90,.3),5px 6px 0 rgba(60,70,90,.18),0 12px 22px rgba(60,70,90,.22)",
+
+  "orb-glow": "0 0 3px rgba(255,255,255,.95),1px 2px 1px rgba(60,70,90,.3)",
+  "cursor-glow": "rgba(255,214,170,.95)",
+
+  "clock": {
+    "top": 8,
+    "format": "HH:mm:ss",
+    "padding": [4, 14],
+    "color": "#24331f",
+    "background": "#a7b99c",
+    "border": "2px #f4f6f9",
+    "shadow": "inset 2px 2px 0 rgba(40,60,30,.35),inset -1px -1px 0 rgba(255,255,255,.4),3px 4px 0 rgba(60,70,90,.18)",
+    "text-sh": "1px 1px 0 rgba(36,51,31,.18)"
+  },
+  "layout": { "detail-pad": 34, "list-pad-left": 34, "list-pad-right": 22, "vline-left": 94, "vline-right": 250 },
+  "file-text": "FILE %1  %2",
+  "head-case": "upper",
+
+  "smooth": 0.6,
+  "type": {
+    "head":   { "font": "DotGothic16-Regular.ttf", "size": 36, "spacing": 0.32 },
+    "clock":  { "font": "DotGothic16-Regular.ttf", "size": 28, "spacing": 0.18 },
+    "file":   { "font": "DotGothic16-Regular.ttf", "size": 20, "spacing": 0.42 },
+    "title":  { "font": "DotGothic16-Regular.ttf", "size": 44, "line": 58 },
+    "sub":    { "font": "DotGothic16-Regular.ttf", "size": 32, "line": 46 },
+    "stats":  { "font": "DotGothic16-Regular.ttf", "size": 22, "spacing": 0.42, "line": 36 },
+    "number": { "font": "DotGothic16-Regular.ttf", "size": 26 },
+    "row":    { "font": "DotGothic16-Regular.ttf", "size": 26 },
+    "empty":  { "font": "DotGothic16-Regular.ttf", "size": 26, "spacing": 0.42 },
+    "when":   { "font": "DotGothic16-Regular.ttf", "size": 20, "spacing": 0.3 },
+    "tab":    { "font": "DotGothic16-Regular.ttf", "size": 20 },
+    "lr":     { "font": "DotGothic16-Regular.ttf", "size": 20 }
+  },
+
+  "fuzz": {
+    "default": "light",
+    "light": { "shift": 0.8, "blur": 0.3, "contrast": 1 },
+    "heavy": { "shift": 2, "blur": 0.7, "contrast": 1.06 },
+    "grain": 0.1,
+    "grain-frequency": 0.9,
+    "interlace": 0.04
+  }
+}

@@ -1,0 +1,177 @@
+plugins {
+	id 'com.android.application'
+	id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+def signingStorePath = System.getenv("SIGNING_STORE_PATH")
+def signingStorePassword = System.getenv("SIGNING_STORE_PASSWORD")
+def signingKeyAlias = System.getenv("SIGNING_KEY_ALIAS")
+def signingKeyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+def hasCiSigning = signingStorePath && signingStorePassword && signingKeyAlias && signingKeyPassword
+
+android {
+	namespace = "org.vita3k.emulator"
+	compileSdk = 35
+	ndkVersion = "29.0.14206865"
+	buildFeatures {
+		buildConfig = true
+		compose = true
+	}
+
+	defaultConfig {
+		// Reader fork: an application ID and a name of its own ("Vita3K Reader"), so that the
+		// app stands beside upstream's.
+		applicationId = "io.github.sommepo.vita3kreader"
+		// Reader fork: no save sync for the Vita yet.
+		buildConfigField("boolean", "READER_SAVE_SYNC", "true")
+		minSdk = 28
+		targetSdk = 35
+		versionCode = 21
+		versionName = "0.2.1"
+
+		ndk {
+			abiFilters "arm64-v8a", "x86_64"
+		}
+
+		// Reader fork: what tools/reader/build-android.sh asks of the native build
+		def readerCmakeArgs = project.findProperty("READER_CMAKE_ARGS")
+		if (readerCmakeArgs) {
+			externalNativeBuild {
+				cmake {
+					arguments.addAll(readerCmakeArgs.toString().split(" "))
+				}
+			}
+		}
+	}
+
+	signingConfigs {
+		ci {
+			if (hasCiSigning) {
+				storeFile = file(signingStorePath)
+				storePassword = signingStorePassword
+				keyAlias = signingKeyAlias
+				keyPassword = signingKeyPassword
+			}
+		}
+	}
+
+	buildTypes {
+		debug {
+			debuggable = true
+			jniDebuggable = true
+			applicationIdSuffix = '.debug'
+		}
+
+		reldebug {
+			debuggable = true
+			jniDebuggable = true
+			externalNativeBuild {
+				cmake {
+					arguments "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+				}
+			}
+			minifyEnabled = false
+			shrinkResources = false
+			applicationIdSuffix = '.debug'
+			signingConfig = signingConfigs.debug
+		}
+
+		release {
+			debuggable = false
+			jniDebuggable = false
+			externalNativeBuild {
+				cmake {
+					arguments "-DCMAKE_BUILD_TYPE=Release"
+				}
+			}
+			minifyEnabled = true
+			shrinkResources = true
+			proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+			signingConfig = hasCiSigning ? signingConfigs.ci : signingConfigs.debug
+		}
+	}
+
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+
+	sourceSets {
+		main {
+			jniLibs.srcDirs = ['../prebuilt']
+			assets {
+				srcDirs 'assets'
+			}
+			java {
+				srcDirs += ['../../external/sdl/android-project/app/src/main/java']
+			}
+		}
+	}
+
+	externalNativeBuild {
+		cmake {
+			path = '../../CMakeLists.txt'
+			version = '3.22.1+'
+		}
+	}
+
+	// Reader fork: JVM tests of the reading layer see the app's resources.
+	testOptions {
+		unitTests {
+			includeAndroidResources = true
+		}
+	}
+
+	lint {
+		abortOnError = false
+		checkReleaseBuilds = false
+	}
+	packaging {
+		jniLibs {
+			useLegacyPackaging = true
+		}
+	}
+}
+
+dependencies {
+	implementation 'androidx.appcompat:appcompat:1.6.1'
+	implementation "androidx.core:core:1.12.0"
+	implementation 'androidx.core:core-google-shortcuts:1.1.0'
+	implementation 'com.google.android.material:material:1.11.0'
+	implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+	implementation 'com.getkeepsafe.relinker:relinker:1.4.5'
+
+	implementation platform('androidx.compose:compose-bom:2025.04.00')
+	implementation 'androidx.compose.ui:ui'
+	implementation 'androidx.compose.material3:material3'
+	implementation 'androidx.compose.material:material-icons-extended'
+	implementation 'androidx.compose.ui:ui-tooling-preview'
+	implementation 'androidx.activity:activity-compose:1.9.3'
+	implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+	implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.7'
+	implementation 'androidx.navigation:navigation-compose:2.8.5'
+	implementation 'io.coil-kt:coil-compose:2.7.0'
+	debugImplementation 'androidx.compose.ui:ui-tooling'
+	// Reader fork: what the reading layer's screens are made with, and its JVM tests.
+	implementation 'androidx.preference:preference:1.2.1'
+	implementation 'androidx.recyclerview:recyclerview:1.3.2'
+	testImplementation 'org.json:json:20240303'
+	testImplementation 'org.robolectric:robolectric:4.14.1'
+	testImplementation 'androidx.test:core:1.6.1'
+	testImplementation 'junit:junit:4.13.2'
+}
+
+// Reader fork: the bundled game scripts (reader/profiles) go into the app as
+// assets/reader/profiles, where the reading layer looks for them.
+def readerProfiles = tasks.register('readerProfiles', Sync) {
+	from(rootProject.file('../reader/profiles')) {
+		include '*.lua'
+		include '*.charset'
+	}
+	into layout.buildDirectory.dir('reader-assets/reader/profiles')
+}
+android.sourceSets.main.assets.srcDir('build/reader-assets')
+tasks.named('preBuild') { dependsOn readerProfiles }
+// Reader fork: the reader layer's Kotlin, tests and resources every reader app shares, from the
+// repository's shared/android, written into this app's package at build time.
+apply from: '../../../shared/android/reader.gradle'

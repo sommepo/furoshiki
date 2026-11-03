@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader fork: the 3DS-style game list. -->
+<resources>
+    <color name="reader_3ds_background_top">#FFFFFF</color>
+    <color name="reader_3ds_background_bottom">#DCDCDC</color>
+    <color name="reader_3ds_tile">#FFFFFF</color>
+    <color name="reader_3ds_text">#3C3C3C</color>
+    <color name="reader_3ds_cursor">#29B6C9</color>
+    <color name="reader_3ds_bubble_edge">#BDBDBD</color>
+    <color name="reader_3ds_cursor_light">#9BE7F2</color>
+    <color name="reader_3ds_open_top">#FFFFFF</color>
+    <color name="reader_3ds_open_bottom">#CDEFF6</color>
+    <color name="reader_3ds_bar">#D8D8D8</color>
+    <color name="reader_3ds_hinge">#8C8C8C</color>
+</resources>

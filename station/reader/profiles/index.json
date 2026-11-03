@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "system": "ps1",
+  "scripts": [
+    {
+      "id": "SCPS-10053",
+      "title": "ダブルキャスト",
+      "reads": "The lines under the film (with 台詞設定 at 文字+音声 or 文字のみ), and the choices",
+      "version": "SCPS-10053 (boot program AC46E621)",
+      "api": 1,
+      "file": "SCPS-10053.lua",
+      "size": 9444,
+      "sha256": "8a87e6d5464985a972218d8e3f507ab8fac7bd089329440e22c78e8e85a08903"
+    },
+    {
+      "id": "SCPS-10054",
+      "title": "ダブルキャスト",
+      "reads": "The lines under the film (with 台詞設定 at 文字+音声 or 文字のみ), and the choices",
+      "version": "SCPS-10054 (boot program AC46E621)",
+      "api": 1,
+      "file": "SCPS-10054.lua",
+      "size": 9444,
+      "sha256": "12f16de3c03042ef939012fb03afaeaa9821a38459b1431a63f1eb01325d07cd"
+    },
+    {
+      "id": "SCPS-10131",
+      "title": "アコンカグア",
+      "reads": "The message windows' lines (what the survivors say, what the hero thinks and finds, the item window), page by page",
+      "version": "SCPS-10131, disc 1 (boot program 9108E514)",
+      "api": 1,
+      "file": "SCPS-10131.lua",
+      "size": 11934,
+      "sha256": "abdb66843c17fdc7a5c069bc523269cb8ecbff75e772976b5005e324e9d33065"
+    },
+    {
+      "id": "SCPS-10132",
+      "title": "アコンカグア",
+      "reads": "The message windows' lines (what the survivors say, what the hero thinks and finds, the item window), page by page",
+      "version": "SCPS-10132, disc 2 (boot program 9108E514)",
+      "api": 1,
+      "file": "SCPS-10132.lua",
+      "size": 11934,
+      "sha256": "071b435db8d4fd716aef7ef1884865e4bb14b5cee23b23183030d836b5b719af"
+    },
+    {
+      "id": "SLPS-00404",
+      "title": "学校であった怖い話S",
+      "reads": "The story's text, written down the page, paragraph by paragraph, and its choices",
+      "version": "SLPS-00404 (boot program 8A7E3290)",
+      "api": 1,
+      "file": "SLPS-00404.lua",
+      "size": 9384,
+      "sha256": "4f8be7d4a0ac8e1050bbd32d7c7257b41772d682798b7aea249b1a4b53ee1089"
+    },
+    {
+      "id": "SLPS-01794",
+      "title": "かまいたちの夜 特別篇",
+      "reads": "The story's text over the pictures, paragraph by paragraph, and its choices",
+      "version": "SLPS-01794 (boot program AD2BBA84)",
+      "api": 1,
+      "file": "SLPS-01794.lua",
+      "size": 8997,
+      "sha256": "d0e2150083773e9dc31620a44ad52465837237181b69738a2705197e4360986d"
+    }
+  ]
+}

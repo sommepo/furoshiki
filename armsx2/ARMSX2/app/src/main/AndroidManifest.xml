@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="archos.permission.FULLSCREEN.FULL" />
+    <!-- Coil fetches PS2 cover art from raw.githubusercontent.com on the
+         games-list screen. Without INTERNET the games list still works
+         but covers all show as the placeholder. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+    <!-- "All files access" — required on Android 11+ when the user picks a
+         system folder outside the app's scoped sandbox (e.g. /storage/emulated/0/ARMSX2).
+         emucore's POSIX FileSystem (fopen/fread/mkdir) goes straight to the
+         kernel and scoped storage rejects raw POSIX writes to user-owned
+         public dirs even with a SAF persistable URI grant. The grant is
+         issued at runtime via Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION;
+         users who keep system files in the default app-private dir don't
+         need to enable it. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+    <!-- Reader fork: AnkiDroid, for cards: its content provider adds them only for an app that
+         holds this permission (the user grants it when Anki is set up). -->
+    <uses-permission android:name="com.ichi2.anki.permission.READ_WRITE_DATABASE" />
+    <queries>
+        <package android:name="com.ichi2.anki" />
+        <provider android:authorities="com.ichi2.anki.flashcards" />
+    </queries>
+
+    <application
+        android:name=".Pasx2Application"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:largeHeap="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:isGame="true"
+        android:appCategory="game"
+        android:theme="@style/Theme.PASX2"
+        android:allowNativeHeapPointerTagging="false"
+        tools:targetApi="31"
+        >
+        <!-- Declare game mode support (Android 12+) — routes app through GameManager
+             performance profile so the OS scheduler and CPU/GPU governors prefer
+             big cores and peak clocks instead of throttling as a normal app. -->
+        <meta-data android:name="android.app.game_mode" android:value="performance" />
+
+        <!-- Profileable from the adb shell. Lets simpleperf record from the
+             release build without flipping debuggable on (which would also
+             change the JIT path and skew the numbers). -->
+        <profileable android:shell="true" tools:targetApi="29" />
+
+        <meta-data android:name="android.max_aspect" android:value="2.4" />
+
+        <activity
+            android:name=".BootSplashActivity"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:hardwareAccelerated="true"
+            android:exported="true"
+            android:resizeableActivity="false"
+            android:theme="@style/Theme.PASX2.Boot">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.GAME" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".Main"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:hardwareAccelerated="true"
+            android:exported="true"
+            android:resizeableActivity="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity>
+
+        <activity-alias
+            android:name=".MainActivity"
+            android:exported="true"
+            android:targetActivity=".Main">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Reader fork: the reading layer's own screens, and the files it hands to Anki. -->
+        <activity
+            android:name=".reader.ui.ReaderSettingsActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_settings"/>
+        <!-- Reader fork: a save sync pairing link (readersync:, docs/pairing.md at the repository's top), asked about before it is used. -->
+        <activity
+            android:name=".reader.ui.SyncPairingActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Reader"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="readersync" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".reader.ui.ReaderStatsActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_statistics"/>
+        <activity
+            android:name=".reader.ui.ReaderGamesActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_games"/>
+        <activity
+            android:name=".reader.ui.CrtSettingsActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_games"/>
+        <activity
+            android:name=".reader.ui.DictionaryManagerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_dictionaries"/>
+        <activity
+            android:name=".reader.ui.AnkiSetupActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_anki_setup"/>
+        <activity
+            android:name=".reader.ui.ReaderStartActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_start_title"/>
+        <activity
+            android:name=".reader.ui.ReaderBacklogActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_backlog"/>
+
+        <provider
+            android:name=".reader.ReaderFileProvider"
+            android:authorities="${applicationId}.reader.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/reader_file_paths" />
+        </provider>
+    </application>
+
+
+
+</manifest>

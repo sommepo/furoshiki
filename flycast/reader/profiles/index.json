@@ -1,0 +1,86 @@
+{
+  "format": 1,
+  "system": "dreamcast",
+  "scripts": [
+    {
+      "id": "6107179",
+      "title": "What's シェンムー 〜湯川(元)専務をさがせ〜 (What's Shenmue)",
+      "reads": "The subtitles: what is said in cutscenes and in conversations",
+      "version": "6107179 (Japan)",
+      "api": 1,
+      "file": "6107179.lua",
+      "size": 3924,
+      "sha256": "7fdff5e0794e4a69dc5f382d798455820c0f8f77be6fe929711c87dad30c6686"
+    },
+    {
+      "id": "HDR-0072",
+      "title": "サクラ大戦 (Sakura Taisen)",
+      "reads": "The message window and the answers of a timed choice (LIPS)",
+      "version": "HDR-0072 (Japan), both discs",
+      "api": 1,
+      "file": "HDR-0072.lua",
+      "size": 6436,
+      "sha256": "dd4569986fbcfe2ae60939690f7560d75941e1f2c60532fa3afab53d5f62ee29"
+    },
+    {
+      "id": "HDR-0074",
+      "title": "レンタヒーロー No.1 (Rent a Hero No.1)",
+      "reads": "The message window: narration and what people say",
+      "version": "HDR-0074 (Japan)",
+      "api": 1,
+      "file": "HDR-0074.lua",
+      "size": 4942,
+      "sha256": "edafed92a6466527f1549853fb013b4eef3c4f9bf23f054cf2401b9ee5182ab2"
+    },
+    {
+      "id": "HDR-0151",
+      "title": "セガガガ (Segagaga)",
+      "reads": "The message window: what is said in the story's conversations",
+      "version": "HDR-0151 (Japan)",
+      "api": 1,
+      "file": "HDR-0151.lua",
+      "size": 4216,
+      "sha256": "569d6942c4175e6acaf4707e4996d62f7532386444a2b5fa29293e8ed29e67fd"
+    },
+    {
+      "id": "HDR-0164",
+      "title": "シェンムーII (Shenmue II)",
+      "reads": "The subtitles: what is said in cutscenes and in conversations",
+      "version": "HDR-0164 (Japan), seen on disc 1 of 4",
+      "api": 1,
+      "file": "HDR-0164.lua",
+      "size": 2522,
+      "sha256": "879fd3159a1f0c4de7f214baac7cdfa0b031e5f38833a7f4101fe7152db35020"
+    },
+    {
+      "id": "T14301M",
+      "title": "北へ。White Illumination (Kita e. White Illumination)",
+      "reads": "The message window: what is said and told in the story",
+      "version": "T14301M (Japan)",
+      "api": 1,
+      "file": "T14301M.lua",
+      "size": 6124,
+      "sha256": "78e6d8139c19e8318e2a066b58564e07746f2b297332cf816b45bb1b1f597748"
+    },
+    {
+      "id": "T35401M",
+      "title": "July",
+      "reads": "The message window, with who speaks, and the choices",
+      "version": "T35401M (header 481991C9)",
+      "api": 1,
+      "file": "T35401M.lua",
+      "size": 5637,
+      "sha256": "ec4988157f13fbb663b765d8bd7bdd94ab7406568e36fbc0c7bd2ac5d75aadee"
+    },
+    {
+      "id": "T46303M",
+      "title": "新世紀エヴァンゲリオン 綾波育成計画 (Ayanami Raising Project)",
+      "reads": "The message window: what is said and told",
+      "version": "T46303M (Japan)",
+      "api": 1,
+      "file": "T46303M.lua",
+      "size": 3991,
+      "sha256": "3e13bcc8eaf3436426e053b5b115d05c7a5d66d20b907796c3ca324326e95f09"
+    }
+  ]
+}

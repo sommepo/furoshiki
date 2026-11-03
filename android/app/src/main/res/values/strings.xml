@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Furoshiki</string>
+    <string name="game_menu_resume">Back to the game</string>
+    <string name="game_menu_reader">Reader menu</string>
+    <string name="game_menu_save">Save state</string>
+    <string name="game_menu_load">Load state</string>
+    <string name="game_menu_home">Back to Furoshiki</string>
+    <string name="game_failed">%1$s</string>
+    <string name="game_ended">The game has ended.</string>
+    <string name="game_no_bios">This game needs the console\'s BIOS. Put your own in Games/BIOS/%1$s.</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A cloth tied at its top: a furoshiki, in the Slate look's greys and the cursor's three lights. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#2B2A33" />
+        </shape>
+    </item>
+    <item>
+        <vector android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+            <path android:fillColor="#CDC9BE" android:pathData="M54,44 C70,46 84,56 84,70 C84,82 70,86 54,86 C38,86 24,82 24,70 C24,56 38,46 54,44 Z" />
+            <path android:fillColor="#9F9A8E" android:pathData="M54,44 C50,54 44,66 34,80 C28,76 24,74 24,70 C24,56 38,46 54,44 Z" />
+            <path android:fillColor="#CDC9BE" android:pathData="M54,46 C46,42 40,32 42,24 C48,26 52,32 54,40 C56,32 60,26 66,24 C68,32 62,42 54,46 Z" />
+            <path android:fillColor="#FF5466" android:pathData="M49,66 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+            <path android:fillColor="#3FD884" android:pathData="M56,66 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+            <path android:fillColor="#3D8CFF" android:pathData="M63,66 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+        </vector>
+    </item>
+</layer-list>

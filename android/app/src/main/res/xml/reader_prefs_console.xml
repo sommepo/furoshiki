@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader settings' page of an app's own (Section.CONSOLE): this app has none
+     (Console.CONSOLE_PAGE is false), so the entry is hidden. -->
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto" />

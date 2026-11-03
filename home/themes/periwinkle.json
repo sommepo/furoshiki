@@ -1,0 +1,78 @@
+{
+  "name": "Periwinkle",
+  "order": 2,
+  "about": "Watercolour periwinkle, an italic serif header and clock, deep-blue text, a pink glow on the chosen row, a pink-framed card",
+  "page": "#9da7e6",
+  "bg": "radial-gradient(ellipse at 18% 18%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(ellipse at 82% 72%,rgba(104,116,214,.5),rgba(104,116,214,0) 55%),radial-gradient(ellipse at 62% 8%,rgba(214,190,255,.55),rgba(214,190,255,0) 48%),radial-gradient(ellipse at 30% 88%,rgba(160,200,255,.45),rgba(160,200,255,0) 50%),linear-gradient(160deg,#aeb7ec,#929de2 52%,#b6bcef)",
+
+  "panel-bg": "rgba(255,255,255,.2)",
+  "panel-blur": 2,
+  "panel-shadow": "inset 0 2px 0 var(--frame-dk),inset 0 -2px 0 var(--frame-dk),5px 6px 0 rgba(60,62,140,.2),0 14px 26px rgba(60,62,140,.22)",
+  "frame": "#f3f1ff",
+  "frame-dk": "rgba(72,74,156,.45)",
+  "card-frame": "#f78fc9",
+  "card-shadow": "inset 0 0 0 2px var(--card-frame),5px 6px 0 rgba(60,62,140,.2),0 14px 26px rgba(60,62,140,.22)",
+  "card-rail": "linear-gradient(90deg,#ffd0ea 0 2px,#f07fbd 2px 4px,rgba(0,0,0,0) 4px)",
+
+  "txt": "#243286",
+  "txt-sh": "1px 1px 0 rgba(255,255,255,.65)",
+  "sel-txt": "#ffffff",
+  "sel-sh": "1px 1px 0 rgba(120,20,80,.6)",
+  "dim": "rgba(104,106,150,.55)",
+  "dim-sh": "1px 1px 0 rgba(255,255,255,.7),-1px -1px 0 rgba(60,62,120,.15)",
+
+  "row-rule": "rgba(255,255,255,.35)",
+
+  "accent": "#e23c9e",
+  "accent-glow": "0 0 5px rgba(255,80,190,.55)",
+  "accent-groove": "linear-gradient(90deg,rgba(60,62,130,.45) 0 1px,var(--accent) 1px 2.5px,#ffc2e4 2.5px 3.5px,var(--accent) 3.5px 5px,rgba(255,255,255,.7) 5px 6px)",
+  "rail-hi": "#eeecff",
+  "rail-lo": "#aeb0e6",
+  "divot": "#5f62b0",
+  "divot-sh": "inset -1px 1px 0 rgba(0,0,0,.4),1px 0 0 rgba(255,255,255,.6)",
+  "line": "rgba(255,255,255,.75)",
+
+  "tab-bg": "linear-gradient(#ebe9ff,#c3c4f2)",
+  "tab-txt": "#243286",
+  "tab-sh": "1px 1px 0 rgba(255,255,255,.75)",
+  "tab-shadow": "inset 0 0 0 2px var(--frame-dk),2px 2px 0 var(--frame-dk)",
+  "tab-height": 56,
+  "tab-on": "rgba(228,52,160,.8)",
+
+  "thumb-frame": "#ffffff",
+  "thumb-outline": "3px var(--card-frame)",
+  "thumb-shadow": "3px 3px 0 4px var(--frame-dk)",
+
+  "orb-glow": "0 0 3px rgba(255,255,255,.95)",
+  "cursor-glow": "rgba(255,206,238,.95)",
+
+  "clock": { "top": 2, "format": "HH:mm:ss" },
+  "layout": { "detail-pad": 34, "list-pad-left": 30, "list-pad-right": 18, "vline-left": 90, "vline-right": 246 },
+  "file-text": "File %1 — %2",
+  "head-case": "as-is",
+
+  "smooth": 0.6,
+  "type": {
+    "head":   { "font": "DotGothic16-Regular.ttf", "size": 42, "spacing": 0.01 },
+    "clock":  { "font": "DotGothic16-Regular.ttf", "size": 44, "spacing": 0.03 },
+    "file":   { "font": "DotGothic16-Regular.ttf", "size": 24 },
+    "title":  { "font": "DotGothic16-Regular.ttf", "size": 44, "line": 58 },
+    "sub":    { "font": "DotGothic16-Regular.ttf", "size": 32, "line": 46 },
+    "stats":  { "font": "DotGothic16-Regular.ttf", "size": 21, "spacing": 0.42, "line": 36 },
+    "number": { "font": "DotGothic16-Regular.ttf", "size": 26 },
+    "row":    { "font": "DotGothic16-Regular.ttf", "size": 26 },
+    "empty":  { "font": "DotGothic16-Regular.ttf", "size": 26, "spacing": 0.42 },
+    "when":   { "font": "DotGothic16-Regular.ttf", "size": 20, "spacing": 0.24 },
+    "tab":    { "font": "DotGothic16-Regular.ttf", "size": 20 },
+    "lr":     { "font": "DotGothic16-Regular.ttf", "size": 20 }
+  },
+
+  "fuzz": {
+    "default": "light",
+    "light": { "shift": 0.9, "blur": 0.3, "contrast": 1 },
+    "heavy": { "shift": 2, "blur": 0.7, "contrast": 1.06 },
+    "grain": 0.16,
+    "grain-frequency": 0.55,
+    "interlace": 0.03
+  }
+}

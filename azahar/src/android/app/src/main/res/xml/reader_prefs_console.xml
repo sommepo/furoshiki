@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader settings' page of this app's own (Section.CONSOLE): how the list of games looks. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="reader_home_3ds"
+        app:defaultValue="true"
+        app:title="@string/reader_home_3ds"
+        app:summary="@string/reader_home_3ds_summary"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        app:key="reader_readable_only"
+        app:defaultValue="true"
+        app:title="@string/reader_readable_only"
+        app:summary="@string/reader_readable_only_summary"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

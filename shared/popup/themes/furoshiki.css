@@ -1,0 +1,18 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Furoshiki glass: a translucent indigo panel with a lavender double border and rounded white
+   gothic text with a soft glow, as Furoshiki's own menus (and Never7's). */
+:root { --font: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif; --accent: #7ff0c8; --dim: #cfc9f5; }
+.popup {
+  background: rgba(52, 40, 130, 0.86);
+  border: 3px double #b9b0f2;
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: #fff;
+}
+.headword { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+.entry + .entry { border-top-color: rgba(185, 176, 242, 0.45); }
+.tag { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(185, 176, 242, 0.6); border-radius: 999px; padding: 0 8px; color: #e9e5ff; }
+.tag.frequency { border-color: #7ff0c8; color: #c4ffe9; }
+.card, .card.book { background: rgba(255, 255, 255, 0.14); border: 1px solid #b9b0f2; border-radius: 8px; color: #fff; }
+.card:active, .card.pressed { background: rgba(224, 79, 168, 0.6); }

@@ -1,0 +1,62 @@
+// SPDX-FileCopyrightText: Readers contributors
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+#include <catch2/catch_test_macros.hpp>
+#include <QJsonArray>
+#include "reader/desktop/popup_model.h"
+#include "reader/desktop/tests/test_util.h"
+
+using namespace ReaderApp;
+
+namespace {
+TermEntry Sense(const QString& dictionary, const QString& tags, const QString& glossary) {
+    TermEntry entry;
+    entry.dictionary = dictionary;
+    entry.definition_tags = tags;
+    entry.glossary_json = glossary;
+    return entry;
+}
+} // namespace
+
+TEST_CASE("PopupModel: what the popup page draws for a headword", "[reader][popup]") {
+    LookupResult result;
+    result.expression = Q(u"死ぬほど");
+    result.reading = Q(u"しぬほど");
+    result.reasons = {QStringLiteral("masu")};
+    result.frequencies = {Frequency{QStringLiteral("JPDB"), QStringLiteral("7621"), 7621.0, true}};
+    result.pitches = {PitchAccent{QStringLiteral("NHK"), Q(u"しぬほど"), {0, 2}}};
+    result.entries = {
+        Sense(QStringLiteral("JMdict"), QStringLiteral("1 exp"), QStringLiteral(R"(["to death","to distraction"])")),
+        Sense(QStringLiteral("JMdict"), QStringLiteral("2 exp"), QStringLiteral(R"(["like crazy"])")),
+        Sense(QStringLiteral("JMdict"), QStringLiteral("forms"), Q(u"[\"死ぬほど | 死ぬ程★ | しぬほど(㊒)\"]")),
+        Sense(QStringLiteral("Other"), QStringLiteral("n"), QStringLiteral(R"(["very much"])")),
+    };
+    const QJsonObject entry = PopupModel::Entry(result, QStringLiteral("Looked up once"));
+    REQUIRE(entry.value(QStringLiteral("expression")).toString() == Q(u"死ぬほど"));
+    REQUIRE(entry.value(QStringLiteral("reading")).toString() == Q(u"しぬほど"));
+    REQUIRE(entry.value(QStringLiteral("history")).toString() == QStringLiteral("Looked up once"));
+    REQUIRE(entry.value(QStringLiteral("pitches")).toArray().at(0).toString() == QStringLiteral("[0,2]"));
+    REQUIRE(entry.value(QStringLiteral("frequencies")).toArray().at(0).toObject().value(QStringLiteral("value")).toString() ==
+            QStringLiteral("7621"));
+    REQUIRE(entry.value(QStringLiteral("state")).toString() == QStringLiteral("add"));
+
+    const QJsonArray senses = entry.value(QStringLiteral("senses")).toArray();
+    REQUIRE(senses.size() == 3);
+    // Two dictionaries: each begins with its name. Numbers among the tags are left out, and a
+    // tag the sense before had is not said again.
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("heading")).toString() == QStringLiteral("JMdict"));
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("tags")).toArray() == QJsonArray{QStringLiteral("exp")});
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("glosses")).toArray().size() == 2);
+    REQUIRE(senses.at(1).toObject().value(QStringLiteral("number")).toInt() == 2);
+    REQUIRE(senses.at(1).toObject().value(QStringLiteral("tags")).toArray().isEmpty());
+    REQUIRE_FALSE(senses.at(1).toObject().contains(QStringLiteral("heading")));
+    REQUIRE(senses.at(2).toObject().value(QStringLiteral("heading")).toString() == QStringLiteral("Other"));
+    REQUIRE(senses.at(2).toObject().value(QStringLiteral("number")).toInt() == 1);
+
+    // The other spellings, without JMdict's signs.
+    REQUIRE(PopupModel::Forms(result) == QStringList{Q(u"死ぬほど"), Q(u"死ぬ程"), Q(u"しぬほど")});
+    // No history: no line.
+    REQUIRE_FALSE(PopupModel::Entry(result, {}).contains(QStringLiteral("history")));
+    REQUIRE(PopupModel::StateName(2) == QStringLiteral("inDeck"));
+    REQUIRE(PopupModel::StateName(9) == QStringLiteral("add"));
+}

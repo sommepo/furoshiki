@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader fork: the look of the reading layer's own screens and dialogs: the colours of
+         the Dreamcast-style menu (reader/ui/dc_home.cpp): a pale ground, dark blue type, and
+         orange for what is chosen. Light by day and by night, as the console's menu is. -->
+    <color name="reader_dc_ground">#EAF3FD</color>
+    <color name="reader_dc_panel">#FFFFFF</color>
+    <color name="reader_dc_sky">#C4DDF6</color>
+    <color name="reader_dc_ink">#1F3F8F</color>
+    <color name="reader_dc_ink_soft">#5A7AB8</color>
+    <color name="reader_dc_orange">#F27C1E</color>
+    <color name="reader_dc_orange_deep">#D8620A</color>
+    <color name="reader_dc_edge">#7FA8E0</color>
+
+    <style name="Theme.Reader" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/reader_dc_orange</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorPrimaryContainer">@color/reader_dc_sky</item>
+        <item name="colorOnPrimaryContainer">@color/reader_dc_ink</item>
+        <item name="colorSecondary">@color/reader_dc_ink</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="colorSecondaryContainer">@color/reader_dc_sky</item>
+        <item name="colorOnSecondaryContainer">@color/reader_dc_ink</item>
+        <item name="colorTertiary">@color/reader_dc_orange_deep</item>
+        <item name="colorSurface">@color/reader_dc_ground</item>
+        <item name="colorOnSurface">@color/reader_dc_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_dc_sky</item>
+        <item name="colorOnSurfaceVariant">@color/reader_dc_ink_soft</item>
+        <item name="colorSurfaceContainer">@color/reader_dc_panel</item>
+        <item name="colorSurfaceContainerLow">@color/reader_dc_panel</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_dc_panel</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_dc_sky</item>
+        <item name="colorOutline">@color/reader_dc_edge</item>
+        <item name="colorOutlineVariant">@color/reader_dc_edge</item>
+        <item name="android:colorBackground">@color/reader_dc_ground</item>
+        <item name="android:windowBackground">@color/reader_dc_ground</item>
+        <item name="android:textColorPrimary">@color/reader_dc_ink</item>
+        <item name="android:textColorSecondary">@color/reader_dc_ink_soft</item>
+        <item name="android:statusBarColor">@color/reader_dc_sky</item>
+        <item name="android:navigationBarColor">@color/reader_dc_ground</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

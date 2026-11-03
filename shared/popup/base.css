@@ -1,0 +1,89 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   The popup's layout, and the "console" theme: today's popup in the console's own colours, which
+   the app hands over as the variables below (Style:: on the desktop, ReaderStyle on Android).
+   A theme (themes/*.css) comes after this, the user's own CSS after that. */
+:root {
+  --text: #ffffff;
+  --dim: #b4b4c0;
+  --accent: #9fd0ff;
+  --ground: rgba(20, 20, 28, 0.94);
+  --edge: #8888a0;
+  --box: #2f5bc8;
+  --box-pressed: #1e3c8a;
+  --sign: #ffffff;
+  --book: #ffffff;
+  --scale: 1;
+  --font: "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+body { font-family: var(--font); color: var(--text); -webkit-user-select: none; user-select: none; }
+.popup {
+  box-sizing: border-box;
+  max-height: 100vh;
+  overflow-y: auto;
+  background: var(--ground);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  padding: calc(5px * var(--scale)) calc(5px * var(--scale)) calc(4px * var(--scale)) calc(7px * var(--scale));
+  font-size: calc(13px * var(--scale));
+  line-height: 1.35;
+  scrollbar-width: thin;
+}
+.popup::-webkit-scrollbar { width: 4px; }
+.popup::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+.entry { position: relative; padding: 3px 0 4px; }
+.entry + .entry { border-top: 1px solid var(--edge); }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; }
+.headword { font-size: calc(17px * var(--scale)); font-weight: 600; ruby-position: over; }
+.headword rt { display: none; font-size: 0.62em; font-weight: 400; color: var(--dim); }
+.reading, .frequency, .lookups, .number, .notes, .dictionary-name, .pitch { color: var(--dim); font-size: calc(11px * var(--scale)); }
+.reasons, .pitch { color: var(--accent); font-size: calc(11px * var(--scale)); }
+.entry.unknown .headword {
+  background: color-mix(in srgb, var(--accent) 19%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 63%, transparent);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+.popup.no-mark .entry.unknown .headword { background: none; box-shadow: none; padding: 0; }
+.tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: calc(11px * var(--scale)); color: var(--dim); }
+.tag-name::after { content: " "; }
+.senses { list-style: none; margin: 0; padding: 0; }
+.sense .tag { margin-right: 0.3em; }
+.number { margin-right: 0.3em; }
+.glosses .gloss + .gloss::before { content: " | "; color: var(--dim); }
+.forms .form + .form::before { content: "、"; color: var(--dim); }
+.forms .tag { margin-right: 0.4em; }
+.card-buttons {
+  display: flex; gap: calc(6px * var(--scale)); justify-content: flex-start;
+  margin-top: 2px;
+  pointer-events: none;
+}
+.popup[data-corner$="right"] .card-buttons { justify-content: flex-end; }
+.popup[data-corner^="top"] .entry { display: flex; flex-direction: column; }
+.popup[data-corner^="top"] .card-buttons { order: -1; position: static; margin: 0 0 2px; }
+.card {
+  pointer-events: auto;
+  width: calc(24px * var(--scale)); height: calc(24px * var(--scale));
+  padding: 0; border-radius: 4px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--sign) 63%, transparent);
+  background: var(--box); color: var(--sign);
+  display: grid; place-items: center; position: relative;
+}
+.card.book { color: var(--book); border-color: color-mix(in srgb, var(--book) 63%, transparent); }
+.card:active, .card.pressed { background: var(--box-pressed); }
+.card svg { width: 60%; height: 60%; display: block; }
+.card[data-state="working"] { opacity: 0.4; }
+.card[data-state="checking"] svg { animation: reader-turn 0.9s linear infinite; }
+.card[data-state="away"] svg { opacity: 0.6; }
+.card[data-state="away"]::after {
+  content: ""; position: absolute; right: -3px; top: -3px; width: 30%; height: 30%;
+  border-radius: 50%; background: #8a8aa0; border: 1px solid var(--box);
+}
+@keyframes reader-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .card[data-state="checking"] svg { animation: none; } }
+.card-buttons.ask .card { width: calc(30px * var(--scale)); }
+.card-buttons.ask .ask-keep { border-color: var(--accent); }
+.message { font-size: calc(13px * var(--scale)); padding: 2px 0; }
+.link { color: var(--accent); cursor: pointer; text-decoration: underline; }

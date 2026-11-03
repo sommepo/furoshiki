@@ -1,0 +1,11 @@
+Furoshiki @VERSION@: where its source code is
+
+Everything in this package is free software (NOTICES.txt says under which licences). Its
+complete corresponding source code is the repository
+
+    https://github.com/sommepo/furoshiki
+
+at the commit @COMMIT@ (the tag v@VERSION@), with the Git submodules its .gitmodules
+names, at the commits that commit records. For three years from this release you may also ask
+for the source by opening an issue there; it will be provided at no charge beyond the cost of
+hosting it.

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader fork: the colours of the PlayStation-style home's System Screen look (reader/ui/PsHome.kt). -->
+    <color name="colorPrimary">#2A2938</color>
+    <color name="colorPrimaryDark">#15141F</color>
+    <color name="colorAccent">#8C78FF</color>
+    <color name="colorNavigation">#06060C</color>
+
+    <color name="black_overlay">#66000000</color>
+    <color name="fab_background">#3E3F4A</color>
+
+    <color name="emulationActivityPauseBackground">#E615141F</color>
+</resources>

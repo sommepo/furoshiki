@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader settings, the page "Text output". -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="reader_clipboard_auto"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_clipboard_auto"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

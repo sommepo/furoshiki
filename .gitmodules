@@ -1,0 +1,334 @@
+[submodule "azahar/externals/boost"]
+	path = azahar/externals/boost
+	url = https://github.com/azahar-emu/ext-boost.git
+[submodule "azahar/externals/nihstro"]
+	path = azahar/externals/nihstro
+	url = https://github.com/neobrain/nihstro.git
+[submodule "azahar/externals/soundtouch"]
+	path = azahar/externals/soundtouch
+	url = https://github.com/azahar-emu/soundtouch.git
+[submodule "azahar/externals/catch2"]
+	path = azahar/externals/catch2
+	url = https://github.com/catchorg/Catch2
+[submodule "azahar/externals/dynarmic"]
+	path = azahar/externals/dynarmic
+	url = https://github.com/azahar-emu/dynarmic.git
+[submodule "azahar/externals/xbyak"]
+	path = azahar/externals/xbyak
+	url = https://github.com/herumi/xbyak.git
+[submodule "azahar/externals/fmt"]
+	path = azahar/externals/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "azahar/externals/enet"]
+	path = azahar/externals/enet
+	url = https://github.com/lsalzman/enet.git
+[submodule "azahar/externals/inih/inih"]
+	path = azahar/externals/inih/inih
+	url = https://github.com/benhoyt/inih.git
+[submodule "azahar/externals/libressl"]
+	path = azahar/externals/libressl
+	url = https://github.com/azahar-emu/ext-libressl-portable.git
+[submodule "azahar/externals/libusb/libusb"]
+	path = azahar/externals/libusb/libusb
+	url = https://github.com/libusb/libusb.git
+[submodule "azahar/externals/cubeb"]
+	path = azahar/externals/cubeb
+	url = https://github.com/mozilla/cubeb
+[submodule "azahar/externals/discord-rpc"]
+	path = azahar/externals/discord-rpc
+	url = https://github.com/azahar-emu/discord-rpc.git
+[submodule "azahar/externals/cpp-jwt"]
+	path = azahar/externals/cpp-jwt
+	url = https://github.com/arun11299/cpp-jwt.git
+[submodule "azahar/externals/teakra"]
+	path = azahar/externals/teakra
+	url = https://github.com/wwylele/teakra.git
+[submodule "azahar/externals/lodepng/lodepng"]
+	path = azahar/externals/lodepng/lodepng
+	url = https://github.com/lvandeve/lodepng.git
+[submodule "azahar/externals/zstd"]
+	path = azahar/externals/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "azahar/externals/libyuv"]
+	path = azahar/externals/libyuv
+	url = https://github.com/lemenkov/libyuv.git
+[submodule "azahar/externals/sdl2/SDL"]
+	path = azahar/externals/sdl2/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "azahar/externals/dds-ktx"]
+	path = azahar/externals/dds-ktx
+	url = https://github.com/septag/dds-ktx
+[submodule "azahar/externals/openal-soft"]
+	path = azahar/externals/openal-soft
+	url = https://github.com/azahar-emu/openal-soft
+[submodule "azahar/externals/glslang"]
+	path = azahar/externals/glslang
+	url = https://github.com/KhronosGroup/glslang
+[submodule "azahar/externals/vma"]
+	path = azahar/externals/vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "azahar/externals/vulkan-headers"]
+	path = azahar/externals/vulkan-headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "azahar/externals/sirit/sirit"]
+	path = azahar/externals/sirit/sirit
+	url = https://github.com/azahar-emu/sirit
+[submodule "azahar/externals/faad2/faad2"]
+	path = azahar/externals/faad2/faad2
+	url = https://github.com/knik0/faad2
+[submodule "azahar/externals/library-headers"]
+	path = azahar/externals/library-headers
+	url = https://github.com/azahar-emu/ext-library-headers.git
+[submodule "azahar/externals/libadrenotools"]
+	path = azahar/externals/libadrenotools
+	url = https://github.com/bylaws/libadrenotools
+[submodule "azahar/externals/oaknut"]
+	path = azahar/externals/oaknut
+	url = https://github.com/merryhime/oaknut.git
+[submodule "azahar/dist/compatibility_list"]
+	path = azahar/dist/compatibility_list
+	url = https://github.com/azahar-emu/compatibility-list
+[submodule "azahar/externals/spirv-tools"]
+	path = azahar/externals/spirv-tools
+	url = https://github.com/KhronosGroup/SPIRV-Tools
+[submodule "azahar/externals/spirv-headers"]
+	path = azahar/externals/spirv-headers
+	url = https://github.com/KhronosGroup/SPIRV-Headers
+[submodule "azahar/externals/xxHash"]
+	path = azahar/externals/xxHash
+	url = https://github.com/Cyan4973/xxHash.git
+[submodule "azahar/externals/libretro-common/libretro-common"]
+	path = azahar/externals/libretro-common/libretro-common
+	url = https://github.com/libretro/libretro-common.git
+[submodule "azahar/externals/dllwalker"]
+	path = azahar/externals/dllwalker
+	url = https://github.com/azahar-emu/dllwalker
+[submodule "azahar/externals/cryptopp"]
+	path = azahar/externals/cryptopp
+	url = https://github.com/cryptopp-modern/cryptopp-modern.git
+[submodule "ppsspp/libretro/libretro-common"]
+	path = ppsspp/libretro/libretro-common
+	url = https://github.com/libretro/libretro-common.git
+[submodule "ppsspp/pspautotests"]
+	path = ppsspp/pspautotests
+	url = https://github.com/hrydgard/pspautotests.git
+[submodule "ppsspp/ffmpeg"]
+	path = ppsspp/ffmpeg
+	url = https://github.com/hrydgard/ppsspp-ffmpeg.git
+[submodule "ppsspp/ext/armips"]
+	path = ppsspp/ext/armips
+	url = https://github.com/Kingcom/armips.git
+[submodule "ppsspp/ext/glslang"]
+	path = ppsspp/ext/glslang
+	url = https://github.com/hrydgard/glslang.git
+[submodule "ppsspp/ext/SPIRV-Cross"]
+	path = ppsspp/ext/SPIRV-Cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross.git
+[submodule "ppsspp/ext/discord-rpc"]
+	path = ppsspp/ext/discord-rpc
+	url = https://github.com/discordapp/discord-rpc.git
+[submodule "ppsspp/ext/rapidjson"]
+	path = ppsspp/ext/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
+[submodule "ppsspp/ext/miniupnp"]
+	path = ppsspp/ext/miniupnp
+	url = https://github.com/miniupnp/miniupnp.git
+[submodule "ppsspp/ext/zstd"]
+	path = ppsspp/ext/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "ppsspp/SDL/macOS"]
+	path = ppsspp/SDL/macOS
+	url = https://github.com/hrydgard/ppsspp-mac-sdl
+[submodule "ppsspp/assets/debugger"]
+	path = ppsspp/assets/debugger
+	url = https://github.com/unknownbrackets/ppsspp-debugger.git
+	branch = bundled
+[submodule "ppsspp/ext/cpu_features"]
+	path = ppsspp/ext/cpu_features
+	url = https://github.com/google/cpu_features.git
+[submodule "ppsspp/ext/rcheevos"]
+	path = ppsspp/ext/rcheevos
+	url = https://github.com/RetroAchievements/rcheevos.git
+[submodule "ppsspp/ext/naett"]
+	path = ppsspp/ext/naett
+	url = https://github.com/erkkah/naett.git
+[submodule "ppsspp/ext/libchdr"]
+	path = ppsspp/ext/libchdr
+	url = https://github.com/rtissera/libchdr.git
+[submodule "ppsspp/ext/libadrenotools"]
+	path = ppsspp/ext/libadrenotools
+	url = https://github.com/bylaws/libadrenotools.git
+[submodule "ppsspp/ext/OpenXR-SDK"]
+	path = ppsspp/ext/OpenXR-SDK
+	url = https://github.com/KhronosGroup/OpenXR-SDK.git
+[submodule "ppsspp/ios/MoltenVK"]
+	path = ppsspp/ios/MoltenVK
+	url = https://github.com/hrydgard/ppsspp-moltenvk.git
+[submodule "ppsspp/ext/lua"]
+	path = ppsspp/ext/lua
+	url = https://github.com/hrydgard/ppsspp-lua.git
+[submodule "ppsspp/ext/freetype"]
+	path = ppsspp/ext/freetype
+	url = https://github.com/hrydgard/freetype.git
+[submodule "ppsspp/ext/nanosvg"]
+	path = ppsspp/ext/nanosvg
+	url = https://github.com/hrydgard/nanosvg.git
+[submodule "ppsspp/ext/aemu_postoffice"]
+	path = ppsspp/ext/aemu_postoffice
+	url = https://github.com/Kethen/aemu_postoffice.git
+	branch = ppsspp
+[submodule "flycast/core/deps/SDL"]
+	path = flycast/core/deps/SDL
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "flycast/core/deps/libchdr"]
+	path = flycast/core/deps/libchdr
+	url = https://github.com/flyinghead/libchdr.git
+	ignore = dirty
+[submodule "flycast/core/deps/luabridge"]
+	path = flycast/core/deps/luabridge
+	url = https://github.com/vinniefalco/LuaBridge.git
+[submodule "flycast/core/deps/breakpad"]
+	path = flycast/core/deps/breakpad
+	url = https://github.com/flyinghead/mingw-breakpad
+[submodule "flycast/core/deps/Vulkan-Headers"]
+	path = flycast/core/deps/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "flycast/core/deps/VulkanMemoryAllocator"]
+	path = flycast/core/deps/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "flycast/core/deps/glslang"]
+	path = flycast/core/deps/glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "flycast/core/deps/oboe"]
+	path = flycast/core/deps/oboe
+	url = https://github.com/google/oboe.git
+[submodule "flycast/core/deps/Syphon"]
+	path = flycast/core/deps/Syphon
+	url = https://github.com/vkedwardli/Syphon-Framework.git
+[submodule "flycast/core/deps/Spout"]
+	path = flycast/core/deps/Spout
+	url = https://github.com/vkedwardli/Spout2.git
+[submodule "flycast/core/deps/discord-rpc"]
+	path = flycast/core/deps/discord-rpc
+	url = https://github.com/harmonytf/discord-rpc
+[submodule "flycast/core/deps/libadrenotools"]
+	path = flycast/core/deps/libadrenotools
+	url = https://github.com/bylaws/libadrenotools
+[submodule "flycast/core/deps/rcheevos"]
+	path = flycast/core/deps/rcheevos
+	url = https://github.com/RetroAchievements/rcheevos.git
+[submodule "flycast/core/deps/googletest"]
+	path = flycast/core/deps/googletest
+	url = https://github.com/google/googletest.git
+[submodule "flycast/core/deps/asio"]
+	path = flycast/core/deps/asio
+	url = https://github.com/flyinghead/asio.git
+[submodule "flycast/core/deps/xbyak"]
+	path = flycast/core/deps/xbyak
+	url = https://github.com/herumi/xbyak.git
+[submodule "flycast/core/deps/libjuice"]
+	path = flycast/core/deps/libjuice
+	url = https://github.com/paullouisageneau/libjuice.git
+[submodule "flycast/core/deps/websocketpp"]
+	path = flycast/core/deps/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "flycast/core/deps/DreamPicoPort-API"]
+	path = flycast/core/deps/DreamPicoPort-API
+	url = https://github.com/OrangeFox86/DreamPicoPort-API.git
+[submodule "flycast/core/deps/tinygettext"]
+	path = flycast/core/deps/tinygettext
+	url = https://github.com/flyinghead/tinygettext
+[submodule "flycast/core/deps/freetype"]
+	path = flycast/core/deps/freetype
+	url = https://gitlab.freedesktop.org/freetype/freetype.git
+[submodule "flycast/core/deps/gamesdk"]
+	path = flycast/core/deps/gamesdk
+	url = https://github.com/flyinghead/gamesdk.git
+[submodule "station/dep/msvc/qt"]
+	path = station/dep/msvc/qt
+	url = https://github.com/stenzek/duckstation-ext-qt-minimal.git
+	shallow = true
+[submodule "vita3k/external/boost"]
+	path = vita3k/external/boost
+	url = https://github.com/Vita3K/ext-boost
+[submodule "vita3k/external/capstone"]
+	path = vita3k/external/capstone
+	url = https://github.com/aquynh/capstone.git
+[submodule "vita3k/external/dirent"]
+	path = vita3k/external/dirent
+	url = https://github.com/tronkko/dirent
+[submodule "vita3k/external/dlmalloc"]
+	path = vita3k/external/dlmalloc
+	url = https://github.com/Vita3K/dlmalloc
+[submodule "vita3k/external/ffmpeg"]
+	path = vita3k/external/ffmpeg
+	url = https://github.com/Vita3K/ffmpeg-core.git
+[submodule "vita3k/external/glslang"]
+	path = vita3k/external/glslang
+	url = https://github.com/KhronosGroup/glslang
+[submodule "vita3k/external/googletest"]
+	path = vita3k/external/googletest
+	url = https://github.com/google/googletest
+[submodule "vita3k/external/libfat16"]
+	path = vita3k/external/libfat16
+	url = https://github.com/Vita3K/libfat16
+[submodule "vita3k/external/printf"]
+	path = vita3k/external/printf
+	url = https://github.com/Vita3K/printf
+[submodule "vita3k/external/pugixml"]
+	path = vita3k/external/pugixml
+	url = https://github.com/zeux/pugixml
+[submodule "vita3k/external/sdl"]
+	path = vita3k/external/sdl
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "vita3k/external/spdlog"]
+	path = vita3k/external/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "vita3k/external/SPIRV-Cross"]
+	path = vita3k/external/SPIRV-Cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross.git
+[submodule "vita3k/external/stb"]
+	path = vita3k/external/stb
+	url = https://github.com/nothings/stb
+[submodule "vita3k/external/vita-toolchain"]
+	path = vita3k/external/vita-toolchain
+	url = https://github.com/vitasdk/vita-toolchain.git
+[submodule "vita3k/external/VulkanMemoryAllocator-Hpp"]
+	path = vita3k/external/VulkanMemoryAllocator-Hpp
+	url = https://github.com/YaaZ/VulkanMemoryAllocator-Hpp
+[submodule "vita3k/external/yaml-cpp"]
+	path = vita3k/external/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "vita3k/external/psvpfstools"]
+	path = vita3k/external/psvpfstools
+	url = https://github.com/Vita3K/psvpfstools.git
+[submodule "vita3k/external/xxHash"]
+	path = vita3k/external/xxHash
+	url = https://github.com/Cyan4973/xxHash
+[submodule "vita3k/external/dynarmic"]
+	path = vita3k/external/dynarmic
+	url = https://github.com/Vita3K/dynarmic.git
+[submodule "vita3k/external/fmt"]
+	path = vita3k/external/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "vita3k/external/LibAtrac9"]
+	path = vita3k/external/LibAtrac9
+	url = https://github.com/Vita3K/LibAtrac9.git
+[submodule "vita3k/external/tracy"]
+	path = vita3k/external/tracy
+	url = https://github.com/wolfpld/tracy.git
+[submodule "vita3k/external/nativefiledialog-extended"]
+	path = vita3k/external/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "vita3k/external/cubeb"]
+	path = vita3k/external/cubeb
+	url = https://github.com/mozilla/cubeb.git
+[submodule "vita3k/external/concurrentqueue"]
+	path = vita3k/external/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "vita3k/external/libadrenotools"]
+	path = vita3k/external/libadrenotools
+	url = https://github.com/bylaws/libadrenotools
+[submodule "vita3k/external/substitute"]
+	path = vita3k/external/substitute
+	url = https://github.com/Vita3K/substitute.git

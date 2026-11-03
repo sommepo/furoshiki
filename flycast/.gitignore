@@ -1,0 +1,37 @@
+build/
+artifact/
+
+# macOS
+.DS_Store
+shell/apple/emulator-ios/OpenMP/OpenMP.xcframework
+
+# Visual Studio
+.vs/
+.vscode/
+out/
+
+# JetBrains IDES
+.idea/
+cmake-build-*/
+
+# Dependencies from .gitmodules
+core/deps/breakpad/
+core/deps/glslang/
+.cache/
+compile_commands.json
+CMakeUserPresets.json
+
+# Reader fork
+/private/
+/build-host/
+/build-desktop/
+/build-windows/
+/build-windows-public/
+/build-core/
+/build-core-windows/
+/build-core-android/
+__pycache__/
+/shell/android-studio/.gradle/
+/shell/android-studio/local.properties
+/shell/android-studio/flycast/build/
+/shell/android-studio/flycast/.cxx/

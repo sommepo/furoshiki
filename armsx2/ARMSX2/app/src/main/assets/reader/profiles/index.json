@@ -1,0 +1,116 @@
+{
+  "format": 1,
+  "system": "ps2",
+  "scripts": [
+    {
+      "id": "SLPM-65051",
+      "title": "サイレントヒル2",
+      "reads": "The text at the bottom of the picture: what is said in scenes and what is told when something is looked at",
+      "version": "SLPM-65051",
+      "api": 1,
+      "file": "SLPM-65051.lua",
+      "size": 5106,
+      "sha256": "93f38a1855a503c072fb5cc405514d4b4c870e4829c78ad9d6b49dd5cd2564d1"
+    },
+    {
+      "id": "SLPM-65320",
+      "title": "EVE burst error PLUS",
+      "reads": "The message window: what is said and told, part by part as it comes up in full",
+      "version": "SLPM-65320, disc version 1.02",
+      "api": 1,
+      "file": "SLPM-65320.lua",
+      "size": 10508,
+      "sha256": "46489f82d181ea76e1f7388e3bb9b138dbfb0c4f8c089026e840a630f27b736b"
+    },
+    {
+      "id": "SLPM-65421",
+      "title": "Ever17 -the out of infinity- Premium Edition",
+      "reads": "The story's text with speakers, each message as it has come up in full, and choices",
+      "version": "SLPM-65421, disc version 1.01",
+      "api": 1,
+      "file": "SLPM-65421.lua",
+      "size": 10419,
+      "sha256": "5db468de6a8a52cd497ba7dd5073746cd7367e5ab2b909591594af2997d903ce"
+    },
+    {
+      "id": "SLPM-65550",
+      "title": "Remember11 -the age of infinity-",
+      "reads": "The story's text with speakers, each message as it has come up in full, and choices",
+      "version": "SLPM-65550, disc version 1.02",
+      "api": 1,
+      "file": "SLPM-65550.lua",
+      "size": 11595,
+      "sha256": "8e43e3272afe1185a11f5650ac1b623146c5d4d9cb910bb20bbfc5dc57b9eae5"
+    },
+    {
+      "id": "SLPM-65555",
+      "title": "ドラゴンクエストV 天空の花嫁",
+      "reads": "The message window: what is said and told, a speaker's lines as they have come up in full",
+      "version": "SLPM-65555",
+      "api": 1,
+      "file": "SLPM-65555.lua",
+      "size": 8279,
+      "sha256": "77c62895e14aad290e19319c38b0e5fd6f43b551d14e808a201eb7bc660dd9a3"
+    },
+    {
+      "id": "SLPM-66302",
+      "title": "CLANNAD",
+      "reads": "The story's text with speakers, each message as it comes up, and choices; finished routes can be marked",
+      "version": "SLPM-66302, disc version 1.01",
+      "api": 2,
+      "file": "SLPM-66302.lua",
+      "size": 16117,
+      "sha256": "2591d4eb44d7b87c2fffcd2faa3e3543c09cfeea0e1c0f939c6435c4b06b2d4c"
+    },
+    {
+      "id": "SLPM-66913",
+      "title": "ひぐらしのなく頃に祭 カケラ遊び (Higurashi no Naku Koro ni Matsuri: Kakera Asobi)",
+      "reads": "The story's text with speakers and furigana, part by part as it comes up",
+      "version": "SLPM-66913, disc version 1.01",
+      "api": 1,
+      "file": "SLPM-66913.lua",
+      "size": 11322,
+      "sha256": "af2d0b990619f18403cccebffbfa03544ade1be8b24566de48404fa0417a44ed"
+    },
+    {
+      "id": "SLPS-25041",
+      "title": "シャドウハーツ",
+      "reads": "The message windows of scenes and talk, with the speaker's name",
+      "version": "SLPS-25041, disc version 1.02",
+      "api": 1,
+      "file": "SLPS-25041.lua",
+      "size": 6316,
+      "sha256": "b65f85f696445ea608906086b65696bf65bd3b846018bb5bbf3f69f4094f542f"
+    },
+    {
+      "id": "SLPS-25256",
+      "title": "Never7 -the end of infinity-",
+      "reads": "The story's text with speakers, each message as it has come up in full, and choices",
+      "version": "SLPS-25256, disc version 1.01",
+      "api": 1,
+      "file": "SLPS-25256.lua",
+      "size": 14464,
+      "sha256": "4179053da0be8c3649fdc6eded81820391e172139abfa555edc9432b4e51ed98"
+    },
+    {
+      "id": "SLPS-25679",
+      "title": "うたわれるもの 散りゆく者への子守唄",
+      "reads": "The message window: what is said and told, with the speaker's name",
+      "version": "SLPS-25679, disc version 1.04",
+      "api": 1,
+      "file": "SLPS-25679.lua",
+      "size": 5740,
+      "sha256": "7d2c846fee5d0cd62b05ab91945d74c9ce9e1c821c061df08d8e5aafe0dab1e3"
+    },
+    {
+      "id": "SLPS-25918",
+      "title": "アマガミ",
+      "reads": "The message window's text with furigana, each message when it begins, and choices",
+      "version": "SLPS-25918",
+      "api": 1,
+      "file": "SLPS-25918.lua",
+      "size": 25416,
+      "sha256": "f6f285c9b1d94776775df9a05f4b3fd816367a74873d12092d96e5e1aa5bcf11"
+    }
+  ]
+}
