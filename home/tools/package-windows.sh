@@ -16,7 +16,7 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
-if [ "${READER_HOME_PUBLIC:-0}" = 1 ]; then
+if [ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ]; then
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-public}"
 else
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows}"
@@ -26,7 +26,7 @@ exe="$build/reader-home.exe"
 # Whether the program was built as a published build is what its build says.
 public=0
 grep -qx "HOME_PUBLIC:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null && public=1
-[ "${READER_HOME_PUBLIC:-0}" = 1 ] && [ "$public" != 1 ] &&
+[ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ] && [ "$public" != 1 ] &&
   { echo "$build is not a published build (HOME_PUBLIC): tools/build-windows.sh with READER_HOME_PUBLIC=1" >&2; exit 1; }
 name=ReaderHome
 [ "$public" = 1 ] && name=Furoshiki
@@ -39,8 +39,9 @@ export LD_LIBRARY_PATH="$READER_MINGW/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$L
 [ -f "$exe" ] || { echo "no $exe: run tools/build-windows.sh first" >&2; exit 1; }
 rm -rf "$out"
 mkdir -p "$out"
-install -m 755 "$exe" "$out/reader-home.exe"
-"$strip" --strip-unneeded "$out/reader-home.exe"
+# Its name in the package is the program's own; reader-home.exe is the build's (its CMake target).
+install -m 755 "$exe" "$out/Furoshiki.exe"
+"$strip" --strip-unneeded "$out/Furoshiki.exe"
 # The compiler's runtime libraries must be the ones of the compiler the program was built
 # with: Qt ships older copies of the same names.
 gcc_dir="$(find "$READER_MINGW/lib/gcc/x86_64-w64-mingw32" -maxdepth 1 -name '*-posix' | sort -V | tail -1)"
@@ -129,7 +130,7 @@ fi
 # Vita3K's core is built with clang-cl too (the same Redistributable), with OpenSSL's two DLLs
 # beside it and its data and built-in shaders in cores/vita3k.
 vita3k_core="$forks/vita3k/build-core-windows/bin/reader_core_vita3k.dll"
-if [ -f "$vita3k_core" ] && [ "$public" != 1 ]; then
+if [ -f "$vita3k_core" ]; then
   mkdir -p "$out/cores"
   install -m 644 "$vita3k_core" "$(dirname "$vita3k_core")"/libssl-4-x64.dll \
     "$(dirname "$vita3k_core")"/libcrypto-4-x64.dll "$out/cores/"
@@ -167,6 +168,10 @@ if [ "$public" = 1 ]; then
   lic PPSSPP-LICENSE.txt "$src/ppsspp/LICENSE.TXT"
   lic Flycast-LICENSE.txt "$src/flycast/LICENSE"
   lic Azahar-license.txt "$src/azahar/license.txt"
+  if [ -f "$out/cores/reader_core_vita3k.dll" ]; then
+    lic Vita3K-COPYING.txt "$src/vita3k/COPYING.txt"
+    lic OpenSSL-LICENSE.txt "$forks/vita3k/build-core-windows/external/openssl/LICENSE.txt"
+  fi
   "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" --folder "$out"
 fi
 (cd "$out/.." && rm -f "$name-windows.zip" && "$READER_HOST_PREFIX/bin/python3" -m zipfile -c "$name-windows.zip" "$name")

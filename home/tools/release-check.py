@@ -80,7 +80,7 @@ def check_binary(name: str, data: bytes, personal) -> tuple[list, int]:
     problems, paths = [], 0
     core = "reader_core_" in name and (re.search(r"(^|/)cores/[^/]+\.dll$", name) is not None or name.endswith(".so"))
     # The program: Windows' executable, and on Android the app's native library and its code.
-    program = name.endswith(("reader-home.exe", "libfuroshiki.so")) or re.search(r"(^|/)classes\d*\.dex$", name) is not None
+    program = name.endswith(("Furoshiki.exe", "reader-home.exe", "libfuroshiki.so")) or re.search(r"(^|/)classes\d*\.dex$", name) is not None
     sync_words = 0
     for text in runs(data):
         if ADDRESS.search(text) and not EXAMPLES.search(text):

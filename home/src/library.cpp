@@ -59,7 +59,21 @@ QString SharedFolder() {
     if (!set.isEmpty()) {
         return set;
     }
-    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/reader-home");
+    const QString data = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    // The program's former name's folder, where nothing has moved it (MoveOldFolder) yet.
+    const QString old = data + QStringLiteral("/reader-home");
+    const QString now = data + QStringLiteral("/Furoshiki");
+    return !QFileInfo::exists(now) && QFileInfo::exists(old) ? old : now;
+}
+
+bool MoveOldFolder() {
+    if (!qEnvironmentVariable("READER_HOME_DIR").isEmpty()) {
+        return false;
+    }
+    const QString data = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    const QString old = data + QStringLiteral("/reader-home");
+    const QString now = data + QStringLiteral("/Furoshiki");
+    return !QFileInfo::exists(now) && QFileInfo::exists(old) && QDir().rename(old, now);
 }
 
 Library Load(const QString& folder) {

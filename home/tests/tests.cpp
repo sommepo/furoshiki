@@ -513,6 +513,27 @@ int main(int argc, char** argv) {
     }
 #endif
 
+    // The folder of the program's former name becomes Furoshiki's, once, all of it.
+    {
+        QTemporaryDir data;
+        const QByteArray was = qgetenv("XDG_DATA_HOME");
+        const QByteArray dir = qgetenv("READER_HOME_DIR");
+        qputenv("XDG_DATA_HOME", data.path().toUtf8());
+        qunsetenv("READER_HOME_DIR");
+        QDir().mkpath(data.filePath(QStringLiteral("reader-home/program")));
+        Write(data.filePath(QStringLiteral("reader-home/program/settings.json")), "{}");
+        CHECK(Home::SharedFolder() == data.filePath(QStringLiteral("reader-home")));
+        CHECK(Home::MoveOldFolder());
+        CHECK(Home::SharedFolder() == data.filePath(QStringLiteral("Furoshiki")));
+        CHECK(QFile::exists(data.filePath(QStringLiteral("Furoshiki/program/settings.json"))));
+        CHECK(!QFile::exists(data.filePath(QStringLiteral("reader-home"))));
+        CHECK(!Home::MoveOldFolder());
+        qputenv("XDG_DATA_HOME", was);
+        if (!dir.isEmpty()) {
+            qputenv("READER_HOME_DIR", dir);
+        }
+    }
+
     std::printf(failures == 0 ? "All tests passed\n" : "%d failure(s)\n", failures);
     return failures == 0 ? 0 : 1;
 }

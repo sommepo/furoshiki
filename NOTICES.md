@@ -1,6 +1,6 @@
 # Furoshiki: licences and notices
 
-Furoshiki (the program, `reader-home.exe`) and its cores are distributed together under the
+Furoshiki (the program, `Furoshiki.exe`) and its cores are distributed together under the
 **GNU General Public License, version 3** (`COPYING`). The parts and their terms:
 
 | Part | Where | Licence | Its text |
@@ -11,6 +11,7 @@ Furoshiki (the program, `reader-home.exe`) and its cores are distributed togethe
 | PSP core: PPSSPP with the reader | `ppsspp/` | GPL-2.0-or-later | `licenses/PPSSPP-LICENSE.txt` |
 | Dreamcast core: Flycast with the reader | `flycast/` | GPLv2 text, distributed as GPL-3.0 (below) | `licenses/Flycast-LICENSE.txt` |
 | 3DS core: Azahar with the reader | `azahar/` | GPL-2.0-or-later | `licenses/Azahar-license.txt` |
+| PS Vita core: Vita3K with the reader, with OpenSSL's two DLLs | `vita3k/` | GPL-2.0-or-later (OpenSSL: Apache-2.0) | `licenses/Vita3K-COPYING.txt`, `licenses/OpenSSL-LICENSE.txt` |
 | Qt 6 (Core, Gui, Widgets, Multimedia, Network), as its own DLLs | the package's `Qt6*.dll` and plugins | LGPL-3.0 | `licenses/LGPL-3.0.txt` with `COPYING` |
 | SDL 2, as its own DLL | `SDL2.dll` | zlib | `licenses/SDL2-LICENSE.txt` |
 | The compiler's runtime (MinGW-w64, GCC) | `libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll` | GPL-3.0 with the GCC Runtime Library Exception; MinGW-w64's own terms | |

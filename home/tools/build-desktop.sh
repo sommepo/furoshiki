@@ -12,8 +12,8 @@ if [ "${READER_HOME_WEB:-0}" = 1 ]; then
 fi
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
-# READER_HOME_PUBLIC=1: a published build (HOME_PUBLIC in CMakeLists.txt), in build-desktop-public.
-public="${READER_HOME_PUBLIC:-0}"
+# HOME_PUBLIC=1 (or READER_HOME_PUBLIC=1): a published build (HOME_PUBLIC in CMakeLists.txt), in build-desktop-public.
+public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
 want="$([ "$public" = 1 ] && echo ON || echo OFF)"
 build="$root/build-desktop$([ "$public" = 1 ] && echo -public || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
 P="$READER_HOST_PREFIX/bin"

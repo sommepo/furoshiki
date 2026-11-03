@@ -19,7 +19,11 @@ QString Folder() {
     if (!set.isEmpty()) {
         return set;
     }
-    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/reader-home");
+    // Furoshiki's folder; its former name's (reader-home) where Furoshiki has not moved it yet.
+    const QString data = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    const QString old = data + QStringLiteral("/reader-home");
+    const QString now = data + QStringLiteral("/Furoshiki");
+    return !QFileInfo::exists(now) && QFileInfo::exists(old) ? old : now;
 }
 
 QJsonObject SharedSettings(bool* changed) {

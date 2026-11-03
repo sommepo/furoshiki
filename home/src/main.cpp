@@ -38,7 +38,7 @@
 
 namespace {
 
-/// The program's log, also kept in a file (program/reader-home.log in Furoshiki's folder, the
+/// The program's log, also kept in a file (program/furoshiki.log in Furoshiki's folder, the
 /// run before as reader-home.old.log): on Windows a program with a window has no output to
 /// read, and what a core says of a game (that it found its files) is only there.
 QFile* g_log = nullptr;
@@ -110,7 +110,7 @@ LONG WINAPI OnCrash(EXCEPTION_POINTERS* info) {
 void OpenLog() {
     const QString folder = Home::SharedFolder() + QStringLiteral("/program");
     QDir().mkpath(folder);
-    const QString file = folder + QStringLiteral("/reader-home.log");
+    const QString file = folder + QStringLiteral("/furoshiki.log");
     QFile::remove(folder + QStringLiteral("/reader-home.old.log"));
     QFile::rename(file, folder + QStringLiteral("/reader-home.old.log"));
     auto* log = new QFile(file); // kept open to the end, whatever runs then
@@ -132,7 +132,11 @@ int Run(int argc, char** argv) {
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("reader-home"));
     QCoreApplication::setApplicationName(QStringLiteral("reader-home"));
+    const bool moved = Home::MoveOldFolder();
     OpenLog();
+    if (moved) {
+        qInfo("Furoshiki: the folder of its former name (reader-home) is now %s", qPrintable(Home::SharedFolder()));
+    }
     // A machine whose own fonts have no Japanese (a test without a display) names a font file.
     const QString font_file = qEnvironmentVariable("READER_HOME_FONT");
     if (!font_file.isEmpty()) {

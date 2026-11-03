@@ -77,6 +77,10 @@ inline constexpr int AppFileFormat = 1;
 /// The folder the apps and Furoshiki share: READER_HOME_DIR when set (tests), else
 /// "reader-home" in the user's local data folder.
 [[nodiscard]] QString SharedFolder();
+/// Once: the folder of the program's former name (reader-home) becomes Furoshiki's, all of it
+/// (settings, dictionaries, statistics, the consoles' folders). Not while the old one is in use
+/// elsewhere (a rename then fails, and SharedFolder goes on with the old one). True if moved.
+bool MoveOldFolder();
 
 /// Reads every file in <folder>/apps.
 [[nodiscard]] Library Load(const QString& folder);

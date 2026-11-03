@@ -3,13 +3,13 @@
 # be run on this machine: it is tried on a Windows computer.
 #   tools/build-windows.sh [ninja targets...]
 # Output: build-windows/reader-home.exe; tools/package-windows.sh makes a folder of it.
-# READER_HOME_PUBLIC=1: a published build (HOME_PUBLIC in CMakeLists.txt) in
+# HOME_PUBLIC=1 (or READER_HOME_PUBLIC=1): a published build (HOME_PUBLIC in CMakeLists.txt) in
 # build-windows-public: no game scripts, character tables or recorded sounds built in.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
-public="${READER_HOME_PUBLIC:-0}"
+public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
 if [ "$public" = 1 ]; then
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-public}"
 else

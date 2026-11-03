@@ -1,22 +1,27 @@
 # Furoshiki
 
-Furoshiki (風呂敷, the cloth that wraps and carries anything) plays Japanese games of seven
-consoles and reads their text as text: point at a word on the screen and it is looked up in your
-dictionaries, sent to Anki as a card, kept in a backlog, and counted in reading statistics kept on
-your own device. Each console is an emulator built as a *core*; the reading layer over the picture
-is the same for all of them. **Windows** (a desktop program) and **Android** (one app, made for a
-finger first, a controller too).
+Furoshiki is an emulator frontend with lookup and sentence mining built in, for Japanese games on
+Windows and Android.
+
+Each console's emulator is built into Furoshiki as a *core*, as in RetroArch, so one program, one
+library and one set of settings covers every console. The reading tools are the same across all
+of them.
+
+Each supported game has a script, written with AI, that reads its text straight from memory, along
+with where every character sits on the screen. So there's no OCR and no texthooker window. You
+hover a word in the game itself, a Yomitan-style popup opens on it, and one button makes an Anki
+card with the sentence, a screenshot and the audio.
 
 <p align="center"><img src="home/publish/media/kamaitachi-ps1.gif" width="720" alt="Kamaitachi no Yoru: the pointer moves along the line and each word's entry opens beside it"></p>
 
-| Console | Core made from | Windows | Android |
+| Console | Core | Windows | Android |
 | --- | --- | --- | --- |
-| PlayStation | DuckStation (a 2021 version, `station/`) | ✓ | ✓ |
-| PlayStation 2 | PCSX2 (`pcsx2/`), ARMSX2 on Android (`armsx2/`) | ✓ | ✓ |
-| PSP | PPSSPP (`ppsspp/`) | ✓ | ✓ |
-| Dreamcast | Flycast (`flycast/`) | ✓ | ✓ |
-| Nintendo 3DS | Azahar (`azahar/`) | ✓ | ✓ |
-| PS Vita | Vita3K (`vita3k/`) | | ✓ |
+| PlayStation | DuckStation | ✓ | ✓ |
+| PlayStation 2 | PCSX2 (ARMSX2 on Android) | ✓ | ✓ |
+| PSP | PPSSPP | ✓ | ✓ |
+| Dreamcast | Flycast | ✓ | ✓ |
+| Nintendo 3DS | Azahar | ✓ | ✓ |
+| PS Vita | Vita3K | ✓ | ✓ |
 
 ## What it looks like
 
@@ -46,81 +51,170 @@ All pictures are of Furoshiki for Android on an AYN Thor, the games' own text re
 
 **The menus.** The library, one page a console, each game with its box art and what you have
 read of it; the consoles' settings, in layers (all consoles, one console, one game); the menu of a
-game in play, the reader's own menu, and the backlog of what was read.
+game in play, the reading menu, and the backlog of what was read.
 
 <table>
 <tr><td><img src="home/publish/media/page-library.jpg" alt="The library"></td>
 <td><img src="home/publish/media/page-consoles.jpg" alt="The consoles' settings"></td></tr>
 <tr><td><img src="home/publish/media/menu-game.jpg" alt="A game's menu"></td>
-<td><img src="home/publish/media/menu-reader.jpg" alt="The reader's menu"></td></tr>
+<td><img src="home/publish/media/menu-reading.jpg" alt="The reading menu"></td></tr>
 <tr><td colspan="2" align="center"><img src="home/publish/media/menu-backlog.jpg" width="50%" alt="The backlog"></td></tr>
 </table>
 
-## What it reads
+## Supported games
 
-A game is read through a **game script**: a short Lua file, named after the game's ID (the
-disc's serial, or the 3DS title ID), that says where the game keeps the text it shows. The
-program has none built in. It shows each console's published list (the reader's *Game
-scripts* window: what is there, for which version of the game, what it reads) and installs
-the ones you choose; each file is checked against the size and SHA-256 the list gives before
-it is installed. Games without a script still play, without the reading layer. The lists are
-`index.json` beside each console's scripts in this repository (`ppsspp/assets/reader/profiles`,
-`flycast/reader/profiles`, `pcsx2/reader/profiles`, `station/reader/profiles`, the 3DS's in
-`azahar/`, the Vita's in `vita3k/reader/profiles`; the Android app's PS2 list is ARMSX2's, in
-`armsx2/`).
+A game is read through its **game script**, a small Lua file for that game's version. You install
+scripts inside Furoshiki from each console's list (*Game scripts*), and it checks every file
+against the list before installing it. A game with no script still plays, just without the
+reading tools. Scripts are for the Japanese release of each game.
 
-Some scripts need a table made from the game's own font to turn its glyphs into characters;
-those tables are made from the game and are not published, so those games are not in the
-lists.
+<details><summary><b>PlayStation</b> (4 games)</summary>
 
-## What you bring
+| Game | Title | What is read |
+| --- | --- | --- |
+| Kamaitachi no Yoru | かまいたちの夜 特別篇 | Story text and choices |
+| Double Cast | ダブルキャスト | Film subtitles and choices |
+| Aconcagua | アコンカグア | Message windows |
+| Gakkou de Atta Kowai Hanashi S | 学校であった怖い話S | Story text and choices |
 
-Nothing of a console maker's is in this repository or in the program. You bring:
+</details>
 
-- **Your games**, dumped from discs or cartridges you own.
-- **The PlayStation's BIOS** (e.g. `SCPH-5500.bin`) in `program/consoles/ps1/system`.
-- **The PlayStation 2's BIOS** in `program/consoles/ps2/system`.
-- **The Dreamcast's BIOS**, if you want it (`program/consoles/dc/system/dc/dc_boot.bin`, where
-  Flycast's libretro core looks): without one Flycast's own stand-in starts the game.
-- **The PSP** needs nothing: PPSSPP's own system files come with its core.
-- **The 3DS**: decrypted games play as they are; Azahar's system files and keys, where a game
-  wants them, go in `program/consoles/3ds/system`.
+<details><summary><b>PlayStation 2</b> (11 games)</summary>
 
-These folders are in Furoshiki's own folder: `%LOCALAPPDATA%\reader-home` on Windows,
-`~/.local/share/reader-home` on Linux (the folder keeps the program's former name).
-Dictionaries are Yomitan-format zip files you import yourself.
+| Game | Title | What is read |
+| --- | --- | --- |
+| Ever17 | Ever17 -the out of infinity- Premium Edition | Story text with speakers, choices |
+| Never7 | Never7 -the end of infinity- | Story text with speakers, choices |
+| Remember11 | Remember11 -the age of infinity- | Story text with speakers, choices |
+| CLANNAD | CLANNAD | Story text with speakers, choices |
+| Higurashi no Naku Koro ni Matsuri | ひぐらしのなく頃に祭 カケラ遊び | Story text with speakers and furigana |
+| Amagami | アマガミ | Message window with furigana |
+| EVE burst error PLUS | EVE burst error PLUS | Message window |
+| Utawarerumono | うたわれるもの 散りゆく者への子守唄 | Message window with speakers |
+| Shadow Hearts | シャドウハーツ | Scene and talk windows with speakers |
+| Dragon Quest V | ドラゴンクエストV 天空の花嫁 | Message window |
+| Silent Hill 2 | サイレントヒル2 | Subtitles |
 
-## Android
+</details>
 
-Furoshiki for Android (Android 10 or later, arm64) looks for games in a folder called `Games`
-(or `Reader Games`) on the device and on its cards, one folder a console (`Games/PSP`,
-`Games/PS2`...), and in the folders you add on its Settings page. What a console needs of yours
-goes in `Games/BIOS/<console>`: the PlayStation's BIOS in `Games/BIOS/PS1`, the PS2's in
-`Games/BIOS/PS2`, the Vita's firmware (`PSVUPDAT.PUP`, and `PSP2UPDAT.PUP` if you have it) in
-`Games/BIOS/Vita`. Yomitan dictionaries in `Games/Dictionaries` are imported at the first
-start. A console's game scripts are installed from its list on the Settings page (*Game
-scripts*), and the games they read are listed. Cards go to AnkiDroid. The app plays each game in
-a process of its own; its settings are in layers (all consoles, one console, one game), as on
-the desktop.
+<details><summary><b>PSP</b> (10 games)</summary>
 
-## Download and build
+| Game | Title | What is read |
+| --- | --- | --- |
+| Steins;Gate | STEINS;GATE | Message window with speakers and furigana, phone mails |
+| Chaos;Head Love Chu Chu! | CHAOS;HEAD らぶChu☆Chu! | Message window with furigana |
+| 428: Shibuya Scramble | 428 ～封鎖された渋谷で～ | Story text with furigana, TIPS, choices |
+| Danganronpa | ダンガンロンパ 希望の学園と絶望の高校生 | Message box with speakers |
+| Trails in the Sky FC | 英雄伝説 空の軌跡FC | Talk windows with speakers |
+| Tokimeki Memorial Forever with You | ときめきメモリアル forever with you | Message window with speakers, choices |
+| Grisaia no Kajitsu | グリザイアの果実 -LE FRUIT DE LA GRISAIA- | Message window with speakers, choices |
+| Da Capo I&II Plus Situation Portable | D.C.I&II P.S.P. | Message window with speakers and furigana |
+| My Merry May with be | My Merry May with be | Story text with speakers |
+| Dunamis 15 | DUNAMIS15 | Message window with speakers and furigana |
 
-- **Windows**: the zip of a [release](../../releases) (unzip it anywhere, run `reader-home.exe`).
-  PCSX2's core needs the Microsoft Visual C++ Redistributable (x64), as PCSX2 does.
-- **Android**: the APK of a release. It is installed by hand (allow it to see all files when it
-  asks, as it reads the games where they are).
-- **Building**: the program is built with `-DHOME_CORES=ON -DHOME_PUBLIC=ON`
-  (`READER_HOME_PUBLIC=1 home/tools/build-desktop.sh`, or `build-windows.sh`), each core from
-  its emulator's folder (`<emulator>/tools/reader/build-core*.sh`). The Android app: each
-  core with `<emulator>/tools/reader/build-core-android.sh`, then `android/tools/build.sh`. Third-party code the emulators take as Git
-  submodules is in `.gitmodules`: `git submodule update --init --recursive -- <folder>`.
+</details>
+
+<details><summary><b>Dreamcast</b> (8 games)</summary>
+
+| Game | Title | What is read |
+| --- | --- | --- |
+| Shenmue II (Windows only for now) | シェンムーII | Subtitles |
+| What's Shenmue | What's シェンムー 〜湯川(元)専務をさがせ〜 | Subtitles |
+| Sakura Taisen | サクラ大戦 | Message window, timed choices |
+| Segagaga | セガガガ | Message window |
+| Rent a Hero No.1 | レンタヒーロー No.1 | Message window |
+| Kita e. White Illumination | 北へ。White Illumination | Message window |
+| July | July | Message window with speakers, choices |
+| Ayanami Raising Project | 新世紀エヴァンゲリオン 綾波育成計画 | Message window |
+
+</details>
+
+<details><summary><b>Nintendo 3DS</b> (1 game)</summary>
+
+| Game | Title | What is read |
+| --- | --- | --- |
+| Shin Megami Tensei IV | 真・女神転生IV | Dialogue, narration and choices |
+
+</details>
+
+<details><summary><b>PS Vita</b> (1 game)</summary>
+
+| Game | Title | What is read |
+| --- | --- | --- |
+| Trails in the Sky FC Evolution | 英雄伝説 空の軌跡 FC Evolution | Talk windows with speakers |
+
+</details>
+
+A few more games are supported but can't be listed here: their scripts need a table made from
+the game's own files, which can't be published.
+
+## Setting up
+
+Nothing from a console maker is included. You bring your own games, dumped from discs or
+cartridges you own, plus:
+
+| Console | You need | Windows | Android |
+| --- | --- | --- | --- |
+| PlayStation | The BIOS (e.g. `SCPH-5500.bin`) | `program\consoles\ps1\system` | `Games/BIOS/PS1` |
+| PlayStation 2 | The BIOS | `program\consoles\ps2\system` | `Games/BIOS/PS2` |
+| PSP | Nothing | | |
+| Dreamcast | Nothing (a BIOS of your own is optional) | `program\consoles\dc\system\dc\dc_boot.bin` | |
+| Nintendo 3DS | Decrypted games; keys only where a game asks for them | `program\consoles\3ds\system` | |
+| PS Vita | The firmware (`PSVUPDAT.PUP`, plus `PSP2UPDAT.PUP` if you have it) | `program\consoles\psvita\system` | `Games/BIOS/Vita` |
+
+**Windows:** the folders above are in `%LOCALAPPDATA%\Furoshiki`. Add your game folders in the
+program.
+
+**Android:** put games in a `Games` folder on the device or SD card, one subfolder per console
+(`Games/PS2`, `Games/PSP`...), or add your own folders in Settings.
+
+**Dictionaries:** Yomitan-format zips. On Windows you import them in the program. On Android, put
+them in `Games/Dictionaries` and they're imported at first start.
+
+**Anki:** cards go to Anki through AnkiConnect on Windows, and to AnkiDroid on Android.
+
+## Download
+
+From the [latest release](../../releases/latest):
+
+- **Windows** (`Furoshiki-<version>-windows.zip`): unzip it anywhere and run `Furoshiki.exe`. The
+  PS2 and Vita cores need the
+  [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe), as
+  PCSX2 does.
+- **Android** (`Furoshiki-<version>-android.apk`): Android 10 or later, 64-bit ARM. Install it by
+  hand, and allow it to see all files when it asks, so it can read your games where they are.
+
+Then install a console's game scripts from *Game scripts*, and the games they read appear in your
+library.
+
+## Building from source
+
+| Folder | What it is |
+| --- | --- |
+| `home/` | Furoshiki for Windows and Linux |
+| `android/` | Furoshiki for Android |
+| `shared/` | The lookup and mining layer, used everywhere |
+| `cores/` | The interface between Furoshiki and the cores |
+| `station/`, `pcsx2/`, `armsx2/`, `ppsspp/`, `flycast/`, `azahar/`, `vita3k/` | Each emulator, with its core and its game scripts |
+
+Fetch an emulator's third-party code with `git submodule update --init --recursive -- <folder>`.
+Then:
+
+- **A core:** `<emulator>/tools/reader/build-core-windows.sh`, `build-core-android.sh` or
+  `build-core.sh` (Linux)
+- **Windows:** `HOME_PUBLIC=1 home/tools/build-windows.sh`, then
+  `HOME_PUBLIC=1 home/tools/package-windows.sh`
+- **Android:** `android/tools/build.sh`
+
+The scripts build on Linux and find their compilers through each folder's `tools/reader/env.sh`,
+which names the toolchains they expect.
 
 ## Licence
 
 Furoshiki and the cores are free software under the **GNU General Public License, version 3**
 (`COPYING`; the folders `home/`, `cores/` and `shared/` each carry it too). Each emulator keeps
 its own licence and its authors' notices in its folder. `NOTICES.md` lists what is in the
-Windows package and under which terms, including why Flycast's code, whose `LICENSE` file is the
+packages and under which terms, including why Flycast's code, whose `LICENSE` file is the
 GPLv2 text, is distributed here under version 3.
 
 This project is not affiliated with Sony, Sega, Nintendo, or the emulators' projects. Please
