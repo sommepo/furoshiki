@@ -1,4 +1,6 @@
-# Furoshiki
+<p align="center"><img src="home/publish/media/logo.svg" width="160" alt="Furoshiki's logo: ふ in blue on white"></p>
+
+<h1 align="center">Furoshiki</h1>
 
 Furoshiki is an emulator frontend with lookup and sentence mining built in, for Japanese games on
 Windows and Android.
