@@ -22,11 +22,13 @@ finger first, a controller too).
 
 All pictures are of Furoshiki for Android on an AYN Thor, the games' own text read as it comes up.
 
-**Metal Gear Solid 2: Substance** (PS2). Its kanji have no codes at all; the script knows each
-by its picture, from a table made from the game's own files (so it is not in the published list:
-see "What it reads"). The radio call's lines, looked up as they go by:
+**Higurashi no Naku Koro ni Matsuri** (PS2), each part of the story as it comes up:
 
-<p align="center"><img src="home/publish/media/mgs2-ps2.gif" width="720" alt="MGS2: a radio call's subtitles, words looked up one after another"></p>
+<p align="center"><img src="home/publish/media/higurashi-ps2.gif" width="720" alt="Higurashi: 自動販売機 looked up"></p>
+
+**Segagaga** (Dreamcast), the president's speech in its message window:
+
+<p align="center"><img src="home/publish/media/segagaga-dc.gif" width="720" alt="Segagaga: 全体的, ユーザー and the rest of the window looked up"></p>
 
 **Shin Megami Tensei IV** (3DS), on a device with two displays: the lower screen goes to the second one.
 
@@ -40,8 +42,6 @@ see "What it reads"). The radio call's lines, looked up as they go by:
 <table>
 <tr><td><img src="home/publish/media/ever17-ps2.jpg" alt="Ever17: 太陽 looked up"><br><b>Ever17</b> (PS2)</td>
 <td><img src="home/publish/media/tokimeki-psp.jpg" alt="Tokimeki Memorial: 彼女 looked up"><br><b>Tokimeki Memorial Forever with You</b> (PSP)</td></tr>
-<tr><td><img src="home/publish/media/shenmue2-dc.jpg" alt="Shenmue II: a subtitle on the pier"><br><b>Shenmue II</b> (Dreamcast): its subtitles</td>
-<td><img src="home/publish/media/mgs2-ps2.jpg" alt="MGS2: その looked up"><br><b>Metal Gear Solid 2: Substance</b> (PS2)</td></tr>
 </table>
 
 **The menus.** The library, one page a console, each game with its box art and what you have
@@ -53,8 +53,7 @@ game in play, the reader's own menu, and the backlog of what was read.
 <td><img src="home/publish/media/page-consoles.jpg" alt="The consoles' settings"></td></tr>
 <tr><td><img src="home/publish/media/menu-game.jpg" alt="A game's menu"></td>
 <td><img src="home/publish/media/menu-reader.jpg" alt="The reader's menu"></td></tr>
-<tr><td><img src="home/publish/media/menu-backlog.jpg" alt="The backlog"></td>
-<td><img src="home/publish/media/page-library-ps2.jpg" alt="The PS2's page"></td></tr>
+<tr><td colspan="2" align="center"><img src="home/publish/media/menu-backlog.jpg" width="50%" alt="The backlog"></td></tr>
 </table>
 
 ## What it reads
