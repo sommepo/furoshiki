@@ -696,6 +696,10 @@ void GSRenderer::VSync(u32 field, bool registers_written, bool idle_frame)
 			}
 		}
 
+		// Reader fork: the CRT glass's copies of the frame, before the present's render pass.
+		if (current && !blank_frame && ReaderPresentShader() == PresentShader::READER_CRT)
+			g_gs_device->ReaderMakeGlow(current, src_uv, draw_rect);
+
 		if (BeginPresentFrame(false))
 		{
 			if (current && !blank_frame)
@@ -966,6 +970,16 @@ void GSRenderer::StopGSDump()
 
 void GSRenderer::PresentCurrentFrame()
 {
+	// Reader fork: the CRT glass's copies of the frame, before the present's render pass.
+	if (GSTexture* current = g_gs_device->GetCurrent(); current && ReaderPresentShader() == PresentShader::READER_CRT)
+	{
+		const GSVector4i src_rect(CalculateDrawSrcRect(current, m_real_size));
+		g_gs_device->ReaderMakeGlow(current, GSVector4(src_rect) / GSVector4(current->GetSize()).xyxy(),
+			CalculateDrawDstRect(g_gs_device->GetWindowWidth(), g_gs_device->GetWindowHeight(), src_rect,
+				current->GetSize(), s_display_alignment, g_gs_device->UsesLowerLeftOrigin(),
+				GetVideoMode() == GSVideoMode::SDTV_480P));
+	}
+
 	if (BeginPresentFrame(false))
 	{
 		GSTexture* current = g_gs_device->GetCurrent();

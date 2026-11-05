@@ -5,7 +5,7 @@
 # assets in cores/ppsspp, where its core looks for them, and PCSX2's libraries and resources);
 # and a zip of it.
 #   tools/package-windows.sh
-# Output: build-windows/package/ReaderHome/ and build-windows/package/ReaderHome-windows.zip
+# Output: build-windows/package/Furoshiki/ and build-windows/package/Furoshiki-windows.zip
 # (READER_HOME_WINDOWS_BUILD names another build folder; READER_HOME_FORKS the folder the
 # forks' core builds are in, this checkout's by default: a worktree's has none).
 # A published build (READER_HOME_PUBLIC=1, build-windows-public, HOME_PUBLIC): Eden's core is
@@ -28,8 +28,7 @@ public=0
 grep -qx "HOME_PUBLIC:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null && public=1
 [ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ] && [ "$public" != 1 ] &&
   { echo "$build is not a published build (HOME_PUBLIC): tools/build-windows.sh with READER_HOME_PUBLIC=1" >&2; exit 1; }
-name=ReaderHome
-[ "$public" = 1 ] && name=Furoshiki
+name=Furoshiki
 out="$build/package/$name"
 [ -f "$READER_SDL2_WINDOWS/bin/SDL2.dll" ] ||
   READER_SDL2_WINDOWS="$HOME/.local/share/station-reader/sdl2-mingw/SDL2-2.32.10/x86_64-w64-mingw32"
@@ -88,6 +87,8 @@ for core in "$forks"/station/build-core-windows/bin/reader_core_*.dll \
             "$forks"/azahar/build-core-windows/bin/Release/reader_core_*.dll \
             "$forks"/eden/build-core-windows/bin/reader_core_*.dll; do
   [ -f "$core" ] || continue
+  # A build folder's stripped copy of a core (PPSSPP's) is not a core of its own.
+  [[ "$(basename "$core")" == *.stripped.dll ]] && continue
   if [ "$public" = 1 ] && [[ "$(basename "$core")" == reader_core_eden* ]]; then
     echo "a published package: $(basename "$core") left out"
     continue

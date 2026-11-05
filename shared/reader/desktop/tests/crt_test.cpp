@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: Reader fork contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <set>
 #include <string>
+#include <utility>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include "reader/core/crt.h"
@@ -220,6 +222,85 @@ TEST_CASE("CRT: the shader's text is there for both languages", "[crt]") {
     REQUIRE(body.find("CRT_U(7)") != std::string::npos);
     REQUIRE(body.find("CRT_U(8)") == std::string::npos); // eight vectors, no more
     REQUIRE(std::string(Crt::HlslDefines()).find("float3") != std::string::npos);
+}
+
+TEST_CASE("CRT: the glass's copies are made in order, at sizes of the picture's shape", "[crt]") {
+    const std::string body = Crt::ShaderBody();
+    REQUIRE(body.find("CRT_GLOW_TEX4(gq)") != std::string::npos);
+    REQUIRE(body.find("CRT_GLOW_TEX5") == std::string::npos); // GlowCopies of them
+    // No macro with arguments is tested in #ifdef (AMD's OpenGL on Windows cannot).
+    REQUIRE(body.find("#ifdef CRT_GLOW_TEX") == std::string::npos);
+    REQUIRE(std::string(Crt::GlowBody()).find("vec3 ReaderCrtGlow(vec2 f)") != std::string::npos);
+
+    for (const auto& [w, h] : {std::pair{1440.f, 1080.f}, std::pair{1920.f, 1080.f}, std::pair{300.f, 900.f}}) {
+        const auto plan = Crt::GlowPlan(w, h);
+        bool made[Crt::GlowTextures] = {};
+        int size[Crt::GlowTextures][2] = {};
+        for (const auto& step : plan) {
+            REQUIRE(step.target >= 0);
+            REQUIRE(step.target < Crt::GlowTextures);
+            REQUIRE(step.input != step.target);
+            if (step.input >= 0) {
+                REQUIRE(made[step.input]); // read only once drawn
+            }
+            if (size[step.target][0] != 0) { // one size a texture
+                REQUIRE(size[step.target][0] == step.width);
+                REQUIRE(size[step.target][1] == step.height);
+            }
+            size[step.target][0] = step.width;
+            size[step.target][1] = step.height;
+            made[step.target] = true;
+            REQUIRE(step.vector[2] == Approx(1.f / step.width));
+            REQUIRE(step.vector[3] == Approx(1.f / step.height));
+            // Round on the screen: the copy has the picture's shape.
+            REQUIRE(static_cast<float>(step.width) / step.height == Approx(std::max(w / h, 8.f / step.height)).epsilon(0.05));
+        }
+        for (int n = 0; n < Crt::GlowCopies; ++n) {
+            REQUIRE(made[n]);
+        }
+        // The same reach across the picture however large the game's pixels are: by rows.
+        REQUIRE(size[0][1] == 240);
+        REQUIRE(size[4][1] == 60);
+    }
+}
+
+TEST_CASE("CRT: HDR is the screen's, kept out of the looks, and stays within the screen", "[crt]") {
+    Crt::Set("enabled", 1);
+    Crt::Set("hdr", 1);
+    Crt::Set("hdr_white", 300);
+    Crt::Set("hdr_peak", 1000);
+    REQUIRE(Crt::HdrWanted());
+    for (const char* look : {"vivid", "glow", "hdr", "tube"}) {
+        REQUIRE(Crt::ApplyPreset(look));
+        REQUIRE(Crt::CurrentPreset() == look); // the screen's rows do not stop a look being seen
+        REQUIRE(Crt::HdrWanted());               // and a look leaves them as they were
+    }
+    Crt::Reset();
+    REQUIRE(Crt::HdrWanted());
+
+    float hdr[Crt::HdrFloats];
+    Crt::PackHdr(Crt::Signal::Linear, 0.f, hdr); // the screen says nothing: the row's peak
+    REQUIRE(hdr[0] == 1.f);
+    REQUIRE(hdr[1] == Approx(300.f));
+    REQUIRE(hdr[2] == Approx(1000.f));
+    Crt::PackHdr(Crt::Signal::Pq, 400.f, hdr); // a dimmer screen: its own peak, white below it
+    REQUIRE(hdr[0] == 2.f);
+    REQUIRE(hdr[2] == Approx(400.f));
+    REQUIRE(hdr[1] <= hdr[2]);
+
+    Crt::Set("hdr", 0);
+    REQUIRE_FALSE(Crt::HdrWanted());
+    Crt::Set("hdr", 1);
+    Crt::Set("enabled", 0);
+    REQUIRE_FALSE(Crt::HdrWanted()); // only with the picture on
+    // Reset leaves the screen's rows: they go back by hand, for the tests after this one.
+    for (const char* key : {"hdr", "hdr_white", "hdr_peak"}) {
+        for (const auto& param : Crt::Params()) {
+            if (std::string(param.key) == key) {
+                Crt::Set(key, param.initial);
+            }
+        }
+    }
 }
 
 TEST_CASE("CRT: the tube's frame leaves the glass clear and is the same for every app", "[crt]") {

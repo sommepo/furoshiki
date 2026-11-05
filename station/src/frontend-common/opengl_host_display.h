@@ -117,10 +117,24 @@ protected:
 
   // Reader fork: the reader's CRT picture (reader/core/crt.h), drawn in the display program's
   // place while it is on.
-  bool UseReaderCrt(s32 width, s32 height, u32 texture_width, s32 texture_height, s32 texture_view_x,
-                    s32 texture_view_y, s32 texture_view_width, s32 texture_view_height);
-  GL::Program m_reader_crt_program;
+  // With the glass's blurred copies of the picture made first (Crt::GlowPlan) where they can be;
+  // draws the picture and leaves the GL state as it found it but for the program bound.
+  bool UseReaderCrt(s32 left, s32 bottom, s32 width, s32 height, GLuint texture, u32 texture_width,
+                    s32 texture_height, s32 texture_view_x, s32 texture_view_y, s32 texture_view_width,
+                    s32 texture_view_height);
+  bool ReaderGlowTexture(GLuint name, int width, int height);
+  bool ReaderMakeGlow(GLuint texture, const float* values, float output_width, float output_height);
+  void DestroyReaderCrt();
+  GL::Program m_reader_crt_program;       // without the copies
+  GL::Program m_reader_crt_glow_program;  // with them
+  GL::Program m_reader_glow_program;      // makes them
   bool m_reader_crt_failed = false;
+  bool m_reader_glow_failed = false;
+  GLuint m_reader_glow_fbo = 0;
+  GLuint m_reader_glow_textures[13] = {}; // Reader::Crt::GlowTextures
+  int m_reader_glow_sizes[13][2] = {};
+  GLenum m_reader_glow_format = 0;
+  GLenum m_reader_glow_type = 0;
   GLuint m_display_vao = 0;
   GLuint m_display_nearest_sampler = 0;
   GLuint m_display_linear_sampler = 0;

@@ -211,6 +211,10 @@ private:
 	}
 
 	GLProgram m_present[static_cast<int>(PresentShader::Count)];
+	// Reader fork: the CRT picture that reads the glass's copies, and the copies' steps.
+	GLProgram m_reader_crt_glow;
+	GLProgram m_reader_glow_step;
+	void ReaderSetDisplayUniforms(GLProgram& prog, const DisplayConstantBuffer& cb, bool reader);
 
 	struct
 	{
@@ -382,6 +386,9 @@ public:
 	void DoStretchRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, const GLProgram& ps, Filter filter);
 	void DoStretchRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, const GLProgram& ps, bool alpha_blend, OMColorMaskSelector cms, Filter filter);
 	void PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, PresentShader shader, float shaderTime, Filter filter) override;
+	// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+	bool ReaderGlowReady() const override;
+	void ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb) override;
 	void UpdateCLUTTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, GSTexture* dTex, u32 dOffset, u32 dSize) override;
 	void ConvertToIndexedTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, u32 SBW, u32 SPSM, GSTexture* dTex, u32 DBW, u32 DPSM) override;
 	void FilteredDownsampleTexture(GSTexture* sTex, GSTexture* dTex, u32 downsample_factor, const GSVector2i& clamp_min, const GSVector4& dRect) override;

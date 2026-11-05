@@ -10,7 +10,9 @@
 #include "reader/core/crt.h" // Reader fork: the CRT picture
 
 void (*g_reader_before_present)(int width, int height) = nullptr; // Reader fork
+#include <algorithm>
 #include <array>
+#include <iterator>
 #include <tuple>
 Log_SetChannel(OpenGLHostDisplay);
 
@@ -721,8 +723,7 @@ void OpenGLHostDisplay::DestroyResources()
 
   m_cursor_program.Destroy();
   m_display_program.Destroy();
-  m_reader_crt_program.Destroy(); // Reader fork
-  m_reader_crt_failed = false;
+  DestroyReaderCrt(); // Reader fork
 }
 
 bool OpenGLHostDisplay::Render()
@@ -860,13 +861,11 @@ void OpenGLHostDisplay::RenderDisplay(s32 left, s32 bottom, s32 width, s32 heigh
   glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(reinterpret_cast<uintptr_t>(texture_handle)));
 
   // Reader fork: the CRT picture, where it is on (the computer's draw path only).
-  if (!m_use_gles2_draw_path && UseReaderCrt(width, height, texture_width, texture_height, texture_view_x,
-                                             texture_view_y, texture_view_width, texture_view_height))
+  if (!m_use_gles2_draw_path &&
+      UseReaderCrt(left, bottom, width, height, static_cast<GLuint>(reinterpret_cast<uintptr_t>(texture_handle)),
+                   texture_width, texture_height, texture_view_x, texture_view_y, texture_view_width,
+                   texture_view_height))
   {
-    glBindSampler(0, m_display_linear_sampler);
-    glBindVertexArray(m_display_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindSampler(0, 0);
     return;
   }
 
@@ -898,10 +897,124 @@ void OpenGLHostDisplay::RenderDisplay(s32 left, s32 bottom, s32 width, s32 heigh
 }
 
 // Reader fork: the reader's CRT shader (reader/core/crt_shader.glsl) in the display program's
-// place. Its vertex shader is the display's own, with the place in the picture beside.
-bool OpenGLHostDisplay::UseReaderCrt(s32 width, s32 height, u32 texture_width, s32 texture_height,
-                                     s32 texture_view_x, s32 texture_view_y, s32 texture_view_width,
-                                     s32 texture_view_height)
+// place. Its vertex shader is the display's own, with the place in the picture beside. Where
+// they can be, the glass's blurred copies of the picture are made first (Crt::GlowPlan,
+// reader/core/crt_glow.glsl): then the light spreads as far as a tube's glass spreads it. Where
+// they cannot (no texture of either format can be drawn into, a program does not build) the
+// picture is drawn as before, with the short glow of a single pass.
+static_assert(Reader::Crt::GlowTextures == 13, "the header's glow arrays");
+static constexpr int kReaderGlowUnit = 1; // the copies' texture units: 1 to GlowCopies
+
+void OpenGLHostDisplay::DestroyReaderCrt()
+{
+  m_reader_crt_program.Destroy();
+  m_reader_crt_glow_program.Destroy();
+  m_reader_glow_program.Destroy();
+  if (m_reader_glow_fbo != 0)
+    glDeleteFramebuffers(1, &m_reader_glow_fbo);
+  if (m_reader_glow_textures[0] != 0)
+    glDeleteTextures(Reader::Crt::GlowTextures, m_reader_glow_textures);
+  m_reader_glow_fbo = 0;
+  std::fill(std::begin(m_reader_glow_textures), std::end(m_reader_glow_textures), 0u);
+  for (auto& size : m_reader_glow_sizes)
+    size[0] = size[1] = 0;
+  m_reader_glow_format = m_reader_glow_type = 0;
+  m_reader_crt_failed = false;
+  m_reader_glow_failed = false;
+}
+
+// Makes `name` a texture of the copies' format at that size; false when it cannot be drawn into.
+// Leaves the copies' framebuffer bound.
+bool OpenGLHostDisplay::ReaderGlowTexture(GLuint name, int width, int height)
+{
+  glBindTexture(GL_TEXTURE_2D, name);
+  glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(m_reader_glow_format), width, height, 0, GL_RGBA,
+               m_reader_glow_type, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_reader_glow_fbo);
+  glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, name, 0);
+  return glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+
+// Draws the copies of the frame in `texture` (on unit 0, the active one): the plan's steps,
+// each into its texture. Leaves the copies' framebuffer, the glow program and texture unit 0's
+// binding changed; false (and nothing more is tried) when they cannot be made.
+bool OpenGLHostDisplay::ReaderMakeGlow(GLuint texture, const float* values, float output_width,
+                                       float output_height)
+{
+  const auto plan = Reader::Crt::GlowPlan(output_width, output_height);
+  if (m_reader_glow_format == 0)
+  {
+    // Linear light goes into them: 16-bit floating point, or 10 bits a colour where that
+    // cannot be drawn into (OpenGL ES without EXT_color_buffer_half_float).
+    static constexpr GLenum formats[2][2] = {{GL_RGBA16F, GL_HALF_FLOAT},
+                                             {GL_RGB10_A2, GL_UNSIGNED_INT_2_10_10_10_REV}};
+    for (const auto& format : formats)
+    {
+      m_reader_glow_format = format[0];
+      m_reader_glow_type = format[1];
+      if (ReaderGlowTexture(m_reader_glow_textures[0], 8, 8))
+        break;
+      m_reader_glow_format = 0;
+    }
+    if (m_reader_glow_format == 0)
+    {
+      Log_WarningPrintf("Reader: no texture the CRT glass's copies can be drawn into");
+      m_reader_glow_failed = true;
+      return false;
+    }
+    m_reader_glow_sizes[0][0] = m_reader_glow_sizes[0][1] = 8;
+    Log_InfoPrintf("Reader: the CRT picture with the glass's copies (%s)",
+                   m_reader_glow_format == GL_RGBA16F ? "16-bit floating point" : "10 bits a colour");
+  }
+  for (const auto& step : plan)
+  {
+    int* size = m_reader_glow_sizes[step.target];
+    if (size[0] == step.width && size[1] == step.height)
+      continue;
+    if (!ReaderGlowTexture(m_reader_glow_textures[step.target], step.width, step.height))
+    {
+      Log_WarningPrintf("Reader: a texture of the CRT glass's copies cannot be drawn into");
+      m_reader_glow_failed = true;
+      return false;
+    }
+    size[0] = step.width;
+    size[1] = step.height;
+  }
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_reader_glow_fbo);
+  m_reader_glow_program.Bind();
+  for (int i = 0; i < Reader::Crt::UniformVectors; i++)
+    m_reader_glow_program.Uniform4fv(1 + i, &values[i * 4]);
+  glBindVertexArray(m_display_vao);
+  for (const auto& step : plan)
+  {
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           m_reader_glow_textures[step.target], 0);
+    glViewport(0, 0, step.width, step.height);
+    if (step.input < 0)
+    {
+      glBindTexture(GL_TEXTURE_2D, texture);
+      glBindSampler(0, m_display_linear_sampler);
+    }
+    else
+    {
+      glBindTexture(GL_TEXTURE_2D, m_reader_glow_textures[step.input]);
+      glBindSampler(0, 0); // the copy's own: linear, to its edge
+    }
+    m_reader_glow_program.Uniform4fv(1 + Reader::Crt::UniformVectors, step.vector);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+  }
+  glBindSampler(0, 0);
+  return true;
+}
+
+bool OpenGLHostDisplay::UseReaderCrt(s32 left, s32 bottom, s32 width, s32 height, GLuint texture,
+                                     u32 texture_width, s32 texture_height, s32 texture_view_x,
+                                     s32 texture_view_y, s32 texture_view_width, s32 texture_view_height)
 {
   if (!Reader::Crt::Enabled() || m_reader_crt_failed)
     return false;
@@ -933,26 +1046,74 @@ void main()
   o_col0 = vec4(ReaderCrt(v_pos), 1.0);
 }
 )";
-    const std::string fragment =
-      GetGLSLVersionHeader() + fragment_head + Reader::Crt::ShaderBody() + fragment_main;
-    if (!m_reader_crt_program.Compile(GetGLSLVersionHeader() + vertex_shader, {}, fragment))
+    static constexpr char glow_main[] = R"(
+void main()
+{
+  o_col0 = vec4(ReaderCrtGlow(gl_FragCoord.xy), 1.0);
+}
+)";
+    // Builds one program of the display's vertex shader and that fragment text, its uniforms
+    // registered in order: samp0, u_crt[0..], then `more`.
+    const auto build = [this](GL::Program& program, const std::string& fragment,
+                              std::initializer_list<std::string> more) {
+      if (!program.Compile(GetGLSLVersionHeader() + vertex_shader, {}, GetGLSLVersionHeader() + fragment))
+        return false;
+      if (GetRenderAPI() != RenderAPI::OpenGLES)
+        program.BindFragData(0, "o_col0");
+      if (!program.Link())
+        return false;
+      program.Bind();
+      program.RegisterUniform("samp0");
+      for (int i = 0; i < Reader::Crt::UniformVectors; i++)
+        program.RegisterUniform(("u_crt[" + std::to_string(i) + "]").c_str());
+      for (const std::string& name : more)
+        program.RegisterUniform(name.c_str());
+      program.Uniform1i(0, 0);
+      return true;
+    };
+    if (!build(m_reader_crt_program, fragment_head + std::string(Reader::Crt::ShaderBody()) + fragment_main, {}))
     {
       Log_WarningPrintf("Reader: the CRT shader was not built; the picture is shown without it");
+      m_reader_crt_program.Destroy();
       m_reader_crt_failed = true;
       return false;
     }
-    if (GetRenderAPI() != RenderAPI::OpenGLES)
-      m_reader_crt_program.BindFragData(0, "o_col0");
-    if (!m_reader_crt_program.Link())
+
+    // The picture with the copies, and the program that makes them.
+    std::string copies;
+    std::vector<std::string> copy_names;
+    for (int n = 0; n < Reader::Crt::GlowCopies; n++)
     {
-      m_reader_crt_failed = true;
-      return false;
+      copy_names.push_back("crt_glow" + std::to_string(n));
+      copies += "uniform sampler2D " + copy_names.back() + ";\n";
+      copies += "#define CRT_GLOW_TEX" + std::to_string(n) + "(p) texture(" + copy_names.back() + ", p)\n";
     }
-    m_reader_crt_program.Bind();
-    m_reader_crt_program.RegisterUniform("samp0");
-    for (int i = 0; i < Reader::Crt::UniformVectors; i++)
-      m_reader_crt_program.RegisterUniform(("u_crt[" + std::to_string(i) + "]").c_str());
-    m_reader_crt_program.Uniform1i(0, 0);
+    copies += "#define CRT_GLOW 1\n";
+    bool glow = build(m_reader_crt_glow_program,
+                      fragment_head + copies + Reader::Crt::ShaderBody() + fragment_main,
+                      {copy_names[0], copy_names[1], copy_names[2], copy_names[3], copy_names[4]});
+    static_assert(Reader::Crt::GlowCopies == 5, "the copies' names above");
+    if (glow)
+    {
+      for (int n = 0; n < Reader::Crt::GlowCopies; n++)
+        m_reader_crt_glow_program.Uniform1i(1 + Reader::Crt::UniformVectors + n, kReaderGlowUnit + n);
+      glow = build(m_reader_glow_program,
+                   fragment_head + std::string("uniform vec4 u_glow;\n#define CRT_GLOW_V u_glow\n") +
+                     Reader::Crt::ShaderBody() + Reader::Crt::GlowBody() + glow_main,
+                   {"u_glow"});
+    }
+    if (glow)
+    {
+      glGenFramebuffers(1, &m_reader_glow_fbo);
+      glGenTextures(Reader::Crt::GlowTextures, m_reader_glow_textures);
+    }
+    else
+    {
+      Log_WarningPrintf("Reader: the CRT glass's copies were not built; the picture is drawn without them");
+      m_reader_crt_glow_program.Destroy();
+      m_reader_glow_program.Destroy();
+      m_reader_glow_failed = true;
+    }
   }
 
   // Where the picture is in the texture (a view of it, perhaps upside down).
@@ -971,9 +1132,53 @@ void main()
   picture.output_height = static_cast<float>(height);
   float values[Reader::Crt::UniformFloats];
   Reader::Crt::Pack(picture, values);
-  m_reader_crt_program.Bind();
+
+  // The state the copies displace, put back after: the framebuffer drawn into (the window, a
+  // screenshot's, the post-processing chain's), the active unit and the copies' units.
+  GLint active = GL_TEXTURE0;
+  GLint framebuffer = 0;
+  GLint kept[Reader::Crt::GlowCopies] = {};
+  GLint kept_samplers[Reader::Crt::GlowCopies] = {};
+  glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
+  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
+  glActiveTexture(GL_TEXTURE0);
+  const bool glow = !m_reader_glow_failed && ReaderMakeGlow(texture, values, picture.output_width,
+                                                            picture.output_height);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(framebuffer));
+  if (glow)
+  {
+    for (int n = 0; n < Reader::Crt::GlowCopies; n++)
+    {
+      glActiveTexture(GL_TEXTURE0 + kReaderGlowUnit + n);
+      glGetIntegerv(GL_TEXTURE_BINDING_2D, &kept[n]);
+      glGetIntegerv(GL_SAMPLER_BINDING, &kept_samplers[n]);
+      glBindTexture(GL_TEXTURE_2D, m_reader_glow_textures[n]);
+      glBindSampler(kReaderGlowUnit + n, 0);
+    }
+    glActiveTexture(GL_TEXTURE0);
+  }
+
+  GL::Program& program = glow ? m_reader_crt_glow_program : m_reader_crt_program;
+  program.Bind();
   for (int i = 0; i < Reader::Crt::UniformVectors; i++)
-    m_reader_crt_program.Uniform4fv(1 + i, &values[i * 4]);
+    program.Uniform4fv(1 + i, &values[i * 4]);
+  glViewport(left, bottom, width, height);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glBindSampler(0, m_display_linear_sampler);
+  glBindVertexArray(m_display_vao);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glBindSampler(0, 0);
+
+  if (glow)
+  {
+    for (int n = 0; n < Reader::Crt::GlowCopies; n++)
+    {
+      glActiveTexture(GL_TEXTURE0 + kReaderGlowUnit + n);
+      glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(kept[n]));
+      glBindSampler(kReaderGlowUnit + n, static_cast<GLuint>(kept_samplers[n]));
+    }
+  }
+  glActiveTexture(static_cast<GLenum>(active));
   return true;
 }
 

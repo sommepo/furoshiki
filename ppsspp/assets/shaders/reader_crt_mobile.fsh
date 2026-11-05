@@ -32,6 +32,16 @@ uniform vec4 u_crt7;
 // and calls ReaderCrt(p), p being the place in the picture: (0,0) its top left corner,
 // (1,1) its bottom right one, as it lies on the screen.
 //
+// A renderer that makes the glass's blurred copies of the picture first (crt_glow.glsl, the
+// steps Crt::GlowPlan says) defines CRT_GLOW too, and CRT_GLOW_TEX0(p) to CRT_GLOW_TEX4(p):
+// copy n at place p of the picture, bilinear. (A plain flag and five names: one compiler, AMD's
+// OpenGL on Windows, cannot test a macro with arguments in #ifdef.)
+//
+// A renderer that draws into an HDR screen defines CRT_HDR and CRT_HDR_V, the vector
+// Crt::PackHdr fills: the picture then comes out in that screen's signal (linear scRGB, or
+// HDR10's PQ in BT.2020), the lit phosphor brighter than paper white as a tube's was. The light then spreads as far as a tube's glass spreads it; without it
+// the glow is the short one of a single pass.
+//
 // Written in what GLSL ES 1.00, GLSL 3.30, Vulkan GLSL and HLSL (through the defines of
 // crt.cpp's preambles) have in common: no vector made from a single number, no integer
 // arithmetic, loops of constant length.
@@ -69,6 +79,11 @@ vec3 crtSrc(vec2 p) {
 
 vec3 crtLinear(vec3 c) {
     return pow(abs(c), vec3(2.4, 2.4, 2.4));
+}
+
+// How much of a colour (as the source has it) is bright enough to spread far in the glass.
+float crtBright(vec3 c) {
+    return smoothstep(0.55, 0.92, dot(c, vec3(0.2126, 0.7152, 0.0722)));
 }
 
 // One line of the tube: the source along a row, as wide a spot as `Sharpness` leaves, red
@@ -117,6 +132,31 @@ vec3 crtMask(vec2 px, float kind) {
     }
     return m;
 }
+
+#ifdef CRT_HDR
+// The picture as an HDR screen is sent it. CRT_HDR_V: x 1 for linear scRGB (1 is 80 nits),
+// 2 for PQ in BT.2020 (HDR10); y paper white and z the screen's peak, in nits. `Contrast`
+// and the snow as an SDR screen shows them; then up to the peak with a soft shoulder from
+// three quarters of it, where SDR must stop at white.
+vec3 crtHdr(vec3 col, float snow) {
+    vec4 h = CRT_HDR_V;
+    float ct = u_crt6.w;
+    vec3 lin = pow(abs(col), vec3(ct, ct, ct));
+    vec3 e = pow(lin, vec3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2)) + snow;
+    lin = pow(max(e, 0.0), vec3(2.2, 2.2, 2.2));
+    vec3 nits = lin * h.y;
+    float knee = 0.75 * h.z;
+    vec3 over = max(nits - knee, 0.0);
+    nits = min(nits, knee) + over / (1.0 + over / max(h.z - knee, 1.0));
+    if (h.x < 1.5) {
+        return nits / 80.0;
+    }
+    vec3 wide = vec3(dot(vec3(0.6274, 0.3293, 0.0433), nits), dot(vec3(0.0691, 0.9195, 0.0114), nits),
+                     dot(vec3(0.0164, 0.0880, 0.8956), nits));
+    vec3 y = pow(clamp(wide / 10000.0, 0.0, 1.0), vec3(0.1593017578, 0.1593017578, 0.1593017578));
+    return pow((0.8359375 + 18.8515625 * y) / (1.0 + 18.6875 * y), vec3(78.84375, 78.84375, 78.84375));
+}
+#endif
 
 vec3 ReaderCrt(vec2 p) {
     vec2 src = u_crt1.zw;
@@ -182,6 +222,17 @@ vec3 ReaderCrt(vec2 p) {
     // Light that spreads in the glass: a near blur (`Glow`) and a far one (`Halation`).
     float glow = u_crt5.y;
     float hal = u_crt5.z;
+#ifdef CRT_GLOW
+    // The copies, in linear light: the whole picture a little and a dozen lines wide, and its
+    // bright part (picked out before it was spread, so that a thin bright stroke glows as
+    // well as a bright field) a little, a dozen lines and three dozen lines wide.
+    vec2 gq = clamp(q, 0.0, 1.0);
+    vec3 gn = CRT_GLOW_TEX0(gq).rgb;
+    vec3 gm = CRT_GLOW_TEX1(gq).rgb;
+    vec3 hb = CRT_GLOW_TEX2(gq).rgb;
+    vec3 hm = CRT_GLOW_TEX3(gq).rgb;
+    vec3 hf = CRT_GLOW_TEX4(gq).rgb;
+#else
     vec3 gn = vec3(0.0, 0.0, 0.0);
     vec3 gw = vec3(0.0, 0.0, 0.0);
     if (glow + hal > 0.0) {
@@ -205,6 +256,7 @@ vec3 ReaderCrt(vec2 p) {
         gn /= wn;
         gw /= ww;
     }
+#endif
 
     // The phosphor. Where the picture is bright its light runs over the mask's gaps (`Bloom`).
     float mstr = u_crt4.y;
@@ -214,10 +266,28 @@ vec3 ReaderCrt(vec2 p) {
     float open = clamp(bloom * 1.2 * lum * lum, 0.0, 1.0);
     mask = mix(mask, vec3(1.0, 1.0, 1.0), open);
     mean = mix(mean, 1.0, open);
-    col *= mix(vec3(1.0, 1.0, 1.0), mask, mstr) / mix(1.0, 1.0 - mstr * (1.0 - mean), 0.85);
+    // What the pattern's gaps take away is given back, most of it: all of it on an HDR screen,
+    // where the lit phosphor may shine brighter than white.
+    float giveback = 0.85;
+#ifdef CRT_HDR
+    giveback = CRT_HDR_V.x > 0.5 ? 1.0 : 0.85;
+#endif
+    col *= mix(vec3(1.0, 1.0, 1.0), mask, mstr) / mix(1.0, 1.0 - mstr * (1.0 - mean), giveback);
 
+#ifdef CRT_GLOW
+    // The glass gives back part of the picture as a haze: near, every place a little; far,
+    // what is bright, in its own colour, lifting the dark beside it. Inside a bright field
+    // (text on a light box: what is near the point is bright too) the far light is held
+    // back, so that the strokes stay dark; beside one it is not. (No broad wash of every
+    // place's own colour, as the single pass gives: on a bright scene it is a milky veil.)
+    col = (col + glow * 0.65 * (gn * 0.7 + gm * 0.3)) / (1.0 + glow * 0.22);
+    float field = smoothstep(0.30, 0.65, dot(gn, vec3(0.2126, 0.7152, 0.0722)));
+    float keep = 1.0 - 0.80 * field;
+    col += hal * 0.42 * (hb * 0.30 + hm * 0.45 + hf * 0.55) * keep;
+#else
     col = (col + glow * 0.55 * gn) / (1.0 + glow * 0.22);
     col += hal * 0.45 * (gw + gw * gw) * vec3(1.06, 0.97, 0.88);
+#endif
 
     // The tube's colours: how bright, how warm its white, how strong its colours.
     col *= u_crt6.x;
@@ -247,6 +317,16 @@ vec3 ReaderCrt(vec2 p) {
         col += glass * (0.012 + 0.11 * lamp + 0.03 * rim) * vec3(1.0, 0.96, 0.90);
     }
 
+    // Snow (`Grain`), more in the middle greys.
+    vec2 px = p * outp;
+    float n = crtHash(px + vec2(fract(time * 7.13) * 311.0, fract(time * 3.71) * 173.0)) - 0.5;
+    float snow = n * (u_crt7.x * 0.09 * (0.35 + 0.65 * (1.0 - abs(2.0 * grey - 1.0))));
+#ifdef CRT_HDR
+    if (CRT_HDR_V.x > 0.5) {
+        return crtHdr(col, snow) * inside;
+    }
+#endif
+
     // Highlights roll off instead of ending flat.
     vec3 over = max(col - 0.8, 0.0);
     col = min(col, 0.8) + over / (1.0 + over * 5.0);
@@ -255,10 +335,8 @@ vec3 ReaderCrt(vec2 p) {
     float ga = u_crt6.w / 2.2;
     col = pow(abs(col), vec3(ga, ga, ga));
 
-    // Snow (`Grain`), and always a grain too fine to see, against steps in the gradients.
-    vec2 px = p * outp;
-    float n = crtHash(px + vec2(fract(time * 7.13) * 311.0, fract(time * 3.71) * 173.0)) - 0.5;
-    col += n * (u_crt7.x * 0.09 * (0.35 + 0.65 * (1.0 - abs(2.0 * grey - 1.0))));
+    // The snow, and always a grain too fine to see, against steps in the gradients.
+    col += snow;
     col += (crtHash(px) - 0.5) / 255.0;
 
     return clamp(col, 0.0, 1.0) * inside;

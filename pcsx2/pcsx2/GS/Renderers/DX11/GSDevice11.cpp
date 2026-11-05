@@ -3,6 +3,7 @@
 
 #include "GS.h"
 #include "reader/render/crt_present.h" // Reader fork
+#include "reader/core/crt.h" // Reader fork
 #include "GS/GSGL.h"
 #include "GSDevice11.h"
 #include "GS/Renderers/DX11/D3D.h"
@@ -16,6 +17,7 @@
 #include "common/Path.h"
 #include "common/StringUtil.h"
 #include "common/ScopedGuard.h"
+#include "common/Timer.h"
 
 #include "imgui.h"
 #include "IconsFontAwesome.h"
@@ -288,6 +290,23 @@ bool GSDevice11::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 		}
 		if (!m_present.ps[i])
 			return false;
+	}
+
+	// Reader fork: the CRT picture with the glass's copies, and the copies' steps. Without
+	// either, the picture is the one of a single pass.
+	m_reader_present_hlsl = *shader;
+	{
+		ReaderCrtPresent::Options options;
+		options.copies = true;
+		m_reader_crt_glow_ps = m_shader_cache.GetPixelShader(m_dev.get(),
+			*shader + ReaderCrtPresent::Source(ReaderCrtPresent::Language::HLSL, options), nullptr, "ps_reader_crt");
+		m_reader_glow_step_ps = m_shader_cache.GetPixelShader(m_dev.get(), reader_shader, nullptr, "ps_reader_glow_step");
+		if (!m_reader_crt_glow_ps || !m_reader_glow_step_ps)
+		{
+			Console.Warning("Reader: the CRT glass's copies have no shader; the picture without them");
+			m_reader_crt_glow_ps.reset();
+			m_reader_glow_step_ps.reset();
+		}
 	}
 
 	memset(&bd, 0, sizeof(bd));
@@ -634,6 +653,11 @@ void GSDevice11::Destroy()
 
 	m_convert = {};
 	m_present = {};
+	m_reader_crt_glow_ps.reset(); // Reader fork
+	m_reader_glow_step_ps.reset();
+	m_reader_hdr_ps[0].reset();
+	m_reader_hdr_ps[1].reset();
+	m_reader_hdr_imgui_ps.reset();
 	m_merge = {};
 	m_interlace = {};
 	m_shadeboost = {};
@@ -797,6 +821,11 @@ u32 GSDevice11::GetSwapChainBufferCount() const
 bool GSDevice11::CreateSwapChain()
 {
 	constexpr DXGI_FORMAT swap_chain_format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	// Reader fork: a new swap chain is SDR; HDR is looked at again at the next frame.
+	m_reader_hdr = false;
+	m_reader_hdr_allowed = false;
+	m_reader_hdr_peak = -1.0f;
 
 	if (m_window_info.type != WindowInfo::Type::Win32)
 		return false;
@@ -1098,6 +1127,8 @@ GSDevice::PresentResult GSDevice11::BeginPresent(bool frame_skip)
 	// Get the pipeline statistics for this frame before postprocessing.
 	if (m_gpu_pipeline_statistics_enabled)
 		PopPipelineStatisticsQuery();
+
+	ReaderUpdateHdr(); // Reader fork
 
 	m_ctx->ClearRenderTargetView(m_swap_chain_rtv.get(), s_present_clear_color.data());
 	m_ctx->OMSetRenderTargets(1, m_swap_chain_rtv.addressof(), nullptr);
@@ -1742,11 +1773,158 @@ void GSDevice11::PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture*
 
 	PSSetShaderResource(TEXTURE_TEXTURE, sTex);
 	PSSetSamplerState(filter == Biln ? m_convert.ln.get() : m_convert.pt.get());
-	PSSetShader(m_present.ps[static_cast<u32>(shader)].get(), m_present.ps_cb.get());
+
+	// Reader fork: the CRT picture reads the glass's copies where they were made for this frame,
+	// and is drawn for the HDR screen while the swap chain is HDR.
+	ID3D11PixelShader* ps = m_present.ps[static_cast<u32>(shader)].get();
+	bool glow = false;
+	if (shader == PresentShader::READER_CRT && !dTex)
+	{
+		const bool hdr = m_reader_hdr && m_reader_hdr_ps[0];
+		glow = m_reader_glow_made && m_reader_crt_glow_ps && (!hdr || m_reader_hdr_ps[1]);
+		if (hdr)
+			ps = m_reader_hdr_ps[glow ? 1 : 0].get();
+		else if (glow)
+			ps = m_reader_crt_glow_ps.get();
+	}
+	m_reader_glow_made = false;
+	PSSetShader(ps, m_present.ps_cb.get());
 
 	// draw
 
+	if (glow) // Reader fork: t1 to t5, beside the device's own state, which is put back after
+	{
+		PSUpdateShaderState(true, true);
+		ID3D11ShaderResourceView* copies[READER_GLOW_COPIES];
+		for (int n = 0; n < READER_GLOW_COPIES; n++)
+			copies[n] = *static_cast<GSTexture11*>(m_reader_glow[n]);
+		m_ctx->PSSetShaderResources(1, READER_GLOW_COPIES, copies);
+	}
+
 	DrawPrimitive();
+
+	if (glow)
+	{
+		ID3D11ShaderResourceView* kept[READER_GLOW_COPIES] = {};
+		for (int n = 1; n < MAX_TEXTURES && n <= READER_GLOW_COPIES; n++)
+			kept[n - 1] = m_state.ps_current_srv[n];
+		m_ctx->PSSetShaderResources(1, READER_GLOW_COPIES, kept);
+	}
+}
+
+// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+bool GSDevice11::ReaderGlowReady() const
+{
+	return m_reader_crt_glow_ps && m_reader_glow_step_ps;
+}
+
+void GSDevice11::ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb)
+{
+	UpdateSubresource(m_present.ps_cb.get(), &cb, &m_present.cb_uniforms, sizeof(cb));
+	// The whole target; the step's shader places itself by the pixel's position alone. The
+	// convert vertex shader hands the present shaders' input.
+	DoStretchRect(sTex, GSVector4(0.0f, 0.0f, 1.0f, 1.0f), dTex, GSVector4(dTex->GetRect()),
+		m_reader_glow_step_ps.get(), m_present.ps_cb.get(), Biln);
+}
+
+// Reader fork: HDR output (reader/core/crt.h, HdrWanted). Needs proper testing: compiled only,
+// never run on Windows or on an HDR screen. Checked at each frame's start: whether it is
+// allowed (cheap), and the screen every two seconds or when the window's size changes.
+void GSDevice11::ReaderUpdateHdr()
+{
+	const bool allowed = !m_reader_hdr_failed && ReaderHdrAllowed() && m_swap_chain && m_using_flip_model_swap_chain &&
+						 !m_is_exclusive_fullscreen && m_window_info.type == WindowInfo::Type::Win32;
+	if (!allowed)
+	{
+		if (m_reader_hdr)
+			ReaderStopHdr();
+		m_reader_hdr_allowed = false;
+		return;
+	}
+	const u64 now = Common::Timer::GetCurrentValue();
+	const bool resized =
+		m_reader_hdr_size[0] != m_window_info.surface_width || m_reader_hdr_size[1] != m_window_info.surface_height;
+	if (m_reader_hdr_allowed && !resized && Common::Timer::ConvertValueToSeconds(now - m_reader_hdr_checked) < 2.0)
+		return;
+	m_reader_hdr_allowed = true;
+	m_reader_hdr_checked = now;
+	m_reader_hdr_size[0] = m_window_info.surface_width;
+	m_reader_hdr_size[1] = m_window_info.surface_height;
+
+	const float peak = D3D::ReaderHdrScreenPeak(reinterpret_cast<HWND>(m_window_info.window_handle));
+	if (peak < 0.0f)
+	{
+		if (m_reader_hdr)
+			ReaderStopHdr();
+		return;
+	}
+	if (!m_reader_hdr || peak != m_reader_hdr_peak)
+	{
+		if (!ReaderStartHdr(peak))
+		{
+			m_reader_hdr_failed = true;
+			if (m_reader_hdr)
+				ReaderStopHdr();
+		}
+	}
+}
+
+bool GSDevice11::ReaderStartHdr(float peak)
+{
+	float vector[Reader::Crt::HdrFloats];
+	Reader::Crt::PackHdr(Reader::Crt::Signal::Linear, peak, vector);
+	ReaderCrtPresent::Options options;
+	options.hdr = true;
+	std::memcpy(options.hdr_vector, vector, sizeof(vector));
+	wil::com_ptr_nothrow<ID3D11PixelShader> plain = m_shader_cache.GetPixelShader(m_dev.get(),
+		m_reader_present_hlsl + ReaderCrtPresent::Source(ReaderCrtPresent::Language::HLSL, options), nullptr, "ps_reader_crt");
+	options.copies = true;
+	wil::com_ptr_nothrow<ID3D11PixelShader> copies = m_reader_crt_glow_ps ? m_shader_cache.GetPixelShader(m_dev.get(),
+		m_reader_present_hlsl + ReaderCrtPresent::Source(ReaderCrtPresent::Language::HLSL, options), nullptr, "ps_reader_crt") :
+		nullptr;
+	const std::optional<std::string> imgui = ReadShaderSource("shaders/dx11/imgui.fx");
+	wil::com_ptr_nothrow<ID3D11PixelShader> imgui_ps = imgui.has_value() ?
+		m_shader_cache.GetPixelShader(m_dev.get(), *imgui + ReaderHdrImGuiShader(vector[1]), nullptr, "ps_reader_hdr") :
+		nullptr;
+	if (!plain || !imgui_ps)
+	{
+		Console.Warning("Reader: the HDR picture's shaders were not built; the picture stays SDR");
+		return false;
+	}
+	if (!m_reader_hdr && !ReaderSwapChainFormat(true))
+	{
+		ReaderSwapChainFormat(false);
+		return false;
+	}
+	m_reader_hdr_ps[0] = std::move(plain);
+	m_reader_hdr_ps[1] = std::move(copies);
+	m_reader_hdr_imgui_ps = std::move(imgui_ps);
+	m_reader_hdr = true;
+	m_reader_hdr_peak = peak;
+	Console.WriteLn("Reader: HDR output (D3D11, scRGB linear, peak %.0f nits, paper white %.0f nits)", vector[2], vector[1]);
+	return true;
+}
+
+void GSDevice11::ReaderStopHdr()
+{
+	m_reader_hdr = false;
+	m_reader_hdr_peak = -1.0f;
+	if (!ReaderSwapChainFormat(false))
+		pxFailRel("D3D11: could not put the swap chain back to SDR");
+	Console.WriteLn("Reader: HDR output ends (D3D11)");
+}
+
+bool GSDevice11::ReaderSwapChainFormat(bool hdr)
+{
+	// EndPresent() left no view of the swap chain bound.
+	m_swap_chain_rtv.reset();
+	const bool ok = D3D::ReaderSetSwapChainFormat(m_swap_chain.get(),
+		hdr ? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM,
+		hdr ? DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+		m_using_allow_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+	if (!CreateSwapChainRTV())
+		pxFailRel("D3D11: Failed to recreate swap chain RTV after a change of format");
+	return ok;
 }
 
 void GSDevice11::UpdateCLUTTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, GSTexture* dTex, u32 dOffset, u32 dSize)
@@ -2423,7 +2601,7 @@ void GSDevice11::RenderImGui()
 	IASetInputLayout(m_imgui.il.get());
 	IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	VSSetShader(m_imgui.vs.get(), m_imgui.vs_cb.get());
-	PSSetShader(m_imgui.ps.get(), nullptr);
+	PSSetShader((m_reader_hdr && m_reader_hdr_imgui_ps) ? m_reader_hdr_imgui_ps.get() : m_imgui.ps.get(), nullptr); // Reader fork: HDR
 	OMSetBlendState(m_imgui.bs.get(), 0.0f);
 	OMSetDepthStencilState(m_convert.dss.get(), 0);
 	PSSetSamplerState(m_convert.ln.get());

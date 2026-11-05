@@ -25,6 +25,12 @@ card with the sentence, a screenshot and the audio.
 | Nintendo 3DS | Azahar | ✓ | ✓ |
 | PS Vita | Vita3K | ✓ | ✓ |
 
+**A CRT picture** for every console but the Vita, with sliders and ready-made looks (*Reader
+settings, CRT picture*): scan lines, the phosphor's pattern, the curved glass, and a glow that
+spreads off what is bright into the dark beside it, as a tube's glass spreads light. On Windows
+with an HDR screen, its HDR row lets the lit phosphor shine brighter than white (the Dreamcast,
+PSP and PS2 cores).
+
 ## What it looks like
 
 All pictures are of Furoshiki for Android on an AYN Thor, the games' own text read as it comes up.

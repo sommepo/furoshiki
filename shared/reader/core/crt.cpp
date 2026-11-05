@@ -88,6 +88,17 @@ const std::vector<Param> kParams = {
      1, 0, "0=Lit|1=Dark", true},
     {"frame_wear", "Wear", "Frame", "Dust in the recess, grime in the seams, plastic aged by the years.",
      Kind::Slider, 0, 1, 0.05f, 0.50f, nullptr, true},
+
+    {"hdr", "HDR", "Screen",
+     "On a screen in HDR, the lit phosphor shines brighter than white, as a tube's did: from the "
+     "next game started, where its core can, with HDR on in the system's display settings.",
+     Kind::Choice, 0, 1, 1, 0, "0=Off|1=On", false, true},
+    {"hdr_white", "Paper white", "Screen",
+     "How bright white is in HDR, in nits: about what the system's SDR brightness is set to.",
+     Kind::Slider, 80, 480, 10, 200, nullptr, false, true},
+    {"hdr_peak", "Peak", "Screen",
+     "The brightest the screen can show, in nits, where it does not say so itself.", Kind::Slider,
+     400, 4000, 50, 1000, nullptr, false, true},
 };
 
 enum Index {
@@ -116,6 +127,9 @@ enum Index {
     FrameColour,
     FrameRoom,
     FrameWear,
+    Hdr,
+    HdrWhite,
+    HdrPeak,
     Count
 };
 
@@ -143,6 +157,18 @@ const std::vector<Preset> kPresets = {
      "lines=0;scanlines=0.85;beam=0.45;sharpness=1.00;mask=1;mask_strength=0.30;warp=0;corners=0;"
      "vignette=0;glass=0;glow=0.15;halation=0.10;bloom=0.40;brightness=1.05;warmth=0;colour=1.00;"
      "contrast=1.00;convergence=0;grain=0;flicker=0"},
+    {"vivid", "Vivid",
+     "lines=0;scanlines=0.90;beam=0.55;sharpness=0.55;mask=2;mask_strength=0.30;warp=0.80;corners=0.50;"
+     "vignette=0.55;glass=0;glow=0.60;halation=0.85;bloom=0.60;brightness=1.00;warmth=0.05;"
+     "colour=1.25;contrast=1.15;convergence=0.40;grain=0.25;flicker=0.20"},
+    {"glow", "Phosphor glow",
+     "lines=0;scanlines=0.75;beam=0.55;sharpness=0.55;mask=2;mask_strength=0.35;warp=0.80;corners=0.50;"
+     "vignette=0.60;glass=0;glow=0.70;halation=1.00;bloom=0.80;brightness=1.05;warmth=0.10;"
+     "colour=1.30;contrast=1.20;convergence=0.40;grain=0.10;flicker=0"},
+    {"hdr", "Bright tube (HDR)",
+     "lines=0;scanlines=0.90;beam=0.60;sharpness=0.60;mask=2;mask_strength=0.85;warp=0.70;corners=0.45;"
+     "vignette=0.45;glass=0;glow=0.60;halation=0.90;bloom=0.50;brightness=1.00;warmth=0.10;"
+     "colour=1.20;contrast=1.10;convergence=0.30;grain=0.10;flicker=0"},
     {"lines", "Scan lines only",
      "lines=0;scanlines=0.60;beam=0.60;sharpness=0.90;mask=0;mask_strength=0;warp=0;corners=0;"
      "vignette=0;glass=0;glow=0.10;halation=0;bloom=0.50;brightness=1.00;warmth=0;colour=1.00;"
@@ -252,6 +278,10 @@ const char kShaderBody[] =
 #include "reader/core/crt_shader.inc"
     ;
 
+const char kGlowBody[] =
+#include "reader/core/crt_glow.inc"
+    ;
+
 } // namespace
 
 const std::vector<Param>& Params() {
@@ -281,7 +311,7 @@ void Set(const char* key, float value) {
 
 void Reset() {
     for (int i = 1; i < Count; i++) {
-        if (!kParams[i].frame) {
+        if (!kParams[i].frame && !kParams[i].screen) {
             Set(kParams[i].key, kParams[i].initial);
         }
     }
@@ -293,7 +323,7 @@ bool ApplyPreset(const char* preset) {
             Reset();
             EachPair(entry.values, [](const char* key, float value) {
                 const int index = IndexOf(key);
-                if (index > 0 && !kParams[index].frame) {
+                if (index > 0 && !kParams[index].frame && !kParams[index].screen) {
                     Set(key, value);
                 }
             });
@@ -317,7 +347,7 @@ std::string CurrentPreset() {
         });
         bool same = true;
         for (int i = 1; i < Count && same; i++) {
-            same = kParams[i].frame || std::fabs(wanted[i] - Value(i)) < 0.001f;
+            same = kParams[i].frame || kParams[i].screen || std::fabs(wanted[i] - Value(i)) < 0.001f;
         }
         if (same) {
             return entry.key;
@@ -417,6 +447,70 @@ void Pack(const Picture& picture, float out[UniformFloats]) {
 
 const char* ShaderBody() {
     return kShaderBody;
+}
+
+std::vector<GlowStep> GlowPlan(float output_width, float output_height) {
+    // The copies' sizes come from the picture's shape on the screen, not from the game's
+    // pixels: the light reaches as far across the picture at any resolution, and is round.
+    // 240, 120 and 60 rows: a little, a dozen and three dozen of a 480-line console's lines.
+    const float aspect = std::clamp(output_width / std::max(output_height, 1.f), 0.25f, 4.f);
+    int widths[3];
+    int heights[3];
+    for (int level = 0; level < 3; level++) {
+        heights[level] = 240 >> level;
+        widths[level] = std::max(8, static_cast<int>(std::lround(heights[level] * aspect)));
+    }
+    // Textures: 0 to 4 the copies (whole near, whole far, bright near, far, farthest), 5 to 9
+    // the same before they are blurred, 10 to 12 a blur's half way at each size.
+    constexpr float kSigma[3] = {2.f, 3.f, 4.f};
+    std::vector<GlowStep> steps;
+    const auto add = [&](int target, int input, int level, float kind) {
+        GlowStep step;
+        step.target = target;
+        step.input = input;
+        step.width = widths[level];
+        step.height = heights[level];
+        step.vector[0] = kind;
+        step.vector[1] = kSigma[level];
+        step.vector[2] = 1.f / static_cast<float>(step.width);
+        step.vector[3] = 1.f / static_cast<float>(step.height);
+        steps.push_back(step);
+    };
+    const auto blur = [&](int target, int input, int level) {
+        add(10 + level, input, level, 3.f);
+        add(target, 10 + level, level, 4.f);
+    };
+    add(5, -1, 0, 0.f); // the whole picture
+    blur(0, 5, 0);
+    add(6, 5, 1, 2.f);
+    blur(1, 6, 1);
+    add(7, -1, 0, 1.f); // its bright part
+    blur(2, 7, 0);
+    add(8, 7, 1, 2.f);
+    blur(3, 8, 1);
+    add(9, 8, 2, 2.f);
+    blur(4, 9, 2);
+    return steps;
+}
+
+const char* GlowBody() {
+    return kGlowBody;
+}
+
+bool HdrWanted() {
+    return Enabled() && Value(Hdr) > 0.5f;
+}
+
+void PackHdr(Signal signal, float peak_nits, float out[HdrFloats]) {
+    float peak = Value(HdrPeak);
+    if (peak_nits > 0.f) {
+        peak = std::min(peak, peak_nits);
+    }
+    const float white = std::min(Value(HdrWhite), peak * 0.6f);
+    out[0] = static_cast<float>(signal);
+    out[1] = white;
+    out[2] = std::max(peak, white);
+    out[3] = 0.f;
 }
 
 const char* HlslDefines() {

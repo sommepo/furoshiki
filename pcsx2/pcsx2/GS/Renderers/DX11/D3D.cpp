@@ -22,6 +22,7 @@
 #include <d3d11.h>
 #include <directx/d3d12.h>
 #include <d3dcompiler.h>
+#include <dxgi1_6.h> // Reader fork: IDXGIOutput6
 #include <fstream>
 
 #include "fmt/format.h"
@@ -40,6 +41,54 @@ wil::com_ptr_nothrow<IDXGIFactory5> D3D::CreateFactory(bool debug)
 		Console.Error("D3D: Failed to create DXGI factory: %08X", hr);
 
 	return factory;
+}
+
+// Reader fork: HDR output (reader/core/crt.h, HdrWanted). Needs proper testing: it was compiled
+// only, never run on Windows.
+float D3D::ReaderHdrScreenPeak(HWND window_hwnd)
+{
+	const HMONITOR monitor = MonitorFromWindow(window_hwnd, MONITOR_DEFAULTTONEAREST);
+	wil::com_ptr_nothrow<IDXGIFactory1> factory;
+	if (!monitor || FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.put()))))
+		return -1.0f;
+	wil::com_ptr_nothrow<IDXGIAdapter1> adapter;
+	for (UINT a = 0; factory->EnumAdapters1(a, adapter.put()) != DXGI_ERROR_NOT_FOUND; a++)
+	{
+		wil::com_ptr_nothrow<IDXGIOutput> output;
+		for (UINT o = 0; adapter->EnumOutputs(o, output.put()) != DXGI_ERROR_NOT_FOUND; o++)
+		{
+			DXGI_OUTPUT_DESC desc;
+			if (FAILED(output->GetDesc(&desc)) || desc.Monitor != monitor)
+				continue;
+			const wil::com_ptr_nothrow<IDXGIOutput6> output6 = output.try_query<IDXGIOutput6>();
+			DXGI_OUTPUT_DESC1 desc1;
+			if (!output6 || FAILED(output6->GetDesc1(&desc1)) ||
+				desc1.ColorSpace != DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
+				return -1.0f;
+			return desc1.MaxLuminance > 0.0f ? desc1.MaxLuminance : 0.0f;
+		}
+	}
+	return -1.0f;
+}
+
+bool D3D::ReaderSetSwapChainFormat(
+	IDXGISwapChain1* swap_chain, DXGI_FORMAT format, DXGI_COLOR_SPACE_TYPE color_space, UINT flags)
+{
+	HRESULT hr = swap_chain->ResizeBuffers(0, 0, 0, format, flags);
+	if (FAILED(hr))
+	{
+		Console.Warning("Reader: ResizeBuffers() to another format failed: 0x%08X", hr);
+		return false;
+	}
+	const wil::com_ptr_nothrow<IDXGISwapChain3> swap_chain3 = wil::try_com_query_nothrow<IDXGISwapChain3>(swap_chain);
+	UINT support = 0;
+	if (!swap_chain3 || FAILED(swap_chain3->CheckColorSpaceSupport(color_space, &support)) ||
+		!(support & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) || FAILED(swap_chain3->SetColorSpace1(color_space)))
+	{
+		Console.Warning("Reader: the swap chain does not take the colour space %d", static_cast<int>(color_space));
+		return false;
+	}
+	return true;
 }
 
 static std::string FixupDuplicateAdapterNames(const std::vector<GSAdapterInfo>& adapters, std::string adapter_name)

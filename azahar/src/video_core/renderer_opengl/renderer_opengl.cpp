@@ -405,6 +405,7 @@ void RendererOpenGL::InitOpenGLObjects() {
 void RendererOpenGL::ReloadShader(Settings::StereoRenderOption render_3d) {
     // Link shaders and get variable locations
     std::string shader_data = fragment_shader_precision_OES;
+    reader_crt_copies = false; // Reader fork: set by the CRT picture's shader below
     if (render_3d == Settings::StereoRenderOption::Anaglyph) {
         if (Settings::values.anaglyph_shader_name.GetValue() == "Dubois (builtin)") {
             shader_data += HostShaders::OPENGL_PRESENT_ANAGLYPH_FRAG;
@@ -423,8 +424,10 @@ void RendererOpenGL::ReloadShader(Settings::StereoRenderOption render_3d) {
         shader_data += HostShaders::OPENGL_PRESENT_INTERLACED_FRAG;
     } else if (Reader::Crt::Enabled()) {
         // Reader fork: the CRT picture (video_core/reader_crt_present.h), whatever
-        // post-processing shader the settings name.
-        shader_data += ReaderCrtPresent::OpenGLSource();
+        // post-processing shader the settings name; with the glass's blurred copies where
+        // they can be made.
+        reader_crt_copies = !reader_glow_failed && ReaderGlowProgramReady();
+        shader_data += ReaderCrtPresent::OpenGLSource(reader_crt_copies);
     } else {
         if (Settings::values.pp_shader_name.GetValue() == "None (builtin)") {
             shader_data += HostShaders::OPENGL_PRESENT_FRAG;
@@ -440,6 +443,19 @@ void RendererOpenGL::ReloadShader(Settings::StereoRenderOption render_3d) {
         }
     }
     shader.Create(HostShaders::OPENGL_PRESENT_VERT, shader_data);
+    if (reader_crt_copies) {
+        // Reader fork: the shader without the copies when the one with them does not link
+        GLint linked = GL_FALSE;
+        glGetProgramiv(shader.handle, GL_LINK_STATUS, &linked);
+        if (linked != GL_TRUE) {
+            reader_glow_failed = true;
+            reader_crt_copies = false;
+            shader.Release();
+            shader.Create(HostShaders::OPENGL_PRESENT_VERT,
+                          std::string(fragment_shader_precision_OES) +
+                              ReaderCrtPresent::OpenGLSource(false));
+        }
+    }
     state.draw.shader_program = shader.handle;
     state.Apply();
     uniform_modelview_matrix = glGetUniformLocation(shader.handle, "modelview_matrix");
@@ -592,12 +608,18 @@ void RendererOpenGL::DrawSingleScreen(const ScreenInfo& screen_info, float x, fl
                 1.0f / static_cast<float>(screen_info.texture.width * scale_factor),
                 1.0f / static_cast<float>(screen_info.texture.height * scale_factor));
     glUniform4f(uniform_o_resolution, h, w, 1.0f / h, 1.0f / w);
+    bool reader_glow = false;
     if (uniform_reader_crt != -1) {
-        // Reader fork: the CRT picture's shader, which wants the screen smoothed
+        // Reader fork: the CRT picture's shader, which wants the screen smoothed, with the
+        // glass's blurred copies of this screen made first where it reads them
         float reader_crt[Reader::Crt::UniformFloats];
-        ReaderCrtPresent::Constants(
-            reader_crt, vertices, static_cast<float>(screen_info.texture.width * scale_factor),
+        const Reader::Crt::Picture picture = ReaderCrtPresent::MakePicture(
+            vertices, static_cast<float>(screen_info.texture.width * scale_factor),
             static_cast<float>(screen_info.texture.height * scale_factor));
+        Reader::Crt::Pack(picture, reader_crt);
+        if (reader_crt_copies) {
+            reader_glow = ReaderMakeGlow(screen_info.display_texture, picture, reader_crt);
+        }
         glUniform4fv(uniform_reader_crt, Reader::Crt::UniformVectors, reader_crt);
         sampler = samplers[1].handle;
     }
@@ -608,9 +630,167 @@ void RendererOpenGL::DrawSingleScreen(const ScreenInfo& screen_info, float x, fl
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices.data());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+    if (reader_glow) {
+        // Reader fork: the copies' units are left empty, as they were
+        for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+            glActiveTexture(GL_TEXTURE0 + ReaderCrtPresent::kGlowUnit + n);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        glActiveTexture(GL_TEXTURE0);
+    }
+
     state.texture_units[0].texture_2d = 0;
     state.texture_units[0].sampler = 0;
     state.Apply();
+}
+
+// Reader fork: the program that draws the glass's blurred copies (crt_glow.glsl), built once.
+bool RendererOpenGL::ReaderGlowProgramReady() {
+    if (reader_glow_program.handle != 0) {
+        return true;
+    }
+    if (reader_glow_failed) {
+        return false;
+    }
+    reader_glow_program.Create(ReaderCrtPresent::kOpenGLGlowVertex,
+                               std::string(fragment_shader_precision_OES) +
+                                   ReaderCrtPresent::OpenGLGlowSource());
+    GLint linked = GL_FALSE;
+    glGetProgramiv(reader_glow_program.handle, GL_LINK_STATUS, &linked);
+    if (linked != GL_TRUE) {
+        LOG_WARNING(Render_OpenGL, "Reader: the CRT glass's copies cannot be drawn (no program)");
+        reader_glow_program.Release();
+        reader_glow_failed = true;
+        return false;
+    }
+    reader_glow_crt = glGetUniformLocation(reader_glow_program.handle, "u_crt");
+    reader_glow_vector = glGetUniformLocation(reader_glow_program.handle, "u_glow");
+    reader_glow_framebuffer.Create();
+    return true;
+}
+
+// Reader fork: makes `name` a texture of the copies' format at that size, on the copies'
+// first unit with the copies' framebuffer bound for drawing; false when it cannot be drawn
+// into. The first one picks the format: 16-bit floating point, else 10 bits a colour.
+bool RendererOpenGL::ReaderGlowTexture(GLuint name, int width, int height) {
+    const auto make = [&](GLenum format, GLenum type) {
+        glActiveTexture(GL_TEXTURE0 + ReaderCrtPresent::kGlowUnit);
+        glBindTexture(GL_TEXTURE_2D, name);
+        glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, GL_RGBA, type,
+                     nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, name, 0);
+        return glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    };
+    if (reader_glow_format != 0) {
+        return make(reader_glow_format, reader_glow_type);
+    }
+    constexpr std::array<std::array<GLenum, 2>, 2> formats = {{
+        {GL_RGBA16F, GL_HALF_FLOAT},
+        {GL_RGB10_A2, GL_UNSIGNED_INT_2_10_10_10_REV},
+    }};
+    for (const auto& format : formats) {
+        if (make(format[0], format[1])) {
+            reader_glow_format = format[0];
+            reader_glow_type = format[1];
+            LOG_INFO(Render_OpenGL, "Reader: the CRT picture with the glass's copies ({})",
+                     format[0] == GL_RGBA16F ? "16-bit floating point" : "10 bits a colour");
+            return true;
+        }
+    }
+    LOG_WARNING(Render_OpenGL, "Reader: no texture the CRT glass's copies can be drawn into");
+    return false;
+}
+
+// Reader fork: draws the glass's blurred copies of the screen in `texture` (the plan's steps,
+// each into its texture of this screen's slot) and binds the copies on their units for the
+// CRT shader. Leaves the renderer's state (its record and what it records) as it was. False,
+// with nothing bound, when they cannot be made: the shader is then built without them.
+bool RendererOpenGL::ReaderMakeGlow(GLuint texture, const Reader::Crt::Picture& picture,
+                                    const float values[Reader::Crt::UniformFloats]) {
+    const auto plan = Reader::Crt::GlowPlan(picture.output_width, picture.output_height);
+    if (plan.empty() || reader_glow_program.handle == 0) {
+        return false;
+    }
+    ReaderGlowSlot& slot =
+        reader_glow_slots[std::min(reader_glow_slot++, reader_glow_slots.size() - 1)];
+
+    // What is bound may not be what the state records (the libretro build binds the
+    // frontend's framebuffer itself): both are put back as they were.
+    GLint viewport[4] = {};
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    GLint bound_framebuffer = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound_framebuffer);
+    const GLuint kept_framebuffer = state.draw.draw_framebuffer;
+    const GLuint kept_program = state.draw.shader_program;
+    const bool kept_blend = state.blend.enabled;
+    const bool kept_scissor = state.scissor.enabled;
+    state.draw.draw_framebuffer = reader_glow_framebuffer.handle;
+    state.draw.shader_program = reader_glow_program.handle;
+    state.blend.enabled = false;
+    state.scissor.enabled = false;
+    state.Apply();
+
+    bool ok = true;
+    for (const auto& step : plan) {
+        auto& size = slot.sizes[step.target];
+        if (size[0] == step.width && size[1] == step.height) {
+            continue;
+        }
+        auto& name = slot.textures[step.target];
+        if (name.handle == 0) {
+            name.Create();
+        }
+        if (!ReaderGlowTexture(name.handle, step.width, step.height)) {
+            size = {0, 0};
+            ok = false;
+            break;
+        }
+        size = {step.width, step.height};
+    }
+    if (ok) {
+        glUniform4fv(reader_glow_crt, Reader::Crt::UniformVectors, values);
+        glActiveTexture(GL_TEXTURE0 + ReaderCrtPresent::kGlowUnit);
+        for (const auto& step : plan) {
+            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                                   slot.textures[step.target].handle, 0);
+            glViewport(0, 0, step.width, step.height);
+            glBindTexture(GL_TEXTURE_2D,
+                          step.input < 0 ? texture : slot.textures[step.input].handle);
+            // The game's picture smoothed, as the CRT shader reads it; a copy by its own filter
+            glBindSampler(ReaderCrtPresent::kGlowUnit, step.input < 0 ? samplers[1].handle : 0);
+            glUniform4fv(reader_glow_vector, 1, step.vector);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
+        glBindSampler(ReaderCrtPresent::kGlowUnit, 0);
+        for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+            glActiveTexture(GL_TEXTURE0 + ReaderCrtPresent::kGlowUnit + n);
+            glBindTexture(GL_TEXTURE_2D, slot.textures[n].handle);
+        }
+        glActiveTexture(GL_TEXTURE0);
+    } else {
+        glActiveTexture(GL_TEXTURE0 + ReaderCrtPresent::kGlowUnit);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+        // Built again without the copies from the next frame on
+        reader_glow_failed = true;
+        settings.shader_update_requested = true;
+    }
+
+    state.draw.draw_framebuffer = kept_framebuffer;
+    state.draw.shader_program = kept_program;
+    state.blend.enabled = kept_blend;
+    state.scissor.enabled = kept_scissor;
+    state.Apply();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(bound_framebuffer));
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    return ok;
 }
 
 /**
@@ -709,6 +889,7 @@ void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout, bool f
 
     const auto& top_screen = layout.top_screen;
     const auto& bottom_screen = layout.bottom_screen;
+    reader_glow_slot = 0; // Reader fork: the screens' copies, in the order they are drawn
 
     glViewport(0, 0, layout.width, layout.height);
     if (render_window.NeedsClearing()) {

@@ -42,6 +42,17 @@ namespace D3D
 	// returns the driver version from the registry as a string
 	std::string GetDriverVersionFromLUID(const LUID& luid);
 
+	// Reader fork: whether the screen the window is on is in HDR (its colour space HDR10's):
+	// the luminance it says it reaches (0 when it says none), or -1 when it is not in HDR or
+	// nothing could be asked. A new factory each time, as a factory's outputs do not follow a
+	// change of the screen's mode.
+	float ReaderHdrScreenPeak(HWND window_hwnd);
+
+	// Reader fork: the swap chain's buffers in another format and colour space (an HDR one, or
+	// SDR's own again). Every view of its buffers must have been released. False when it fails.
+	bool ReaderSetSwapChainFormat(IDXGISwapChain1* swap_chain, DXGI_FORMAT format, DXGI_COLOR_SPACE_TYPE color_space,
+		UINT flags);
+
 	// this is sort of a legacy thing that doesn't have much to do with d3d (just the easiest way)
 	// checks to see if the adapter at 0 is NV and thus we should prefer OpenGL
 	enum class VendorID

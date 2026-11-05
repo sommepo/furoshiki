@@ -33,6 +33,9 @@ inline constexpr bool DrawsFrame = true;
 inline std::string Table() {
     std::string text;
     for (const Param& param : Params()) {
+        if (param.screen) {
+            continue; // HDR: no Android core draws it yet
+        }
 #ifdef READER_CRT_NO_FRAME
         if (param.frame) {
             continue; // this app draws no frame (READER_CRT_NO_FRAME before this header)

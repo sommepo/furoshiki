@@ -438,6 +438,12 @@ private:
 
 	std::vector<VkPipeline> m_convert;
 	std::array<VkPipeline, static_cast<int>(PresentShader::Count)> m_present{};
+	// Reader fork: the CRT picture that reads the glass's copies (bindings 1 to 5 of the
+	// utility layout), the copies' steps (into 16-bit floating point), and whether the next
+	// utility draw binds the copies.
+	VkPipeline m_reader_crt_glow = VK_NULL_HANDLE;
+	VkPipeline m_reader_glow_step = VK_NULL_HANDLE;
+	bool m_reader_glow_bind = false;
 	std::array<VkPipeline, 2> m_merge{};
 	std::array<VkPipeline, NUM_INTERLACE_SHADERS> m_interlace{};
 	VkPipeline m_colclip_setup_pipelines[2][2] = {}; // [depth][feedback_loop]
@@ -600,6 +606,10 @@ public:
 
 	void PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect,
 		PresentShader shader, float shaderTime, Filter filter) override;
+	// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+	bool ReaderGlowReady() const override;
+	void ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb) override;
+	void ReaderGlowDone() override;
 	void DrawMultiStretchRects(
 		const MultiStretchRect* rects, u32 num_rects, GSTexture* dTex, ShaderConvertSelector shader) override;
 	void DoMultiStretchRects(const MultiStretchRect* rects, u32 num_rects, GSTextureVK* dTex, ShaderConvertSelector shader);

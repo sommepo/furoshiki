@@ -5,6 +5,7 @@
 #include "reader/core/crt.h"
 
 #include <cmath>
+#include <cstdio>
 
 namespace ReaderCrtPresent {
 
@@ -33,47 +34,84 @@ const char* const kQuality = "#define CRT_QUALITY 0\n";
 const char* const kQuality = "#define CRT_QUALITY 1\n";
 #endif
 
+// The picture's options as defines, before the shared text.
+std::string OptionDefines(Language language, const Options& options)
+{
+	std::string text;
+	if (options.copies)
+	{
+		for (int n = 0; n < Reader::Crt::GlowCopies; n++)
+		{
+			const std::string i = std::to_string(n);
+			const std::string unit = std::to_string(n + 1);
+			switch (language)
+			{
+				case Language::OpenGL:
+					text += "layout(binding = " + unit + ") uniform sampler2D crt_glow" + i + ";\n";
+					text += "#define CRT_GLOW_TEX" + i + "(p) texture(crt_glow" + i + ", p)\n";
+					break;
+				case Language::Vulkan:
+					text += "layout(set = 0, binding = " + unit + ") uniform sampler2D crt_glow" + i + ";\n";
+					text += "#define CRT_GLOW_TEX" + i + "(p) texture(crt_glow" + i + ", p)\n";
+					break;
+				case Language::HLSL:
+					text += "Texture2D crt_glow" + i + " : register(t" + unit + ");\n";
+					text += "#define CRT_GLOW_TEX" + i + "(p) crt_glow" + i + ".SampleLevel(TextureSampler, p, 0.0)\n";
+					break;
+			}
+		}
+		text += "#define CRT_GLOW 1\n";
+	}
+	if (options.hdr)
+	{
+		char vector[160];
+		std::snprintf(vector, sizeof(vector), "#define CRT_HDR_V vec4(%.9g, %.9g, %.9g, %.9g)\n",
+			options.hdr_vector[0], options.hdr_vector[1], options.hdr_vector[2], options.hdr_vector[3]);
+		text += "#define CRT_HDR 1\n";
+		text += vector;
+	}
+	return text;
+}
+
+// A step of the glass's copies (crt_glow.glsl): its vector is the constants' last one.
+const char* const kGlowVector = "#define CRT_GLOW_V READER_CRT_V7\n";
+
 } // namespace
 
-std::string Source(Language language)
+std::string Source(Language language, const Options& options)
 {
+	static_assert(GlowVectorAt == 7 * 4, "CRT_GLOW_V is READER_CRT_V7");
 	std::string text = "\n// Reader fork: the CRT picture (reader/render/crt_present.cpp).\n";
 	switch (language)
 	{
 		case Language::OpenGL:
-			text += "#ifdef FRAGMENT_SHADER\n#ifdef ps_reader_crt\n";
-			text += "uniform float u_reader0;\nuniform float u_reader1;\nuniform float u_reader2;\n"
-					"uniform vec4 u_reader3;\nuniform vec4 u_reader4;\n";
-			text += kVectors;
-			text += kQuality;
-			text += "#define CRT_TEX(uv) texture(TextureSampler, uv)\n";
-			text += Reader::Crt::ShaderBody();
-			text += R"(
-void ps_reader_crt()
-{
-	vec2 p = (PSin_t - CRT_U(0).xy) / vec2(CRT_U(0).z, CRT_U(1).y);
-	SV_Target0 = vec4(ReaderCrt(p), 1.0);
-}
-#endif
-#endif
-)";
-			break;
 		case Language::Vulkan:
-			text += "#ifdef FRAGMENT_SHADER\n#ifdef ps_reader_crt\n";
+		{
+			const bool gl = language == Language::OpenGL;
+			const char* const out = gl ? "SV_Target0" : "o_col0";
+			text += "#ifdef FRAGMENT_SHADER\n#if defined(ps_reader_crt) || defined(ps_reader_glow_step)\n";
+			if (gl)
+				text += "uniform float u_reader0;\nuniform float u_reader1;\nuniform float u_reader2;\n"
+						"uniform vec4 u_reader3;\nuniform vec4 u_reader4;\n";
 			text += kVectors;
 			text += kQuality;
-			text += "#define CRT_TEX(uv) texture(samp0, uv)\n";
+			text += gl ? "#define CRT_TEX(uv) texture(TextureSampler, uv)\n" : "#define CRT_TEX(uv) texture(samp0, uv)\n";
+			text += "#ifdef ps_reader_crt\n";
+			text += OptionDefines(language, options);
+			text += "#endif\n";
 			text += Reader::Crt::ShaderBody();
-			text += R"(
-void ps_reader_crt()
-{
-	vec2 p = (v_tex - CRT_U(0).xy) / vec2(CRT_U(0).z, CRT_U(1).y);
-	o_col0 = vec4(ReaderCrt(p), 1.0);
-}
-#endif
-#endif
-)";
+			text += "\n#ifdef ps_reader_crt\nvoid ps_reader_crt()\n{\n";
+			text += gl ? "\tvec2 p = (PSin_t - CRT_U(0).xy) / vec2(CRT_U(0).z, CRT_U(1).y);\n" :
+						 "\tvec2 p = (v_tex - CRT_U(0).xy) / vec2(CRT_U(0).z, CRT_U(1).y);\n";
+			text += std::string("\t") + out + " = vec4(ReaderCrt(p), 1.0);\n}\n#endif\n";
+			text += "#ifdef ps_reader_glow_step\n";
+			text += kGlowVector;
+			text += Reader::Crt::GlowBody();
+			text += std::string("\nvoid ps_reader_glow_step()\n{\n\t") + out +
+					" = vec4(ReaderCrtGlow(gl_FragCoord.xy), 1.0);\n}\n#endif\n";
+			text += "#endif\n#endif\n";
 			break;
+		}
 		case Language::HLSL:
 			text += Reader::Crt::HlslDefines();
 			text += kVectors;
@@ -81,13 +119,23 @@ void ps_reader_crt()
 			// Without the screen's derivatives: the frame has one level, and the shader
 			// samples it inside branches.
 			text += "#define CRT_TEX(uv) Texture.SampleLevel(TextureSampler, uv, 0.0)\n";
+			text += OptionDefines(language, options);
+			text += kGlowVector;
 			text += Reader::Crt::ShaderBody();
+			text += Reader::Crt::GlowBody();
 			text += R"(
 PS_OUTPUT ps_reader_crt(PS_INPUT input)
 {
 	PS_OUTPUT output;
 	float2 p = (input.t - CRT_U(0).xy) / float2(CRT_U(0).z, CRT_U(1).y);
 	output.c = float4(ReaderCrt(p), 1.0);
+	return output;
+}
+
+PS_OUTPUT ps_reader_glow_step(PS_INPUT input)
+{
+	PS_OUTPUT output;
+	output.c = float4(ReaderCrtGlow(input.p.xy), 1.0);
 	return output;
 }
 )";

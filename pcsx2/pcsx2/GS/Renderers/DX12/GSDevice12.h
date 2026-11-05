@@ -366,6 +366,7 @@ public:
 		UTILITY_ROOT_SIGNATURE_PARAM_PUSH_CONSTANTS = 0,
 		UTILITY_ROOT_SIGNATURE_PARAM_PS_TEXTURES = 1,
 		UTILITY_ROOT_SIGNATURE_PARAM_PS_SAMPLERS = 2,
+		UTILITY_ROOT_SIGNATURE_PARAM_PS_READER_GLOW = 3, // Reader fork: the CRT glass's copies, t1 to t5
 
 		CAS_ROOT_SIGNATURE_PARAM_PUSH_CONSTANTS = 0,
 		CAS_ROOT_SIGNATURE_PARAM_SRC_TEXTURE = 1,
@@ -413,6 +414,27 @@ private:
 	ComPtr<ID3D12PipelineState> m_fxaa_pipeline;
 	ComPtr<ID3D12PipelineState> m_shadeboost_pipeline;
 	ComPtr<ID3D12PipelineState> m_imgui_pipeline;
+
+	// Reader fork: the CRT picture with the glass's copies, the copies' steps (into 16-bit
+	// floating point), and HDR output: the swap chain in scRGB (16-bit floating point, linear)
+	// while the CRT picture is on, its HDR row is and the screen is in HDR, with the picture's
+	// and ImGui's pipelines for it.
+	ComPtr<ID3D12PipelineState> m_reader_crt_glow;
+	ComPtr<ID3D12PipelineState> m_reader_glow_step;
+	ComPtr<ID3D12PipelineState> m_reader_hdr_pipelines[2]; // [with the copies]
+	ComPtr<ID3D12PipelineState> m_reader_hdr_imgui;
+	std::string m_reader_present_hlsl;
+	bool m_reader_hdr = false;
+	bool m_reader_hdr_failed = false;
+	bool m_reader_hdr_allowed = false;
+	float m_reader_hdr_peak = -1.0f;
+	u64 m_reader_hdr_checked = 0;
+	u32 m_reader_hdr_size[2] = {};
+	void ReaderUpdateHdr();
+	bool ReaderStartHdr(float peak);
+	void ReaderStopHdr();
+	bool ReaderSwapChainFormat(bool hdr);
+	ComPtr<ID3D12PipelineState> ReaderPresentPipeline(const std::string& ps_text, const char* entry, DXGI_FORMAT format);
 
 	ID3D12PipelineState* GetConvertPipeline(ShaderConvertSelector shader) const
 	{
@@ -546,6 +568,11 @@ public:
 	std::unique_ptr<GSDownloadTexture> CreateDownloadTexture(u32 width, u32 height, GSTexture::Format format) override;
 
 	void CopyRect(GSTexture* sTex, GSTexture* dTex, const GSVector4i& r, u32 destX, u32 destY) override;
+
+	// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+	bool ReaderGlowReady() const override;
+	void ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb) override;
+	void ReaderGlowDone() override;
 
 	void PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect,
 		PresentShader shader, float shaderTime, Filter filter) override;

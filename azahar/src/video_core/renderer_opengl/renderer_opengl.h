@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include "reader/core/crt.h" // Reader fork
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/frame_dumper_opengl.h"
 #include "video_core/renderer_opengl/gl_driver.h"
@@ -81,6 +82,12 @@ private:
     void LoadFBToScreenInfo(const Pica::FramebufferConfig& framebuffer, ScreenInfo& screen_info,
                             bool right_eye, const Pica::ColorFill& color_fill);
 
+    // Reader fork: the CRT glass's blurred copies of a screen (Crt::GlowPlan), drawn before it
+    bool ReaderGlowProgramReady();
+    bool ReaderGlowTexture(GLuint name, int width, int height);
+    bool ReaderMakeGlow(GLuint texture, const Reader::Crt::Picture& picture,
+                        const float values[Reader::Crt::UniformFloats]);
+
 private:
     Pica::PicaCore& pica;
     Driver driver;
@@ -110,6 +117,23 @@ private:
     // the shader in use was built with the picture on.
     GLint uniform_reader_crt = -1;
     bool reader_crt_shader = false;
+    // Reader fork: the glass's blurred copies. The CRT shader reads them when
+    // `reader_crt_copies`; each screen drawn in a frame has its own (a slot, in the order they
+    // are drawn), and when they cannot be made the shader is built without them.
+    struct ReaderGlowSlot {
+        std::array<OGLTexture, Reader::Crt::GlowTextures> textures;
+        std::array<std::array<int, 2>, Reader::Crt::GlowTextures> sizes{};
+    };
+    std::array<ReaderGlowSlot, 4> reader_glow_slots;
+    std::size_t reader_glow_slot = 0;
+    OGLProgram reader_glow_program;
+    OGLFramebuffer reader_glow_framebuffer;
+    GLint reader_glow_crt = -1;
+    GLint reader_glow_vector = -1;
+    GLenum reader_glow_format = 0;
+    GLenum reader_glow_type = 0;
+    bool reader_crt_copies = false;
+    bool reader_glow_failed = false;
 
     // Shader attribute input indices
     GLuint attrib_position;

@@ -20,6 +20,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -28,6 +29,8 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <d3d11.h>
+#include <dxgi1_6.h>
 #endif
 #if defined(__ANDROID__)
 #define READER_LIBRETRO_ANDROID 1
@@ -40,6 +43,9 @@
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>
+#if defined(_WIN32)
+#include <GL/wglext.h>
+#endif
 #endif
 #if defined(__linux__) && !defined(__ANDROID__)
 #define READER_LIBRETRO_X11 1
@@ -93,6 +99,7 @@ struct Gl {
     PFNGLGETUNIFORMLOCATIONPROC GetUniformLocation;
     PFNGLUNIFORM1IPROC Uniform1i;
     PFNGLUNIFORM4FVPROC Uniform4fv;
+    PFNGLUNIFORM1FVPROC Uniform1fv;
     PFNGLGENVERTEXARRAYSPROC GenVertexArrays;
     PFNGLBINDVERTEXARRAYPROC BindVertexArray;
     PFNGLACTIVETEXTUREPROC ActiveTexture;
@@ -119,6 +126,7 @@ struct Gl {
     void(APIENTRY* DrawBuffer)(GLenum);
 #endif
     void(APIENTRY* Finish)();
+    void(APIENTRY* GetIntegerv)(GLenum, GLint*);
 };
 Gl gl{};
 
@@ -143,6 +151,10 @@ struct Window {
     HDC dc = nullptr;
     HGLRC context = nullptr;
     HMODULE opengl32 = nullptr;
+    /// For HDR (HdrStart): the context lives on a hidden window of its own, and the program's
+    /// window is a DXGI swapchain's.
+    HWND gl_hwnd = nullptr;
+    HDC gl_dc = nullptr;
 #endif
 };
 Window g_window;
@@ -203,6 +215,7 @@ bool LoadGl() {
     load(gl.GetUniformLocation, "glGetUniformLocation");
     load(gl.Uniform1i, "glUniform1i");
     load(gl.Uniform4fv, "glUniform4fv");
+    load(gl.Uniform1fv, "glUniform1fv");
     load(gl.GenVertexArrays, "glGenVertexArrays");
     load(gl.BindVertexArray, "glBindVertexArray");
     load(gl.ActiveTexture, "glActiveTexture");
@@ -229,6 +242,7 @@ bool LoadGl() {
     load(gl.DrawBuffer, "glDrawBuffer");
 #endif
     load(gl.Finish, "glFinish");
+    load(gl.GetIntegerv, "glGetIntegerv");
     return ok;
 }
 
@@ -264,6 +278,13 @@ void QueryWindowSize() {
     }
 #endif
 }
+
+#if defined(_WIN32)
+bool HdrStart();
+void HdrStop();
+void HdrForgetWindow();
+bool HdrPresent();
+#endif
 
 /// A context of `major`.`minor` (a core profile when `core`) in the program's window.
 bool CreateContext(int major, int minor, bool core) {
@@ -368,6 +389,26 @@ bool CreateContext(int major, int minor, bool core) {
     g_window.hwnd = static_cast<HWND>(g_window.given.handle);
     g_window.dc = GetDC(g_window.hwnd);
     g_window.opengl32 = LoadLibraryW(L"opengl32.dll");
+    // The context goes on a hidden window and the program's window is a DXGI swapchain's, so
+    // that the picture can turn HDR whenever it is wanted (HdrStart): a window that has an
+    // OpenGL pixel format cannot also be a swapchain's. Without the driver's sharing it is
+    // drawn into the program's window, as before. READER_CORE_NO_DXGI=1 asks for that too.
+    HDC draw_dc = g_window.dc;
+    const char* no_dxgi = std::getenv("READER_CORE_NO_DXGI");
+    if (no_dxgi == nullptr || std::string_view(no_dxgi) != "1") {
+        const HINSTANCE instance = GetModuleHandleW(nullptr);
+        WNDCLASSW kind{};
+        kind.style = CS_OWNDC;
+        kind.lpfnWndProc = DefWindowProcW;
+        kind.hInstance = instance;
+        kind.lpszClassName = L"ReaderCoreGl";
+        RegisterClassW(&kind); // already there from an earlier game: fine
+        g_window.gl_hwnd = CreateWindowExW(0, L"ReaderCoreGl", L"", WS_POPUP, 0, 0, 16, 16, nullptr, nullptr, instance, nullptr);
+        g_window.gl_dc = g_window.gl_hwnd != nullptr ? GetDC(g_window.gl_hwnd) : nullptr;
+        if (g_window.gl_dc != nullptr) {
+            draw_dc = g_window.gl_dc;
+        }
+    }
     PIXELFORMATDESCRIPTOR format{};
     format.nSize = sizeof(format);
     format.nVersion = 1;
@@ -375,13 +416,13 @@ bool CreateContext(int major, int minor, bool core) {
     format.iPixelType = PFD_TYPE_RGBA;
     format.cColorBits = 32;
     format.iLayerType = PFD_MAIN_PLANE;
-    const int chosen = ChoosePixelFormat(g_window.dc, &format);
-    if (chosen == 0 || !SetPixelFormat(g_window.dc, chosen, &format)) {
+    const int chosen = ChoosePixelFormat(draw_dc, &format);
+    if (chosen == 0 || !SetPixelFormat(draw_dc, chosen, &format)) {
         Log(READER_CORE_LOG_ERROR, "libretro: the window takes no OpenGL pixel format");
         return false;
     }
-    HGLRC legacy = wglCreateContext(g_window.dc);
-    if (legacy == nullptr || !wglMakeCurrent(g_window.dc, legacy)) {
+    HGLRC legacy = wglCreateContext(draw_dc);
+    if (legacy == nullptr || !wglMakeCurrent(draw_dc, legacy)) {
         return false;
     }
     // The context the core asked for, where the driver makes such.
@@ -391,8 +432,8 @@ bool CreateContext(int major, int minor, bool core) {
     if (create != nullptr) {
         const int wanted[] = {0x2091 /* MAJOR */, major, 0x2092 /* MINOR */, minor, 0x9126 /* PROFILE_MASK */,
                               core ? 0x1 /* CORE */ : 0x2 /* COMPATIBILITY */, 0};
-        if (HGLRC modern = create(g_window.dc, nullptr, wanted)) {
-            wglMakeCurrent(g_window.dc, modern);
+        if (HGLRC modern = create(draw_dc, nullptr, wanted)) {
+            wglMakeCurrent(draw_dc, modern);
             wglDeleteContext(legacy);
             g_window.context = modern;
         }
@@ -408,7 +449,22 @@ bool CreateContext(int major, int minor, bool core) {
     return false;
 #endif
     QueryWindowSize();
-    return LoadGl();
+    if (!LoadGl()) {
+        return false;
+    }
+#if defined(_WIN32)
+    if (draw_dc != g_window.dc && !HdrStart()) {
+        // No HDR after all: the context draws into the program's window, as without it.
+        PIXELFORMATDESCRIPTOR same{};
+        DescribePixelFormat(draw_dc, chosen, sizeof(same), &same);
+        if (!SetPixelFormat(g_window.dc, chosen, &same) || !wglMakeCurrent(g_window.dc, g_window.context)) {
+            Log(READER_CORE_LOG_ERROR, "libretro: the window takes no OpenGL pixel format");
+            return false;
+        }
+        HdrForgetWindow();
+    }
+#endif
+    return true;
 }
 
 #if defined(READER_LIBRETRO_ANDROID)
@@ -478,7 +534,9 @@ void SwapWindow() {
 #elif defined(READER_LIBRETRO_X11)
     eglSwapBuffers(g_window.egl, g_window.surface);
 #elif defined(_WIN32)
-    SwapBuffers(g_window.dc);
+    if (!HdrPresent()) {
+        SwapBuffers(g_window.dc);
+    }
 #endif
 }
 
@@ -516,10 +574,12 @@ void DestroyContext() {
         XCloseDisplay(g_window.x);
     }
 #elif defined(_WIN32)
+    HdrStop();
     if (g_window.context != nullptr) {
         wglMakeCurrent(nullptr, nullptr);
         wglDeleteContext(g_window.context);
     }
+    HdrForgetWindow();
     if (g_window.dc != nullptr) {
         ReleaseDC(g_window.hwnd, g_window.dc);
     }
@@ -1014,11 +1074,26 @@ bool MakeFramebuffer() {
     return ok;
 }
 
-// The CRT picture: the shared shader (reader/core/crt.h), as Station Reader's display draws it.
-GLuint g_crt_program = 0;
-GLint g_crt_uniforms = -1;
+// The CRT picture: the shared shader (reader/core/crt.h), as Station Reader's display draws it,
+// with the glass's blurred copies of the picture made first (Crt::GlowPlan) where they can be:
+// then the light spreads as far as a tube's glass spreads it. Where they cannot (a texture of
+// neither format can be drawn into, a program does not build) it is drawn as before, with the
+// short glow of a single pass.
+GLuint g_crt_program = 0;      ///< With the copies
+GLuint g_crt_plain_program = 0; ///< Without them
+GLint g_crt_uniforms = -1, g_crt_plain_uniforms = -1;
 GLuint g_vao = 0;
 bool g_crt_failed = false;
+GLuint g_glow_program = 0;
+GLint g_glow_uniforms = -1, g_glow_vector = -1;
+GLuint g_glow_fbo = 0;
+GLuint g_glow_textures[Reader::Crt::GlowTextures] = {};
+int g_glow_sizes[Reader::Crt::GlowTextures][2] = {};
+GLenum g_glow_format = 0, g_glow_type = 0;
+bool g_glow_failed = false;
+
+/// The first texture unit of the copies: units 1 to GlowCopies.
+constexpr int kGlowUnit = 1;
 
 GLuint Compile(GLenum kind, const std::string& source) {
     const GLuint shader = gl.CreateShader(kind);
@@ -1036,18 +1111,18 @@ GLuint Compile(GLenum kind, const std::string& source) {
     return shader;
 }
 
-bool CrtReady() {
-    if (g_crt_program != 0 || g_crt_failed) {
-        return g_crt_program != 0;
-    }
 #if defined(READER_LIBRETRO_ANDROID)
-    const std::string version = "#version 300 es\nprecision highp float;\n";
-    const char* const quality = "#define CRT_QUALITY 0\n"; // the lighter make, for a handheld
+const char* const kVersion = "#version 300 es\nprecision highp float;\n";
+const char* const kQuality = "#define CRT_QUALITY 0\n"; // the lighter make, for a handheld
 #else
-    const std::string version = "#version 330 core\n";
-    const char* const quality = "#define CRT_QUALITY 1\n";
+const char* const kVersion = "#version 330 core\n";
+const char* const kQuality = "#define CRT_QUALITY 1\n";
 #endif
-    const std::string vertex = version + R"(
+
+/// A program of the one vertex shader (a triangle over the target, v_pos 0 to 1 from its top
+/// left corner) and that fragment shader; 0 when it does not build.
+GLuint Link(const std::string& fragment) {
+    const std::string vertex = std::string(kVersion) + R"(
 out vec2 v_pos;
 void main()
 {
@@ -1056,45 +1131,518 @@ void main()
   gl_Position = vec4(pos * vec2(2.0f, -2.0f) + vec2(-1.0f, 1.0f), 0.0f, 1.0f);
 }
 )";
-    const std::string fragment = version + R"(
+    const GLuint vs = Compile(GL_VERTEX_SHADER, vertex);
+    const GLuint fs = vs != 0 ? Compile(GL_FRAGMENT_SHADER, std::string(kVersion) + fragment) : 0;
+    if (fs == 0) {
+        return 0;
+    }
+    const GLuint program = gl.CreateProgram();
+    gl.AttachShader(program, vs);
+    gl.AttachShader(program, fs);
+#ifndef READER_LIBRETRO_ANDROID
+    gl.BindFragDataLocation(program, 0, "o_col0");
+#endif
+    gl.LinkProgram(program);
+    GLint linked = 0;
+    gl.GetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        Log(READER_CORE_LOG_WARNING, "libretro: the CRT shader did not link");
+        return 0;
+    }
+    return program;
+}
+
+const char* const kCrtHead = R"(
 uniform sampler2D samp0;
 uniform vec4 u_crt[8];
-in vec2 v_pos;
 out vec4 o_col0;
 #define CRT_TEX(uv) texture(samp0, uv)
 #define CRT_U(i) u_crt[i]
-)" + quality + Reader::Crt::ShaderBody() + R"(
+)";
+
+bool CrtReady() {
+    if (g_crt_plain_program != 0 || g_crt_failed) {
+        return g_crt_plain_program != 0;
+    }
+    const std::string main = R"(
+in vec2 v_pos;
 void main()
 {
   o_col0 = vec4(ReaderCrt(v_pos), 1.0);
 }
 )";
-    const GLuint vs = Compile(GL_VERTEX_SHADER, vertex);
-    const GLuint fs = vs != 0 ? Compile(GL_FRAGMENT_SHADER, fragment) : 0;
-    if (fs == 0) {
+    g_crt_plain_program = Link(kCrtHead + std::string(kQuality) + Reader::Crt::ShaderBody() + main);
+    if (g_crt_plain_program == 0) {
         g_crt_failed = true;
         return false;
     }
-    g_crt_program = gl.CreateProgram();
-    gl.AttachShader(g_crt_program, vs);
-    gl.AttachShader(g_crt_program, fs);
-#ifndef READER_LIBRETRO_ANDROID
-    gl.BindFragDataLocation(g_crt_program, 0, "o_col0");
-#endif
-    gl.LinkProgram(g_crt_program);
-    GLint linked = 0;
-    gl.GetProgramiv(g_crt_program, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        g_crt_failed = true;
+    gl.UseProgram(g_crt_plain_program);
+    gl.Uniform1i(gl.GetUniformLocation(g_crt_plain_program, "samp0"), 0);
+    g_crt_plain_uniforms = gl.GetUniformLocation(g_crt_plain_program, "u_crt");
+    if (g_vao == 0) {
+        gl.GenVertexArrays(1, &g_vao);
+    }
+
+    // The picture with the copies, and the program that makes them.
+    std::string copies;
+    for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+        copies += "uniform sampler2D crt_glow" + std::to_string(n) + ";\n";
+    }
+    copies += "#define CRT_GLOW 1\n";
+    for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+        const std::string name = std::to_string(n);
+        copies += "#define CRT_GLOW_TEX" + name + "(p) texture(crt_glow" + name + ", p)\n";
+    }
+    g_crt_program = Link(kCrtHead + copies + kQuality + Reader::Crt::ShaderBody() + main);
+    g_glow_program = g_crt_program != 0
+                         ? Link(kCrtHead + std::string("uniform vec4 u_glow;\n#define CRT_GLOW_V u_glow\n") + kQuality +
+                                Reader::Crt::ShaderBody() + Reader::Crt::GlowBody() +
+                                "\nvoid main()\n{\n  o_col0 = vec4(ReaderCrtGlow(gl_FragCoord.xy), 1.0);\n}\n")
+                         : 0;
+    if (g_glow_program == 0) {
+        g_glow_failed = true;
         g_crt_program = 0;
-        return false;
+        return true;
     }
     gl.UseProgram(g_crt_program);
     gl.Uniform1i(gl.GetUniformLocation(g_crt_program, "samp0"), 0);
+    for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+        gl.Uniform1i(gl.GetUniformLocation(g_crt_program, ("crt_glow" + std::to_string(n)).c_str()), kGlowUnit + n);
+    }
     g_crt_uniforms = gl.GetUniformLocation(g_crt_program, "u_crt");
-    gl.GenVertexArrays(1, &g_vao);
+    gl.UseProgram(g_glow_program);
+    gl.Uniform1i(gl.GetUniformLocation(g_glow_program, "samp0"), 0);
+    g_glow_uniforms = gl.GetUniformLocation(g_glow_program, "u_crt");
+    g_glow_vector = gl.GetUniformLocation(g_glow_program, "u_glow");
+    gl.GenFramebuffers(1, &g_glow_fbo);
+    gl.GenTextures(Reader::Crt::GlowTextures, g_glow_textures);
     return true;
 }
+
+/// Makes `name` a texture of the copies' format at that size; false when it cannot be drawn into.
+bool GlowTexture(GLuint name, int width, int height) {
+    gl.BindTexture(GL_TEXTURE_2D, name);
+    gl.TexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(g_glow_format), width, height, 0, GL_RGBA, g_glow_type, nullptr);
+    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl.BindFramebuffer(GL_FRAMEBUFFER, g_glow_fbo);
+    gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, name, 0);
+    return gl.CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+
+/// The copies' textures at the plan's sizes, made again when a size changes. Linear light goes
+/// into them: 16-bit floating point, or 10 bits a colour where that cannot be drawn into
+/// (OpenGL ES without EXT_color_buffer_half_float).
+bool GlowTexturesReady(const std::vector<Reader::Crt::GlowStep>& plan) {
+    if (g_glow_format == 0) {
+        constexpr GLenum kFormats[2][2] = {{GL_RGBA16F, GL_HALF_FLOAT}, {GL_RGB10_A2, GL_UNSIGNED_INT_2_10_10_10_REV}};
+        for (const auto& format : kFormats) {
+            g_glow_format = format[0];
+            g_glow_type = format[1];
+            if (GlowTexture(g_glow_textures[0], 8, 8)) {
+                break;
+            }
+            g_glow_format = 0;
+        }
+        if (g_glow_format == 0) {
+            Log(READER_CORE_LOG_WARNING, "libretro: no texture the CRT glass's copies can be drawn into");
+            g_glow_failed = true;
+            return false;
+        }
+        Log(READER_CORE_LOG_INFO, std::string("libretro: the CRT picture with the glass's copies (") +
+                                      (g_glow_format == GL_RGBA16F ? "16-bit floating point" : "10 bits a colour") + ")");
+    }
+    for (const auto& step : plan) {
+        int* size = g_glow_sizes[step.target];
+        if (size[0] == step.width && size[1] == step.height) {
+            continue;
+        }
+        if (!GlowTexture(g_glow_textures[step.target], step.width, step.height)) {
+            g_glow_failed = true;
+            return false;
+        }
+        size[0] = step.width;
+        size[1] = step.height;
+    }
+    return true;
+}
+
+/// Draws the copies of the frame in `texture`: the plan's steps, each into its texture.
+/// Leaves the framebuffer the copies were drawn into bound.
+bool MakeGlow(GLuint texture, const Reader::Crt::Picture& picture, const float values[Reader::Crt::UniformFloats]) {
+    if (g_glow_failed) {
+        return false;
+    }
+    const auto plan = Reader::Crt::GlowPlan(picture.output_width, picture.output_height);
+    if (!GlowTexturesReady(plan)) {
+        return false;
+    }
+    gl.BindFramebuffer(GL_FRAMEBUFFER, g_glow_fbo);
+    gl.UseProgram(g_glow_program);
+    gl.Uniform4fv(g_glow_uniforms, Reader::Crt::UniformVectors, values);
+    gl.ActiveTexture(GL_TEXTURE0);
+    gl.BindVertexArray(g_vao);
+    for (const auto& step : plan) {
+        gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_glow_textures[step.target], 0);
+        gl.Viewport(0, 0, step.width, step.height);
+        gl.BindTexture(GL_TEXTURE_2D, step.input < 0 ? texture : g_glow_textures[step.input]);
+        gl.Uniform4fv(g_glow_vector, 1, step.vector);
+        gl.DrawArrays(GL_TRIANGLES, 0, 3);
+    }
+    gl.BindVertexArray(0);
+    return true;
+}
+
+#if defined(_WIN32)
+// ---- HDR on Windows: the picture through a DXGI swapchain ----
+//
+// A window's OpenGL cannot be told it shows HDR. So the context lives on a hidden window
+// (CreateContext) and the program's window is a DXGI flip swapchain's. The picture is drawn as
+// ever, but into a texture of the context's own (`sdr`); at the swap it goes, turned the right
+// way up, into a Direct3D 11 texture the context shares (WGL_NV_DX_interop2), which is copied to
+// the swapchain and presented. While HDR is wanted and the screen is in HDR, the swapchain is
+// 16-bit floating point in scRGB (linear, 1 is 80 nits) instead of 8 bits: the CRT shader then
+// writes scRGB itself (CRT_HDR) into `screen`, and whatever is drawn without it is made linear
+// from `sdr` into `screen`. It turns either way between two frames.
+
+struct Hdr {
+    bool active = false;
+    HMODULE d3d11 = nullptr;
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* context = nullptr;
+    IDXGISwapChain3* swapchain = nullptr;
+    ID3D11Texture2D* shared = nullptr;
+    HANDLE interop = nullptr;
+    HANDLE object = nullptr;
+    PFNWGLDXOPENDEVICENVPROC open_device = nullptr;
+    PFNWGLDXCLOSEDEVICENVPROC close_device = nullptr;
+    PFNWGLDXREGISTEROBJECTNVPROC register_object = nullptr;
+    PFNWGLDXUNREGISTEROBJECTNVPROC unregister_object = nullptr;
+    PFNWGLDXLOCKOBJECTSNVPROC lock = nullptr;
+    PFNWGLDXUNLOCKOBJECTSNVPROC unlock = nullptr;
+    GLuint textures[3] = {}; ///< shared, screen, sdr
+    GLuint fbos[3] = {};
+    int width = 0, height = 0;
+    bool screen_hdr = false; ///< The screen the window is on is in HDR now
+    bool hdr = false;        ///< The swapchain is scRGB now (else 8 bits, SDR)
+    bool hdr_refused = false; ///< It took no scRGB once: not asked again
+    float peak = 0.0f;       ///< What that screen says it reaches, in nits
+    int until_query = 0;
+    GLuint linear_program = 0;
+    GLint linear_scale = -1;
+    GLuint crt_programs[2] = {}; ///< With CRT_HDR: without and with the copies
+    GLint crt_uniforms[2] = {-1, -1}, crt_hdr[2] = {-1, -1};
+};
+Hdr g_hdr;
+
+template <typename T> void Release(T*& thing) {
+    if (thing != nullptr) {
+        thing->Release();
+        thing = nullptr;
+    }
+}
+
+void HdrForgetWindow() {
+    if (g_window.gl_dc != nullptr) {
+        ReleaseDC(g_window.gl_hwnd, g_window.gl_dc);
+        g_window.gl_dc = nullptr;
+    }
+    if (g_window.gl_hwnd != nullptr) {
+        DestroyWindow(g_window.gl_hwnd);
+        g_window.gl_hwnd = nullptr;
+    }
+}
+
+void HdrStop() {
+    if (g_hdr.object != nullptr) {
+        g_hdr.unregister_object(g_hdr.interop, g_hdr.object);
+    }
+    if (g_hdr.interop != nullptr) {
+        g_hdr.close_device(g_hdr.interop);
+    }
+    Release(g_hdr.shared);
+    Release(g_hdr.swapchain);
+    Release(g_hdr.context);
+    Release(g_hdr.device);
+    if (g_hdr.d3d11 != nullptr) {
+        FreeLibrary(g_hdr.d3d11);
+    }
+    g_hdr = Hdr{}; // the context's own objects go with it
+}
+
+/// The shared texture, the swapchain and the context's two textures at the window's size.
+bool HdrResize(int width, int height) {
+    width = std::max(width, 1);
+    height = std::max(height, 1);
+    if (g_hdr.object != nullptr) {
+        g_hdr.unregister_object(g_hdr.interop, g_hdr.object);
+        g_hdr.object = nullptr;
+    }
+    Release(g_hdr.shared);
+    const DXGI_FORMAT format = g_hdr.hdr ? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM;
+    if (FAILED(g_hdr.swapchain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), format, 0)) ||
+        FAILED(g_hdr.swapchain->SetColorSpace1(g_hdr.hdr ? DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709
+                                                          : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709))) {
+        return false;
+    }
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = static_cast<UINT>(width);
+    desc.Height = static_cast<UINT>(height);
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = format;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    if (FAILED(g_hdr.device->CreateTexture2D(&desc, nullptr, &g_hdr.shared))) {
+        return false;
+    }
+    g_hdr.object = g_hdr.register_object(g_hdr.interop, g_hdr.shared, g_hdr.textures[0], GL_TEXTURE_2D,
+                                         WGL_ACCESS_WRITE_DISCARD_NV);
+    if (g_hdr.object == nullptr) {
+        return false;
+    }
+    const GLenum formats[3][3] = {{0, 0, 0}, {GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT}, {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE}};
+    for (int i = 0; i < 3; ++i) {
+        if (i > 0) {
+            gl.BindTexture(GL_TEXTURE_2D, g_hdr.textures[i]);
+            gl.TexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(formats[i][0]), width, height, 0, formats[i][1],
+                          formats[i][2], nullptr);
+            gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }
+        gl.BindFramebuffer(GL_FRAMEBUFFER, g_hdr.fbos[i]);
+        gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_hdr.textures[i], 0);
+        if (i > 0 && gl.CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+            return false;
+        }
+    }
+    gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    g_hdr.width = width;
+    g_hdr.height = height;
+    g_hdr.until_query = 0;
+    return true;
+}
+
+bool HdrStart() {
+    const auto fail = [](const char* why) {
+        Log(READER_CORE_LOG_WARNING, std::string("libretro: no DXGI swapchain (so no HDR), the picture as before: ") + why);
+        HdrStop();
+        return false;
+    };
+    g_hdr.open_device = reinterpret_cast<PFNWGLDXOPENDEVICENVPROC>(wglGetProcAddress("wglDXOpenDeviceNV"));
+    g_hdr.close_device = reinterpret_cast<PFNWGLDXCLOSEDEVICENVPROC>(wglGetProcAddress("wglDXCloseDeviceNV"));
+    g_hdr.register_object = reinterpret_cast<PFNWGLDXREGISTEROBJECTNVPROC>(wglGetProcAddress("wglDXRegisterObjectNV"));
+    g_hdr.unregister_object =
+        reinterpret_cast<PFNWGLDXUNREGISTEROBJECTNVPROC>(wglGetProcAddress("wglDXUnregisterObjectNV"));
+    g_hdr.lock = reinterpret_cast<PFNWGLDXLOCKOBJECTSNVPROC>(wglGetProcAddress("wglDXLockObjectsNV"));
+    g_hdr.unlock = reinterpret_cast<PFNWGLDXUNLOCKOBJECTSNVPROC>(wglGetProcAddress("wglDXUnlockObjectsNV"));
+    if (g_hdr.open_device == nullptr || g_hdr.close_device == nullptr || g_hdr.register_object == nullptr ||
+        g_hdr.unregister_object == nullptr || g_hdr.lock == nullptr || g_hdr.unlock == nullptr) {
+        return fail("the graphics driver shares no texture with Direct3D (WGL_NV_DX_interop2)");
+    }
+    g_hdr.d3d11 = LoadLibraryW(L"d3d11.dll");
+    const auto create =
+        g_hdr.d3d11 != nullptr ? reinterpret_cast<PFN_D3D11_CREATE_DEVICE>(GetProcAddress(g_hdr.d3d11, "D3D11CreateDevice"))
+                               : nullptr;
+    if (create == nullptr || FAILED(create(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION,
+                                           &g_hdr.device, nullptr, &g_hdr.context))) {
+        return fail("no Direct3D 11 device");
+    }
+    IDXGIDevice* dxgi_device = nullptr;
+    IDXGIAdapter* adapter = nullptr;
+    IDXGIFactory2* factory = nullptr;
+    IDXGISwapChain1* swapchain = nullptr;
+    bool made = SUCCEEDED(g_hdr.device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgi_device))) &&
+                SUCCEEDED(dxgi_device->GetAdapter(&adapter)) &&
+                SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
+    if (made) {
+        DXGI_SWAP_CHAIN_DESC1 desc{};
+        desc.Width = static_cast<UINT>(std::max(g_window.width, 1));
+        desc.Height = static_cast<UINT>(std::max(g_window.height, 1));
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        desc.BufferCount = 2;
+        desc.Scaling = DXGI_SCALING_STRETCH;
+        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        made = SUCCEEDED(factory->CreateSwapChainForHwnd(g_hdr.device, g_window.hwnd, &desc, nullptr, nullptr, &swapchain)) &&
+               SUCCEEDED(swapchain->QueryInterface(__uuidof(IDXGISwapChain3), reinterpret_cast<void**>(&g_hdr.swapchain)));
+        if (made) {
+            factory->MakeWindowAssociation(g_window.hwnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
+        }
+    }
+    Release(swapchain);
+    Release(factory);
+    Release(adapter);
+    Release(dxgi_device);
+    if (!made) {
+        return fail("no DXGI swapchain in the window");
+    }
+    g_hdr.interop = g_hdr.open_device(g_hdr.device);
+    if (g_hdr.interop == nullptr) {
+        return fail("the graphics driver shares no texture with this Direct3D device");
+    }
+    gl.GenTextures(3, g_hdr.textures);
+    gl.GenFramebuffers(3, g_hdr.fbos);
+    if (g_vao == 0) {
+        gl.GenVertexArrays(1, &g_vao);
+    }
+    if (!HdrResize(g_window.width, g_window.height)) {
+        return fail("the shared picture could not be made");
+    }
+    g_hdr.linear_program = Link(std::string(R"(
+uniform sampler2D samp0;
+uniform float u_scale;
+in vec2 v_pos;
+out vec4 o_col0;
+void main()
+{
+  vec3 c = texture(samp0, vec2(v_pos.x, 1.0 - v_pos.y)).rgb;
+  o_col0 = vec4(pow(c, vec3(2.2)) * u_scale, 1.0);
+}
+)"));
+    if (g_hdr.linear_program == 0) {
+        return fail("its shader did not build");
+    }
+    gl.UseProgram(g_hdr.linear_program);
+    gl.Uniform1i(gl.GetUniformLocation(g_hdr.linear_program, "samp0"), 0);
+    g_hdr.linear_scale = gl.GetUniformLocation(g_hdr.linear_program, "u_scale");
+    gl.UseProgram(0);
+    g_hdr.active = true;
+    Log(READER_CORE_LOG_INFO, "libretro: the picture goes through a DXGI swapchain (HDR whenever it is wanted)");
+    return true;
+}
+
+/// Follows the window's size and the screen's state (HDR or SDR, and its peak); the
+/// framebuffer the picture is drawn into, or 0 for the window's own as without HDR.
+GLuint HdrScreen() {
+    if (!g_hdr.active) {
+        return 0;
+    }
+    if ((g_window.width != g_hdr.width || g_window.height != g_hdr.height) && !HdrResize(g_window.width, g_window.height)) {
+        Log(READER_CORE_LOG_WARNING, "libretro: HDR: the picture could not follow the window's size");
+    }
+    if (--g_hdr.until_query <= 0) {
+        g_hdr.until_query = 120;
+        bool hdr = false;
+        float peak = 0.0f;
+        IDXGIOutput* output = nullptr;
+        IDXGIOutput6* output6 = nullptr;
+        if (SUCCEEDED(g_hdr.swapchain->GetContainingOutput(&output)) &&
+            SUCCEEDED(output->QueryInterface(__uuidof(IDXGIOutput6), reinterpret_cast<void**>(&output6)))) {
+            DXGI_OUTPUT_DESC1 desc{};
+            if (SUCCEEDED(output6->GetDesc1(&desc))) {
+                hdr = desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+                peak = desc.MaxLuminance;
+            }
+        }
+        Release(output6);
+        Release(output);
+        if (hdr != g_hdr.screen_hdr || peak != g_hdr.peak) {
+            Log(READER_CORE_LOG_INFO, hdr ? "libretro: HDR: the screen is in HDR, its peak " +
+                                                std::to_string(static_cast<int>(peak)) + " nits"
+                                          : std::string("libretro: HDR: the screen is in SDR; the picture is SDR"));
+        }
+        g_hdr.screen_hdr = hdr;
+        g_hdr.peak = peak;
+    }
+    // The swapchain turns scRGB while HDR is wanted on a screen in HDR, and back.
+    const bool wanted = Reader::Crt::HdrWanted() && g_hdr.screen_hdr && !g_hdr.hdr_refused;
+    if (wanted != g_hdr.hdr) {
+        g_hdr.hdr = wanted;
+        UINT support = 0;
+        const bool takes = !wanted || (SUCCEEDED(g_hdr.swapchain->CheckColorSpaceSupport(
+                                           DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709, &support)) &&
+                                       (support & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) != 0);
+        if (takes && HdrResize(g_window.width, g_window.height)) {
+            Log(READER_CORE_LOG_INFO, wanted ? "libretro: HDR on: scRGB, the screen's peak " +
+                                                   std::to_string(static_cast<int>(g_hdr.peak)) + " nits"
+                                             : std::string("libretro: HDR off: the picture is SDR"));
+        } else {
+            Log(READER_CORE_LOG_WARNING, "libretro: the swapchain took no scRGB; the picture stays SDR");
+            g_hdr.hdr = false;
+            g_hdr.hdr_refused = true;
+            HdrResize(g_window.width, g_window.height);
+        }
+    }
+    return g_hdr.fbos[2]; // drawn into as without HDR; with HDR made linear into fbos[1], or drawn there by the CRT
+}
+
+/// The picture drawn into `sdr` goes into `screen`, made linear, white at `scale` (scRGB).
+void HdrLinearise(float scale) {
+    gl.BindFramebuffer(GL_FRAMEBUFFER, g_hdr.fbos[1]);
+    gl.Viewport(0, 0, g_hdr.width, g_hdr.height);
+    gl.UseProgram(g_hdr.linear_program);
+    gl.Uniform1fv(g_hdr.linear_scale, 1, &scale);
+    gl.ActiveTexture(GL_TEXTURE0);
+    gl.BindTexture(GL_TEXTURE_2D, g_hdr.textures[2]);
+    gl.BindSampler(0, 0);
+    gl.BindVertexArray(g_vao);
+    gl.DrawArrays(GL_TRIANGLES, 0, 3);
+    gl.BindVertexArray(0);
+    gl.UseProgram(0);
+}
+
+/// The CRT shader writing scRGB itself (CRT_HDR), with or without the copies; 0 if it does not build.
+GLuint HdrCrtProgram(bool copies, GLint& uniforms, GLint& hdr) {
+    const int which = copies ? 1 : 0;
+    if (g_hdr.crt_programs[which] == 0) {
+        std::string head = kCrtHead;
+        if (copies) {
+            for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+                const std::string name = std::to_string(n);
+                head += "uniform sampler2D crt_glow" + name + ";\n#define CRT_GLOW_TEX" + name + "(p) texture(crt_glow" +
+                        name + ", p)\n";
+            }
+            head += "#define CRT_GLOW 1\n";
+        }
+        head += "uniform vec4 u_hdr;\n#define CRT_HDR 1\n#define CRT_HDR_V u_hdr\n";
+        const GLuint program = Link(head + kQuality + Reader::Crt::ShaderBody() +
+                                    "\nin vec2 v_pos;\nvoid main()\n{\n  o_col0 = vec4(ReaderCrt(v_pos), 1.0);\n}\n");
+        if (program == 0) {
+            return 0;
+        }
+        gl.UseProgram(program);
+        gl.Uniform1i(gl.GetUniformLocation(program, "samp0"), 0);
+        for (int n = 0; copies && n < Reader::Crt::GlowCopies; ++n) {
+            gl.Uniform1i(gl.GetUniformLocation(program, ("crt_glow" + std::to_string(n)).c_str()), kGlowUnit + n);
+        }
+        g_hdr.crt_programs[which] = program;
+        g_hdr.crt_uniforms[which] = gl.GetUniformLocation(program, "u_crt");
+        g_hdr.crt_hdr[which] = gl.GetUniformLocation(program, "u_hdr");
+    }
+    uniforms = g_hdr.crt_uniforms[which];
+    hdr = g_hdr.crt_hdr[which];
+    return g_hdr.crt_programs[which];
+}
+
+/// At the swap: the picture into the shared texture, the right way up, and presented.
+bool HdrPresent() {
+    if (!g_hdr.active) {
+        return false;
+    }
+    if (!g_hdr.lock(g_hdr.interop, 1, &g_hdr.object)) {
+        return true; // a frame left out; the next is tried again
+    }
+    gl.BindFramebuffer(GL_READ_FRAMEBUFFER, g_hdr.fbos[g_hdr.hdr ? 1 : 2]);
+    gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, g_hdr.fbos[0]);
+    gl.BlitFramebuffer(0, 0, g_hdr.width, g_hdr.height, 0, g_hdr.height, g_hdr.width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    g_hdr.unlock(g_hdr.interop, 1, &g_hdr.object);
+    ID3D11Texture2D* back = nullptr;
+    if (SUCCEEDED(g_hdr.swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) {
+        g_hdr.context->CopyResource(back, g_hdr.shared);
+        back->Release();
+    }
+    g_hdr.swapchain->Present(0, 0);
+    return true;
+}
+#endif
 
 /// Where the picture goes in the window (top-left origin): the console's shape, as large as
 /// it fits.
@@ -1263,9 +1811,19 @@ void Present() {
 #else
     const Rect rect = PictureRect();
 #endif
-    gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Where the picture is drawn: the window's own framebuffer, or with HDR the context's
+    // texture that goes through the swapchain at the swap (HdrScreen).
+#if defined(_WIN32)
+    const GLuint screen = HdrScreen();
+#else
+    constexpr GLuint screen = 0;
+#endif
+    [[maybe_unused]] bool linear = false; // the picture is in `screen` as scRGB already (the CRT shader in HDR)
+    gl.BindFramebuffer(GL_FRAMEBUFFER, screen);
 #ifndef READER_LIBRETRO_ANDROID
-    gl.DrawBuffer(GL_BACK);
+    if (screen == 0) {
+        gl.DrawBuffer(GL_BACK);
+    }
 #endif
     gl.Disable(GL_SCISSOR_TEST);
     gl.Disable(GL_BLEND);
@@ -1289,11 +1847,6 @@ void Present() {
             BlitPart(parts[0], rect, g_window.height);
 #endif
         } else if (!g_glue->crt_in_core && Reader::Crt::Enabled() && CrtReady()) {
-            gl.Viewport(rect.x, bottom, rect.width, rect.height);
-            gl.UseProgram(g_crt_program);
-            gl.ActiveTexture(GL_TEXTURE0);
-            gl.BindTexture(GL_TEXTURE_2D, texture);
-            gl.BindSampler(0, 0);
             Reader::Crt::Picture picture;
             const float tw = static_cast<float>(texture_width), th = static_cast<float>(texture_height);
             picture.origin[0] = 0.0f;
@@ -1308,16 +1861,86 @@ void Present() {
             picture.output_height = static_cast<float>(rect.height);
             float values[Reader::Crt::UniformFloats];
             Reader::Crt::Pack(picture, values);
-            gl.Uniform4fv(g_crt_uniforms, Reader::Crt::UniformVectors, values);
+            // The textures the core left on the copies' units go back there after: its own
+            // drawing may keep a record of what it bound (Flycast's does).
+            GLint active = GL_TEXTURE0;
+            GLint kept[Reader::Crt::GlowCopies] = {};
+            gl.GetIntegerv(GL_ACTIVE_TEXTURE, &active);
+            const bool glow = g_crt_program != 0 && MakeGlow(texture, picture, values);
+            GLuint program = glow ? g_crt_program : g_crt_plain_program;
+            GLint uniforms = glow ? g_crt_uniforms : g_crt_plain_uniforms;
+            GLuint target = screen;
+#if defined(_WIN32)
+            // On a screen in HDR the shader writes scRGB itself, straight into `screen`.
+            GLint hdr_vector = -1;
+            if (g_hdr.active && g_hdr.hdr) {
+                if (const GLuint hdr = HdrCrtProgram(glow, uniforms, hdr_vector); hdr != 0) {
+                    program = hdr;
+                    target = g_hdr.fbos[1];
+                    linear = true;
+                } else {
+                    uniforms = glow ? g_crt_uniforms : g_crt_plain_uniforms;
+                }
+            }
+#endif
+            if (glow || target != screen) {
+                gl.BindFramebuffer(GL_FRAMEBUFFER, target);
+#ifndef READER_LIBRETRO_ANDROID
+                if (target == 0) {
+                    gl.DrawBuffer(GL_BACK);
+                }
+#endif
+                if (target != screen) {
+                    gl.Viewport(0, 0, g_window.width, g_window.height);
+                    gl.Clear(GL_COLOR_BUFFER_BIT);
+                }
+            }
+            if (glow) {
+                for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+                    gl.ActiveTexture(GL_TEXTURE0 + kGlowUnit + n);
+                    gl.GetIntegerv(GL_TEXTURE_BINDING_2D, &kept[n]);
+                    gl.BindTexture(GL_TEXTURE_2D, g_glow_textures[n]);
+                    gl.BindSampler(kGlowUnit + n, 0);
+                }
+            }
+            gl.Viewport(rect.x, bottom, rect.width, rect.height);
+            gl.UseProgram(program);
+            gl.ActiveTexture(GL_TEXTURE0);
+            gl.BindTexture(GL_TEXTURE_2D, texture);
+            gl.BindSampler(0, 0);
+            gl.Uniform4fv(uniforms, Reader::Crt::UniformVectors, values);
+#if defined(_WIN32)
+            if (linear) {
+                float hdr[Reader::Crt::HdrFloats];
+                Reader::Crt::PackHdr(Reader::Crt::Signal::Linear, g_hdr.peak, hdr);
+                gl.Uniform4fv(hdr_vector, 1, hdr);
+            }
+#endif
             gl.BindVertexArray(g_vao);
             gl.DrawArrays(GL_TRIANGLES, 0, 3);
             gl.BindVertexArray(0);
             gl.UseProgram(0);
+            if (glow) {
+                for (int n = 0; n < Reader::Crt::GlowCopies; ++n) {
+                    gl.ActiveTexture(GL_TEXTURE0 + kGlowUnit + n);
+                    gl.BindTexture(GL_TEXTURE_2D, static_cast<GLuint>(kept[n]));
+                }
+            }
+            gl.ActiveTexture(static_cast<GLenum>(active));
         } else if (g_frame_in_fbo) {
             const float whole[4] = {0.0f, 0.0f, 1.0f, 1.0f};
             BlitPart(whole, rect, g_window.height);
         }
     }
+#if defined(_WIN32)
+    // With HDR, what was drawn as without it (the CRT off) is made linear on its way to
+    // `screen`, its white at paper white.
+    if (g_hdr.active && g_hdr.hdr && !linear) {
+        float hdr[Reader::Crt::HdrFloats];
+        Reader::Crt::PackHdr(Reader::Crt::Signal::Linear, g_hdr.peak, hdr);
+        HdrLinearise(hdr[1] / 80.0f);
+    }
+#endif
     // The pictures asked for: the game's (from its framebuffer), the window's (as drawn).
     if (const std::vector<Grab> grabs = TakeGrabs(READER_CORE_GRAB_PICTURE); !grabs.empty()) {
         std::vector<uint8_t> pixels;
@@ -1342,7 +1965,16 @@ void Present() {
         }
     }
     if (const std::vector<Grab> grabs = TakeGrabs(READER_CORE_GRAB_WINDOW); !grabs.empty()) {
+#if defined(_WIN32)
+        if (g_hdr.active) { // as drawn before it was made linear, or (the CRT in HDR) linear
+            gl.BindFramebuffer(GL_READ_FRAMEBUFFER, g_hdr.fbos[linear ? 1 : 2]);
+            gl.ReadBuffer(GL_COLOR_ATTACHMENT0);
+        } else {
+            gl.ReadBuffer(GL_BACK);
+        }
+#else
         gl.ReadBuffer(GL_BACK);
+#endif
         const std::vector<uint8_t> pixels = ReadRows(0, 0, g_window.width, g_window.height);
         for (const Grab& grab : grabs) {
             grab.done(grab.context, pixels.data(), g_window.width, g_window.height, static_cast<uint32_t>(g_window.width) * 4);
@@ -1723,9 +2355,16 @@ void GameThread(std::string path) {
         }
     }
     g_fbo = g_fbo_texture = g_fbo_depth = g_soft_texture = 0;
-    g_crt_program = 0;
+    g_crt_program = g_crt_plain_program = 0;
     g_crt_failed = false;
     g_vao = 0;
+    g_glow_program = g_glow_fbo = 0;
+    std::fill(std::begin(g_glow_textures), std::end(g_glow_textures), 0u);
+    for (auto& size : g_glow_sizes) {
+        size[0] = size[1] = 0;
+    }
+    g_glow_format = g_glow_type = 0;
+    g_glow_failed = false;
     g_have_frame = false;
     g_told = Rect{-1, -1, -1, -1};
     g_told_screens[0] = g_told_screens[1] = Rect{-1, -1, -1, -1};

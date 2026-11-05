@@ -3067,8 +3067,49 @@ void GSDeviceVK::PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture*
 		cb.SetReaderCrt(sRect, sTex->GetSize(), dRect);
 	SetUtilityPushConstants(&cb, sizeof(cb));
 
+	// Reader fork: the CRT picture reads the glass's copies where they were made for this frame.
+	const bool glow = shader == PresentShader::READER_CRT && m_reader_glow_made && m_reader_crt_glow != VK_NULL_HANDLE;
+	m_reader_glow_made = false;
+	if (glow)
+	{
+		m_reader_glow_bind = true;
+		m_dirty_flags |= DIRTY_FLAG_UTILITY_TEXTURE;
+	}
+
 	DoStretchRect(static_cast<GSTextureVK*>(sTex), sRect, static_cast<GSTextureVK*>(dTex), dRect,
-		m_present[static_cast<int>(shader)], filter, true);
+		glow ? m_reader_crt_glow : m_present[static_cast<int>(shader)], filter, true);
+
+	if (glow)
+	{
+		m_reader_glow_bind = false;
+		m_dirty_flags |= DIRTY_FLAG_UTILITY_TEXTURE;
+	}
+}
+
+// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+bool GSDeviceVK::ReaderGlowReady() const
+{
+	return m_reader_crt_glow != VK_NULL_HANDLE && m_reader_glow_step != VK_NULL_HANDLE;
+}
+
+void GSDeviceVK::ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb)
+{
+	SetUtilityPushConstants(&cb, sizeof(cb));
+	// The whole target; the step's program places itself by the fragment's position alone.
+	DoStretchRect(static_cast<GSTextureVK*>(sTex), GSVector4(0.0f, 0.0f, 1.0f, 1.0f), static_cast<GSTextureVK*>(dTex),
+		GSVector4(dTex->GetRect()), m_reader_glow_step, Biln, true);
+}
+
+void GSDeviceVK::ReaderGlowDone()
+{
+	// The present's render pass cannot change a texture's layout: the copies are made readable now.
+	EndRenderPass();
+	for (int n = 0; n < READER_GLOW_COPIES; n++)
+	{
+		GSTextureVK* const tex = static_cast<GSTextureVK*>(m_reader_glow[n]);
+		tex->TransitionToLayout(GSTextureVK::Layout::ShaderReadOnly);
+		tex->SetUseFenceCounter(GetCurrentFenceCounter());
+	}
 }
 
 void GSDeviceVK::DrawMultiStretchRects(
@@ -3995,6 +4036,9 @@ bool GSDeviceVK::CreatePipelineLayouts()
 
 	dslb.SetPushFlag();
 	dslb.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, NUM_UTILITY_SAMPLERS, VK_SHADER_STAGE_FRAGMENT_BIT);
+	// Reader fork: the CRT glass's copies, read by the CRT picture alone (bound only for it).
+	for (u32 n = 0; n < READER_GLOW_COPIES; n++)
+		dslb.AddBinding(1 + n, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
 	if ((m_utility_ds_layout = dslb.Create(dev)) == VK_NULL_HANDLE)
 		return false;
 	Vulkan::SetObjectName(dev, m_utility_ds_layout, "Convert descriptor layout");
@@ -4352,6 +4396,38 @@ bool GSDeviceVK::CompilePresentPipelines()
 			return false;
 
 		Vulkan::SetObjectName(m_device, m_present[index], "Present pipeline %d", i);
+	}
+
+	// Reader fork: the CRT picture with the glass's copies, and the copies' steps, which draw into
+	// 16-bit floating point. Without either, the picture is the one of a single pass.
+	if (std::optional<std::string> file = ReadShaderSource("shaders/vulkan/present.glsl"))
+	{
+		ReaderCrtPresent::Options options;
+		options.copies = true;
+		const std::string text = *file + ReaderCrtPresent::Source(ReaderCrtPresent::Language::Vulkan, options);
+		const VkRenderPass step_pass =
+			GetRenderPass(LookupNativeFormat(GSTexture::Format::ColorHDR), VK_FORMAT_UNDEFINED);
+		VkPipeline* const pipes[2] = {&m_reader_crt_glow, &m_reader_glow_step};
+		const char* const entries[2] = {"ps_reader_crt", "ps_reader_glow_step"};
+		for (int n = 0; n < 2; n++)
+		{
+			VkShaderModule ps = GetUtilityFragmentShader(text, entries[n]);
+			if (ps == VK_NULL_HANDLE || (n == 1 && step_pass == VK_NULL_HANDLE))
+			{
+				if (ps != VK_NULL_HANDLE)
+					vkDestroyShaderModule(m_device, ps, nullptr);
+				break;
+			}
+			gpb.SetFragmentShader(ps);
+			gpb.SetRenderPass(n == 0 ? m_swap_chain_render_pass : step_pass, 0);
+			*pipes[n] = gpb.Create(m_device, g_vulkan_shader_cache->GetPipelineCache(true), false);
+			vkDestroyShaderModule(m_device, ps, nullptr);
+			if (*pipes[n] == VK_NULL_HANDLE)
+				break;
+			Vulkan::SetObjectName(m_device, *pipes[n], "Reader CRT pipeline %d", n);
+		}
+		if (!m_reader_crt_glow || !m_reader_glow_step)
+			Console.Warning("Reader: the CRT glass's copies have no pipeline; the picture without them");
 	}
 
 	return true;
@@ -4803,6 +4879,12 @@ void GSDeviceVK::DestroyResources()
 	{
 		if (it != VK_NULL_HANDLE)
 			vkDestroyPipeline(m_device, it, nullptr);
+	}
+	for (VkPipeline* it : {&m_reader_crt_glow, &m_reader_glow_step}) // Reader fork
+	{
+		if (*it != VK_NULL_HANDLE)
+			vkDestroyPipeline(m_device, *it, nullptr);
+		*it = VK_NULL_HANDLE;
 	}
 	for (const auto& pipe : m_convert)
 	{
@@ -5846,6 +5928,15 @@ bool GSDeviceVK::ApplyUtilityState(bool already_execed)
 		Vulkan::DescriptorSetUpdateBuilder dsub;
 		dsub.AddCombinedImageSamplerDescriptorWrite(
 			VK_NULL_HANDLE, 0, m_utility_texture->GetView(), m_utility_sampler, m_utility_texture->GetVkLayout());
+		if (m_reader_glow_bind) // Reader fork: the CRT glass's copies, for the CRT picture
+		{
+			for (u32 n = 0; n < READER_GLOW_COPIES; n++)
+			{
+				const GSTextureVK* const tex = static_cast<const GSTextureVK*>(m_reader_glow[n]);
+				dsub.AddCombinedImageSamplerDescriptorWrite(
+					VK_NULL_HANDLE, 1 + n, tex->GetView(), m_linear_sampler, tex->GetVkLayout());
+			}
+		}
 		dsub.PushUpdate(cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_utility_pipeline_layout, 0, false);
 	}
 

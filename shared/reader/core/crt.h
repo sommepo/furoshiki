@@ -40,6 +40,9 @@ struct Param {
     /// The tube's frame around the picture (reader_crt_frame), drawn by the computer's reader
     /// window: not part of a look nor of Reset, and not on the Android settings page.
     bool frame = false;
+    /// The screen's own (HDR): not part of a look nor of Reset, and not on the Android settings
+    /// page, whose cores draw no HDR picture.
+    bool screen = false;
 };
 
 struct Preset {
@@ -99,6 +102,38 @@ void Pack(const Picture& picture, float out[UniformFloats]);
 [[nodiscard]] const char* ShaderBody();
 /// Put before ShaderBody() in HLSL: the names GLSL has for what HLSL calls otherwise.
 [[nodiscard]] const char* HlslDefines();
+
+/// The glass's blurred copies of the picture, for a renderer that makes them before it draws
+/// the picture: the light then spreads as far as a tube's glass spreads it. Each step draws
+/// one texture with the text of GlowBody() (after ShaderBody(), its function
+/// `vec3 ReaderCrtGlow(vec2 f)`, crt_glow.glsl). Textures 0 to GlowCopies - 1 are what the
+/// picture's shader reads as CRT_GLOW_TEX0 to CRT_GLOW_TEX4 (with CRT_GLOW defined); the rest
+/// are the steps' own. Linear light goes into them: 16-bit floating point where the API has
+/// it, 10 bits a colour at least.
+inline constexpr int GlowCopies = 5;
+inline constexpr int GlowTextures = 13;
+struct GlowStep {
+    int target = 0;  ///< The texture drawn, 0 to GlowTextures - 1, the whole of it
+    int input = -1;  ///< Where CRT_TEX reads: another texture, or -1 for the game's picture
+    int width = 0;   ///< The target's size, the same at every step that draws it
+    int height = 0;
+    float vector[4] = {}; ///< CRT_GLOW_V
+};
+/// The steps, in order, for a picture of that size on the screen (Picture's output size).
+[[nodiscard]] std::vector<GlowStep> GlowPlan(float output_width, float output_height);
+[[nodiscard]] const char* GlowBody();
+
+/// HDR: the picture on a screen in HDR, the lit phosphor brighter than paper white as a tube's
+/// was. Wanted while the picture is on and its `HDR` row is; a renderer that can draw into an
+/// HDR surface (and finds the screen in HDR) defines CRT_HDR and CRT_HDR_V with PackHdr's four
+/// numbers, and draws into a 16-bit floating point surface (Signal::Linear, scRGB) or a 10-bit
+/// one (Signal::Pq, HDR10). Without it the picture is SDR, as before.
+[[nodiscard]] bool HdrWanted();
+enum class Signal { Linear = 1, Pq = 2 };
+inline constexpr int HdrFloats = 4;
+/// `peak_nits` is what the screen says it reaches, or 0 when it says nothing: the row's value
+/// is used then, and the smaller of the two otherwise.
+void PackHdr(Signal signal, float peak_nits, float out[HdrFloats]);
 
 /// Where on the screen a place of the picture is seen once the glass has bent it; both in
 /// the picture's own measure, 0 to 1 from its top left corner. The place itself while the

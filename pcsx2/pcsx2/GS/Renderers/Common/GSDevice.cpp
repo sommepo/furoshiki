@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0+
 
 #include "GS/Renderers/Common/GSDevice.h"
+#include <cmath>
+#include <cstdio>
 #include <cstring>
 #include "reader/render/crt_present.h" // Reader fork
+#include "reader/core/crt.h" // Reader fork
 #include "GS/GSGL.h"
 #include "GS/GS.h"
 #include "GS/GSUtil.h"
@@ -71,6 +74,105 @@ void DisplayConstantBuffer::SetReaderCrt(const GSVector4& sRect, const GSVector2
 	float values[32];
 	ReaderCrtPresent::Constants(values, sRect.F32, sSize.x, sSize.y, dRect.z - dRect.x, dRect.w - dRect.y);
 	std::memcpy(static_cast<void*>(this), values, sizeof(values));
+}
+
+// Reader fork: the CRT glass's blurred copies (reader/core/crt.h, GlowPlan).
+void GSDevice::ReaderMakeGlow(GSTexture* sTex, const GSVector4& sRect, const GSVector4& dRect)
+{
+	static_assert(READER_GLOW_TEXTURES == Reader::Crt::GlowTextures);
+	static_assert(READER_GLOW_COPIES == Reader::Crt::GlowCopies);
+	m_reader_glow_made = false;
+	if (!sTex || m_reader_glow_failed || !Reader::Crt::Enabled() || !ReaderGlowReady())
+		return;
+	const float width = std::fabs(dRect.z - dRect.x);
+	const float height = std::fabs(dRect.w - dRect.y);
+	if (width < 1.0f || height < 1.0f)
+		return;
+	const std::vector<Reader::Crt::GlowStep> plan = Reader::Crt::GlowPlan(width, height);
+	if (plan.empty())
+		return;
+
+	// The textures at the plan's sizes, made again when a size changes. Linear light goes into
+	// them: 16-bit floating point, which every renderer of PCSX2 draws into.
+	for (const Reader::Crt::GlowStep& step : plan)
+	{
+		if (step.target < 0 || step.target >= READER_GLOW_TEXTURES || step.input >= READER_GLOW_TEXTURES ||
+			step.width < 1 || step.height < 1)
+		{
+			m_reader_glow_failed = true;
+			return;
+		}
+		GSTexture*& tex = m_reader_glow[step.target];
+		if (tex && tex->GetWidth() == step.width && tex->GetHeight() == step.height)
+			continue;
+		delete tex;
+		tex = CreateRenderTarget(step.width, step.height, GSTexture::Format::ColorHDR, false, false);
+		if (!tex)
+		{
+			Console.Warning("Reader: no texture for the CRT glass's copies (%dx%d); the picture without them",
+				step.width, step.height);
+			m_reader_glow_failed = true;
+			return;
+		}
+	}
+	for (int n = 0; n < READER_GLOW_COPIES; n++)
+	{
+		if (!m_reader_glow[n])
+			return;
+	}
+
+	DisplayConstantBuffer cb;
+	cb.SetReaderCrt(sRect, sTex->GetSize(), dRect);
+	float* const values = reinterpret_cast<float*>(&cb);
+	for (const Reader::Crt::GlowStep& step : plan)
+	{
+		std::memcpy(values + ReaderCrtPresent::GlowVectorAt, step.vector, sizeof(step.vector));
+		GSTexture* const input = step.input < 0 ? sTex : m_reader_glow[step.input];
+		if (!input)
+			return;
+		ReaderGlowStep(input, m_reader_glow[step.target], cb);
+	}
+	ReaderGlowDone();
+	m_reader_glow_made = true;
+	if (!m_reader_glow_said)
+	{
+		m_reader_glow_said = true;
+		Console.WriteLn("Reader: the CRT picture with the glass's copies (%s, %zu steps, 16-bit floating point)",
+			RenderAPIToString(GetRenderAPI()), plan.size());
+	}
+}
+
+void GSDevice::ReaderDestroyGlow()
+{
+	for (GSTexture*& tex : m_reader_glow)
+	{
+		delete tex;
+		tex = nullptr;
+	}
+	m_reader_glow_made = false;
+}
+
+bool GSDevice::ReaderHdrAllowed()
+{
+	return Reader::Crt::Enabled() && Reader::Crt::HdrWanted();
+}
+
+std::string GSDevice::ReaderHdrImGuiShader(float paper_white_nits)
+{
+	// ImGui's colours are SDR (sRGB): on a linear scRGB surface they are made linear and as
+	// bright as paper white (1.0 is 80 nits there). Its blending is then done in linear light.
+	char paper[64];
+	std::snprintf(paper, sizeof(paper), "%.9g", paper_white_nits / 80.0f);
+	return std::string(R"(
+// Reader fork: ImGui on an HDR (scRGB) surface.
+float4 ps_reader_hdr(PS_INPUT input) : SV_Target
+{
+	float4 c = ps_main(input);
+	float3 s = saturate(c.rgb);
+	float3 lin = lerp(s / 12.92, pow((s + 0.055) / 1.055, 2.4), step(0.04045, s));
+	return float4(lin * )") + paper + R"(, c.a);
+}
+)";
 }
 
 const char* ShaderEntryPoint(PresentShader value)
@@ -397,6 +499,7 @@ bool GSDevice::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 
 void GSDevice::Destroy()
 {
+	ReaderDestroyGlow(); // Reader fork
 	ClearCurrent();
 	PurgePool();
 }

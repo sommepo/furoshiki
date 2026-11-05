@@ -1494,6 +1494,30 @@ protected:
 	GSTexture* m_colclip_rt = nullptr; ///< Temp hw colclip texture
 	GSTexture* m_ds_as_rt = nullptr; ///< Depth as color
 
+	// Reader fork: the CRT glass's blurred copies of the picture (Reader::Crt::GlowPlan), made
+	// before the frame is presented (ReaderMakeGlow) where the renderer has their programs. The
+	// first five are what the picture reads; `m_reader_glow_made` says they are this frame's.
+	static constexpr int READER_GLOW_TEXTURES = 13; // Reader::Crt::GlowTextures
+	static constexpr int READER_GLOW_COPIES = 5; // Reader::Crt::GlowCopies
+	GSTexture* m_reader_glow[READER_GLOW_TEXTURES] = {};
+	bool m_reader_glow_made = false;
+	bool m_reader_glow_failed = false;
+	bool m_reader_glow_said = false;
+	/// Whether the renderer has the copies' programs (the steps' and the picture's with them).
+	virtual bool ReaderGlowReady() const { return false; }
+	/// One step: draws the whole of `dTex` with the steps' program, reading `sTex` bilinear;
+	/// `cb` holds the CRT picture's numbers with the step's vector at GlowVectorAt.
+	virtual void ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb) {}
+	/// After the steps: the copies made ready to be read while the frame is presented.
+	virtual void ReaderGlowDone() {}
+	void ReaderDestroyGlow();
+	/// Reader fork: whether the CRT picture may go to an HDR screen now (Reader::Crt::HdrWanted()
+	/// with the picture on). A renderer that draws into an HDR surface draws ImGui (PCSX2's
+	/// messages, the achievements' notifications) there with ReaderHdrImGuiShader's entry
+	/// `ps_reader_hdr`, put after dx11/imgui.fx's text: linear, at paper white.
+	static bool ReaderHdrAllowed();
+	static std::string ReaderHdrImGuiShader(float paper_white_nits);
+
 	bool AcquireWindow(bool recreate_window);
 
 	virtual GSTexture* CreateSurface(GSTexture::Usage usage, int width, int height, int levels, GSTexture::Format format) = 0;
@@ -1526,6 +1550,12 @@ protected:
 public:
 	GSDevice();
 	virtual ~GSDevice();
+
+	/// Reader fork: makes the CRT glass's blurred copies of the frame `sTex` (its part `sRect`) for
+	/// the picture at `dRect` in the window, before BeginPresent(); the next PresentRect() with
+	/// PresentShader::READER_CRT reads them. Nothing where the renderer cannot (the picture is
+	/// then the one of a single pass, as before).
+	void ReaderMakeGlow(GSTexture* sTex, const GSVector4& sRect, const GSVector4& dRect);
 
 	/// Returns a string containing current adapter in use.
 	const std::string& GetName() const { return m_name; }

@@ -531,6 +531,33 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 			m_present[i].RegisterUniform("u_reader3");
 			m_present[i].RegisterUniform("u_reader4");
 		}
+
+		// Reader fork: the CRT picture with the glass's copies, and the program of the copies'
+		// steps. Without either, the picture is the one of a single pass.
+		{
+			std::optional<std::string> file = ReadShaderSource("shaders/opengl/present.glsl");
+			ReaderCrtPresent::Options options;
+			options.copies = true;
+			GLProgram* const progs[2] = {&m_reader_crt_glow, &m_reader_glow_step};
+			const char* const entries[2] = {"ps_reader_crt", "ps_reader_glow_step"};
+			for (int n = 0; file.has_value() && n < 2; n++)
+			{
+				const std::string text = *file + ReaderCrtPresent::Source(ReaderCrtPresent::Language::OpenGL, options);
+				const std::string ps(GetShaderSource(entries[n], GL_FRAGMENT_SHADER, text));
+				if (!m_shader_cache.GetProgram(progs[n], present_vs, ps))
+				{
+					Console.Warning("Reader: the CRT glass's copies have no program (%s); the picture without them", entries[n]);
+					m_reader_crt_glow.Destroy();
+					m_reader_glow_step.Destroy();
+					break;
+				}
+				for (const char* name : {"u_source_rect", "u_target_rect", "u_source_size", "u_target_size",
+						 "u_target_resolution", "u_rcp_target_resolution", "u_source_resolution",
+						 "u_rcp_source_resolution", "u_time", "u_reader0", "u_reader1", "u_reader2", "u_reader3",
+						 "u_reader4"})
+					progs[n]->RegisterUniform(name);
+			}
+		}
 	}
 
 	// ****************************************************************
@@ -976,6 +1003,8 @@ void GSDeviceOGL::DestroyResources()
 
 	for (GLProgram& prog : m_present)
 		prog.Destroy();
+	m_reader_crt_glow.Destroy(); // Reader fork
+	m_reader_glow_step.Destroy();
 
 	for (auto& prog : m_convert.ps)
 		prog.Destroy();
@@ -1895,7 +1924,48 @@ void GSDeviceOGL::PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture
 	if (shader == PresentShader::READER_CRT) // Reader fork
 		cb.SetReaderCrt(sRect, sTex->GetSize(), dRect);
 
-	GLProgram& prog = m_present[static_cast<int>(shader)];
+	// Reader fork: the CRT picture reads the glass's copies where they were made for this frame.
+	const bool glow = shader == PresentShader::READER_CRT && m_reader_glow_made && m_reader_crt_glow.IsValid();
+	m_reader_glow_made = false;
+	GLProgram& prog = glow ? m_reader_crt_glow : m_present[static_cast<int>(shader)];
+	ReaderSetDisplayUniforms(prog, cb, shader == PresentShader::READER_CRT);
+
+	OMSetDepthStencilState(m_convert.dss);
+	OMSetBlendState(false);
+	OMSetColorMaskState();
+
+	PSSetShaderResource(TEXTURE_TEXTURE, sTex);
+	PSSetSamplerState(filter == Biln ? m_convert.ln : m_convert.pt);
+	if (glow) // Reader fork: units 1 to 5, bilinear
+	{
+		for (int n = 0; n < READER_GLOW_COPIES; n++)
+		{
+			PSSetShaderResource(1 + n, m_reader_glow[n]);
+			glBindSampler(1 + n, m_convert.ln);
+		}
+	}
+
+	// Flip y axis only when we render in the backbuffer
+	// By default everything is render in the wrong order (ie dx).
+	// 1/ consistency between several pass rendering (interlace)
+	// 2/ in case some GS code expect thing in dx order.
+	// Only flipping the backbuffer is transparent (I hope)...
+	const GSVector4 flip_sr(sRect.xwzy());
+	DrawStretchRect(flip_sr, dRect, ds);
+
+	if (glow) // Reader fork
+	{
+		for (int n = 0; n < READER_GLOW_COPIES; n++)
+		{
+			PSSetShaderResource(1 + n, nullptr);
+			glBindSampler(1 + n, 0);
+		}
+	}
+}
+
+// Reader fork: the present shaders' constants; the CRT picture's (and its copies') all 32.
+void GSDeviceOGL::ReaderSetDisplayUniforms(GLProgram& prog, const DisplayConstantBuffer& cb, bool reader)
+{
 	prog.Bind();
 	prog.Uniform4fv(0, cb.SourceRect.F32);
 	prog.Uniform4fv(1, cb.TargetRect.F32);
@@ -1906,7 +1976,7 @@ void GSDeviceOGL::PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture
 	prog.Uniform2fv(6, &cb.SourceResolution.x);
 	prog.Uniform2fv(7, &cb.RcpSourceResolution.x);
 	prog.Uniform1f(8, cb.TimeAndPad.x);
-	if (shader == PresentShader::READER_CRT) // Reader fork
+	if (reader)
 	{
 		prog.Uniform1f(9, cb.TimeAndPad.y);
 		prog.Uniform1f(10, cb.TimeAndPad.z);
@@ -1914,21 +1984,19 @@ void GSDeviceOGL::PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture
 		prog.Uniform4fv(12, cb.Reader3.F32);
 		prog.Uniform4fv(13, cb.Reader4.F32);
 	}
+}
 
-	OMSetDepthStencilState(m_convert.dss);
-	OMSetBlendState(false);
-	OMSetColorMaskState();
+// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+bool GSDeviceOGL::ReaderGlowReady() const
+{
+	return m_reader_crt_glow.IsValid() && m_reader_glow_step.IsValid();
+}
 
-	PSSetShaderResource(TEXTURE_TEXTURE, sTex);
-	PSSetSamplerState(filter == Biln ? m_convert.ln : m_convert.pt);
-
-	// Flip y axis only when we render in the backbuffer
-	// By default everything is render in the wrong order (ie dx).
-	// 1/ consistency between several pass rendering (interlace)
-	// 2/ in case some GS code expect thing in dx order.
-	// Only flipping the backbuffer is transparent (I hope)...
-	const GSVector4 flip_sr(sRect.xwzy());
-	DrawStretchRect(flip_sr, dRect, ds);
+void GSDeviceOGL::ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb)
+{
+	ReaderSetDisplayUniforms(m_reader_glow_step, cb, true);
+	// The whole target; the step's program places itself by the fragment's position alone.
+	DoStretchRect(sTex, GSVector4(0.0f, 0.0f, 1.0f, 1.0f), dTex, GSVector4(dTex->GetRect()), m_reader_glow_step, Biln);
 }
 
 void GSDeviceOGL::UpdateCLUTTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, GSTexture* dTex, u32 dOffset, u32 dSize)

@@ -124,6 +124,26 @@ private:
 	bool CreateImGuiResources();
 	void RenderImGui();
 
+	// Reader fork: the CRT picture with the glass's copies (slots t1 to t5, bound beside the
+	// device's own state for that one draw), the copies' steps, and HDR output: the swap chain
+	// in scRGB (16-bit floating point, linear) while the CRT picture is on, its HDR row is and the
+	// screen is in HDR, with the picture's and ImGui's shaders for it.
+	wil::com_ptr_nothrow<ID3D11PixelShader> m_reader_crt_glow_ps;
+	wil::com_ptr_nothrow<ID3D11PixelShader> m_reader_glow_step_ps;
+	wil::com_ptr_nothrow<ID3D11PixelShader> m_reader_hdr_ps[2]; // [with the copies]
+	wil::com_ptr_nothrow<ID3D11PixelShader> m_reader_hdr_imgui_ps;
+	std::string m_reader_present_hlsl;
+	bool m_reader_hdr = false;
+	bool m_reader_hdr_failed = false;
+	bool m_reader_hdr_allowed = false;
+	float m_reader_hdr_peak = -1.0f;
+	u64 m_reader_hdr_checked = 0;
+	u32 m_reader_hdr_size[2] = {};
+	void ReaderUpdateHdr();
+	bool ReaderStartHdr(float peak);
+	void ReaderStopHdr();
+	bool ReaderSwapChainFormat(bool hdr);
+
 	wil::com_ptr_nothrow<IDXGIFactory5> m_dxgi_factory;
 	wil::com_ptr_nothrow<ID3D11Device1> m_dev;
 	wil::com_ptr_nothrow<ID3D11DeviceContext1> m_ctx;
@@ -366,6 +386,9 @@ public:
 	void DoStretchRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, ID3D11PixelShader* ps, ID3D11Buffer* ps_cb, Filter filter);
 	void DoStretchRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, ID3D11PixelShader* ps, ID3D11Buffer* ps_cb, ID3D11BlendState* bs, Filter filter);
 	void PresentRect(GSTexture* sTex, const GSVector4& sRect, GSTexture* dTex, const GSVector4& dRect, PresentShader shader, float shaderTime, Filter filter) override;
+	// Reader fork: the CRT glass's copies (GSDevice::ReaderMakeGlow).
+	bool ReaderGlowReady() const override;
+	void ReaderGlowStep(GSTexture* sTex, GSTexture* dTex, const DisplayConstantBuffer& cb) override;
 	void UpdateCLUTTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, GSTexture* dTex, u32 dOffset, u32 dSize) override;
 	void ConvertToIndexedTexture(GSTexture* sTex, float sScale, u32 offsetX, u32 offsetY, u32 SBW, u32 SPSM, GSTexture* dTex, u32 DBW, u32 DPSM) override;
 	void FilteredDownsampleTexture(GSTexture* sTex, GSTexture* dTex, u32 downsample_factor, const GSVector2i& clamp_min, const GSVector4& dRect) override;
