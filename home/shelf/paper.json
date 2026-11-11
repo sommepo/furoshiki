@@ -1,0 +1,13 @@
+{
+  "name": "Paper",
+  "order": 2,
+  "ground": "#e8e3d6",
+  "raised": "#dcd6c6",
+  "ink": "#121212",
+  "muted": "#6d6a61",
+  "accent": "#1f3a8a",
+  "rule": "rgba(18,18,18,0.3)",
+  "display": "Michroma-Regular.ttf",
+  "text": "ZenKakuGothicNew-Bold.ttf",
+  "mono": "IBMPlexMono-Medium.ttf"
+}

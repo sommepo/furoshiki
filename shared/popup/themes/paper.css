@@ -1,8 +1,8 @@
 /* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later
    Paper: light, quiet, a serif. */
-:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #7a6e5a; --accent: #b0782a; }
-.popup { background: #fbf8f1; border: 1px solid #d9d0bd; border-radius: 4px; color: #2a2620; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); }
+:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #7a6e5a; --accent: #b0782a; --ground: #fbf8f1; --radius: 4px; --text: #2a2620; }
+.popup { border: 1px solid #d9d0bd; color: #2a2620; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); }
 .entry + .entry { border-top-color: #e2d9c6; }
 .tag { font-family: "Noto Sans JP", sans-serif; color: #6b5a3a; background: #efe6d2; border-radius: 3px; padding: 0 5px; }
 .tag.frequency { background: #e3eedc; color: #3e6a35; }

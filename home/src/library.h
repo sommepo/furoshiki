@@ -70,6 +70,11 @@ struct Library {
     QStringList problems;  ///< Files that could not be read, for the Readers page
 };
 
+/// The characters read on `day` ("2026-11-10").
+[[nodiscard]] qint64 CharsOn(const QList<Day>& days, const QString& day);
+/// How many days in a row were read, up to `today`; a day not read yet today does not end it.
+[[nodiscard]] int Streak(const QList<Day>& days, const QString& today);
+
 /// The newest format of an app's file this Furoshiki reads. A file of a newer one is left
 /// out with a problem rather than misread.
 inline constexpr int AppFileFormat = 1;

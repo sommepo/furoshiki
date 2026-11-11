@@ -3,7 +3,7 @@
 
 // Furoshiki: one front for the reader apps, and (built with HOME_CORES) the one program that
 // plays their games itself, each emulator a core it loads (docs/one-program.md).
-//   reader-home [--script FILE] [--dry-run] [--window] [--play FILE] [--pair LINK | LINK]
+//   reader-home [--script FILE] [--dry-run] [--window] [--play FILE | --lines ID] [--pair LINK | LINK]
 // --script runs a test's commands (home_window.h); --dry-run starts no app and says what it
 // would have started; --window keeps it out of full screen whatever the settings say; --play
 // plays a game here at once, with the core whose console's files it is (HOME_CORES); --pair (or
@@ -18,12 +18,14 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QSettings>
+#include "app_icon.h"
 #include "home_window.h"
 #include "library.h"
 #ifndef READER_NO_SAVE_SYNC
 #include "pairing.h"
 #endif
 #ifdef HOME_CORES
+#include "line_titles.h"
 #include "main_window.h"
 #if !defined(_WIN32)
 #include <unistd.h>
@@ -133,6 +135,7 @@ int Run(int argc, char** argv) {
     QCoreApplication::setOrganizationName(QStringLiteral("reader-home"));
     QCoreApplication::setApplicationName(QStringLiteral("reader-home"));
     const bool moved = Home::MoveOldFolder();
+    Home::ApplyChosenIcon();
     OpenLog();
     if (moved) {
         qInfo("Furoshiki: the folder of its former name (reader-home) is now %s", qPrintable(Home::SharedFolder()));
@@ -162,6 +165,21 @@ int Run(int argc, char** argv) {
         QString error;
         if (!main_window.Play(arguments[play + 1], QString(), error)) {
             qWarning("--play: %s", qPrintable(error));
+            window.Notify(error); // on the page, which stays
+        }
+    }
+    // --lines ID: a title read from lines (line_titles.h), as its file among the apps' says.
+    if (const int lines = arguments.indexOf(QStringLiteral("--lines")); lines >= 0 && lines + 1 < arguments.size()) {
+        QString error = QStringLiteral("No title read from lines has the ID %1").arg(arguments[lines + 1]);
+        bool read = false;
+        for (const Home::Lines::Title& title : Home::Lines::Load(Home::SharedFolder()).titles) {
+            if (title.id == arguments[lines + 1].toUpper()) {
+                read = main_window.ReadLines(Home::Lines::PathOf(title), error);
+            }
+        }
+        if (!read) {
+            qWarning("--lines: %s", qPrintable(error));
+            window.Notify(error);
         }
     }
 #ifndef READER_NO_SAVE_SYNC

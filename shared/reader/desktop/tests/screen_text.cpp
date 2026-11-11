@@ -214,3 +214,27 @@ TEST_CASE("KeptByPopup: any word not under the popup is looked up at once", "[re
     REQUIRE(KeptByPopup(QPointF(150, 243), box, false, below, row));
     REQUIRE_FALSE(KeptByPopup(QPointF(190, 220), on(next), false, below, row));
 }
+
+TEST_CASE("PresentedLine: several lines joined into one for a card", "[reader][screen]") {
+    REQUIRE(!PresentedLine::Join({}));
+    PresentedLine a = Presented(Q(u"𠮷野家へ"), 1, 10);
+    a.line.audio_position = 4800;
+    a.line.speaker = Q(u"太郎");
+    a.line.ruby = {RubySpan{0, 3, Q(u"よしのや")}};
+    PresentedLine b = Presented(Q(u"行く"), 2, 11);
+    b.line.audio_position = 9600;
+    b.line.speaker = Q(u"太郎");
+    b.line.ruby = {RubySpan{0, 1, Q(u"い")}};
+    REQUIRE(PresentedLine::Join({a})->first_backlog_id == -1);
+    const PresentedLine joined = *PresentedLine::Join({a, b});
+    REQUIRE(joined.line.text == Q(u"𠮷野家へ\n行く"));
+    REQUIRE(joined.backlog_id == 11);
+    REQUIRE(joined.first_backlog_id == 10);
+    REQUIRE(joined.line.audio_position == 4800);
+    REQUIRE(joined.line.speaker == Q(u"太郎"));
+    // Readings count code points: 𠮷 is one, the row's end another.
+    REQUIRE(joined.line.ruby == QList<RubySpan>{{0, 3, Q(u"よしのや")}, {5, 1, Q(u"い")}});
+    REQUIRE(joined.line.ToAnkiFurigana() == Q(u"𠮷野家[よしのや]へ\n行[い]く"));
+    b.line.speaker = Q(u"花子");
+    REQUIRE(PresentedLine::Join({a, b})->line.speaker.isEmpty());
+}

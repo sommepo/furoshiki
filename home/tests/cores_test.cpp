@@ -204,6 +204,38 @@ int main(int argc, char** argv) {
         told.Add("state " + std::to_string(what) + " " + std::to_string(slot) + " " + std::to_string(result) +
                  (message.empty() ? "" : " " + message));
     });
+    // A game's file not there is said before any core has it (MainWindow::Play asks first): a
+    // path, a link to a folder since moved (a test link left after the forks' old input folder
+    // went, which a core took and the program then crashed on, 2026-11-08), a file that cannot
+    // be read. A name with no folder in it may be an installed title's ID, and a folder a game.
+    {
+        const auto missing = [&](const QString& path) {
+            return Home::CoreSession::MissingGame(path.toStdString());
+        };
+        CHECK(missing(folder.filePath(QStringLiteral("no-such-game.iso"))).find("not there") != std::string::npos);
+        CHECK(!missing(QString()).empty());
+        CHECK(missing(QStringLiteral("game.test")).empty());
+        CHECK(missing(QStringLiteral("PCSG00488")).empty());
+        CHECK(missing(folder.path()).empty());
+        QFile there(folder.filePath(QStringLiteral("ゲーム (Japan).iso")));
+        CHECK(there.open(QIODevice::WriteOnly) && there.write("CD001", 5) == 5);
+        there.close();
+        CHECK(missing(there.fileName()).empty());
+#if !defined(_WIN32)
+        const QString dangling = folder.filePath(QStringLiteral("SteinsGate.iso"));
+        CHECK(QFile::link(folder.filePath(QStringLiteral("moved/Steins;Gate (Japan).iso")), dangling));
+        const std::string said = missing(dangling);
+        CHECK(said.find("link") != std::string::npos && said.find("Steins;Gate (Japan).iso") != std::string::npos);
+        const QString linked = folder.filePath(QStringLiteral("linked.iso"));
+        CHECK(QFile::link(there.fileName(), linked));
+        CHECK(missing(linked).empty());
+        CHECK(there.setPermissions(QFileDevice::Permissions{}));
+        if (!QFileInfo(there.fileName()).isReadable()) { // not as root, who reads everything
+            CHECK(missing(there.fileName()).find("cannot be read") != std::string::npos);
+        }
+        there.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+#endif
+    }
     CHECK(!session.LoadGame("missing", session_error));
     CHECK(session.LoadGame("game.test", session_error));
     CHECK(seen.WaitFor(3));

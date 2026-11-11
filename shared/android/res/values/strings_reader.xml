@@ -174,6 +174,18 @@
 
     <!-- Preferences: the first page, then one page per section -->
     <string name="reader_pref_category_settings">Settings</string>
+    <string name="reader_find_setting">Find a setting</string>
+    <string name="reader_section_reading">Reading</string>
+    <string name="reader_section_reading_summary">The game\'s text, the reading panel, the session line</string>
+    <string name="reader_section_popup">Popup</string>
+    <string name="reader_section_popup_summary">The dictionary popup\'s look and size</string>
+    <string name="reader_section_cards">Cards</string>
+    <string name="reader_section_sources">Sources</string>
+    <string name="reader_section_sources_summary">The clipboard, the text server</string>
+    <string name="reader_section_controller">Controller</string>
+    <string name="reader_section_controller_summary">The pointer and the reader\'s buttons</string>
+    <!-- The row that opens the rest of a page (androidx.preference's own name for it). -->
+    <string name="expand_button_title">More</string>
     <string name="reader_section_lookup_summary">Tapping the game\'s text, the dictionary popup</string>
     <string name="reader_section_cursor_summary">A pointer for controllers and the trackpad</string>
     <string name="reader_section_panel_summary">The current line as text, beside the game</string>
@@ -193,6 +205,8 @@
     <string name="reader_pref_popup_hide_on_exit_summary">When the cursor is off the word and off the popup</string>
     <string name="reader_pref_popup_height">Popup height limit (% of the screen)</string>
     <string name="reader_pref_screen_text_outline">Outline what can be tapped</string>
+    <string name="reader_pref_touch_buttons">On-screen buttons</string>
+    <string name="reader_pref_touch_buttons_summary">The controller\'s buttons small over the game, and the menu\'s button in the corner</string>
     <string name="reader_pref_touch_play">Play by touch</string>
     <string name="reader_pref_touch_play_summary">A tap beside the text goes on, a tap on an answer picks it; hold a finger on an answer to look its words up</string>
     <string name="reader_touch_pick_unknown">This game\'s answers are picked with the controller: its script does not say where the cursor is</string>
@@ -255,6 +269,8 @@
     <string name="reader_pref_card_audio">Line audio on cards</string>
     <string name="reader_pref_audio_max">Longest audio clip (seconds)</string>
     <string name="reader_pref_audio_lead">Start audio earlier by (ms)</string>
+    <string name="reader_pref_audio_voice_trim">Cut the clip to what is said</string>
+    <string name="reader_pref_card_context_lines">Lines before, in {context}</string>
     <string name="reader_pref_screenshot_cache">Lines that keep their screenshot</string>
     <string name="reader_pref_screenshot_cache_summary">Lets a card made from the backlog show its own scene</string>
     <string name="reader_pref_screenshot_width">Screenshot width (pixels)</string>
@@ -319,6 +335,15 @@
         <item>Yomitan dark</item>
         <item>Paper</item>
         <item>Paper dark</item>
+        <item>Solarized dark</item>
+        <item>Solarized light</item>
+        <item>Glass (see-through)</item>
+        <item>Dense (as much as fits)</item>
+        <item>Kuro (a black sheet)</item>
+        <item>Shoin (a framed card)</item>
+        <item>Ookii (large type)</item>
+        <item>Kumihan (type and rules)</item>
+        <item>Kon (indigo)</item>
         <item>Classic (drawn without the page)</item>
     </string-array>
     <string-array name="reader_popup_theme_values" translatable="false">
@@ -327,8 +352,37 @@
         <item>yomitan-dark</item>
         <item>paper</item>
         <item>paper-dark</item>
+        <item>solarized-dark</item>
+        <item>solarized-light</item>
+        <item>glass</item>
+        <item>dense</item>
+        <item>kuro</item>
+        <item>shoin</item>
+        <item>ookii</item>
+        <item>kumihan</item>
+        <item>kon</item>
         <item>classic</item>
     </string-array>
+    <string name="reader_pref_popup_opacity">How solid the popup is</string>
+    <string name="reader_pref_popup_opacity_summary">In percent; 0: as its look has it. Lower lets the game show through</string>
+    <string name="reader_pref_popup_radius">The popup\'s corners</string>
+    <string name="reader_pref_popup_radius_summary">In pixels; -1: as its look has them</string>
+    <string name="reader_pref_popup_compact">Senses shown before \"more\"</string>
+    <string name="reader_pref_popup_compact_summary">0: all of them</string>
+    <string name="reader_pref_popup_hide_tags">Leave out the senses\' grammar tags</string>
+    <string name="reader_pref_popup_hide_tags_summary">n, v1, vt and the like</string>
+    <string name="reader_pref_popup_portrait">A name\'s picture</string>
+    <string-array name="reader_popup_portrait_entries">
+        <item>Small</item>
+        <item>Large</item>
+        <item>Not shown</item>
+    </string-array>
+    <string-array name="reader_popup_portrait_values" translatable="false">
+        <item>small</item>
+        <item>large</item>
+        <item>off</item>
+    </string-array>
+    <string name="reader_lookup_more">more</string>
     <string name="reader_pref_popup_css">Your own CSS</string>
     <string name="reader_pref_popup_css_summary">Rules after the look\'s: the classes are in the readers\' popup guide</string>
     <string name="reader_pref_popup_import">Import a popup style…</string>

@@ -73,6 +73,8 @@ add_library(reader_desktop STATIC
     ${READER_SHARED}/reader/desktop/discord_presence.cpp
     ${READER_SHARED}/reader/desktop/discord_presence.h
     ${READER_SHARED}/reader/desktop/dictionary_importer.cpp
+    ${READER_SHARED}/reader/desktop/names.cpp
+    ${READER_SHARED}/reader/desktop/names.h
     ${READER_SHARED}/reader/desktop/glossary.cpp
     ${READER_SHARED}/reader/desktop/glossary.h
     ${READER_SHARED}/reader/desktop/japanese_text.cpp
@@ -97,6 +99,8 @@ add_library(reader_desktop STATIC
     ${READER_SHARED}/reader/desktop/text_line.cpp
     ${READER_SHARED}/reader/desktop/text_line.h
     ${READER_SHARED}/reader/desktop/word_audio.cpp
+    ${READER_SHARED}/reader/desktop/explain.cpp
+    ${READER_SHARED}/reader/desktop/explain.h
     ${READER_SHARED}/reader/desktop/word_audio.h
 )
 

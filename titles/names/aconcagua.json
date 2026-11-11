@@ -1,0 +1,203 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://en.wikipedia.org/wiki/Aconcagua_(video_game)",
+   "the game's script (disc 1, unpacked PROGRAM.BIN)"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:katou",
+   "kind": "person",
+   "name": "カトウ",
+   "reading": "カトウ",
+   "romaji": "Katou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:pachamama",
+   "kind": "person",
+   "name": "パチャママ",
+   "reading": "パチャママ",
+   "romaji": "Pachamama",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:julia",
+   "kind": "person",
+   "name": "ジュリア",
+   "reading": "ジュリア",
+   "romaji": "Julia",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:steve",
+   "kind": "person",
+   "name": "スティーブ",
+   "reading": "スティーブ",
+   "romaji": "Steve",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lopez",
+   "kind": "person",
+   "name": "ロペス",
+   "reading": "ロペス",
+   "romaji": "Lopez",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:manuel",
+   "kind": "person",
+   "name": "マヌエル",
+   "reading": "マヌエル",
+   "romaji": "Manuel",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nakayama",
+   "kind": "person",
+   "name": "ナカヤマ",
+   "reading": "ナカヤマ",
+   "romaji": "Nakayama",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:arisapana",
+   "kind": "person",
+   "name": "アリサパナ",
+   "reading": "アリサパナ",
+   "romaji": "Arisapana",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tanta-santo",
+   "kind": "person",
+   "name": "タンタ・サント",
+   "reading": "タンタ・サント",
+   "romaji": "Tanta Santo",
+   "aliases": [
+    {
+     "text": "サント",
+     "reading": "サント"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:aconcagua",
+   "kind": "place",
+   "name": "アコンカグア",
+   "reading": "アコンカグア",
+   "romaji": "Aconcagua",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:meruza",
+   "kind": "place",
+   "name": "メルーザ",
+   "reading": "メルーザ",
+   "romaji": "Meruza",
+   "aliases": [
+    {
+     "text": "メルーザ国",
+     "reading": "メルーザこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kuenoru-san",
+   "kind": "place",
+   "name": "クエノル山",
+   "reading": "クエノルさん",
+   "romaji": "Kuenoru San",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:serena-mura",
+   "kind": "place",
+   "name": "セレナ村",
+   "reading": "セレナむら",
+   "romaji": "Serena Mura",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:allende-kichi",
+   "kind": "place",
+   "name": "アジェンデ基地",
+   "reading": "アジェンデきち",
+   "romaji": "Allende Kichi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:seifugun",
+   "kind": "thing",
+   "name": "政府軍",
+   "reading": "せいふぐん",
+   "romaji": "Seifugun",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

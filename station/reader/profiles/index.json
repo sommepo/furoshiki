@@ -10,7 +10,12 @@
       "api": 1,
       "file": "SCPS-10053.lua",
       "size": 9444,
-      "sha256": "8a87e6d5464985a972218d8e3f507ab8fac7bd089329440e22c78e8e85a08903"
+      "sha256": "8a87e6d5464985a972218d8e3f507ab8fac7bd089329440e22c78e8e85a08903",
+      "names": {
+        "file": "names-double-cast.zip",
+        "size": 2566,
+        "sha256": "5ff6ea9d88cfd4ac77c5707a206cd4dddf92bd2fefb23b6c66b3fa6f79d071f8"
+      }
     },
     {
       "id": "SCPS-10054",
@@ -20,7 +25,12 @@
       "api": 1,
       "file": "SCPS-10054.lua",
       "size": 9444,
-      "sha256": "12f16de3c03042ef939012fb03afaeaa9821a38459b1431a63f1eb01325d07cd"
+      "sha256": "12f16de3c03042ef939012fb03afaeaa9821a38459b1431a63f1eb01325d07cd",
+      "names": {
+        "file": "names-double-cast.zip",
+        "size": 2566,
+        "sha256": "5ff6ea9d88cfd4ac77c5707a206cd4dddf92bd2fefb23b6c66b3fa6f79d071f8"
+      }
     },
     {
       "id": "SCPS-10131",
@@ -30,7 +40,12 @@
       "api": 1,
       "file": "SCPS-10131.lua",
       "size": 11934,
-      "sha256": "abdb66843c17fdc7a5c069bc523269cb8ecbff75e772976b5005e324e9d33065"
+      "sha256": "abdb66843c17fdc7a5c069bc523269cb8ecbff75e772976b5005e324e9d33065",
+      "names": {
+        "file": "names-aconcagua.zip",
+        "size": 2602,
+        "sha256": "94ec45dc6764d95d6758045d31760d9d5d496f55e105bde3430a4fae5310b47b"
+      }
     },
     {
       "id": "SCPS-10132",
@@ -40,7 +55,12 @@
       "api": 1,
       "file": "SCPS-10132.lua",
       "size": 11934,
-      "sha256": "071b435db8d4fd716aef7ef1884865e4bb14b5cee23b23183030d836b5b719af"
+      "sha256": "071b435db8d4fd716aef7ef1884865e4bb14b5cee23b23183030d836b5b719af",
+      "names": {
+        "file": "names-aconcagua.zip",
+        "size": 2602,
+        "sha256": "94ec45dc6764d95d6758045d31760d9d5d496f55e105bde3430a4fae5310b47b"
+      }
     },
     {
       "id": "SLPS-00404",
@@ -50,7 +70,12 @@
       "api": 1,
       "file": "SLPS-00404.lua",
       "size": 9384,
-      "sha256": "4f8be7d4a0ac8e1050bbd32d7c7257b41772d682798b7aea249b1a4b53ee1089"
+      "sha256": "4f8be7d4a0ac8e1050bbd32d7c7257b41772d682798b7aea249b1a4b53ee1089",
+      "names": {
+        "file": "names-gakkou-de-atta-kowai-hanashi-s.zip",
+        "size": 3152,
+        "sha256": "3b0349630b969e98b2b7b03f4d4c8fbce8577333789269a3be9b54c085edbb90"
+      }
     },
     {
       "id": "SLPS-01794",
@@ -60,7 +85,12 @@
       "api": 1,
       "file": "SLPS-01794.lua",
       "size": 8997,
-      "sha256": "d0e2150083773e9dc31620a44ad52465837237181b69738a2705197e4360986d"
+      "sha256": "d0e2150083773e9dc31620a44ad52465837237181b69738a2705197e4360986d",
+      "names": {
+        "file": "names-kamaitachi-no-yoru.zip",
+        "size": 3707,
+        "sha256": "f3ad073b3bd41823c5705f1b2c1ae1675c0c53b5cb9991a0f4687603d6db71ee"
+      }
     }
   ]
 }

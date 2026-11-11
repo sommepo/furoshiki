@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -121,6 +122,12 @@ ReaderDatabase::ReaderDatabase(const QString& path) {
                 "last_ts INTEGER NOT NULL,"
                 "PRIMARY KEY (expression, reading, game)) WITHOUT ROWID");
         db.SetUserVersion(3);
+    }
+    if (db.UserVersion() == 3) {
+        // Version 4 keeps a day's time as counted beside its tidied time (TidyReadingTime):
+        // NULL until it is tidied, then the counted time, still added to.
+        db.Exec("ALTER TABLE daily ADD COLUMN raw_active_ms INTEGER");
+        db.SetUserVersion(4);
     }
 }
 
@@ -296,6 +303,8 @@ void ReaderDatabase::AddActivity(qint64 session_id, const QString& game, const Q
                 "reread_chars, lines, choice_chars) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(session_id, day) DO UPDATE SET "
                 "active_ms = active_ms + excluded.active_ms, "
+                "raw_active_ms = CASE WHEN raw_active_ms IS NULL THEN NULL "
+                "ELSE raw_active_ms + excluded.active_ms END, "
                 "chars = chars + excluded.chars, "
                 "unique_chars = unique_chars + excluded.unique_chars, "
                 "reread_chars = reread_chars + excluded.reread_chars, "
@@ -448,6 +457,135 @@ qint64 ReaderDatabase::StripOverlaps(bool apply) {
     }
     transaction.Commit();
     return taken;
+}
+
+TidyReport ReaderDatabase::TidyReadingTime(qint64 idle_timeout_ms, std::optional<qint64> only_session,
+                                           std::optional<qint64> skip_session,
+                                           const std::function<QString(qint64)>& day_of_) {
+    const auto day_of = day_of_ ? day_of_ : std::function<QString(qint64)>(ReadingRules::ReadingDay);
+    const qint64 idle = std::clamp<qint64>(idle_timeout_ms, 1000, ReadingRules::MaxIdleTimeoutMs);
+    QMutexLocker lock(&mutex);
+    TidyReport report;
+    // The games to look at, and their sessions.
+    QHash<QString, QList<qint64>> sessions_of;
+    QStringList games;
+    {
+        SqliteDb::Statement statement(
+            db, only_session ? "SELECT id, game FROM sessions WHERE id = ?" : "SELECT id, game FROM sessions ORDER BY id");
+        if (only_session) {
+            statement.Bind(1, *only_session);
+        }
+        while (statement.Step()) {
+            if (skip_session && statement.Int(0) == *skip_session) {
+                continue;
+            }
+            const QString game = statement.Text(1);
+            if (!sessions_of.contains(game)) {
+                games.append(game);
+            }
+            sessions_of[game].append(statement.Int(0));
+        }
+    }
+    SqliteDb::Transaction transaction(db);
+    for (const QString& game : games) {
+        // Every counted line of the game, by session, and the moments words were looked up.
+        QHash<qint64, QList<ReadingTime::Event>> lines_of;
+        QList<ReadingTime::Event> all;
+        {
+            SqliteDb::Statement statement(
+                db, "SELECT session_id, ts, chars FROM lines WHERE game = ? AND session_id IS NOT NULL "
+                    "ORDER BY ts, id");
+            statement.Bind(1, game);
+            while (statement.Step()) {
+                const ReadingTime::Event event{statement.Int(1), static_cast<int>(statement.Int(2)), true};
+                lines_of[statement.Int(0)].append(event);
+                all.append(event);
+            }
+        }
+        std::vector<qint64> lookups;
+        {
+            SqliteDb::Statement statement(db, "SELECT first_ts, last_ts FROM lookups WHERE game = ?");
+            statement.Bind(1, game);
+            while (statement.Step()) {
+                lookups.push_back(statement.Int(0));
+                if (statement.Int(1) != statement.Int(0)) {
+                    lookups.push_back(statement.Int(1));
+                }
+            }
+        }
+        std::sort(lookups.begin(), lookups.end());
+        const ReadingTime::Pace game_pace = ReadingTime::PaceOf(all, idle);
+        for (const qint64 session : sessions_of.value(game)) {
+            QList<ReadingTime::Event> events = lines_of.value(session);
+            if (events.isEmpty()) {
+                continue;
+            }
+            ++report.sessions;
+            const qint64 first = events.first().ts;
+            const qint64 last = events.last().ts + idle;
+            for (auto it = std::lower_bound(lookups.begin(), lookups.end(), first + 1);
+                 it != lookups.end() && *it <= last; ++it) {
+                events.append(ReadingTime::Event{*it, 0, false});
+            }
+            std::stable_sort(events.begin(), events.end(),
+                             [](const auto& a, const auto& b) { return a.ts < b.ts; });
+            const ReadingTime::Pace pace = ReadingTime::PaceOf(events, idle, game_pace);
+            QHash<QString, qint64> credited;
+            for (const auto& [ts, ms] : ReadingTime::Credit(events, pace, idle)) {
+                credited[day_of(ts)] += ms;
+            }
+            struct Row {
+                QString day;
+                qint64 active;
+                qint64 raw;
+                qint64 chars;
+            };
+            QList<Row> rows;
+            {
+                SqliteDb::Statement statement(
+                    db, "SELECT day, active_ms, COALESCE(raw_active_ms, active_ms), chars + choice_chars "
+                        "FROM daily WHERE session_id = ?");
+                statement.Bind(1, session);
+                while (statement.Step()) {
+                    rows.append(Row{statement.Text(0), statement.Int(1), statement.Int(2), statement.Int(3)});
+                }
+            }
+            qint64 before = 0;
+            qint64 after = 0;
+            for (const Row& row : rows) {
+                const qint64 now = std::min(row.raw, credited.value(row.day));
+                before += row.active;
+                after += now;
+                report.characters += row.chars;
+                SqliteDb::Statement(db, "UPDATE daily SET active_ms = ?, raw_active_ms = ? WHERE session_id = ? AND day = ?")
+                    .Bind(1, now)
+                    .Bind(2, row.raw)
+                    .Bind(3, session)
+                    .Bind(4, row.day)
+                    .Run();
+            }
+            report.before_ms += before;
+            report.after_ms += after;
+            if (after < before) {
+                ++report.changed;
+            }
+        }
+    }
+    transaction.Commit();
+    return report;
+}
+
+int ReaderDatabase::UntidyReadingTime() {
+    QMutexLocker lock(&mutex);
+    int sessions = 0;
+    {
+        SqliteDb::Statement statement(db, "SELECT COUNT(DISTINCT session_id) FROM daily WHERE raw_active_ms IS NOT NULL");
+        if (statement.Step()) {
+            sessions = static_cast<int>(statement.Int(0));
+        }
+    }
+    db.Exec("UPDATE daily SET active_ms = raw_active_ms, raw_active_ms = NULL WHERE raw_active_ms IS NOT NULL");
+    return sessions;
 }
 
 QStringList ReaderDatabase::SessionSources(qint64 id) {
@@ -684,6 +822,26 @@ QJsonObject ReaderDatabase::StatsRecord() {
     record.insert(QStringLiteral("games"), games);
     record.insert(QStringLiteral("days"), days);
     return record;
+}
+
+QJsonArray ReaderDatabase::LookupsRecord(int limit) {
+    QMutexLocker lock(&mutex);
+    QJsonArray out;
+    SqliteDb::Statement statement(
+        db, "SELECT l.expression, l.reading, l.game, COALESCE(g.title, ''), l.count, l.first_ts, "
+            "l.last_ts FROM lookups l LEFT JOIN games g ON g.game = l.game "
+            "ORDER BY l.count DESC, l.last_ts DESC LIMIT ?");
+    statement.Bind(1, static_cast<qint64>(limit));
+    while (statement.Step()) {
+        out.append(QJsonObject{{QStringLiteral("expression"), statement.Text(0)},
+                               {QStringLiteral("reading"), statement.Text(1)},
+                               {QStringLiteral("game"), statement.Text(2)},
+                               {QStringLiteral("title"), statement.Text(3)},
+                               {QStringLiteral("count"), statement.Int(4)},
+                               {QStringLiteral("first"), statement.Int(5)},
+                               {QStringLiteral("last"), statement.Int(6)}});
+    }
+    return out;
 }
 
 QJsonObject ReaderDatabase::ExportActivityJson() {

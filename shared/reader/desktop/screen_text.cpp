@@ -65,6 +65,39 @@ constexpr qreal RoomBelow = 0.35;
 
 } // namespace
 
+std::optional<PresentedLine> PresentedLine::Join(const QList<PresentedLine>& lines) {
+    if (lines.isEmpty()) {
+        return std::nullopt;
+    }
+    if (lines.size() == 1) {
+        return lines.first();
+    }
+    PresentedLine out = lines.last();
+    out.first_backlog_id = lines.first().backlog_id;
+    out.line.audio_position = lines.first().line.audio_position;
+    out.line.text.clear();
+    out.line.ruby.clear();
+    bool one_speaker = true;
+    int code_points = 0;
+    for (const PresentedLine& each : lines) {
+        if (!out.line.text.isEmpty()) {
+            out.line.text += u'\n';
+            ++code_points;
+        }
+        for (RubySpan span : each.line.ruby) {
+            span.start += code_points;
+            out.line.ruby.append(span);
+        }
+        out.line.text += each.line.text;
+        code_points += static_cast<int>(each.line.text.toUcs4().size());
+        one_speaker = one_speaker && each.line.speaker == lines.first().line.speaker;
+    }
+    if (!one_speaker) {
+        out.line.speaker.clear();
+    }
+    return out;
+}
+
 std::optional<ScreenLayout> ScreenLayout::FromJson(const QByteArray& json) {
     const QJsonDocument document = QJsonDocument::fromJson(json);
     if (!document.isObject()) {

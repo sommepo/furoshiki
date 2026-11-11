@@ -346,14 +346,22 @@ void Install(QMainWindow* window, QWidget* screen) {
     };
     host.picture_rect = [] { return PictureRect(); };
     // A console with two screens: each where the core says it is drawn.
+    // A console with one: where its 2D is when the core says (the PS2's wide picture keeps its 2D
+    // to its own shape in the middle), else the picture.
     host.screen_rect = [](int screen) {
-        if (Reader::ConsoleTraits::LowerScreenWidth <= 0.0f) {
-            return screen == 0 ? PictureRect() : QRectF();
-        }
         if (g_screen == nullptr || g_session == nullptr) {
             return QRectF();
         }
         const qreal scale = g_screen->devicePixelRatioF();
+        if (Reader::ConsoleTraits::LowerScreenWidth <= 0.0f) {
+            const Home::CoreSession::Rect rect = g_session->ScreenRect(0);
+            if (screen != 0) {
+                return QRectF();
+            }
+            return rect.width > 0 && rect.height > 0
+                       ? QRectF(rect.x / scale, rect.y / scale, rect.width / scale, rect.height / scale)
+                       : PictureRect();
+        }
         const Home::CoreSession::Rect rect = g_session->ScreenRect(screen);
         return rect.width > 0 && rect.height > 0
                    ? QRectF(rect.x / scale, rect.y / scale, rect.width / scale, rect.height / scale)
@@ -418,6 +426,12 @@ void UseSession(Home::CoreSession* session) {
         return std::string_view(setting.key) == READER_CORE_SETTING_CRT;
     });
     ReaderApp::PlacedText::SetBend(glass ? std::function<void(float&, float&)>([](float& x, float& y) { Reader::Crt::ToScreen(x, y); }) : nullptr);
+}
+
+void UseSource(ReadingSource* source) {
+    if (g_controller != nullptr) {
+        g_controller->Use(source);
+    }
 }
 
 void SetScreenShown(bool shown) {

@@ -1,0 +1,338 @@
+{
+ "source": {
+  "vndb": "v7018",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "黒": "くろ",
+  "男": "おとこ"
+ },
+ "entries": [
+  {
+   "id": "c55573",
+   "kind": "person",
+   "name": "高槻 東吾",
+   "family": "高槻",
+   "given": "東吾",
+   "reading": "たかつき とうご",
+   "family_reading": "たかつき",
+   "given_reading": "とうご",
+   "romaji": "Takatsuki Tougo",
+   "aliases": [
+    {
+     "text": "デカくん",
+     "reading": "デカくん"
+    },
+    {
+     "text": "大将",
+     "reading": "たいしょう"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55574",
+   "kind": "person",
+   "name": "世津 茅早",
+   "family": "世津",
+   "given": "茅早",
+   "reading": "せつ ちはや",
+   "family_reading": "せつ",
+   "given_reading": "ちはや",
+   "romaji": "Setsu Chihaya",
+   "aliases": [
+    {
+     "text": "チビ",
+     "reading": "チビ"
+    }
+   ],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55575",
+   "kind": "person",
+   "name": "後藤 眞波",
+   "family": "後藤",
+   "given": "眞波",
+   "reading": "ごとう まなみ",
+   "family_reading": "ごとう",
+   "given_reading": "まなみ",
+   "romaji": "Gotou Manami",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55576",
+   "kind": "person",
+   "name": "倭 一花",
+   "family": "倭",
+   "given": "一花",
+   "reading": "やまと いちか",
+   "family_reading": "やまと",
+   "given_reading": "いちか",
+   "romaji": "Yamato Ichika",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55577",
+   "kind": "person",
+   "name": "陸 七生",
+   "family": "陸",
+   "given": "七生",
+   "reading": "おか ななお",
+   "family_reading": "おか",
+   "given_reading": "ななお",
+   "romaji": "Oka Nanao",
+   "aliases": [
+    {
+     "text": "ななくん",
+     "reading": "ななくん"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55578",
+   "kind": "person",
+   "name": "仁和 菓",
+   "family": "仁和",
+   "given": "菓",
+   "reading": "にわ このみ",
+   "family_reading": "にわ",
+   "given_reading": "このみ",
+   "romaji": "Niwa Konomi",
+   "aliases": [
+    {
+     "text": "このたん",
+     "reading": "このたん"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c55579",
+   "kind": "person",
+   "name": "櫟井 夏來",
+   "family": "櫟井",
+   "given": "夏來",
+   "reading": "いちい なつき",
+   "family_reading": "いちい",
+   "given_reading": "なつき",
+   "romaji": "Ichii Natsuki",
+   "aliases": [
+    {
+     "text": "パンツ",
+     "reading": "パンツ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c77067",
+   "kind": "person",
+   "name": "白 大輔",
+   "family": "白",
+   "given": "大輔",
+   "reading": "つくも だいすけ",
+   "family_reading": "つくも",
+   "given_reading": "だいすけ",
+   "romaji": "Tsukumo Daisuke",
+   "aliases": [
+    {
+     "text": "いーんちょ",
+     "reading": "いーんちょ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c152836",
+   "kind": "person",
+   "name": "宮藤 一咲",
+   "family": "宮藤",
+   "given": "一咲",
+   "reading": "くどう いっさく",
+   "family_reading": "くどう",
+   "given_reading": "いっさく",
+   "romaji": "Kudou Issaku",
+   "aliases": [
+    {
+     "text": "クドイチ",
+     "reading": "クドイチ"
+    },
+    {
+     "text": "宮藤 一彌"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:宮藤 一彌"
+   ]
+  },
+  {
+   "id": "c152885",
+   "kind": "person",
+   "name": "國府津 忠男",
+   "family": "國府津",
+   "given": "忠男",
+   "reading": "こうず ただお",
+   "family_reading": "こうず",
+   "given_reading": "ただお",
+   "romaji": "Kouzu Tadao",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c153154",
+   "kind": "person",
+   "name": "名倉 大輔",
+   "family": "名倉",
+   "given": "大輔",
+   "reading": "なくら だいすけ",
+   "family_reading": "なくら",
+   "given_reading": "だいすけ",
+   "romaji": "Nakura Daisuke",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c153285",
+   "kind": "person",
+   "name": "高槻 東吾",
+   "family": "高槻",
+   "given": "東吾",
+   "reading": "たかつき とうご",
+   "family_reading": "たかつき",
+   "given_reading": "とうご",
+   "romaji": "Takatsuki Tougo",
+   "aliases": [
+    {
+     "text": "黒ずくめの男",
+     "reading": "くろずくめのおとこ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c77065",
+   "kind": "person",
+   "name": "妹尾 梓",
+   "family": "妹尾",
+   "given": "梓",
+   "reading": "せお あずさ",
+   "family_reading": "せお",
+   "given_reading": "あずさ",
+   "romaji": "Seo Azusa",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c77066",
+   "kind": "person",
+   "name": "香藤 瑞希",
+   "family": "香藤",
+   "given": "瑞希",
+   "reading": "かとう みずき",
+   "family_reading": "かとう",
+   "given_reading": "みずき",
+   "romaji": "Katou Mizuki",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c153155",
+   "kind": "person",
+   "name": "名倉 大明神",
+   "family": "名倉",
+   "given": "大明神",
+   "reading": "なくら だいみょうじん",
+   "family_reading": "なくら",
+   "given_reading": "だいみょうじん",
+   "romaji": "Nakura Daimyoujin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:dunamis-base",
+   "kind": "place",
+   "name": "デュナミス・ベース",
+   "reading": "デュナミス・ベース",
+   "romaji": "Dunamis Base",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:seres-gakuen",
+   "kind": "place",
+   "name": "セレス学園",
+   "reading": "セレスがくえん",
+   "romaji": "Seres Gakuen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:cradle-bank",
+   "kind": "thing",
+   "name": "クレイドルバンク",
+   "reading": "クレイドルバンク",
+   "romaji": "Cradle Bank",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  }
+ ]
+}

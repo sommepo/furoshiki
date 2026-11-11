@@ -140,6 +140,10 @@ namespace Patch
 	static u32 s_patches_crc;
 	static std::optional<float> s_override_aspect_ratio;
 	static std::optional<GSInterlaceMode> s_override_interlace_mode;
+	// Reader fork: the host's own patches for the game (Patch::SetExtraPatchSource) and the
+	// names of their groups, which are enabled whatever the settings' lists say.
+	static ExtraPatchSource s_extra_patch_source;
+	static std::vector<std::string> s_extra_patch_names;
 
 	static const PatchTextTable s_patch_commands[] = {
 		{0, "patch", &Patch::PatchFunc::patch},
@@ -753,15 +757,40 @@ void Patch::ReloadPatches(const std::string& serial, u32 crc, bool reload_files,
 				if (patch_count > 0)
 					Console.WriteLn(Color_Green, fmt::format("Found {} cheats in {}.", patch_count, filename));
 			});
+
+		// Reader fork: the host's own patches go after the files', so they are applied last.
+		s_extra_patch_names.clear();
+		if (s_extra_patch_source)
+		{
+			const std::string text = s_extra_patch_source(serial, s_patches_crc);
+			const size_t first = s_game_patches.size();
+			if (!text.empty() && LoadPatchesFromString(&s_game_patches, text) > 0)
+			{
+				for (size_t i = first; i < s_game_patches.size(); i++)
+					s_extra_patch_names.push_back(s_game_patches[i].name);
+				Console.WriteLn(Color_Green, fmt::format("Found {} patches of the host's own.", s_game_patches.size() - first));
+			}
+		}
 	}
 
 	UpdateActivePatches(reload_enabled_list, verbose, verbose_if_changed, false);
+}
+
+void Patch::SetExtraPatchSource(ExtraPatchSource source)
+{
+	s_extra_patch_source = source;
 }
 
 void Patch::UpdateActivePatches(bool reload_enabled_list, bool verbose, bool verbose_if_changed, bool apply_new_patches)
 {
 	if (reload_enabled_list)
 		ReloadEnabledLists();
+	// Reader fork: the host's own patches are on while they are there.
+	for (const std::string& name : s_extra_patch_names)
+	{
+		if (std::find(s_enabled_patches.begin(), s_enabled_patches.end(), name) == s_enabled_patches.end())
+			s_enabled_patches.push_back(name);
+	}
 
 	const size_t prev_count = s_active_patches.size();
 	s_active_patches.clear();

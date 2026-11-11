@@ -25,7 +25,8 @@ class PlaySetting(
      * Not on the page: the CRT picture has its own, the speed is for writing profiles, and which
      * way a core draws here is settled by what works on Android.
      */
-    val hidden get() = key in NOT_SHOWN || kind == TEXT || kind == FOLDER
+    // A renderer is a choice only where the core names more than one.
+    val hidden get() = key in NOT_SHOWN || kind == TEXT || kind == FOLDER || (key == "picture.renderer" && choices.size < 2)
 
     /** The value as the page shows it. */
     fun shown(value: String): String = when {
@@ -44,12 +45,15 @@ class PlaySetting(
         const val TEXT = 3
         const val FOLDER = 4
 
-        private val NOT_SHOWN = setOf("picture.crt", "picture.renderer", "emulation.speed")
+        // The renderer is shown where a core lists it (the old apps had it); the speed is the
+        // menu over a game's Fast forward.
+        private val NOT_SHOWN = setOf("picture.crt", "emulation.speed")
 
         /** What the common settings are called, where a core gives no label. */
         private val LABELS = mapOf(
             "picture.resolution" to "Internal resolution",
             "picture.aspect" to "Shape of the picture",
+            "picture.renderer" to "Renderer (from the next game)",
             "picture.vsync" to "Vertical sync",
             "picture.frame_limit" to "At the console's own speed",
             "sound.volume" to "Volume",
@@ -119,6 +123,9 @@ class PlaySettings(private val file: File) {
         if (setting.common || console.isEmpty()) of("", "").takeIf { it.isNotEmpty() }?.let { return Resolved(it, Layer.ALL) }
         return Resolved(setting.default, Layer.DEFAULT)
     }
+
+    /** What that layer alone holds for [key] (a game's codes and patches, the achievements' login). */
+    fun raw(key: String, console: String = "", game: String = ""): String = layer(console, game)?.optString(key).orEmpty()
 
     /** Sets it in that layer, or (an empty value) takes it out so the next layer shows. */
     fun set(key: String, value: String, console: String = "", game: String = "") {

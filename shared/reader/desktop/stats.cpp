@@ -301,6 +301,132 @@ qint64 ActivityTracker::EnsureSession(qint64 now) {
     return id;
 }
 
+namespace {
+
+double Median(std::vector<double> values) {
+    if (values.empty()) {
+        return 0;
+    }
+    const auto middle = values.begin() + static_cast<std::ptrdiff_t>(values.size() / 2);
+    std::nth_element(values.begin(), middle, values.end());
+    return *middle;
+}
+
+double Percentile(std::vector<double> values, double fraction) {
+    if (values.empty()) {
+        return 0;
+    }
+    std::sort(values.begin(), values.end());
+    const auto at = static_cast<std::size_t>(
+        std::clamp(fraction * static_cast<double>(values.size() - 1), 0.0, static_cast<double>(values.size() - 1)));
+    return values[at];
+}
+
+/// The next line after `i`, or -1.
+qsizetype NextLine(const QList<ReadingTime::Event>& events, qsizetype i) {
+    for (qsizetype j = i + 1; j < events.size(); ++j) {
+        if (events[j].line) {
+            return j;
+        }
+    }
+    return -1;
+}
+
+} // namespace
+
+ReadingTime::Pace ReadingTime::PaceOf(const QList<Event>& events, qint64 idle_timeout_ms, const Pace& fallback) {
+    struct Sample {
+        double characters;
+        double ms;
+    };
+    std::vector<Sample> samples;
+    for (qsizetype i = 0; i < events.size(); ++i) {
+        if (!events[i].line || events[i].characters <= 0) {
+            continue;
+        }
+        const qsizetype next = NextLine(events, i);
+        if (next < 0 || next != i + 1) {
+            continue; // the last line, or a word looked up before the next: not plain reading
+        }
+        const qint64 gap = events[next].ts - events[i].ts;
+        if (gap < 300 || gap > idle_timeout_ms) {
+            continue;
+        }
+        samples.push_back({static_cast<double>(events[i].characters), static_cast<double>(gap)});
+    }
+    if (static_cast<int>(samples.size()) < MinSamples) {
+        return fallback;
+    }
+    // At most 400 of them, spread over the whole, for the pairs below.
+    if (samples.size() > 400) {
+        std::vector<Sample> fewer;
+        const double step = static_cast<double>(samples.size()) / 400.0;
+        for (int k = 0; k < 400; ++k) {
+            fewer.push_back(samples[static_cast<std::size_t>(k * step)]);
+        }
+        samples = std::move(fewer);
+    }
+    // A line's time as a fixed part and a part per character (Theil-Sen: the median slope of
+    // every pair of lines of clearly different lengths, so long gaps do not pull it).
+    std::vector<double> slopes;
+    for (std::size_t a = 0; a < samples.size(); ++a) {
+        for (std::size_t b = a + 1; b < samples.size(); ++b) {
+            const double dc = samples[b].characters - samples[a].characters;
+            if (std::abs(dc) >= 3) {
+                slopes.push_back((samples[b].ms - samples[a].ms) / dc);
+            }
+        }
+    }
+    Pace pace;
+    pace.samples = static_cast<int>(samples.size());
+    std::vector<double> per;
+    for (const Sample& sample : samples) {
+        per.push_back(sample.ms / sample.characters);
+    }
+    // Between 1,200 and 120,000 characters an hour.
+    pace.ms_per_character = std::clamp(slopes.size() >= 10 ? Median(slopes) : Median(per), 30.0, 3000.0);
+    std::vector<double> rest;
+    for (const Sample& sample : samples) {
+        rest.push_back(sample.ms - pace.ms_per_character * sample.characters);
+    }
+    pace.fixed_ms = std::clamp(Median(rest), 0.0, 8000.0);
+    std::vector<double> ratios;
+    for (const Sample& sample : samples) {
+        ratios.push_back(sample.ms / std::max(500.0, pace.fixed_ms + pace.ms_per_character * sample.characters));
+    }
+    pace.slow_factor = std::clamp(Percentile(ratios, 0.9), 1.5, 3.0);
+    return pace;
+}
+
+qint64 ReadingTime::Allowance(const Pace& pace, int characters, qint64 idle_timeout_ms) {
+    const double slow = pace.slow_factor * (pace.fixed_ms + pace.ms_per_character * std::max(0, characters));
+    const qint64 at_most = std::max<qint64>(1000, idle_timeout_ms);
+    return std::clamp(static_cast<qint64>(std::llround(slow)), std::min(MinLineMs, at_most), at_most);
+}
+
+QList<std::pair<qint64, qint64>> ReadingTime::Credit(const QList<Event>& events, const Pace& pace,
+                                                     qint64 idle_timeout_ms) {
+    QList<std::pair<qint64, qint64>> out;
+    for (qsizetype i = 0; i < events.size(); ++i) {
+        if (!events[i].line) {
+            continue;
+        }
+        const qint64 allowance = Allowance(pace, events[i].characters, idle_timeout_ms);
+        const qsizetype next = NextLine(events, i);
+        const qsizetype end = next < 0 ? events.size() : next;
+        qint64 credit = 0;
+        qint64 from = events[i].ts;
+        // Words looked up meanwhile: the reader was there up to each of them.
+        for (qsizetype k = i + 1; k < end; ++k) {
+            credit += std::clamp<qint64>(events[k].ts - from, 0, idle_timeout_ms);
+            from = events[k].ts;
+        }
+        credit += next < 0 ? allowance : std::clamp<qint64>(events[next].ts - from, 0, allowance);
+        out.append({events[i].ts, credit});
+    }
+    return out;
+}
+
 QString SessionSummary::Format(const ReadingCounters& counters, bool paused) {
     const QLocale locale;
     QString out;

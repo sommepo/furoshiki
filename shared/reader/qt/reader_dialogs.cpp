@@ -32,6 +32,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
+#include <QProcess>
 #include <QProgressDialog>
 #include <QApplication>
 #include <QPushButton>
@@ -41,6 +42,10 @@
 #include <QStackedWidget>
 #include <QTabWidget>
 #include <QTableWidget>
+#include <QPalette>
+#include <QJsonArray>
+#include <QTimer>
+#include <QTextBrowser>
 #include <QTextLayout>
 #include <QThreadPool>
 #include <QTreeWidget>
@@ -49,9 +54,13 @@
 #include "reader/core/engine.h"
 #include "reader/desktop/anki.h"
 #include "reader/desktop/card_builder.h"
+#include "reader/desktop/explain.h"
 #include "reader/qt/lookup_flow.h"
 #include "reader/qt/reader_crt_page.h"
 #include "reader/qt/reader_dialogs.h"
+#include "reader/qt/lookup_popup.h"
+#include "reader/desktop/popup_model.h"
+#include "reader/qt/popup_web.h"
 #include "reader/qt/reader_overlay.h"
 #include "reader/qt/reader_session.h"
 #include "reader/core/console.h"
@@ -213,6 +222,112 @@ private:
     int mark_last{-1};
 };
 
+// ---- A line explained ----
+
+QString ExplanationsFile() {
+    return ReaderSession::DataDirectory() + QStringLiteral("/explanations.json");
+}
+
+/// The line in English with its grammar, asked of Claude Code unless it was asked before;
+/// the English is then the line's {translation} on a card.
+void Explain(QWidget* parent, const ReaderApp::PresentedLine& presented) {
+    auto& session = ReaderSession::Instance();
+    QDialog dialog(parent);
+    dialog.setWindowTitle(Tr("Explain"));
+    dialog.resize(720, 560);
+    auto* layout = new QVBoxLayout(&dialog);
+    auto* line = new QLabel(presented.line.text);
+    QFont line_font = line->font();
+    line_font.setFamilies(Style::JapaneseFamilies());
+    line_font.setPointSizeF(line_font.pointSizeF() * 1.35);
+    line->setFont(line_font);
+    line->setWordWrap(true);
+    line->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    layout->addWidget(line);
+    auto* view = new QTextBrowser;
+    QFont view_font = view->font();
+    view_font.setFamilies(Style::JapaneseFamilies());
+    view->setFont(view_font);
+    view->setOpenLinks(false);
+    layout->addWidget(view, 1);
+    auto* buttons = new QHBoxLayout;
+    auto* again = new QPushButton(Tr("Ask again"));
+    auto* card = new QPushButton(Tr("Card with this English"));
+    auto* close = new QPushButton(Tr("Close"));
+    buttons->addWidget(again);
+    buttons->addStretch(1);
+    buttons->addWidget(card);
+    buttons->addWidget(close);
+    layout->addLayout(buttons);
+    card->setEnabled(false);
+
+    ReaderApp::Explain::Request request;
+    request.line = presented.line.text;
+    request.title = session.GameTitle();
+    if (presented.backlog_id >= 0 && !session.GameKey().isEmpty()) {
+        try {
+            const qint64 before = presented.first_backlog_id >= 0 ? presented.first_backlog_id
+                                                                   : presented.backlog_id;
+            for (const ReaderApp::BacklogEntry& entry :
+                 session.Database().RecentLines(session.GameKey(), 3, before)) {
+                request.before.prepend(entry.line.text);
+            }
+        } catch (const std::exception& error) {
+            LOG_WARNING(Frontend, "[Reader] The lines before an explanation: {}", error.what());
+        }
+    }
+    ReaderApp::Explain::Setup setup;
+    setup.command = session.Settings().ExplainCommand();
+    setup.model = session.Settings().ExplainModel();
+
+    const auto show = [view, card, again](const ReaderApp::Explain::Answer& answer) {
+        view->setHtml(ReaderApp::Explain::ToHtml(answer));
+        card->setEnabled(answer.error.isEmpty());
+        again->setEnabled(true);
+    };
+    const auto ask = [&dialog, view, again, card, request, setup, show] {
+        view->setHtml(QStringLiteral("<p>") + Tr("Asking…") + QStringLiteral("</p>"));
+        again->setEnabled(false);
+        card->setEnabled(false);
+        QPointer<QDialog> alive(&dialog);
+        const QString service = ExplainService() ? ExplainService()() : QString();
+        const QString game_id = ReaderSession::Instance().GameKey();
+        QThreadPool::globalInstance()->start([alive, request, setup, show, service, game_id] {
+            // The user's service first, where there is one (the same answer on every device);
+            // Claude Code on this computer when it does not answer.
+            ReaderApp::Explain::Answer answer;
+            if (!service.isEmpty()) {
+                answer = ReaderApp::Explain::AskService(service, request, game_id);
+            }
+            if (service.isEmpty() || !answer.error.isEmpty()) {
+                const ReaderApp::Explain::Answer here = ReaderApp::Explain::Ask(setup, request);
+                if (here.error.isEmpty() || service.isEmpty()) {
+                    answer = here;
+                }
+            }
+            ReaderApp::Explain::Cache(ExplanationsFile()).Keep(request.line, answer);
+            if (alive) {
+                QMetaObject::invokeMethod(alive.data(), [show, answer] { show(answer); },
+                                          Qt::QueuedConnection);
+            }
+        });
+    };
+    if (const auto kept = ReaderApp::Explain::Cache(ExplanationsFile()).Of(request.line)) {
+        show(*kept);
+    } else {
+        ask();
+    }
+    LookupFlow flow(&dialog);
+    flow.notify = [&dialog](const QString& text) { dialog.setWindowTitle(text); };
+    QObject::connect(again, &QPushButton::clicked, &dialog, ask);
+    QObject::connect(card, &QPushButton::clicked, &dialog,
+                     [&flow, presented] { flow.MineSentence(presented); });
+    QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
+    Style::DressDialog(&dialog);
+    dialog.exec();
+    flow.Close();
+}
+
 // ---- Backlog ----
 
 constexpr int BacklogPage = 200;
@@ -255,6 +370,8 @@ void Backlog(QWidget* parent) {
     list->setFont(list_font);
     list->setWordWrap(true);
     list->setAlternatingRowColors(true);
+    // Several lines chosen (Shift or Ctrl) make one card of the exchange.
+    list->setSelectionMode(QAbstractItemView::ExtendedSelection);
     layout->addWidget(list, 1);
 
     auto* speaker = new QLabel;
@@ -272,9 +389,11 @@ void Backlog(QWidget* parent) {
     auto* buttons = new QHBoxLayout;
     auto* older = new QPushButton(Tr("Older lines"));
     auto* card = new QPushButton(Tr("Card of this sentence"));
+    auto* explain = new QPushButton(Tr("Explain"));
     auto* close = new QPushButton(Tr("Close"));
     buttons->addWidget(older);
     buttons->addStretch(1);
+    buttons->addWidget(explain);
     buttons->addWidget(card);
     buttons->addWidget(close);
     layout->addLayout(buttons);
@@ -377,8 +496,46 @@ void Backlog(QWidget* parent) {
             status->setText(QString::fromUtf8(error.what()));
         }
     });
-    QObject::connect(card, &QPushButton::clicked, &dialog, [&, selected] {
-        if (const auto presented = selected()) {
+    // The chosen lines as one, oldest first (the list is newest first).
+    const auto chosen = [list, entries, selected]() -> std::optional<ReaderApp::PresentedLine> {
+        QList<int> rows;
+        for (const QListWidgetItem* item : list->selectedItems()) {
+            rows.append(list->row(item));
+        }
+        if (rows.size() < 2) {
+            return selected();
+        }
+        std::sort(rows.begin(), rows.end(), std::greater<int>());
+        QList<ReaderApp::PresentedLine> lines;
+        for (const int row : rows) {
+            if (row < 0 || row >= entries->size()) {
+                continue;
+            }
+            const ReaderApp::BacklogEntry& entry = entries->at(row);
+            if (auto recent = ReaderSession::Instance().RecentLine(entry.id)) {
+                lines.append(*recent);
+            } else {
+                ReaderApp::PresentedLine presented;
+                presented.line = entry.line;
+                presented.line.audio_position = -1;
+                presented.backlog_id = entry.id;
+                lines.append(presented);
+            }
+        }
+        return ReaderApp::PresentedLine::Join(lines);
+    };
+    QObject::connect(list, &QListWidget::itemSelectionChanged, &dialog, [list, card] {
+        const int count = static_cast<int>(list->selectedItems().size());
+        card->setText(count > 1 ? Tr("Card of these %1 lines").arg(count)
+                                : Tr("Card of this sentence"));
+    });
+    QObject::connect(explain, &QPushButton::clicked, &dialog, [&, chosen] {
+        if (const auto presented = chosen()) {
+            Explain(&dialog, *presented);
+        }
+    });
+    QObject::connect(card, &QPushButton::clicked, &dialog, [&, chosen] {
+        if (const auto presented = chosen()) {
             status->setText(Tr("Making a card…"));
             flow.MineSentence(*presented);
         }
@@ -983,6 +1140,7 @@ void AnkiSetup(QWidget* parent) {
     dialog.exec();
 }
 
+
 // ---- Settings ----
 
 void ReaderSettingsDialog(QWidget* parent) {
@@ -1069,35 +1227,12 @@ void ReaderSettingsDialog(QWidget* parent) {
             {Tr("While Shift is held"), QStringLiteral("shift")},
             {Tr("Always"), QStringLiteral("always")}},
            settings.HoverLookup());
-    spin(text, Tr("Popup text size"), Settings::KeyPopupScale, settings.PopupScale(), 60, 200,
-         QStringLiteral(" %"));
     spin(text, Tr("Popup height, at most"), Settings::KeyPopupHeight,
          settings.PopupHeightPercent(), 10, 80, Tr(" % of the picture"));
     spin(text, Tr("Close the popup after"), Settings::KeyPopupAutoHide,
          settings.PopupAutoHideSeconds(), 0, 120, Tr(" s left alone (0: it stays)"));
     check(text, Tr("Close the popup when the pointer leaves its word and the popup"),
           Settings::KeyPopupHideOnExit, settings.PopupHideOnExit());
-    choice(text, Tr("The popup's look"), Settings::KeyPopupTheme,
-           {{Tr("The console's colours"), QStringLiteral("console")},
-            {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
-            {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
-            {Tr("Paper"), QStringLiteral("paper")},
-            {Tr("Paper dark"), QStringLiteral("paper-dark")},
-            {Tr("Classic (drawn without the page)"), QStringLiteral("classic")}},
-           settings.PopupTheme());
-    check(text, Tr("Mark words that are not in Anki"), Settings::KeyPopupMarkUnknown,
-          settings.PopupMarkUnknown());
-    choice(text, Tr("How often a word was looked up"), Settings::KeyPopupLookups,
-           {{Tr("The number of times"), QStringLiteral("count")},
-            {Tr("The number, when and where first"), QStringLiteral("where")},
-            {Tr("Not shown"), QStringLiteral("off")}},
-           settings.PopupLookups());
-    choice(text, Tr("Where the add button stands"), Settings::KeyCardCorner,
-           {{Tr("Bottom left"), QStringLiteral("bottom_left")},
-            {Tr("Bottom right"), QStringLiteral("bottom_right")},
-            {Tr("Top left"), QStringLiteral("top_left")},
-            {Tr("Top right"), QStringLiteral("top_right")}},
-           settings.CardCorner());
     choice(text, Tr("Mark the word looked up"), Settings::KeyWordMark,
            {{Tr("Outline"), QStringLiteral("outline")},
             {Tr("Highlight"), QStringLiteral("highlight")},
@@ -1105,6 +1240,134 @@ void ReaderSettingsDialog(QWidget* parent) {
            settings.WordMark());
     check(text, Tr("Outline what can be clicked"), Settings::KeyScreenTextOutline,
           settings.ScreenTextOutline());
+
+    // The popup: its look and what it shows, beside a demo of it drawn as it will be (the
+    // maintainer, 2026-11-10: "the popup settings from within the client should also show a
+    // preview of what the popup looks like with a small demo").
+    auto* popup_page = new QWidget;
+    auto* popup_row = new QHBoxLayout(popup_page);
+    auto* look = new QFormLayout;
+    auto* look_column = new QVBoxLayout;
+    look_column->addLayout(look);
+    look_column->addStretch(1);
+    popup_row->addLayout(look_column, 3);
+    pages->addWidget(popup_page);
+    sections->addItem(Tr("The popup"));
+    QSpinBox* scale_box = spin(look, Tr("Popup text size"), Settings::KeyPopupScale, settings.PopupScale(), 60, 200,
+         QStringLiteral(" %"));
+    QComboBox* theme_box = choice(look, Tr("The popup's look"), Settings::KeyPopupTheme,
+           {{Tr("The console's colours"), QStringLiteral("console")},
+            {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
+            {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
+            {Tr("Paper"), QStringLiteral("paper")},
+            {Tr("Paper dark"), QStringLiteral("paper-dark")},
+            {Tr("Solarized dark"), QStringLiteral("solarized-dark")},
+            {Tr("Solarized light"), QStringLiteral("solarized-light")},
+            {Tr("Glass (see-through)"), QStringLiteral("glass")},
+            {Tr("Dense (as much as fits)"), QStringLiteral("dense")},
+            {Tr("Kuro (a black sheet)"), QStringLiteral("kuro")},
+            {Tr("Shoin (a framed card)"), QStringLiteral("shoin")},
+            {Tr("Ookii (large type)"), QStringLiteral("ookii")},
+            {Tr("Kumihan (type and rules)"), QStringLiteral("kumihan")},
+            {Tr("Kon (indigo, Furoshiki's Kon)"), QStringLiteral("kon")},
+            {Tr("Classic (drawn without the page)"), QStringLiteral("classic")}},
+           settings.PopupTheme());
+    QSpinBox* opacity_box = spin(look, Tr("How solid the popup is"), Settings::KeyPopupOpacity, settings.PopupOpacity(), 0, 100,
+         Tr(" % (0: as its look has it)"));
+    QSpinBox* radius_box = spin(look, Tr("The popup's corners"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
+         Tr(" px (-1: as its look has them)"));
+    QSpinBox* compact_box = spin(look, Tr("Senses shown before \"more\""), Settings::KeyPopupCompact, settings.PopupCompact(), 0, 9,
+         Tr(" (0: all)"));
+    QCheckBox* tags_box = check(look, Tr("Leave out the senses' grammar tags (n, v1, vt...)"), Settings::KeyPopupHideTags,
+          settings.PopupHideTags());
+    QComboBox* portrait_box = choice(look, Tr("A name's picture"), Settings::KeyPopupPortrait,
+           {{Tr("Small"), QStringLiteral("small")},
+            {Tr("Large"), QStringLiteral("large")},
+            {Tr("Not shown"), QStringLiteral("off")}},
+           settings.PopupPortrait());
+    QCheckBox* mark_box = check(look, Tr("Mark words that are not in Anki"), Settings::KeyPopupMarkUnknown,
+          settings.PopupMarkUnknown());
+    QComboBox* lookups_box = choice(look, Tr("How often a word was looked up"), Settings::KeyPopupLookups,
+           {{Tr("The number of times"), QStringLiteral("count")},
+            {Tr("The number, when and where first"), QStringLiteral("where")},
+            {Tr("Not shown"), QStringLiteral("off")}},
+           settings.PopupLookups());
+    QComboBox* corner_box = choice(look, Tr("Where the add button stands"), Settings::KeyCardCorner,
+           {{Tr("Bottom left"), QStringLiteral("bottom_left")},
+            {Tr("Bottom right"), QStringLiteral("bottom_right")},
+            {Tr("Top left"), QStringLiteral("top_left")},
+            {Tr("Top right"), QStringLiteral("top_right")}},
+           settings.CardCorner());
+    if (auto* demo = PopupWeb::Create(popup_page, ReaderSession::DataDirectory() + QStringLiteral("/webview2"))) {
+        demo->setMinimumSize(340, 320);
+        auto* side = new QVBoxLayout;
+        side->addWidget(new QLabel(Tr("How it looks")));
+        side->addWidget(demo, 1);
+        if (PopupCustomiser()) {
+            auto* customise = new QPushButton(Tr("Customise every part of it…"));
+            side->addWidget(customise);
+            QObject::connect(customise, &QPushButton::clicked, &dialog, [&dialog] {
+                dialog.reject();
+                QTimer::singleShot(0, [] {
+                    if (PopupCustomiser()) {
+                        PopupCustomiser()();
+                    }
+                });
+            });
+        }
+        popup_row->addLayout(side, 2);
+        const auto js = [](const QString& text) {
+            return QString::fromUtf8(QJsonDocument(QJsonArray{text}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
+        };
+        const auto show = [=, &settings] {
+            QString theme = theme_box->currentData().toString();
+            if (theme == QStringLiteral("classic")) {
+                theme = QStringLiteral("console");
+            }
+            demo->Call(QStringLiteral("document.documentElement.style.background = %1").arg(js(demo->palette().color(QPalette::Window).name())));
+            demo->Call(QStringLiteral("Reader.setStyle(\"console\", %1)").arg(js(LookupPopup::ConsoleStyle())));
+            demo->Call(QStringLiteral("Reader.setStyle(\"theme\", %1)").arg(js(LookupPopup::ThemeStyle(theme))));
+            // The design drawn over the look in use (Furoshiki's customiser), while that look is chosen.
+            demo->Call(QStringLiteral("Reader.setStyle(\"user\", %1)").arg(js(theme == settings.PopupTheme() ? settings.PopupCss() : QString())));
+            QJsonArray entries = ReaderApp::PopupModel::Sample();
+            const QString lookups = lookups_box->currentData().toString();
+            QJsonObject first = entries[0].toObject();
+            if (lookups == QStringLiteral("off")) {
+                first.remove(QStringLiteral("history"));
+            } else if (lookups != QStringLiteral("where")) {
+                first.insert(QStringLiteral("history"), QStringLiteral("Looked up 7 times"));
+            }
+            entries[0] = first;
+            const QJsonObject model{
+                {QStringLiteral("entries"), entries},
+                {QStringLiteral("corner"), corner_box->currentData().toString()},
+                {QStringLiteral("duplicates"), false},
+                {QStringLiteral("markUnknown"), mark_box->isChecked()},
+                {QStringLiteral("scale"), scale_box->value()},
+                {QStringLiteral("look"), QJsonObject{{QStringLiteral("opacity"), opacity_box->value()},
+                                                     {QStringLiteral("radius"), radius_box->value()},
+                                                     {QStringLiteral("compact"), compact_box->value()},
+                                                     {QStringLiteral("hideTags"), tags_box->isChecked()},
+                                                     {QStringLiteral("portrait"), portrait_box->currentData().toString()}}},
+                {QStringLiteral("labels"), QJsonObject{{QStringLiteral("forms"), Tr("forms")}, {QStringLiteral("more"), Tr("more")}}}};
+            demo->Call(QStringLiteral("Reader.show(%1)").arg(QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact))));
+        };
+        for (QComboBox* box : {theme_box, portrait_box, lookups_box, corner_box}) {
+            QObject::connect(box, &QComboBox::currentIndexChanged, demo, show);
+        }
+        for (QSpinBox* box : {scale_box, opacity_box, radius_box, compact_box}) {
+            QObject::connect(box, &QSpinBox::valueChanged, demo, show);
+        }
+        for (QCheckBox* box : {tags_box, mark_box}) {
+            QObject::connect(box, &QCheckBox::toggled, demo, show);
+        }
+        QObject::connect(demo, &PopupWeb::Message, demo, [show](const QJsonObject& message) {
+            if (message.value(QStringLiteral("type")).toString() == QStringLiteral("ready")) {
+                show();
+            }
+        });
+        show();
+    }
 
     QFormLayout* cursor = section(Tr("Cursor"));
     choice(cursor, Tr("Button"), Settings::KeyCursorButton,
@@ -1133,6 +1396,10 @@ void ReaderSettingsDialog(QWidget* parent) {
          3, 60, Tr(" s"));
     spin(cards, Tr("Start the clip earlier by"), Settings::KeyAudioLead, settings.AudioLeadMs(), 0,
          2000, Tr(" ms"));
+    check(cards, Tr("Cut the clip to what is said"), Settings::KeyAudioVoiceTrim,
+          settings.AudioVoiceTrim());
+    spin(cards, Tr("Lines before, in {context}"), Settings::KeyCardContextLines,
+         settings.CardContextLines(), 0, 5, Tr(" lines"));
     spin(cards, Tr("Screenshots kept"), Settings::KeyScreenshotCache,
          settings.ScreenshotCacheLines(), 0, 200, Tr(" lines"));
     spin(cards, Tr("Screenshot width, at most"), Settings::KeyScreenshotWidth,
@@ -1175,8 +1442,9 @@ void ReaderSettingsDialog(QWidget* parent) {
     choice(stats, Tr("Button that pauses statistics"), Settings::KeyStatsButton,
            buttons(false),
            QString::number(settings.StatsButton()));
-    spin(stats, Tr("Reading time stops after"), Settings::KeyIdleMinutes,
-         static_cast<int>(settings.IdleTimeoutMs() / 60000), 1, 60, Tr(" min without a new line"));
+    spin(stats, Tr("Reading time stops after"), Settings::KeyIdleSeconds,
+         static_cast<int>(settings.IdleTimeoutMs() / 1000), Settings::IdleSecondsMin,
+         static_cast<int>(ReaderApp::ReadingRules::MaxIdleTimeoutMs / 1000), Tr(" s without a new line"));
     check(stats, Tr("Show the game, characters read and speed in my Discord status"),
           Settings::KeyDiscordEnabled, settings.DiscordEnabled());
     {
@@ -1244,6 +1512,26 @@ void ReaderSettingsDialog(QWidget* parent) {
 }
 
 } // namespace
+
+std::function<void()>& PopupCustomiser() {
+    static std::function<void()> hook;
+    return hook;
+}
+
+std::function<QString()>& ExplainService() {
+    static std::function<QString()> where;
+    return where;
+}
+
+std::function<QString()>& AnkiElsewhere() {
+    static std::function<QString()> where;
+    return where;
+}
+
+std::function<void()>& SettingsPages() {
+    static std::function<void()> open;
+    return open;
+}
 
 // ---- Progress set by hand (reader.progress) ----
 
@@ -1359,6 +1647,154 @@ bool ProgressOffered() {
 
 void RunProgressDialog(QWidget* parent) {
     ProgressWindow(parent);
+}
+
+bool FetchStarterDictionary(QWidget* parent, QString* problem) {
+    const QString address =
+        QStringLiteral("https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip");
+    const QString file = ReaderSession::DataDirectory() + QStringLiteral("/jitendex-yomitan.zip");
+    QProgressDialog progress(Tr("Fetching Jitendex (39 MB)…"), Tr("Cancel"), 0, 0, parent);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(0);
+    progress.setAutoClose(false);
+    progress.setAutoReset(false);
+    progress.show();
+    bool cancelled = false;
+    {
+        QProcess curl;
+        QEventLoop loop;
+        QObject::connect(&curl, &QProcess::finished, &loop, &QEventLoop::quit);
+        QObject::connect(&curl, &QProcess::errorOccurred, &loop, &QEventLoop::quit);
+        QObject::connect(&progress, &QProgressDialog::canceled, &loop, [&] {
+            cancelled = true;
+            curl.kill();
+        });
+        curl.start(QStringLiteral("curl"), {QStringLiteral("-L"), QStringLiteral("--fail"), QStringLiteral("--silent"),
+                                            QStringLiteral("--show-error"), QStringLiteral("--max-time"),
+                                            QStringLiteral("600"), QStringLiteral("-o"), file, address});
+        if (curl.state() != QProcess::NotRunning) {
+            loop.exec();
+        }
+        if (cancelled) {
+            QFile::remove(file);
+            return false;
+        }
+        if (curl.error() == QProcess::FailedToStart || curl.exitStatus() != QProcess::NormalExit || curl.exitCode() != 0) {
+            const QString said = QString::fromUtf8(curl.readAllStandardError()).trimmed();
+            *problem = said.isEmpty() ? Tr("Jitendex could not be fetched (curl).") : said;
+            QFile::remove(file);
+            return false;
+        }
+    }
+    // Installed as a file chosen by hand is.
+    std::atomic<bool> stopped{false};
+    QObject::connect(&progress, &QProgressDialog::canceled, &progress, [&stopped] { stopped = true; });
+    ReaderApp::DictionaryImporter::Result result;
+    QEventLoop loop;
+    QThreadPool pool;
+    auto& database = ReaderSession::Instance().Dictionaries();
+    pool.start([&] {
+        ReaderApp::DictionaryImporter importer(database);
+        result = importer.Import(
+            file,
+            [&progress](int done, int total, const QString& title) {
+                QMetaObject::invokeMethod(
+                    &progress,
+                    [&progress, done, total, title] {
+                        progress.setLabelText(Tr("Importing %1…").arg(title));
+                        progress.setMaximum(std::max(total, 1));
+                        progress.setValue(done);
+                    },
+                    Qt::QueuedConnection);
+            },
+            [&stopped] { return !stopped.load(); });
+        QMetaObject::invokeMethod(&loop, [&loop] { loop.quit(); }, Qt::QueuedConnection);
+    });
+    loop.exec();
+    pool.waitForDone();
+    progress.close();
+    QFile::remove(file);
+    if (!result.ok && !stopped) {
+        *problem = result.error;
+    }
+    return result.ok;
+}
+
+QString SetUpAnkiByItself() {
+    using Settings = ReaderApp::ReaderSettings;
+    auto& settings = ReaderSession::Instance().Settings();
+    if (settings.AnkiTransport() != QStringLiteral("ankiconnect") || !settings.AnkiModel().isEmpty()) {
+        return {};
+    }
+    try {
+        ReaderApp::AnkiConnectClient client(settings.AnkiConnectUrl().trimmed(), settings.AnkiConnectKey(), 1200, 8000);
+        const QStringList decks = client.DeckNames();
+        QString deck;
+        for (const QString& each : decks) {
+            if (deck.isEmpty() && each.contains(QStringLiteral("mining"), Qt::CaseInsensitive)) {
+                deck = each;
+            }
+        }
+        for (const QString& each : decks) {
+            if (deck.isEmpty() && each != QStringLiteral("Default") && each != QStringLiteral("デフォルト")) {
+                deck = each;
+            }
+        }
+        if (deck.isEmpty()) {
+            return {};
+        }
+        // In it, the note type most of its notes are.
+        QString model;
+        qsizetype most = 0;
+        for (const QString& each : client.ModelNames()) {
+            const qsizetype count = client
+                                        .FindNotesWhere(QStringLiteral("\"deck:%1\" \"note:%2\"")
+                                                            .arg(ReaderApp::AnkiSearch::Escape(deck),
+                                                                 ReaderApp::AnkiSearch::Escape(each)))
+                                        .size();
+            if (count > most) {
+                most = count;
+                model = each;
+            }
+        }
+        if (model.isEmpty()) {
+            return {};
+        }
+        const QStringList fields = client.FieldNames(model);
+        const QMap<QString, QString> mapping =
+            ReaderApp::CardBuilder::OfferWordAudio(ReaderApp::CardBuilder::SuggestMapping(fields));
+        bool has_word = false;
+        QMap<QString, QString> kept;
+        for (auto it = mapping.constBegin(); it != mapping.constEnd(); ++it) {
+            has_word = has_word || it.value().contains(QStringLiteral("{expression}"));
+            if (!it.value().isEmpty()) {
+                kept.insert(it.key(), it.value());
+            }
+        }
+        if (!has_word || fields.isEmpty()) {
+            return {}; // not a note type whose fields say what they are: the window asks
+        }
+        settings.SetValue(Settings::KeyAnkiDeck, deck);
+        settings.SetValue(Settings::KeyAnkiModel, model);
+        settings.SetValue(Settings::KeyAnkiFields, ReaderApp::CardBuilder::MappingToJson(kept));
+        settings.SetValue(Settings::KeyAnkiKeyField, Settings::KeyFieldValue(model, fields.first()));
+        settings.Sync();
+        Miner::Forget();
+        return deck + QStringLiteral(" · ") + model;
+    } catch (const std::exception& error) {
+        LOG_INFO(Frontend, "[Reader] Anki was not set up by itself: {}", error.what());
+        return {};
+    }
+}
+
+void RunExplainDialog(QWidget* parent) {
+    if (const auto& current = ReaderSession::Instance().Current()) {
+        Explain(parent, *current);
+    }
+}
+
+QString ExplainedTranslation(const QString& line) {
+    return ReaderApp::Explain::Cache(ExplanationsFile()).TranslationOf(line);
 }
 
 void RunBacklogDialog(QWidget* parent) {

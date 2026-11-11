@@ -172,13 +172,19 @@ DictionaryImporter::Result DictionaryImporter::Import(const QString& archive_pat
         {
             SqliteDb::Statement insert(
                 db, "INSERT INTO dictionaries(title, revision, author, description, "
-                    "frequency_mode, priority) VALUES(?, ?, ?, ?, ?, ?)");
+                    "frequency_mode, priority, scope) VALUES(?, ?, ?, ?, ?, ?, ?)");
+            // Furoshiki's names dictionaries say which games they are for (docs/titles.md).
+            QStringList scope;
+            for (const QJsonValue& game : index.value(QStringLiteral("furoshikiScope")).toArray()) {
+                scope.append(game.toString());
+            }
             insert.Bind(1, title)
                 .Bind(2, index.value(QStringLiteral("revision")).toString())
                 .Bind(3, index.value(QStringLiteral("author")).toString())
                 .Bind(4, index.value(QStringLiteral("description")).toString())
                 .Bind(5, index.value(QStringLiteral("frequencyMode")).toString())
                 .Bind(6, priority)
+                .Bind(7, DictionaryDatabase::ScopeText(scope))
                 .Run();
         }
         const qint64 dictionary_id = db.LastInsertId();

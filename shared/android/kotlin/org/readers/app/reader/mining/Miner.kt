@@ -189,7 +189,10 @@ class Miner(context: Context) {
         val addressField = (client as? AnkiConnectClient)?.let { settings.ankiAddressField(settings.ankiConnectUrl) }
         worker.execute {
             val outcome = try {
-                val card = CardContext(presented.line, gameTitle, word, wordRange, gameUrl = gameUrl)
+                val card = CardContext(
+                    presented.line, gameTitle, word, wordRange, gameUrl = gameUrl,
+                    before = linesBefore(templates.values, presented)
+                )
                 // Not every Anki refuses a duplicate when asked to (AnkiConnect Android and
                 // AnkiDroid add whatever they are given), so look before sending anything.
                 val key = if (duplicates == Duplicates.ALLOW) null else keyOf(client, model, templates, card)
@@ -240,7 +243,10 @@ class Miner(context: Context) {
             } finally {
                 discard(picture, clip)
             }
-            main.post { callback(outcome) }
+            main.post {
+                if (outcome is Outcome.Added) onAdded?.invoke(presented, word, outcome.noteId)
+                callback(outcome)
+            }
         }
     }
 
@@ -363,6 +369,26 @@ class Miner(context: Context) {
         }
     }
 
+    /** The lines read before [presented], oldest first, where a field asks for them. */
+    private fun linesBefore(templates: Collection<String>, presented: PresentedLine): List<String> {
+        val markers = CardBuilder.markersIn(templates)
+        val wanted = when {
+            "context" in markers -> settings.cardContextLines
+            "previous-sentence" in markers -> 1
+            else -> 0
+        }
+        val game = ReaderSession.gameKey
+        if (wanted == 0 || presented.backlogId < 0 || game.isNullOrEmpty()) return emptyList()
+        return try {
+            // A few more than wanted: choices and menus are passed over.
+            ReaderSession.database(context).recentLines(game, wanted + 4, presented.backlogId)
+                .filter { !it.line.isChoice && !it.line.isMenu }
+                .take(wanted).map { it.line.text }.reversed()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     private fun cardOf(presented: PresentedLine, word: LookupResult, wordRange: IntRange?) = CardContext(
         presented.line, ReaderSession.gameTitle, word, wordRange,
         gameUrl = SourceAddress.of(ReaderSession.gameKey)
@@ -443,6 +469,14 @@ class Miner(context: Context) {
 
         @Volatile
         private var quietUntil = 0L
+
+        /**
+         * Told of every card added, wherever it was made (the popup, an app's own screen), on the
+         * main thread: an app that keeps a list of the day's cards (Furochibi's 今日) hears of
+         * them here.
+         */
+        @Volatile
+        var onAdded: ((presented: PresentedLine, word: LookupResult?, noteId: Long) -> Unit)? = null
 
         /** Stands in for the running game's pictures and audio, where there is no emulator. */
         @Volatile

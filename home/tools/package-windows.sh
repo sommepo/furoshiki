@@ -70,6 +70,19 @@ copy_with_deps() {
   done < <("$objdump" -p "$file" | awk '/DLL Name:/ {print $3}')
 }
 copy_with_deps "$exe"
+# The hooks Furoshiki starts (docs/hooks.md): its host for LunaHook, built with the program, and
+# Frida's frida-inject, which runs Agent's scripts (tools/fetch-hooks.sh windows fetches it into
+# the build folder; it is in no repository). Neither LunaHook, Textractor nor any script is here:
+# those are fetched on the user's computer.
+mkdir -p "$out/hooks"
+[ -f "$build/hooks/furoshiki-luna-host.exe" ] && install -m 755 "$build/hooks/furoshiki-luna-host.exe" "$out/hooks/furoshiki-luna-host.exe" &&
+  "$strip" --strip-unneeded "$out/hooks/furoshiki-luna-host.exe"
+if [ -f "$build/hooks/frida-inject.exe" ]; then
+  install -m 755 "$build/hooks/frida-inject.exe" "$out/hooks/frida-inject.exe"
+  install -m 644 "$build/hooks/frida-COPYING.txt" "$out/hooks/frida-COPYING.txt"
+else
+  echo "package-windows: no frida-inject.exe in $build/hooks: Agent scripts will not run from this package (tools/fetch-hooks.sh windows \"$build\")" >&2
+fi
 # WebView2's loader, which the popup page loads when it is first wanted (not an import).
 install -m 644 "$build/WebView2Loader.dll" "$out/WebView2Loader.dll"
 # tls/: Windows' own TLS for HTTPS (dictionary audio, updates); without it every HTTPS request fails.

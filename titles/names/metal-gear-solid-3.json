@@ -1,0 +1,620 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/メタルギアソリッド3",
+   "https://game8.jp/mgs3r/"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:naked-snake",
+   "kind": "person",
+   "name": "ネイキッド・スネーク",
+   "reading": "ネイキッド・スネーク",
+   "romaji": "Naked Snake",
+   "aliases": [
+    {
+     "text": "スネーク",
+     "reading": "スネーク"
+    },
+    {
+     "text": "ジャック",
+     "reading": "ジャック"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:big-boss",
+   "kind": "person",
+   "name": "ビッグ・ボス",
+   "reading": "ビッグ・ボス",
+   "romaji": "Big Boss",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:eva",
+   "kind": "person",
+   "name": "EVA",
+   "reading": "エヴァ",
+   "romaji": "EVA",
+   "aliases": [
+    {
+     "text": "エヴァ",
+     "reading": "エヴァ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zero",
+   "kind": "person",
+   "name": "ゼロ",
+   "reading": "ゼロ",
+   "romaji": "Zero",
+   "aliases": [
+    {
+     "text": "ゼロ少佐",
+     "reading": "ゼロしょうさ"
+    },
+    {
+     "text": "少佐",
+     "reading": "しょうさ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:para-medic",
+   "kind": "person",
+   "name": "パラメディック",
+   "reading": "パラメディック",
+   "romaji": "Para-Medic",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sigint",
+   "kind": "person",
+   "name": "シギント",
+   "reading": "シギント",
+   "romaji": "Sigint",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-boss",
+   "kind": "person",
+   "name": "ザ・ボス",
+   "reading": "ザ・ボス",
+   "romaji": "The Boss",
+   "aliases": [
+    {
+     "text": "ボス",
+     "reading": "ボス"
+    },
+    {
+     "text": "ザ・ジョイ",
+     "reading": "ザ・ジョイ"
+    },
+    {
+     "text": "無上の歓喜",
+     "reading": "むじょうのかんき"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:volgin",
+   "kind": "person",
+   "name": "エヴゲニー・ボリソヴィッチ・ヴォルギン",
+   "family": "ヴォルギン",
+   "given": "エヴゲニー",
+   "reading": "エヴゲニー・ボリソヴィッチ・ヴォルギン",
+   "family_reading": "ヴォルギン",
+   "given_reading": "エヴゲニー",
+   "romaji": "Yevgeny Borisovitch Volgin",
+   "aliases": [
+    {
+     "text": "ヴォルギン",
+     "reading": "ヴォルギン"
+    },
+    {
+     "text": "ヴォルギン大佐",
+     "reading": "ヴォルギンたいさ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ocelot",
+   "kind": "person",
+   "name": "オセロット",
+   "reading": "オセロット",
+   "romaji": "Ocelot",
+   "aliases": [
+    {
+     "text": "山猫",
+     "reading": "やまねこ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:raikov",
+   "kind": "person",
+   "name": "イワン・ライデノヴィッチ・ライコフ",
+   "family": "ライコフ",
+   "given": "イワン",
+   "reading": "イワン・ライデノヴィッチ・ライコフ",
+   "family_reading": "ライコフ",
+   "given_reading": "イワン",
+   "romaji": "Ivan Raidenovich Raikov",
+   "aliases": [
+    {
+     "text": "ライコフ",
+     "reading": "ライコフ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sokolov",
+   "kind": "person",
+   "name": "ニコライ・ステパノヴィッチ・ソコロフ",
+   "family": "ソコロフ",
+   "given": "ニコライ",
+   "reading": "ニコライ・ステパノヴィッチ・ソコロフ",
+   "family_reading": "ソコロフ",
+   "given_reading": "ニコライ",
+   "romaji": "Nikolai Stepanovich Sokolov",
+   "aliases": [
+    {
+     "text": "ソコロフ",
+     "reading": "ソコロフ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:granin",
+   "kind": "person",
+   "name": "アレクサンドル・レオノヴィッチ・グラーニン",
+   "family": "グラーニン",
+   "given": "アレクサンドル",
+   "reading": "アレクサンドル・レオノヴィッチ・グラーニン",
+   "family_reading": "グラーニン",
+   "given_reading": "アレクサンドル",
+   "romaji": "Aleksandr Leonovitch Granin",
+   "aliases": [
+    {
+     "text": "グラーニン",
+     "reading": "グラーニン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:khrushchev",
+   "kind": "person",
+   "name": "ニキータ・セルゲーエヴィッチ・フルシチョフ",
+   "family": "フルシチョフ",
+   "given": "ニキータ",
+   "reading": "ニキータ・セルゲーエヴィッチ・フルシチョフ",
+   "family_reading": "フルシチョフ",
+   "given_reading": "ニキータ",
+   "romaji": "Nikita Sergeyevich Khrushchev",
+   "aliases": [
+    {
+     "text": "フルシチョフ",
+     "reading": "フルシチョフ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lyndon-johnson",
+   "kind": "person",
+   "name": "リンドン・ベインズ・ジョンソン",
+   "family": "ジョンソン",
+   "given": "リンドン",
+   "reading": "リンドン・ベインズ・ジョンソン",
+   "family_reading": "ジョンソン",
+   "given_reading": "リンドン",
+   "romaji": "Lyndon Baines Johnson",
+   "aliases": [
+    {
+     "text": "ジョンソン",
+     "reading": "ジョンソン"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:johnny",
+   "kind": "person",
+   "name": "ジョニー",
+   "reading": "ジョニー",
+   "romaji": "Johnny",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-sorrow",
+   "kind": "person",
+   "name": "ザ・ソロー",
+   "reading": "ザ・ソロー",
+   "romaji": "The Sorrow",
+   "aliases": [
+    {
+     "text": "深淵なる悲哀",
+     "reading": "しんえんなるひあい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-pain",
+   "kind": "person",
+   "name": "ザ・ペイン",
+   "reading": "ザ・ペイン",
+   "romaji": "The Pain",
+   "aliases": [
+    {
+     "text": "至高の痛み",
+     "reading": "しこうのいたみ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-fear",
+   "kind": "person",
+   "name": "ザ・フィアー",
+   "reading": "ザ・フィアー",
+   "romaji": "The Fear",
+   "aliases": [
+    {
+     "text": "至純の恐怖",
+     "reading": "しじゅんのきょうふ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-end",
+   "kind": "person",
+   "name": "ジ・エンド",
+   "reading": "ジ・エンド",
+   "romaji": "The End",
+   "aliases": [
+    {
+     "text": "真実の終焉",
+     "reading": "しんじつのしゅうえん"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:the-fury",
+   "kind": "person",
+   "name": "ザ・フューリー",
+   "reading": "ザ・フューリー",
+   "romaji": "The Fury",
+   "aliases": [
+    {
+     "text": "無限の憤怒",
+     "reading": "むげんのふんぬ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tselinoyarsk",
+   "kind": "place",
+   "name": "ツェリノヤルスク",
+   "reading": "ツェリノヤルスク",
+   "romaji": "Tselinoyarsk",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:groznyj-grad",
+   "kind": "place",
+   "name": "グロズニィグラード",
+   "reading": "グロズニィグラード",
+   "romaji": "Groznyj Grad",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:sokolov-design-bureau",
+   "kind": "place",
+   "name": "ソコロフ設計局",
+   "reading": "ソコロフせっけいきょく",
+   "romaji": "Sokolov Design Bureau",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:granin-design-bureau",
+   "kind": "place",
+   "name": "グラーニン設計局",
+   "reading": "グラーニンせっけいきょく",
+   "romaji": "Granin Design Bureau",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rassvet",
+   "kind": "place",
+   "name": "ラスヴィエット",
+   "reading": "ラスヴィエット",
+   "romaji": "Rassvet",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:dremuchij",
+   "kind": "place",
+   "name": "ドレムチイ",
+   "reading": "ドレムチイ",
+   "romaji": "Dremuchij",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:bolshaya-past",
+   "kind": "place",
+   "name": "ボルシャヤ・パスト",
+   "reading": "ボルシャヤ・パスト",
+   "romaji": "Bolshaya Past",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:krasnogorje",
+   "kind": "place",
+   "name": "クラスノゴリエ",
+   "reading": "クラスノゴリエ",
+   "romaji": "Krasnogorje",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tikhogornyj",
+   "kind": "place",
+   "name": "ティホゴルヌイ",
+   "reading": "ティホゴルヌイ",
+   "romaji": "Tikhogornyj",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shagohod",
+   "kind": "thing",
+   "name": "シャゴホッド",
+   "reading": "シャゴホッド",
+   "romaji": "Shagohod",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:cobra-unit",
+   "kind": "thing",
+   "name": "コブラ部隊",
+   "reading": "コブラぶたい",
+   "romaji": "Cobra Unit",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:fox",
+   "kind": "thing",
+   "name": "FOX",
+   "reading": "フォックス",
+   "romaji": "FOX",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:philosophers-legacy",
+   "kind": "thing",
+   "name": "賢者の遺産",
+   "reading": "けんじゃのいさん",
+   "romaji": "The Philosophers' Legacy",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:philosophers",
+   "kind": "thing",
+   "name": "賢者達",
+   "reading": "けんじゃたち",
+   "romaji": "The Philosophers",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:operation-snake-eater",
+   "kind": "thing",
+   "name": "スネークイーター作戦",
+   "reading": "スネークイーターさくせん",
+   "romaji": "Operation Snake Eater",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:virtuous-mission",
+   "kind": "thing",
+   "name": "ヴァーチャスミッション",
+   "reading": "ヴァーチャスミッション",
+   "romaji": "Virtuous Mission",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:davy-crockett",
+   "kind": "thing",
+   "name": "デイビー・クロケット",
+   "reading": "デイビー・クロケット",
+   "romaji": "Davy Crockett",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:gru",
+   "kind": "thing",
+   "name": "GRU",
+   "romaji": "GRU",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:kgb",
+   "kind": "thing",
+   "name": "KGB",
+   "romaji": "KGB",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:cqc",
+   "kind": "thing",
+   "name": "CQC",
+   "romaji": "CQC",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  }
+ ]
+}

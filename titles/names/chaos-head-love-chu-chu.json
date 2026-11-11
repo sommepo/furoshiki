@@ -1,0 +1,305 @@
+{
+ "source": {
+  "vndb": "v3091",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "女": "おんな"
+ },
+ "entries": [
+  {
+   "id": "c4655",
+   "kind": "person",
+   "name": "西條 拓巳",
+   "family": "西條",
+   "given": "拓巳",
+   "reading": "にしじょう たくみ",
+   "family_reading": "にしじょう",
+   "given_reading": "たくみ",
+   "romaji": "Nishijou Takumi",
+   "aliases": [
+    {
+     "text": "タク",
+     "reading": "タク"
+    },
+    {
+     "text": "タッキ",
+     "reading": "タッキ"
+    },
+    {
+     "text": "ナイトハルト",
+     "reading": "ナイトハルト"
+    },
+    {
+     "text": "リーゼロッテ",
+     "reading": "リーゼロッテ"
+    },
+    {
+     "text": "疾風迅雷ナイトハルト",
+     "reading": "しっぷうじんらいナイトハルト"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4656",
+   "kind": "person",
+   "name": "咲畑 梨深",
+   "family": "咲畑",
+   "given": "梨深",
+   "reading": "さきはた りみ",
+   "family_reading": "さきはた",
+   "given_reading": "りみ",
+   "romaji": "Sakihata Rimi",
+   "aliases": [
+    {
+     "text": "悪魔女"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:悪魔女"
+   ]
+  },
+  {
+   "id": "c4657",
+   "kind": "person",
+   "name": "西條 七海",
+   "family": "西條",
+   "given": "七海",
+   "reading": "にしじょう ななみ",
+   "family_reading": "にしじょう",
+   "given_reading": "ななみ",
+   "romaji": "Nishijou Nanami",
+   "aliases": [
+    {
+     "text": "ナナ",
+     "reading": "ナナ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4658",
+   "kind": "person",
+   "name": "岸本 あやせ",
+   "family": "岸本",
+   "given": "あやせ",
+   "reading": "きしもと あやせ",
+   "family_reading": "きしもと",
+   "given_reading": "あやせ",
+   "romaji": "Kishimoto Ayase",
+   "aliases": [
+    {
+     "text": "デンパ女",
+     "reading": "デンパおんな"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4659",
+   "kind": "person",
+   "name": "楠 優愛",
+   "family": "楠",
+   "given": "優愛",
+   "reading": "くすのき ゆあ",
+   "family_reading": "くすのき",
+   "given_reading": "ゆあ",
+   "romaji": "Kusunoki Yua",
+   "aliases": [
+    {
+     "text": "女子Ａ"
+    },
+    {
+     "text": "楠 美愛"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:女子Ａ",
+    "alias:楠 美愛"
+   ]
+  },
+  {
+   "id": "c4660",
+   "kind": "person",
+   "name": "蒼井 セナ",
+   "family": "蒼井",
+   "given": "セナ",
+   "reading": "あおい セナ",
+   "family_reading": "あおい",
+   "given_reading": "セナ",
+   "romaji": "Aoi Sena",
+   "aliases": [
+    {
+     "text": "女子Ｂ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:女子Ｂ"
+   ]
+  },
+  {
+   "id": "c4661",
+   "kind": "person",
+   "name": "折原 梢",
+   "family": "折原",
+   "given": "梢",
+   "reading": "おりはら こずえ",
+   "family_reading": "おりはら",
+   "given_reading": "こずえ",
+   "romaji": "Orihara Kozue",
+   "aliases": [
+    {
+     "text": "こずぴぃ",
+     "reading": "こずぴぃ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4662",
+   "kind": "person",
+   "name": "星来 オルジェル",
+   "family": "星来",
+   "given": "オルジェル",
+   "reading": "せいら オルジェル",
+   "family_reading": "せいら",
+   "given_reading": "オルジェル",
+   "romaji": "Seira Orgel",
+   "aliases": [
+    {
+     "text": "天之河 星来"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:天之河 星来"
+   ]
+  },
+  {
+   "id": "c4730",
+   "kind": "person",
+   "name": "エリンフレイ・オルジェル",
+   "reading": "エリンフレイ・オルジェル",
+   "romaji": "Erin-fray Orgel",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:shibuya",
+   "kind": "place",
+   "name": "渋谷",
+   "reading": "しぶや",
+   "romaji": "Shibuya",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:suimei-gakuen",
+   "kind": "place",
+   "name": "翠明学園",
+   "reading": "すいめいがくえん",
+   "romaji": "Suimei Gakuen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:mousou-trigger",
+   "kind": "thing",
+   "name": "妄想トリガー",
+   "reading": "もうそうトリガー",
+   "romaji": "Mousou Trigger",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:positive-mousou",
+   "kind": "thing",
+   "name": "ポジティブ妄想",
+   "reading": "ポジティブもうそう",
+   "romaji": "Positive Mousou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:negative-mousou",
+   "kind": "thing",
+   "name": "ネガティブ妄想",
+   "reading": "ネガティブもうそう",
+   "romaji": "Negative Mousou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:blood-tune",
+   "kind": "thing",
+   "name": "ブラッドチューン",
+   "reading": "ブラッドチューン",
+   "romaji": "Blood Tune",
+   "aliases": [
+    {
+     "text": "ブラチュー",
+     "reading": "ブラチュー"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:at-channel",
+   "kind": "thing",
+   "name": "@ちゃんねる",
+   "reading": "アットちゃんねる",
+   "romaji": "@channel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

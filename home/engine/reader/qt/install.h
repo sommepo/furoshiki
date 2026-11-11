@@ -27,6 +27,9 @@ namespace ReaderUi {
 void Install(QMainWindow* window, QWidget* screen);
 /// The core whose game starts next (its console is the reader's already: Home::ApplyConsole).
 void UseSession(Home::CoreSession* session);
+/// Reads from a source of the program's own too (lines another program sends, text copied):
+/// ReaderController::Use. After Install.
+void UseSource(class ReadingSource* source);
 /// Whether the game is what the window shows (not Furoshiki's own page).
 void SetScreenShown(bool shown);
 /// The program stopped the game for a menu of its own, or let it go on: the reader's pause

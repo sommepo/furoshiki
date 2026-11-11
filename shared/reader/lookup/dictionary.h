@@ -35,6 +35,8 @@ struct TermEntry {
     std::string glossary_json;
     std::int64_t sequence{};
     std::string term_tags;
+    /// From a dictionary for the running game only (a names dictionary).
+    bool scoped{};
 };
 
 /// A definition cut down to one line (the desktop's Glossary::Compact).
@@ -83,18 +85,23 @@ public:
         return db != nullptr;
     }
 
-    /// Term rows of enabled dictionaries whose expression or reading is one of `terms`.
-    [[nodiscard]] std::vector<TermEntry> FindTerms(const std::vector<std::string>& terms);
+    /// Term rows of enabled dictionaries whose expression or reading is one of `terms`: of the
+    /// dictionaries for every game, and of those scoped to `game` (a game ID) when one is given.
+    [[nodiscard]] std::vector<TermEntry> FindTerms(const std::vector<std::string>& terms,
+                                                   const std::string& game = {});
 
     /// The words starting at the first character of `text` (UTF-8): at most `max_results`,
-    /// best first.
-    [[nodiscard]] std::vector<LookupResult> Lookup(const std::string& text, int max_results = 24);
+    /// best first. `game` as the desktop's: its names dictionaries are used and come first.
+    [[nodiscard]] std::vector<LookupResult> Lookup(const std::string& text, int max_results = 24,
+                                                   const std::string& game = {});
 
     /// A stored glossary as its JSON (a first byte 0: as it is; 1: deflated).
     [[nodiscard]] static std::string Unpack(const void* blob, std::size_t size);
 
 private:
     sqlite3* db = nullptr;
+    /// Whether the file knows scopes (version 2 of its tables): an older one has none.
+    bool has_scope = false;
     Deinflector deinflector;
 };
 

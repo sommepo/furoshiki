@@ -42,6 +42,7 @@ object ScriptStore {
     private const val DATA_MAX = 16L shl 20
     private const val RECORD = ".installed.json"
     private val FILE_REST = Regex("[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*")
+    private val NAMES_FILE = Regex("names-[a-z0-9][a-z0-9-]*\\.zip")
     private val API_LINE = Regex("^--\\s*reader:\\s*api\\s+(\\d+)\\s*$")
 
     data class FileEntry(val file: String, val sha256: String, val size: Long)
@@ -54,11 +55,19 @@ object ScriptStore {
         val api: Int,
         val script: FileEntry,
         val data: List<FileEntry>,
+        /**
+         * The game's names dictionary ("names-<title>.zip", tools/titles.py: docs/titles.md),
+         * installed beside the script; one zip may be several games'.
+         */
+        val names: FileEntry? = null,
     )
 
     enum class State { NOT_INSTALLED, INSTALLED, UPDATE, OWN, TOO_NEW }
 
     class ScriptException(message: String) : Exception(message)
+
+    /** Whether [name] is a names dictionary's file: "names-<title>.zip", the title in lower case. */
+    fun isNamesFile(name: String): Boolean = NAMES_FILE.matches(name)
 
     /** The game a file of this name belongs to ("<ID>.lua", "<ID>.<name>"), or null. */
     fun idOfFile(name: String): String? {
@@ -121,9 +130,16 @@ object ScriptStore {
                 o.optInt("api", 1),
                 script,
                 data,
+                // Names that are not as they should be are passed over; the script is still listed.
+                o.optJSONObject("names")?.let(::namesOf),
             ))
         }
         return out
+    }
+
+    private fun namesOf(o: JSONObject): FileEntry? {
+        val file = FileEntry(o.optString("file").trim(), o.optString("sha256").trim().lowercase(), o.optLong("size", -1))
+        return file.takeIf { isNamesFile(it.file) && it.sha256.length == 64 && it.size in 0..DATA_MAX }
     }
 
     private fun fileOf(o: JSONObject): FileEntry? {
@@ -214,9 +230,28 @@ object ScriptStore {
             // The data first: a script whose data is missing says so, data without its script is never asked for.
             for ((name, bytes) in data) write(name, bytes)
             write(entry.script.file, source)
+            // The names come along where they were fetched as the list has them; without them the
+            // script is installed all the same (they are fetched again with the list).
+            files[entry.names?.file]?.let { runCatching { installNames(entry, it) } }
             val root = record()
             root.put(entry.id, JSONObject().put("sha256", entry.script.sha256).put("data", JSONArray(data.map { it.first })))
             write(RECORD, root.toString(2).toByteArray())
+        }
+
+        /** Whether the folder lacks [entry]'s names dictionary as the list has it (none, or another). */
+        fun needsNames(entry: Entry): Boolean {
+            val names = entry.names ?: return false
+            val file = File(dir, names.file)
+            return !file.isFile || file.length() != names.size || sha256(file.readBytes()) != names.sha256
+        }
+
+        /** Writes [entry]'s names dictionary, [bytes] checked against the list. */
+        fun installNames(entry: Entry, bytes: ByteArray) {
+            val names = entry.names ?: throw ScriptException("${entry.id} has no names dictionary")
+            if (bytes.size.toLong() != names.size || sha256(bytes) != names.sha256) {
+                throw ScriptException("${names.file} is not the file the list names")
+            }
+            write(names.file, bytes)
         }
 
         /**

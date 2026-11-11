@@ -23,7 +23,8 @@ class ReaderController;
 
 /**
  * A development tool, off unless the environment variable READER_DESKTOP_CONTROL names a
- * socket: lets a script drive the desktop app on a machine without a display (clicks in the
+ * socket (or READER_COMPANION_CONTROL does: a companion program's channel, Furoshiki's add-ons,
+ * the same commands without a test run's ways): lets a script drive the desktop app on a machine without a display (clicks in the
  * game's picture, key presses, pictures of what the reader's windows show) and ask what the
  * reader holds. This is how the desktop reader layer is tried against a real game on the
  * development machine (tools/reader/desktop.sh, tools/reader/dc.py); the Android app has the

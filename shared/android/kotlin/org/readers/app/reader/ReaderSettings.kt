@@ -51,12 +51,30 @@ class ReaderSettings(context: Context) {
 
     /**
      * The popup's look: "console" (the first value: the popup page in the console's colours),
-     * "furoshiki", "yomitan-dark", "paper", "paper-dark", or "classic" (drawn as before the page).
+     * one of [POPUP_THEMES] ("furoshiki", "yomitan-dark", "paper"...), or "classic" (drawn as before the page).
      */
-    val popupTheme: String get() = when (val value = preferences.getString(KEY_POPUP_THEME, "console")) {
-        "furoshiki", "yomitan-dark", "paper", "paper-dark", "classic" -> value
-        else -> "console"
-    }
+    val popupTheme: String get() = preferences.getString(KEY_POPUP_THEME, "console")
+        .let { value -> if (value == "classic" || value in POPUP_THEMES) value!! else "console" }
+
+    /** How solid the popup's ground is, 20 to 100 %; 0: as its look has it. */
+    val popupOpacity: Int get() = preferences.getInt(KEY_POPUP_OPACITY, 0).coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
+
+    /** The popup's corners, 0 to 28 px; -1: as its look has them. */
+    val popupRadius: Int get() = preferences.getInt(KEY_POPUP_RADIUS, -1).coerceIn(-1, 28)
+
+    /** How many senses of a word are shown before "more" (1 to 9); 0: all of them. */
+    val popupCompact: Int get() = preferences.getInt(KEY_POPUP_COMPACT, 0).coerceIn(0, 9)
+
+    /** Whether the senses' part-of-speech tags (n, v1, vt...) are left out. */
+    val popupHideTags: Boolean get() = preferences.getBoolean(KEY_POPUP_HIDE_TAGS, false)
+
+    /** A name's picture on its card: "small", "large" or "off". */
+    val popupPortrait: String get() = preferences.getString(KEY_POPUP_PORTRAIT, "small").let { if (it == "large" || it == "off") it!! else "small" }
+
+    /** Those five as the page takes them (Reader.show's "look"; shared/popup/README.md). */
+    val popupLook: org.json.JSONObject get() = org.json.JSONObject()
+        .put("opacity", popupOpacity).put("radius", popupRadius).put("compact", popupCompact)
+        .put("hideTags", popupHideTags).put("portrait", popupPortrait)
 
     /** The user's own CSS for the popup page, applied after its theme (shared/popup/README.md). */
     val popupCss: String get() = preferences.getString(KEY_POPUP_CSS, "")!!
@@ -145,6 +163,14 @@ class ReaderSettings(context: Context) {
     val touchPlay get() = preferences.getBoolean(KEY_TOUCH_PLAY, touchPlayAtFirst())
 
     /**
+     * The controller's buttons drawn small over every game (ui/TouchButtons: the d-pad at the
+     * left, the face buttons at the right, tucked away by their tabs), with the menu's button
+     * in the corner: on at first where the device has no game controls of its own, and the
+     * user's to switch on any device (a handheld's owner who wants them all the same).
+     */
+    val touchButtons get() = preferences.getBoolean(KEY_TOUCH_BUTTONS, touchPlayAtFirst())
+
+    /**
      * Keeps Play by touch's first value, so that its switch shows it: on for a phone or tablet,
      * off for a handheld with a controller of its own (an AYN Thor) — the maintainer plays by
      * touch on the Fold only.
@@ -152,6 +178,9 @@ class ReaderSettings(context: Context) {
     fun keepTouchPlayDefault() {
         if (!preferences.contains(KEY_TOUCH_PLAY)) {
             preferences.edit().putBoolean(KEY_TOUCH_PLAY, touchPlayAtFirst()).apply()
+        }
+        if (!preferences.contains(KEY_TOUCH_BUTTONS)) {
+            preferences.edit().putBoolean(KEY_TOUCH_BUTTONS, touchPlayAtFirst()).apply()
         }
     }
 
@@ -191,6 +220,12 @@ class ReaderSettings(context: Context) {
     val audioHistorySeconds get() = 90
     val audioClipMaxSeconds get() = preferences.getInt(KEY_AUDIO_MAX, 20).coerceIn(3, 60)
     val audioLeadMs get() = preferences.getInt(KEY_AUDIO_LEAD, 0).coerceIn(0, 2000)
+
+    /** Whether a card's clip is cut to what is said in it ([org.readers.app.reader.mining.PcmTools.trimToVoice]). */
+    val audioVoiceTrim get() = preferences.getBoolean(KEY_AUDIO_VOICE_TRIM, true)
+
+    /** How many of the lines before a card's line its {context} holds. */
+    val cardContextLines get() = preferences.getInt(KEY_CARD_CONTEXT_LINES, 2).coerceIn(0, 5)
     val screenshotCacheLines get() = preferences.getInt(KEY_SCREENSHOT_CACHE, 30).coerceIn(0, 200)
     val screenshotMaxWidth get() = preferences.getInt(KEY_SCREENSHOT_WIDTH, 1280).coerceIn(320, 3840)
 
@@ -310,6 +345,7 @@ class ReaderSettings(context: Context) {
             return !builtIn
         }
 
+        const val KEY_TOUCH_BUTTONS = "reader_touch_buttons"
         const val KEY_SCREEN_TEXT = "reader_screen_text"
         const val KEY_SCREEN_TEXT_OUTLINE = "reader_screen_text_outline"
         const val KEY_CARD_CORNER = "reader_card_corner"
@@ -325,6 +361,14 @@ class ReaderSettings(context: Context) {
         const val KEY_POPUP_MARK_UNKNOWN = "reader_popup_mark_unknown"
         const val KEY_POPUP_THEME = "reader_popup_theme"
         const val KEY_POPUP_CSS = "reader_popup_css"
+        const val KEY_POPUP_OPACITY = "reader_popup_opacity"
+        const val KEY_POPUP_RADIUS = "reader_popup_radius"
+        const val KEY_POPUP_COMPACT = "reader_popup_compact"
+        const val KEY_POPUP_HIDE_TAGS = "reader_popup_hide_tags"
+        const val KEY_POPUP_PORTRAIT = "reader_popup_portrait"
+        /** The looks the page has besides the console's own colours (shared/popup/themes). */
+        val POPUP_THEMES = listOf("furoshiki", "yomitan-dark", "paper", "paper-dark", "solarized-dark", "solarized-light",
+            "glass", "dense", "kuro", "shoin", "ookii", "kumihan", "kon")
         const val KEY_POPUP_LOOKUPS = "reader_popup_lookups"
         const val KEY_CURSOR_BUTTON = "reader_cursor_button"
         const val KEY_CURSOR_TOGGLE = "reader_cursor_toggle"
@@ -359,6 +403,8 @@ class ReaderSettings(context: Context) {
         const val KEY_CAPTURE_AUDIO = "reader_capture_audio"
         const val KEY_AUDIO_MAX = "reader_audio_max_seconds"
         const val KEY_AUDIO_LEAD = "reader_audio_lead_ms"
+        const val KEY_AUDIO_VOICE_TRIM = "reader_audio_voice_trim"
+        const val KEY_CARD_CONTEXT_LINES = "reader_card_context_lines"
         const val KEY_SCREENSHOT_CACHE = "reader_screenshot_cache"
         const val KEY_SCREENSHOT_WIDTH = "reader_screenshot_width"
         const val KEY_CARD_AUDIO = "reader_card_audio"

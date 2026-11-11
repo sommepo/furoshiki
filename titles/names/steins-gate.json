@@ -1,0 +1,609 @@
+{
+ "source": {
+  "vndb": "v2002",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "鳳凰院": "ほうおういん",
+  "凶真": "きょうま"
+ },
+ "entries": [
+  {
+   "id": "c6498",
+   "kind": "person",
+   "name": "岡部 倫太郎",
+   "family": "岡部",
+   "given": "倫太郎",
+   "reading": "おかべ りんたろう",
+   "family_reading": "おかべ",
+   "given_reading": "りんたろう",
+   "romaji": "Okabe Rintarou",
+   "aliases": [
+    {
+     "text": "オカリン",
+     "reading": "オカリン"
+    },
+    {
+     "text": "鳳凰院 凶真",
+     "reading": "ほうおういん きょうま"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6487",
+   "kind": "person",
+   "name": "牧瀬 紅莉栖",
+   "family": "牧瀬",
+   "given": "紅莉栖",
+   "reading": "まきせ くりす",
+   "family_reading": "まきせ",
+   "given_reading": "くりす",
+   "romaji": "Makise Kurisu",
+   "aliases": [
+    {
+     "text": "クリス",
+     "reading": "クリス"
+    },
+    {
+     "text": "クリスチィーナ",
+     "reading": "クリスチィーナ"
+    },
+    {
+     "text": "助手",
+     "reading": "じょしゅ"
+    },
+    {
+     "text": "栗悟飯とカメハメ波"
+    },
+    {
+     "text": "＠ちゃんねらークリス"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:栗悟飯とカメハメ波",
+    "alias:＠ちゃんねらークリス"
+   ]
+  },
+  {
+   "id": "c6491",
+   "kind": "person",
+   "name": "椎名 まゆり",
+   "family": "椎名",
+   "given": "まゆり",
+   "reading": "しいな まゆり",
+   "family_reading": "しいな",
+   "given_reading": "まゆり",
+   "romaji": "Shiina Mayuri",
+   "aliases": [
+    {
+     "text": "まゆしぃ",
+     "reading": "まゆしぃ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6492",
+   "kind": "person",
+   "name": "阿万音 鈴羽",
+   "family": "阿万音",
+   "given": "鈴羽",
+   "reading": "あまね すずは",
+   "family_reading": "あまね",
+   "given_reading": "すずは",
+   "romaji": "Amane Suzuha",
+   "aliases": [
+    {
+     "text": "ジョン・タイター",
+     "reading": "ジョン・タイター"
+    },
+    {
+     "text": "バイト戦士",
+     "reading": "バイトせんし"
+    },
+    {
+     "text": "橋田 鈴"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:橋田 鈴"
+   ]
+  },
+  {
+   "id": "c6493",
+   "kind": "person",
+   "name": "橋田 至",
+   "family": "橋田",
+   "given": "至",
+   "reading": "はしだ いたる",
+   "family_reading": "はしだ",
+   "given_reading": "いたる",
+   "romaji": "Hashida Itaru",
+   "aliases": [
+    {
+     "text": "スーパーハッカー",
+     "reading": "スーパーハッカー"
+    },
+    {
+     "text": "ダル",
+     "reading": "ダル"
+    },
+    {
+     "text": "バレル・タイター",
+     "reading": "バレル・タイター"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6494",
+   "kind": "person",
+   "name": "秋葉 留未穂",
+   "family": "秋葉",
+   "given": "留未穂",
+   "reading": "あきは るみほ",
+   "family_reading": "あきは",
+   "given_reading": "るみほ",
+   "romaji": "Akiha Rumiho",
+   "aliases": [
+    {
+     "text": "フェイリス",
+     "reading": "フェイリス"
+    },
+    {
+     "text": "フェリス",
+     "reading": "フェリス"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6496",
+   "kind": "person",
+   "name": "桐生 萌郁",
+   "family": "桐生",
+   "given": "萌郁",
+   "reading": "きりゅう もえか",
+   "family_reading": "きりゅう",
+   "given_reading": "もえか",
+   "romaji": "Kiryuu Moeka",
+   "aliases": [
+    {
+     "text": "閃光の指圧師",
+     "reading": "せんこうのしあつし"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6497",
+   "kind": "person",
+   "name": "漆原 るか",
+   "family": "漆原",
+   "given": "るか",
+   "reading": "うるしばら るか",
+   "family_reading": "うるしばら",
+   "given_reading": "るか",
+   "romaji": "Urushibara Ruka",
+   "aliases": [
+    {
+     "text": "ルカニャン",
+     "reading": "ルカニャン"
+    },
+    {
+     "text": "ルカ子"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:ルカ子"
+   ]
+  },
+  {
+   "id": "c15469",
+   "kind": "person",
+   "name": "天王寺 綯",
+   "family": "天王寺",
+   "given": "綯",
+   "reading": "てんのうじ なえ",
+   "family_reading": "てんのうじ",
+   "given_reading": "なえ",
+   "romaji": "Tennouji Nae",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6495",
+   "kind": "person",
+   "name": "天王寺 裕吾",
+   "family": "天王寺",
+   "given": "裕吾",
+   "reading": "てんのうじ ゆうご",
+   "family_reading": "てんのうじ",
+   "given_reading": "ゆうご",
+   "romaji": "Tennouji Yuugo",
+   "aliases": [
+    {
+     "text": "ミスター ブラウン",
+     "reading": "ミスター ブラウン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c24992",
+   "kind": "person",
+   "name": "秋葉 幸高",
+   "family": "秋葉",
+   "given": "幸高",
+   "reading": "あきは ゆきたか",
+   "family_reading": "あきは",
+   "given_reading": "ゆきたか",
+   "romaji": "Akiha Yukitaka",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c24993",
+   "kind": "person",
+   "name": "中鉢博士",
+   "romaji": "Doctor Nakabachi",
+   "aliases": [
+    {
+     "text": "牧瀬 章一"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "alias:牧瀬 章一"
+   ]
+  },
+  {
+   "id": "c24994",
+   "kind": "person",
+   "name": "鈴木 功一",
+   "family": "鈴木",
+   "given": "功一",
+   "reading": "すずき こういち",
+   "family_reading": "すずき",
+   "given_reading": "こういち",
+   "romaji": "Suzuki Kouichi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c43791",
+   "kind": "person",
+   "name": "アルパカマン",
+   "reading": "アルパカマン",
+   "romaji": "Alpaca-man",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c73598",
+   "kind": "person",
+   "name": "阿万音 鈴羽",
+   "family": "阿万音",
+   "given": "鈴羽",
+   "reading": "あまね すずは",
+   "family_reading": "あまね",
+   "given_reading": "すずは",
+   "romaji": "Amane Suzuha",
+   "aliases": [
+    {
+     "text": "スズ",
+     "reading": "スズ"
+    },
+    {
+     "text": "橋田 鈴羽",
+     "reading": "はしだ すずは"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c80100",
+   "kind": "person",
+   "name": "岡部 倫太郎",
+   "family": "岡部",
+   "given": "倫太郎",
+   "reading": "おかべ りんたろう",
+   "family_reading": "おかべ",
+   "given_reading": "りんたろう",
+   "romaji": "Okabe Rintarou",
+   "aliases": [
+    {
+     "text": "オカリン",
+     "reading": "オカリン"
+    },
+    {
+     "text": "鳳凰院 凶真",
+     "reading": "ほうおういん きょうま"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c97423",
+   "kind": "person",
+   "name": "漆原 栄輔",
+   "family": "漆原",
+   "given": "栄輔",
+   "reading": "うるしばら えいすけ",
+   "family_reading": "うるしばら",
+   "given_reading": "えいすけ",
+   "romaji": "Urushibara Eisuke",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:akihabara",
+   "kind": "place",
+   "name": "秋葉原",
+   "reading": "あきはばら",
+   "romaji": "Akihabara",
+   "aliases": [
+    {
+     "text": "アキバ",
+     "reading": "アキバ"
+    },
+    {
+     "text": "秋葉",
+     "reading": "あきば"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:mirai-gadget-kenkyuujo",
+   "kind": "place",
+   "name": "未来ガジェット研究所",
+   "reading": "みらいガジェットけんきゅうじょ",
+   "romaji": "Mirai Gadget Kenkyuujo",
+   "aliases": [
+    {
+     "text": "ラボ",
+     "reading": "ラボ"
+    },
+    {
+     "text": "未来ガジェット研",
+     "reading": "みらいガジェットけん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:radio-kaikan",
+   "kind": "place",
+   "name": "ラジオ会館",
+   "reading": "ラジオかいかん",
+   "romaji": "Radio Kaikan",
+   "aliases": [
+    {
+     "text": "ラジ館",
+     "reading": "ラジかん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:may-queen-nyannyan",
+   "kind": "place",
+   "name": "メイクイーン＋ニャン⑯",
+   "reading": "メイクイーンニャンニャン",
+   "romaji": "May Queen Nyan-Nyan",
+   "aliases": [
+    {
+     "text": "メイクイーン",
+     "reading": "メイクイーン"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:braun-kan",
+   "kind": "place",
+   "name": "ブラウン管工房",
+   "reading": "ブラウンかんこうぼう",
+   "romaji": "Braun Kan Koubou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:yanabayashi-jinja",
+   "kind": "place",
+   "name": "柳林神社",
+   "reading": "やなぎばやしじんじゃ",
+   "romaji": "Yanabayashi Jinja",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sern",
+   "kind": "thing",
+   "name": "SERN",
+   "reading": "セルン",
+   "romaji": "SERN",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:denwa-renji",
+   "kind": "thing",
+   "name": "電話レンジ（仮）",
+   "reading": "でんわレンジかっこかり",
+   "romaji": "Denwa Renji (Kari)",
+   "aliases": [
+    {
+     "text": "電話レンジ",
+     "reading": "でんわレンジ"
+    },
+    {
+     "text": "タイムリープマシン",
+     "reading": "タイムリープマシン"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:d-mail",
+   "kind": "thing",
+   "name": "Dメール",
+   "reading": "ディーメール",
+   "romaji": "D-mail",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ibn-5100",
+   "kind": "thing",
+   "name": "IBN 5100",
+   "reading": "アイビーエヌごーいちまるまる",
+   "romaji": "IBN 5100",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:world-line",
+   "kind": "thing",
+   "name": "世界線",
+   "reading": "せかいせん",
+   "romaji": "Sekaisen",
+   "aliases": [
+    {
+     "text": "世界線変動率",
+     "reading": "せかいせんへんどうりつ"
+    },
+    {
+     "text": "ダイバージェンス",
+     "reading": "ダイバージェンス"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:reading-steiner",
+   "kind": "thing",
+   "name": "リーディングシュタイナー",
+   "reading": "リーディングシュタイナー",
+   "romaji": "Reading Steiner",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kikan",
+   "kind": "thing",
+   "name": "機関",
+   "reading": "きかん",
+   "romaji": "Kikan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:upa",
+   "kind": "thing",
+   "name": "うーぱ",
+   "reading": "うーぱ",
+   "romaji": "Upa",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

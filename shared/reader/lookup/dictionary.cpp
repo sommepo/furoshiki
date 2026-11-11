@@ -110,6 +110,14 @@ struct Headword {
         }
         return best;
     }
+    [[nodiscard]] bool Scoped() const {
+        for (const TermEntry& entry : entries) {
+            if (entry.scoped) {
+                return true;
+            }
+        }
+        return false;
+    }
     [[nodiscard]] int BestScore() const {
         int best = std::numeric_limits<int>::min();
         for (const TermEntry& entry : entries) {
@@ -351,10 +359,18 @@ bool Dictionary::Open(const std::string& path, std::string& error, int cache_kib
         db = nullptr;
         return false;
     }
+    // The games a dictionary is for: a file the desktop or Android wrote before 2026-11-08 has
+    // no such column, and all its dictionaries are for every game.
+    has_scope =
+        sqlite3_prepare_v2(db, "SELECT 1 FROM pragma_table_info('dictionaries') WHERE name = 'scope'",
+                           -1, &statement, nullptr) == SQLITE_OK &&
+        sqlite3_step(statement) == SQLITE_ROW;
+    sqlite3_finalize(statement);
     return true;
 }
 
-std::vector<TermEntry> Dictionary::FindTerms(const std::vector<std::string>& terms) {
+std::vector<TermEntry> Dictionary::FindTerms(const std::vector<std::string>& terms,
+                                             const std::string& game) {
     std::vector<TermEntry> out;
     if (terms.empty() || db == nullptr) {
         return out;
@@ -365,9 +381,11 @@ std::vector<TermEntry> Dictionary::FindTerms(const std::vector<std::string>& ter
         for (const char* column : {"expression", "reading"}) {
             const std::string sql =
                 std::string("SELECT t.id, t.dict, d.title, d.priority, t.expression, t.reading, "
-                            "t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags "
-                            "FROM terms t JOIN dictionaries d ON d.id = t.dict WHERE t.") +
-                column + " IN (" + Placeholders(count) + ") AND d.enabled = 1";
+                            "t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags, " +
+                            (has_scope ? "d.scope != ''" : "0") +
+                            " FROM terms t JOIN dictionaries d ON d.id = t.dict WHERE t." + column +
+                            " IN (" + Placeholders(count) + ") AND d.enabled = 1" +
+                            (has_scope ? " AND (d.scope = '' OR instr(d.scope, ?) > 0)" : "");
             sqlite3_stmt* statement = nullptr;
             if (sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr) != SQLITE_OK) {
                 continue;
@@ -376,6 +394,18 @@ std::vector<TermEntry> Dictionary::FindTerms(const std::vector<std::string>& ter
                 const std::string& term = terms[from + i];
                 sqlite3_bind_text(statement, static_cast<int>(i) + 1, term.data(),
                                   static_cast<int>(term.size()), SQLITE_TRANSIENT);
+            }
+            if (has_scope) {
+                // "|ID|", upper case, as the desktop stores a scope; no game: "||", in none.
+                std::string wanted = "|";
+                for (const char c : game) {
+                    if (c != ' ' && c != '\t') {
+                        wanted += (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+                    }
+                }
+                wanted += "|";
+                sqlite3_bind_text(statement, static_cast<int>(count) + 1, wanted.data(),
+                                  static_cast<int>(wanted.size()), SQLITE_TRANSIENT);
             }
             while (sqlite3_step(statement) == SQLITE_ROW) {
                 const std::int64_t row = sqlite3_column_int64(statement, 0);
@@ -396,6 +426,7 @@ std::vector<TermEntry> Dictionary::FindTerms(const std::vector<std::string>& ter
                                              static_cast<std::size_t>(sqlite3_column_bytes(statement, 9)));
                 entry.sequence = sqlite3_column_int64(statement, 10);
                 entry.term_tags = Column(statement, 11);
+                entry.scoped = sqlite3_column_int(statement, 12) != 0;
                 out.push_back(std::move(entry));
             }
             sqlite3_finalize(statement);
@@ -436,7 +467,8 @@ std::string Dictionary::Unpack(const void* blob, std::size_t size) {
 
 // ---- The lookup (dictionary.cpp: DictionaryLookup::Lookup) ----
 
-std::vector<LookupResult> Dictionary::Lookup(const std::string& text, int max_results) {
+std::vector<LookupResult> Dictionary::Lookup(const std::string& text, int max_results,
+                                             const std::string& game) {
     const std::u16string scan = Scannable(Utf16(text));
     if (scan.empty()) {
         return {};
@@ -468,7 +500,7 @@ std::vector<LookupResult> Dictionary::Lookup(const std::string& text, int max_re
     for (const std::u16string& term : terms) {
         utf8_terms.push_back(Utf8(term));
     }
-    const std::vector<TermEntry> rows = FindTerms(utf8_terms);
+    const std::vector<TermEntry> rows = FindTerms(utf8_terms, game);
     if (rows.empty()) {
         return {};
     }
@@ -542,6 +574,11 @@ std::vector<LookupResult> Dictionary::Lookup(const std::string& text, int max_re
         if (a.source_length != b.source_length) {
             return a.source_length > b.source_length;
         }
+        const bool a_scoped = a.Scoped();
+        const bool b_scoped = b.Scoped();
+        if (a_scoped != b_scoped) {
+            return a_scoped;
+        }
         if (a.reasons.size() != b.reasons.size()) {
             return a.reasons.size() < b.reasons.size();
         }
@@ -573,6 +610,9 @@ std::vector<LookupResult> Dictionary::Lookup(const std::string& text, int max_re
         result.entries = std::move(headword.entries);
         std::stable_sort(result.entries.begin(), result.entries.end(),
                          [](const TermEntry& a, const TermEntry& b) {
+                             if (a.scoped != b.scoped) {
+                                 return a.scoped;
+                             }
                              if (a.priority != b.priority) {
                                  return a.priority < b.priority;
                              }

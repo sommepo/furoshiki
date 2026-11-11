@@ -10,7 +10,12 @@
       "api": 1,
       "file": "NPJH50372.lua",
       "size": 12800,
-      "sha256": "20be927cd1ff7e23a918fc09897a719a1c204c070f7c1e1af7d2f29766a7b9bc"
+      "sha256": "20be927cd1ff7e23a918fc09897a719a1c204c070f7c1e1af7d2f29766a7b9bc",
+      "names": {
+        "file": "names-danganronpa.zip",
+        "size": 9874,
+        "sha256": "4cebe3e03685e7faf937af8fac0d29f2c5438800f8a2f750571e9a711d3a0a57"
+      }
     },
     {
       "id": "ULJM05078",
@@ -20,7 +25,12 @@
       "api": 1,
       "file": "ULJM05078.lua",
       "size": 13220,
-      "sha256": "f08f026f597b68099ad6d765d6dbe202f5ca4f1188a257b25d66f9ea3ae31df8"
+      "sha256": "f08f026f597b68099ad6d765d6dbe202f5ca4f1188a257b25d66f9ea3ae31df8",
+      "names": {
+        "file": "names-tokimeki-memorial.zip",
+        "size": 4752,
+        "sha256": "27b21f8015a46401940f7fec1ffc6c301ca8b5e45743f04f0f1d4662ca235314"
+      }
     },
     {
       "id": "ULJM05170",
@@ -30,7 +40,12 @@
       "api": 1,
       "file": "ULJM05170.lua",
       "size": 14991,
-      "sha256": "012e8ee681f164c9d0016a812ae57e64d0540ecb3a8b8d1b2a8ab535e91ce40d"
+      "sha256": "012e8ee681f164c9d0016a812ae57e64d0540ecb3a8b8d1b2a8ab535e91ce40d",
+      "names": {
+        "file": "names-sora-no-kiseki-fc.zip",
+        "size": 13844,
+        "sha256": "22b7b8652dac7d0c1a2ca376310a561a9daba58ceb47aab9a4348d4274df1f1c"
+      }
     },
     {
       "id": "ULJM05603",
@@ -40,7 +55,12 @@
       "api": 1,
       "file": "ULJM05603.lua",
       "size": 15027,
-      "sha256": "6715e757d0b368376ba3082c32782854a5946f4d1fb7d338510a9cb5609d8532"
+      "sha256": "6715e757d0b368376ba3082c32782854a5946f4d1fb7d338510a9cb5609d8532",
+      "names": {
+        "file": "names-my-merry-may.zip",
+        "size": 2926,
+        "sha256": "81031ab6fece740f6b9e21ccb9adcb0cbaca4d15add31f4534c2935319bc949c"
+      }
     },
     {
       "id": "ULJM05718",
@@ -50,7 +70,12 @@
       "api": 1,
       "file": "ULJM05718.lua",
       "size": 12174,
-      "sha256": "0f7f86d615af5b4f264af2dbc342b7330af2de7eeb2bb339b81f61320a694560"
+      "sha256": "0f7f86d615af5b4f264af2dbc342b7330af2de7eeb2bb339b81f61320a694560",
+      "names": {
+        "file": "names-da-capo.zip",
+        "size": 6343,
+        "sha256": "bc091b2449ebeeddd304eb4f8df3b7ab0954a579e0c65612218c9fb297d21df4"
+      }
     },
     {
       "id": "ULJM05719",
@@ -60,7 +85,12 @@
       "api": 1,
       "file": "ULJM05719.lua",
       "size": 12180,
-      "sha256": "5948f7f71ba6fce4c92ee004e05533547f0666396d24c4bfff052bf9b1f1b6d0"
+      "sha256": "5948f7f71ba6fce4c92ee004e05533547f0666396d24c4bfff052bf9b1f1b6d0",
+      "names": {
+        "file": "names-da-capo-ii.zip",
+        "size": 7958,
+        "sha256": "dc80d51d18df3d11fdd3d86f80b2b53d10e3972082dbf88f6383b85027225590"
+      }
     },
     {
       "id": "ULJM05821",
@@ -70,7 +100,12 @@
       "api": 1,
       "file": "ULJM05821.lua",
       "size": 9010,
-      "sha256": "7cc26664772f5c3d5d77c73c697e576b1e0ba21065af5c22849a068c82caabcd"
+      "sha256": "7cc26664772f5c3d5d77c73c697e576b1e0ba21065af5c22849a068c82caabcd",
+      "names": {
+        "file": "names-chaos-head-love-chu-chu.zip",
+        "size": 4756,
+        "sha256": "2b1d82384a7d0f8d8c5906d54a7d3efa7514fefedba089ca9b90f4d0670b1ff4"
+      }
     },
     {
       "id": "ULJM05887",
@@ -80,7 +115,12 @@
       "api": 1,
       "file": "ULJM05887.lua",
       "size": 19510,
-      "sha256": "c29c87116b803fa0ab0ee248a97bb0025eaffdfe7839631dc77f6b987016ec43"
+      "sha256": "c29c87116b803fa0ab0ee248a97bb0025eaffdfe7839631dc77f6b987016ec43",
+      "names": {
+        "file": "names-steins-gate.zip",
+        "size": 8083,
+        "sha256": "cbd92971848dbf7e7733bde81199653487b7105634ebc51e6f44f20de5ba1205"
+      }
     },
     {
       "id": "ULJM06119",
@@ -90,7 +130,12 @@
       "api": 1,
       "file": "ULJM06119.lua",
       "size": 15152,
-      "sha256": "152c193fe07a89e75bcfe9944f9a92119f2dc80bfdd5ddc09fd3fd957f540c6f"
+      "sha256": "152c193fe07a89e75bcfe9944f9a92119f2dc80bfdd5ddc09fd3fd957f540c6f",
+      "names": {
+        "file": "names-dunamis15.zip",
+        "size": 5341,
+        "sha256": "37a7083816d5a3138fe27d345828e1e3553e951afae5427545b041e16c8994a3"
+      }
     },
     {
       "id": "ULJM06232",
@@ -100,7 +145,12 @@
       "api": 1,
       "file": "ULJM06232.lua",
       "size": 14281,
-      "sha256": "9e58a69f2ef76a6d81778b7b02dcff646111b6e7d5749e218dab35d8fca3f841"
+      "sha256": "9e58a69f2ef76a6d81778b7b02dcff646111b6e7d5749e218dab35d8fca3f841",
+      "names": {
+        "file": "names-grisaia-no-kajitsu.zip",
+        "size": 9989,
+        "sha256": "23aa1cd57e63ee3db82364c9f87276feaf6744ac576c14a70b07a4bf85fef8e2"
+      }
     },
     {
       "id": "ULJM06233",
@@ -110,7 +160,12 @@
       "api": 1,
       "file": "ULJM06233.lua",
       "size": 14281,
-      "sha256": "ddc2b4862c42a3c231c2a767a243742e7bbb5a6e84fee8f4d91db47be4b74184"
+      "sha256": "ddc2b4862c42a3c231c2a767a243742e7bbb5a6e84fee8f4d91db47be4b74184",
+      "names": {
+        "file": "names-grisaia-no-kajitsu.zip",
+        "size": 9989,
+        "sha256": "23aa1cd57e63ee3db82364c9f87276feaf6744ac576c14a70b07a4bf85fef8e2"
+      }
     },
     {
       "id": "ULJS00219",
@@ -120,7 +175,12 @@
       "api": 1,
       "file": "ULJS00219.lua",
       "size": 17129,
-      "sha256": "bd6826aac7b4cf3c5942c6bfb8b75373073847282d5b25e7b56a8421a87386bd"
+      "sha256": "bd6826aac7b4cf3c5942c6bfb8b75373073847282d5b25e7b56a8421a87386bd",
+      "names": {
+        "file": "names-428-shibuya.zip",
+        "size": 17555,
+        "sha256": "89733bb4144b0cc5b5706f51f7ef3995229f71637277b8a98122695f70e6d825"
+      }
     }
   ]
 }

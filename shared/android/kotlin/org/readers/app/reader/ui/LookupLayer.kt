@@ -114,6 +114,25 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
      */
     var holdOpen: (() -> Boolean)? = null
 
+    /**
+     * The popup may take all the room beside its anchor, not the share of the screen the settings
+     * give it: for a layer that is a pane of its own (Furochibi's 辞書), not laid over the text.
+     */
+    var fillRoom = false
+
+    /**
+     * Whether a name of the running game is drawn as its card (picture, full name, part) in the
+     * popup. Off in an app that shows who a name is in a place of its own (Furochibi's pane),
+     * where the popup then keeps the card's words as plain lines.
+     */
+    var nameCards = true
+
+    /**
+     * The game whose names dictionaries the lookups use, for an app with no game session of its
+     * own (Furochibi: the title of the line looked up). Null: the running game's.
+     */
+    var game: (() -> String)? = null
+
     /** The popup goes away by itself when it has been left alone for the time in the settings. */
     private val autoHide = Runnable {
         if (!isOpen) return@Runnable
@@ -303,7 +322,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 MeasureSpec.makeMeasureSpec(popup.maxHeight, MeasureSpec.AT_MOST)
             )
         }
-        measure(minOf(height * settings.popupHeightPercent / 100, maxOf(above, below)))
+        measure(if (fillRoom) maxOf(above, below) else minOf(height * settings.popupHeightPercent / 100, maxOf(above, below)))
         val goesAbove = popup.measuredHeight <= above || above >= below
         val room = if (goesAbove) above else below
         if (popup.measuredHeight > room) measure(room)
@@ -437,11 +456,13 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         val store = DictionaryStore.get(context)
         val lookups = settings.popupLookups
         val database = ReaderSession.database(context)
+        // The running game's names dictionaries are used, and first (DictionaryLookup.lookup).
+        val game = this.game?.invoke() ?: ReaderSession.gameKey
         worker.execute {
             // The cursor has gone on to another word since.
             if (request != asked) return@execute
             val hasDictionaries = store.database.hasEnabledDictionaries()
-            val results = if (hasDictionaries) store.lookup.lookup(rest) else emptyList()
+            val results = if (hasDictionaries) store.lookup.lookup(rest, game = game) else emptyList()
             val history = if (lookups == "off") emptyList() else results.map { database.lookups(it.expression, it.reading) }
             post {
                 if (request != asked) return@post
@@ -460,6 +481,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 popup.textScale = settings.popupScale
                 popup.theme = settings.popupTheme
                 popup.userCss = settings.popupCss
+                popup.look = settings.popupLook.apply { if (!nameCards) put("cards", false) }
                 popup.cardCorner = LookupPopupView.Corner.of(settings.cardCorner)
                 when {
                     !hasDictionaries ->

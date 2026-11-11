@@ -1,0 +1,53 @@
+{
+  "about": [
+    "Furoshiki's icon: one mark (ふ's four strokes, on a square of 512) and its colours. The",
+    "desktop draws it from this file; tools/icon.py makes everything else from it (Android's",
+    "launcher icons, the Windows icon, the pictures). Change it here and run the tool."
+  ],
+  "default": "37",
+  "mark": [
+    [[170, 72], [316, 96], [330, 150], [184, 126]],
+    [[204, 174], [272, 174], [366, 272], [366, 322], [264, 434], [176, 434], [292, 314], [292, 284]],
+    [[104, 282], [168, 282], [124, 412], [60, 412]],
+    [[378, 252], [438, 252], [458, 384], [398, 384]]
+  ],
+  "colours": [
+    {"key": "01", "name": "White on magenta", "ground": "#EC008C", "ink": "#FFFFFF"},
+    {"key": "02", "name": "White on blue", "ground": "#0095DA", "ink": "#FFFFFF"},
+    {"key": "03", "name": "White on red", "ground": "#E30613", "ink": "#FFFFFF"},
+    {"key": "04", "name": "White on green", "ground": "#00A551", "ink": "#FFFFFF"},
+    {"key": "05", "name": "White on violet", "ground": "#5B2D9E", "ink": "#FFFFFF"},
+    {"key": "06", "name": "White on black", "ground": "#0A0A0A", "ink": "#FFFFFF"},
+    {"key": "07", "name": "Black on yellow", "ground": "#FFD500", "ink": "#0A0A0A"},
+    {"key": "08", "name": "Black on orange", "ground": "#F7941D", "ink": "#0A0A0A"},
+    {"key": "09", "name": "Black on cyan", "ground": "#00AEEF", "ink": "#0A0A0A"},
+    {"key": "10", "name": "Black on magenta", "ground": "#EC008C", "ink": "#0A0A0A"},
+    {"key": "11", "name": "Black on lime", "ground": "#A8E000", "ink": "#0A0A0A"},
+    {"key": "12", "name": "Black on white", "ground": "#FFFFFF", "ink": "#0A0A0A"},
+    {"key": "13", "name": "Yellow on magenta", "ground": "#EC008C", "ink": "#FFD500"},
+    {"key": "14", "name": "Magenta on yellow", "ground": "#FFD500", "ink": "#EC008C"},
+    {"key": "15", "name": "Yellow on blue", "ground": "#0057B8", "ink": "#FFD500"},
+    {"key": "16", "name": "Red on yellow", "ground": "#FFD500", "ink": "#E30613"},
+    {"key": "17", "name": "Magenta on black", "ground": "#0A0A0A", "ink": "#EC008C"},
+    {"key": "18", "name": "Orange on navy", "ground": "#0B1F4B", "ink": "#F7941D"},
+    {"key": "19", "name": "White on periwinkle", "ground": "#7480D8", "ink": "#FFFFFF"},
+    {"key": "20", "name": "Navy on silver", "ground": "#CBD2DD", "ink": "#0B1F4B"},
+    {"key": "21", "name": "Black on mint", "ground": "#B6F2DC", "ink": "#0A0A0A"},
+    {"key": "22", "name": "Black on pink", "ground": "#FF9AD5", "ink": "#0A0A0A"},
+    {"key": "23", "name": "Blue on ice", "ground": "#CDEBFA", "ink": "#0057B8"},
+    {"key": "24", "name": "Magenta on lilac", "ground": "#E6DEF9", "ink": "#EC008C"},
+    {"key": "25", "name": "Slate", "ground": "#CDC9BE", "ink": "#2B2A33"},
+    {"key": "26", "name": "Slate dark", "ground": "#2B2A33", "ink": "#E0463A"},
+    {"key": "27", "name": "Nocturne", "ground": "#0B0F13", "ink": "#6ED6E4"},
+    {"key": "28", "name": "Periwinkle", "ground": "#929DE2", "ink": "#3C3E8C"},
+    {"key": "29", "name": "Silver", "ground": "#E9EDF3", "ink": "#D9580A"},
+    {"key": "30", "name": "Solarized", "ground": "#002B36", "ink": "#B58900"},
+    {"key": "31", "name": "Cream on indigo", "ground": "#1F3A6E", "ink": "#EFE9D8"},
+    {"key": "32", "name": "Cream on green", "ground": "#1B5A48", "ink": "#EFE9D8"},
+    {"key": "33", "name": "Cream on bengara", "ground": "#8E2F22", "ink": "#EFE9D8"},
+    {"key": "34", "name": "Gold on sumi", "ground": "#1C1A1A", "ink": "#C9A227"},
+    {"key": "35", "name": "Indigo on cream", "ground": "#EFE9D8", "ink": "#1F3A6E"},
+    {"key": "36", "name": "Vermilion on cream", "ground": "#EFE9D8", "ink": "#D5402F"},
+    {"key": "37", "name": "White on kon", "ground": "#101A3A", "ink": "#FFFFFF"}
+  ]
+}

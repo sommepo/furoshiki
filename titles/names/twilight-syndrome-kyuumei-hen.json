@@ -1,0 +1,324 @@
+{
+ "source": {
+  "vndb": "v33134",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c98893",
+   "kind": "person",
+   "name": "華山 リョウ",
+   "family": "華山",
+   "given": "リョウ",
+   "reading": "かざん リョウ",
+   "family_reading": "かざん",
+   "given_reading": "リョウ",
+   "romaji": "Kazan Ryou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hasegawa-yukari",
+   "kind": "person",
+   "name": "長谷川 ユカリ",
+   "family": "長谷川",
+   "given": "ユカリ",
+   "reading": "はせがわ ユカリ",
+   "family_reading": "はせがわ",
+   "given_reading": "ユカリ",
+   "romaji": "Hasegawa Yukari",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:itsushima-chisato",
+   "kind": "person",
+   "name": "逸島 チサト",
+   "family": "逸島",
+   "given": "チサト",
+   "reading": "いつしま チサト",
+   "family_reading": "いつしま",
+   "given_reading": "チサト",
+   "romaji": "Itsushima Chisato",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kishii-mika",
+   "kind": "person",
+   "name": "岸井 ミカ",
+   "family": "岸井",
+   "given": "ミカ",
+   "reading": "きしい ミカ",
+   "family_reading": "きしい",
+   "given_reading": "ミカ",
+   "romaji": "Kishii Mika",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aramata",
+   "kind": "person",
+   "name": "アラマタ",
+   "reading": "アラマタ",
+   "romaji": "Aramata",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:himegami-sakura",
+   "kind": "person",
+   "name": "姫神 桜",
+   "family": "姫神",
+   "given": "桜",
+   "reading": "ひめがみ さくら",
+   "family_reading": "ひめがみ",
+   "given_reading": "さくら",
+   "romaji": "Himegami Sakura",
+   "aliases": [
+    {
+     "text": "ヒメガミサクラ",
+     "reading": "ヒメガミサクラ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:tatara",
+   "kind": "person",
+   "name": "タタラ",
+   "reading": "タタラ",
+   "romaji": "Tatara",
+   "aliases": [
+    {
+     "text": "タタラ君",
+     "reading": "タタラくん"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:saeki",
+   "kind": "person",
+   "name": "サエキ",
+   "reading": "サエキ",
+   "romaji": "Saeki",
+   "aliases": [
+    {
+     "text": "サエキ君",
+     "reading": "サエキくん"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kuroda",
+   "kind": "person",
+   "name": "クロダ",
+   "reading": "クロダ",
+   "romaji": "Kuroda",
+   "aliases": [
+    {
+     "text": "クロダ君",
+     "reading": "クロダくん"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kawai",
+   "kind": "person",
+   "name": "カワイ",
+   "reading": "カワイ",
+   "romaji": "Kawai",
+   "aliases": [
+    {
+     "text": "カワイ君",
+     "reading": "カワイくん"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:major-futoi",
+   "kind": "person",
+   "name": "富等井",
+   "romaji": "Futoi",
+   "aliases": [
+    {
+     "text": "富等井少佐"
+    },
+    {
+     "text": "少佐",
+     "reading": "しょうさ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "alias:富等井少佐"
+   ]
+  },
+  {
+   "id": "place:hinashiro",
+   "kind": "place",
+   "name": "雛代",
+   "reading": "ひなしろ",
+   "romaji": "Hinashiro",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hinashiro-high",
+   "kind": "place",
+   "name": "雛城高校",
+   "reading": "ひなしろこうこう",
+   "romaji": "Hinashiro High School",
+   "aliases": [
+    {
+     "text": "雛城",
+     "reading": "ひなしろ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hinashiro-no-mori",
+   "kind": "place",
+   "name": "雛代の杜",
+   "reading": "ひなしろのもり",
+   "romaji": "Hinashiro no Mori",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:uragawa-no-machi",
+   "kind": "place",
+   "name": "裏側の街",
+   "reading": "うらがわのまち",
+   "romaji": "Uragawa no Machi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:asahi-doori",
+   "kind": "place",
+   "name": "朝日通り商店街",
+   "reading": "あさひどおりしょうてんがい",
+   "romaji": "Asahi-doori shopping street",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:oohashi-kensetsu",
+   "kind": "place",
+   "name": "大橋建設",
+   "reading": "おおはしけんせつ",
+   "romaji": "Oohashi Kensetsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:futaiten-no-ma",
+   "kind": "place",
+   "name": "不退転の間",
+   "reading": "ふたいてんのま",
+   "romaji": "Futaiten no Ma",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ikai-e-no-tabi",
+   "kind": "thing",
+   "name": "異界への旅",
+   "reading": "いかいへのたび",
+   "romaji": "Ikai e no Tabi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:maichou-shinbun",
+   "kind": "thing",
+   "name": "毎朝新聞",
+   "romaji": "Maichou Shinbun",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:heebon-sha",
+   "kind": "thing",
+   "name": "ヘーボン社",
+   "reading": "ヘーボンしゃ",
+   "romaji": "Heebon-sha",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

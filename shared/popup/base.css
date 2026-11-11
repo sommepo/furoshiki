@@ -14,6 +14,11 @@
   --sign: #ffffff;
   --book: #ffffff;
   --scale: 1;
+  /* The look's settings (Reader.show's model.look): how solid the ground is (1 as the theme
+     has it), and the corners. A theme sets --ground and --radius; .popup uses them through
+     these, so the user's sliders work in every theme. */
+  --opacity: 1;
+  --radius: 4px;
   --font: "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic UI", "Meiryo", sans-serif;
 }
 html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
@@ -22,20 +27,32 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   box-sizing: border-box;
   max-height: 100vh;
   overflow-y: auto;
-  background: var(--ground);
+  background: color-mix(in srgb, var(--ground) calc(var(--opacity) * 100%), transparent);
   border: 1px solid var(--edge);
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: calc(5px * var(--scale)) calc(5px * var(--scale)) calc(4px * var(--scale)) calc(7px * var(--scale));
   font-size: calc(13px * var(--scale));
   line-height: 1.35;
-  scrollbar-width: thin;
 }
-.popup::-webkit-scrollbar { width: 4px; }
-.popup::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+/* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, a thin
+   rounded thumb in the text's own colour, faint until the pointer is over the popup. (No
+   scrollbar-width or scrollbar-color here: with either, Chromium draws its own bar with a track
+   and passes these rules over.) */
+.popup::-webkit-scrollbar { width: 7px; height: 7px; background: transparent; }
+.popup::-webkit-scrollbar-track, .popup::-webkit-scrollbar-corner { background: transparent; }
+.popup::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.popup::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 4px;
+}
+.popup:hover::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 34%, transparent); }
+.popup::-webkit-scrollbar-thumb:active { background-color: color-mix(in srgb, var(--text) 52%, transparent); }
 .entry { position: relative; padding: 3px 0 4px; }
 .entry + .entry { border-top: 1px solid var(--edge); }
 .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; }
-.headword { font-size: calc(17px * var(--scale)); font-weight: 600; ruby-position: over; }
+.headword { font-size: calc(17px * var(--scale)); font-weight: 600; ruby-position: over; ruby-align: center; }
 .headword rt { display: none; font-size: 0.62em; font-weight: 400; color: var(--dim); }
 .reading, .frequency, .lookups, .number, .notes, .dictionary-name, .pitch { color: var(--dim); font-size: calc(11px * var(--scale)); }
 .reasons, .pitch { color: var(--accent); font-size: calc(11px * var(--scale)); }
@@ -49,6 +66,8 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .tag { font-size: calc(11px * var(--scale)); color: var(--dim); }
 .tag-name::after { content: " "; }
+/* A name in the running game (its names dictionary): the accent's colour, in every theme. */
+.tag.name { color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 3px; padding: 0 4px; }
 .senses { list-style: none; margin: 0; padding: 0; }
 .sense .tag { margin-right: 0.3em; }
 .number { margin-right: 0.3em; }
@@ -87,3 +106,31 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .card-buttons.ask .ask-keep { border-color: var(--accent); }
 .message { font-size: calc(13px * var(--scale)); padding: 2px 0; }
 .link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* ---- A name of the running game as a card (entry.card): picture, name, part, other names ---- */
+.name-card { display: flex; gap: calc(10px * var(--scale)); align-items: flex-start; margin: calc(4px * var(--scale)) 0 calc(3px * var(--scale)); }
+.name-card .portrait {
+  flex: none; width: calc(54px * var(--scale)); aspect-ratio: 3 / 4; object-fit: cover; object-position: 50% 18%;
+  border-radius: calc(6px * var(--scale)); border: 1px solid color-mix(in srgb, var(--edge) 70%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.popup[data-portrait="large"] .name-card .portrait { width: calc(84px * var(--scale)); }
+.name-card .who { min-width: 0; flex: 1; }
+.who-name { font-size: calc(18px * var(--scale)); font-weight: 600; line-height: 1.9; margin-top: calc(-2px * var(--scale)); }
+.who-name ruby { ruby-position: over; ruby-align: center; margin-right: 0.3em; }
+.who-name rt { font-size: 0.55em; font-weight: 400; color: var(--dim); letter-spacing: 0.02em; }
+.who-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em 0.6em; margin-top: calc(-1px * var(--scale)); }
+.romaji { color: var(--dim); font-size: calc(11px * var(--scale)); letter-spacing: 0.02em; }
+.tag.role { color: var(--accent); }
+.also { margin-top: calc(3px * var(--scale)); display: flex; flex-wrap: wrap; gap: calc(3px * var(--scale)) calc(5px * var(--scale)); }
+.alias {
+  font-size: calc(11.5px * var(--scale)); padding: 0 calc(6px * var(--scale)); border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 9%, transparent); border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+}
+.about { margin-top: calc(4px * var(--scale)); color: color-mix(in srgb, var(--text) 86%, transparent); font-size: calc(12px * var(--scale)); line-height: 1.45; }
+/* ---- Compact definitions (model.look.compact) and no part-of-speech tags (hideTags) ---- */
+.sense.later { display: none; }
+.entry.all .sense.later { display: list-item; }
+.entry.all .more { display: none; }
+.more { font-size: calc(11px * var(--scale)); text-decoration: none; opacity: 0.9; }
+.popup.no-tags .sense .tag[data-category="part-of-speech"] { display: none; }

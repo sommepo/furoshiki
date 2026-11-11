@@ -1,0 +1,248 @@
+{
+ "source": {
+  "vndb": "v12402",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c45458",
+   "kind": "person",
+   "name": "ミシェル・ボランジェ",
+   "reading": "ミシェル・ボランジェ",
+   "romaji": "Michel Bollinger",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c48418",
+   "kind": "person",
+   "name": "You",
+   "romaji": "You",
+   "aliases": [],
+   "role": "main",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c45457",
+   "kind": "person",
+   "name": "館の女中",
+   "romaji": "The Maid",
+   "aliases": [
+    {
+     "text": "ジゼル",
+     "reading": "ジゼル"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c45459",
+   "kind": "person",
+   "name": "白い髪の娘",
+   "romaji": "The White-Haired Girl",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c48420",
+   "kind": "person",
+   "name": "モルガーナ",
+   "reading": "モルガーナ",
+   "romaji": "Morgana",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c45460",
+   "kind": "person",
+   "name": "メル・ローズ",
+   "reading": "メル・ローズ",
+   "romaji": "Mell Rhodes",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45461",
+   "kind": "person",
+   "name": "ネリー・ローズ",
+   "reading": "ネリー・ローズ",
+   "romaji": "Nellie Rhodes",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45462",
+   "kind": "person",
+   "name": "貿易商の男",
+   "romaji": "The Merchant",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c45463",
+   "kind": "person",
+   "name": "ポーリーン",
+   "reading": "ポーリーン",
+   "romaji": "Pauline",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45464",
+   "kind": "person",
+   "name": "ヤコポ・ベアルザッティ",
+   "reading": "ヤコポ・ベアルザッティ",
+   "romaji": "Jacopo Bearzatti",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45465",
+   "kind": "person",
+   "name": "マリーア・カンパネッラ",
+   "reading": "マリーア・カンパネッラ",
+   "romaji": "Maria Campanella",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c48419",
+   "kind": "person",
+   "name": "ハビ",
+   "reading": "ハビ",
+   "romaji": "Habi",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c73607",
+   "kind": "person",
+   "name": "ディディエ・ボランジェ",
+   "reading": "ディディエ・ボランジェ",
+   "romaji": "Didier Bollinger",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c73608",
+   "kind": "person",
+   "name": "ジョルジュ・ボランジェ",
+   "reading": "ジョルジュ・ボランジェ",
+   "romaji": "Georges Bollinger",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c83761",
+   "kind": "person",
+   "name": "エメ・ジュベール",
+   "reading": "エメ・ジュベール",
+   "romaji": "Aimee Joubert",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c83760",
+   "kind": "person",
+   "name": "アーサー・ボールドウィン",
+   "reading": "アーサー・ボールドウィン",
+   "romaji": "Arthur Baldwin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c83762",
+   "kind": "person",
+   "name": "Orlando",
+   "romaji": "Orlando",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c83763",
+   "kind": "person",
+   "name": "Filippa",
+   "romaji": "Filippa",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:fata-morgana-no-yakata",
+   "kind": "place",
+   "name": "ファタ・モルガーナの館",
+   "reading": "ファタ・モルガーナのやかた",
+   "romaji": "Fata Morgana no Yakata",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

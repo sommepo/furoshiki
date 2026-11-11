@@ -19,18 +19,51 @@ option(HOME_CORES "Build the cores' host and its tests" OFF)
 # is left out of its package (tools/package-windows.sh).
 option(HOME_PUBLIC "A published build: nothing private built in" OFF)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia Network)
 
 add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp src/play_settings.h
 	src/popup_style.cpp src/popup_style.h
 	src/popup_controls.cpp src/popup_controls.h
+	# The popup made by hand in its customiser, without CSS (docs/furoshiki-3.md, 15).
+	src/popup_design.cpp src/popup_design.h
 	src/old_settings.cpp src/old_settings.h
 	src/app_folders.cpp src/app_folders.h
 	src/sounds.cpp src/sounds.h
 	src/look.cpp src/look.h
-	src/steam_bridge.cpp src/steam_bridge.h)
+	src/app_icon.cpp src/app_icon.h
+	src/steam_bridge.cpp src/steam_bridge.h
+	src/addons.cpp src/addons.h
+	# Lines from a source that is no core (docs/furoshiki-3.md, "Sources"): what makes them lines,
+	# the WebSocket they come over, the titles read that way.
+	src/line_feed.cpp src/line_feed.h
+	src/line_titles.cpp src/line_titles.h
+	src/ws_client.cpp src/ws_client.h
+	# A window of this computer read by OCR: the windows there are and their pictures, and the
+	# OCR helper's client (Furochibi's service, at an address that is the device's setting).
+	src/window_list.cpp src/window_list.h
+	src/ocr_client.cpp src/ocr_client.h
+	# Hooks started by the program (docs/hooks.md): the engines' output read into threads and
+	# lines, 0xDC00's Agent scripts listed and bundled, the programs running, the engines' files
+	# fetched, an engine run against a process.
+	src/hook_engine.cpp src/hook_engine.h
+	src/hook_scripts.cpp src/hook_scripts.h
+	src/hook_processes.cpp src/hook_processes.h
+	src/hook_fetch.cpp src/hook_fetch.h
+	src/hook_runner.cpp src/hook_runner.h
+	# A title's box art where none is built in: Steam's, VNDB's (docs/furoshiki-3.md, 14).
+	src/art_fetch.cpp src/art_fetch.h
+	# That helper installed on this computer, started when a window is read and stopped with the program.
+	src/ocr_helper.cpp src/ocr_helper.h
+	# The user's own services, by one pairing link (docs/pairing.md, "The other services").
+	src/services.cpp src/services.h
+	# A newer build of the program from the user's own Files page.
+	src/updater.cpp src/updater.h)
 target_include_directories(home_core PUBLIC src)
-target_link_libraries(home_core PUBLIC Qt6::Core Qt6::Gui Qt6::Multimedia)
+target_link_libraries(home_core PUBLIC Qt6::Core Qt6::Gui Qt6::Multimedia Qt6::Network)
+# The icon's mark and colours (icon/icon.json; tools/icon.py makes the rest from it).
+qt_add_resources(home_core "icon" PREFIX "/icon" BASE "${CMAKE_CURRENT_SOURCE_DIR}/icon" FILES icon/icon.json)
+# Furoshiki's stand-in for Agent's host, put in front of Agent's own runtime in a script's bundle.
+qt_add_resources(home_core "hooks" PREFIX "/hooks" BASE "${CMAKE_CURRENT_SOURCE_DIR}/hooks" FILES hooks/agent_host.js)
 if(NOT HOME_PUBLIC)
 	target_sources(home_core PRIVATE src/pairing.cpp src/pairing.h)
 endif()
@@ -55,18 +88,63 @@ if(NOT HOME_PUBLIC AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sounds/move.wav")
 		FILES sounds/move.wav sounds/select.wav sounds/back.wav)
 endif()
 qt_add_resources(reader-home "themes" PREFIX "/themes" BASE "${CMAKE_CURRENT_SOURCE_DIR}/themes" FILES ${HOME_THEMES})
+# The titles' records (../titles/*.json, docs/titles.md): the shelf says a title by its English name.
+file(GLOB HOME_TITLE_RECORDS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../titles/*.json"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../titles/names/*.json")
+if(HOME_TITLE_RECORDS)
+	qt_add_resources(reader-home "title_records" PREFIX "/titles" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../titles" FILES ${HOME_TITLE_RECORDS})
+endif()
+# The titles' box spines, where `tools/titles.py spines` has fetched them (../titles/build/spines,
+# not in Git: a dev build's own, as the names' portraits are).
+file(GLOB HOME_SPINES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../titles/build/spines/*.jpg")
+if(HOME_SPINES AND NOT HOME_PUBLIC)
+	qt_add_resources(reader-home "spines" PREFIX "/spines" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../titles/build/spines" FILES ${HOME_SPINES})
+endif()
+# Their front covers, where `tools/titles.py covers` has fetched them (../titles/build/covers, not in
+# Git either): the stage's and the open spine's picture where a game's app gives none.
+file(GLOB HOME_COVERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../titles/build/covers/*.jpg")
+if(HOME_COVERS AND NOT HOME_PUBLIC)
+	qt_add_resources(reader-home "covers" PREFIX "/covers" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../titles/build/covers" FILES ${HOME_COVERS})
+endif()
+# The study tracker, asked what was read of each title (docs/furoshiki-3.md): the dev line's, as
+# it is the maintainer's own service; it needs Qt's network module, which the cores' build has.
+if(HOME_CORES AND NOT HOME_PUBLIC)
+	find_package(Qt6 REQUIRED COMPONENTS Network)
+	target_link_libraries(reader-home PRIVATE Qt6::Network)
+	target_compile_definitions(reader-home PRIVATE HOME_TRACKER)
+endif()
+# Furoshiki 3's page (src/shelf_page.inc): its themes, seven values and three faces each.
+file(GLOB HOME_SHELF_THEMES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" shelf/*.json)
+qt_add_resources(reader-home "shelf" PREFIX "/shelf" BASE "${CMAKE_CURRENT_SOURCE_DIR}/shelf" FILES ${HOME_SHELF_THEMES})
 if(HOME_PUBLIC)
 	target_compile_definitions(home_core PUBLIC HOME_PUBLIC READER_NO_SAVE_SYNC)
 endif()
 if(WIN32)
+	enable_language(RC)
+	target_sources(reader-home PRIVATE icon/furoshiki.rc)
 	target_link_options(reader-home PRIVATE -mwindows)
 	# The Steam Controller is read from the device itself.
 	target_link_libraries(reader-home PRIVATE hid setupapi)
 endif()
 
+if(WIN32)
+	# Furoshiki's host for LunaHook (docs/hooks.md): beside the program, in hooks/. It loads
+	# LunaTranslator's DLL, which is fetched at first use and never built or shipped here.
+	add_executable(furoshiki-luna-host hook-helper/luna_host.cpp)
+	target_link_options(furoshiki-luna-host PRIVATE -municode -static)
+	set_target_properties(furoshiki-luna-host PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/hooks")
+endif()
 if(HOME_TESTS)
+	# A stand-in for a game, which the hook runner's test hooks (tools/test-hooks.sh).
+	enable_language(C)
+	add_executable(hook-target tests/hooks/hook_target.c)
+	set_target_properties(hook-target PROPERTIES ENABLE_EXPORTS ON C_VISIBILITY_PRESET default)
 	add_executable(reader-home-tests tests/tests.cpp)
 	target_link_libraries(reader-home-tests PRIVATE home_core)
+	# The CRT picture's layers, with the shared table they are made from.
+	target_sources(reader-home-tests PRIVATE src/crt_layers.cpp ../shared/reader/core/crt.cpp)
+	target_include_directories(reader-home-tests PRIVATE ../shared)
+	target_compile_definitions(reader-home-tests PRIVATE READER_CRT_DEFAULT_ON)
 	# The themes and fonts are checked where they are kept.
 	target_compile_definitions(reader-home-tests PRIVATE HOME_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
@@ -139,6 +217,16 @@ if(HOME_CORES)
 		FetchContent_MakeAvailable(home_zlib)
 	endif()
 	add_subdirectory(${HOME_FLYCAST_READER}/desktop ${CMAKE_CURRENT_BINARY_DIR}/reader_desktop)
+	# The hooks' scripts come as a zip, unpacked by the program (src/hook_fetch.cpp) with the
+	# reader's QuaZip: Windows' tar could not take their names that are not ASCII.
+	target_link_libraries(home_core PRIVATE QuaZip::QuaZip)
+	target_compile_definitions(home_core PRIVATE HOME_QUAZIP=1)
+	if(TARGET zlibstatic)
+		# QuaZip's headers include zlib's, whose zconf.h Windows' own build makes (as for save sync).
+		get_target_property(HOME_CORE_ZLIB_SOURCE zlibstatic SOURCE_DIR)
+		get_target_property(HOME_CORE_ZLIB_BINARY zlibstatic BINARY_DIR)
+		target_include_directories(home_core PRIVATE "${HOME_CORE_ZLIB_SOURCE}" "${HOME_CORE_ZLIB_BINARY}")
+	endif()
 	target_include_directories(reader_desktop BEFORE PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine
 		${HOME_READER}/.. ${HOME_FLYCAST_READER}/..)
 	find_package(Qt6 REQUIRED COMPONENTS Network)
@@ -252,8 +340,42 @@ if(HOME_CORES)
 		endif()
 	endforeach()
 
-	target_sources(reader-home PRIVATE src/main_window.cpp src/main_window.h
-		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp)
+	# The games' names dictionaries (tools/titles.py: docs/titles.md), made from titles/ as the
+	# build is configured (again when a title's files change), under the folder ReaderSession
+	# installs them from as a game starts (":/reader/names/names-<title>.zip"). None in a
+	# published build: there each comes with its game's script from the published list.
+	if(NOT HOME_PUBLIC)
+		find_package(Python3 COMPONENTS Interpreter QUIET)
+		set(HOME_TITLES "${CMAKE_CURRENT_SOURCE_DIR}/../titles")
+		file(GLOB HOME_TITLE_FILES CONFIGURE_DEPENDS "${HOME_TITLES}/*.json" "${HOME_TITLES}/names/*.json"
+			"${HOME_TITLES}/notes/*.json")
+		set(HOME_NAMES_DIR "${CMAKE_CURRENT_BINARY_DIR}/names")
+		if(Python3_Interpreter_FOUND AND HOME_TITLE_FILES)
+			file(REMOVE_RECURSE "${HOME_NAMES_DIR}")
+			execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/titles.py"
+				build --quiet --out "${HOME_NAMES_DIR}" RESULT_VARIABLE HOME_NAMES_MADE)
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${HOME_TITLE_FILES}
+				"${CMAKE_CURRENT_SOURCE_DIR}/../tools/titles.py")
+			file(GLOB HOME_NAMES_FILES "${HOME_NAMES_DIR}/names-*.zip")
+			if(HOME_NAMES_MADE EQUAL 0 AND HOME_NAMES_FILES)
+				qt_add_resources(home_reader "names" PREFIX "/reader/names" BASE "${HOME_NAMES_DIR}"
+					FILES ${HOME_NAMES_FILES})
+				list(LENGTH HOME_NAMES_FILES HOME_NAMES_COUNT)
+				message(STATUS "Furoshiki: names dictionaries bundled: ${HOME_NAMES_COUNT}")
+			else()
+				message(WARNING "Furoshiki: tools/titles.py build made no names dictionaries")
+			endif()
+		endif()
+	endif()
+
+	target_sources(reader-home PRIVATE src/main_window.cpp src/main_window.h src/crt_layers.cpp src/crt_layers.h
+		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp src/settings_crt.cpp
+		src/reader_rows.cpp src/reader_rows.h src/guide_window.cpp src/guide_window.h
+		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h
+		src/ocr_source.cpp src/ocr_source.h src/ocr_overlay.cpp src/ocr_overlay.h
+		src/hook_source.cpp src/hook_source.h
+		# The computer's sound for those titles' cards, without OBS (Windows' WASAPI loopback).
+		src/loopback_audio.cpp src/loopback_audio.h)
 	target_link_libraries(reader-home PRIVATE home_reader)
 	target_compile_definitions(reader-home PRIVATE HOME_CORES)
 	# Send feedback, one of the maintainer's own links: never in a published build.

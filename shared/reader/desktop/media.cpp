@@ -61,6 +61,70 @@ std::vector<qint16> PcmTools::TrimTrailingSilence(const std::vector<qint16>& inp
     return std::vector<qint16>(input.begin(), input.begin() + keep * channels);
 }
 
+std::vector<qint16> PcmTools::TrimToVoice(const std::vector<qint16>& input, int channels,
+                                          int rate, int threshold, int padding_ms,
+                                          qint64* first_frame) {
+    if (first_frame) {
+        *first_frame = 0;
+    }
+    if (channels <= 0 || rate <= 0) {
+        return {};
+    }
+    const qint64 frames = static_cast<qint64>(input.size()) / channels;
+    const qint64 window = std::max<qint64>(rate / 50, 1);
+    const qint64 windows = frames / window;
+    if (windows < 4) {
+        return TrimTrailingSilence(input, channels, threshold, rate * padding_ms / 1000);
+    }
+    // Each window's loudness: the root mean square of its samples, all channels.
+    std::vector<double> loud(static_cast<std::size_t>(windows));
+    for (qint64 w = 0; w < windows; ++w) {
+        double sum = 0;
+        const qint64 from = w * window * channels;
+        const qint64 count = window * channels;
+        for (qint64 i = 0; i < count; ++i) {
+            const double v = input[static_cast<std::size_t>(from + i)];
+            sum += v * v;
+        }
+        loud[static_cast<std::size_t>(w)] = std::sqrt(sum / static_cast<double>(count));
+    }
+    std::vector<double> sorted = loud;
+    std::sort(sorted.begin(), sorted.end());
+    const double quiet = sorted[sorted.size() / 10];
+    const double peak = sorted[sorted.size() * 95 / 100];
+    if (peak <= threshold / 3.0) {
+        return {};
+    }
+    // Nothing stands out of the clip's own quiet: sound all through, kept as it is.
+    if (peak < quiet * 2.5) {
+        return std::vector<qint16>(input.begin(), input.begin() + frames * channels);
+    }
+    const double gate = std::max({quiet * 2.5, peak * 0.06, threshold / 3.0});
+    constexpr qint64 Run = 3;
+    qint64 first = -1;
+    qint64 last = -1;
+    qint64 run = 0;
+    for (qint64 w = 0; w < windows; ++w) {
+        run = loud[static_cast<std::size_t>(w)] > gate ? run + 1 : 0;
+        if (run >= Run) {
+            if (first < 0) {
+                first = w - Run + 1;
+            }
+            last = w;
+        }
+    }
+    if (first < 0) {
+        return {};
+    }
+    const qint64 padding = static_cast<qint64>(rate) * padding_ms / 1000;
+    const qint64 begin = std::max<qint64>(first * window - padding, 0);
+    const qint64 end = std::min<qint64>((last + 1) * window + padding, frames);
+    if (first_frame) {
+        *first_frame = begin;
+    }
+    return std::vector<qint16>(input.begin() + begin * channels, input.begin() + end * channels);
+}
+
 void PcmTools::FadeEdges(std::vector<qint16>& samples, int channels, int frames) {
     if (channels <= 0) {
         return;

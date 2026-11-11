@@ -84,6 +84,9 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     /** A word not in Anki gets a soft tint behind its headword. */
     var markUnknown = true
 
+    /** The look's own settings as the page takes them (ReaderSettings.popupLook); the classic popup has none. */
+    var look: JSONObject? = null
+
     /**
      * The popup's look: "classic" (drawn by these views, as before) or a theme of the popup page
      * ("console": the console's colours, "furoshiki", "yomitan-dark", "paper", "paper-dark"), drawn by a
@@ -178,13 +181,14 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             .put("add", context.getString(R.string.reader_lookup_add))
             .put("book", context.getString(R.string.reader_lookup_in_deck))
             .put("dictionaries", context.getString(R.string.reader_lookup_open_dictionaries))
+            .put("more", context.getString(R.string.reader_lookup_more))
             .put("listen", context.getString(R.string.reader_audio_listen))
             .put("stop", context.getString(R.string.reader_audio_stop))
             .put("keep", context.getString(R.string.reader_audio_keep))
             .put("drop", context.getString(R.string.reader_audio_drop))
         val model = PopupPage.model(
             entries, message, cardCorner.name.lowercase(), allowDuplicates, markUnknown, textScale,
-            Console.APP_KEY, org.readers.app.reader.ReaderSession.gameKey, labels
+            Console.APP_KEY, org.readers.app.reader.ReaderSession.gameKey, labels, look
         )
         page.call("Reader.show($model)")
     }

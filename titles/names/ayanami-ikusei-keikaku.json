@@ -1,0 +1,416 @@
+{
+ "source": {
+  "vndb": "v1543",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:ayanami-rei",
+   "kind": "person",
+   "name": "綾波 レイ",
+   "family": "綾波",
+   "given": "レイ",
+   "reading": "あやなみ レイ",
+   "family_reading": "あやなみ",
+   "given_reading": "レイ",
+   "romaji": "Ayanami Rei",
+   "aliases": [
+    {
+     "text": "ファーストチルドレン",
+     "reading": "ファーストチルドレン"
+    }
+   ],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:souryuu-asuka-langley",
+   "kind": "person",
+   "name": "惣流・アスカ・ラングレー",
+   "family": "惣流",
+   "given": "アスカ",
+   "reading": "そうりゅう・アスカ・ラングレー",
+   "family_reading": "そうりゅう",
+   "given_reading": "アスカ",
+   "romaji": "Souryuu Asuka Langley",
+   "aliases": [
+    {
+     "text": "セカンドチルドレン",
+     "reading": "セカンドチルドレン"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ikari-shinji",
+   "kind": "person",
+   "name": "碇 シンジ",
+   "family": "碇",
+   "given": "シンジ",
+   "reading": "いかり シンジ",
+   "family_reading": "いかり",
+   "given_reading": "シンジ",
+   "romaji": "Ikari Shinji",
+   "aliases": [
+    {
+     "text": "サードチルドレン",
+     "reading": "サードチルドレン"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ikari-gendou",
+   "kind": "person",
+   "name": "碇 ゲンドウ",
+   "family": "碇",
+   "given": "ゲンドウ",
+   "reading": "いかり ゲンドウ",
+   "family_reading": "いかり",
+   "given_reading": "ゲンドウ",
+   "romaji": "Ikari Gendou",
+   "aliases": [
+    {
+     "text": "碇司令",
+     "reading": "いかりしれい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:katsuragi-misato",
+   "kind": "person",
+   "name": "葛城 ミサト",
+   "family": "葛城",
+   "given": "ミサト",
+   "reading": "かつらぎ ミサト",
+   "family_reading": "かつらぎ",
+   "given_reading": "ミサト",
+   "romaji": "Katsuragi Misato",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:akagi-ritsuko",
+   "kind": "person",
+   "name": "赤木 リツコ",
+   "family": "赤木",
+   "given": "リツコ",
+   "reading": "あかぎ リツコ",
+   "family_reading": "あかぎ",
+   "given_reading": "リツコ",
+   "romaji": "Akagi Ritsuko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:fuyutsuki-kouzou",
+   "kind": "person",
+   "name": "冬月 コウゾウ",
+   "family": "冬月",
+   "given": "コウゾウ",
+   "reading": "ふゆつき コウゾウ",
+   "family_reading": "ふゆつき",
+   "given_reading": "コウゾウ",
+   "romaji": "Fuyutsuki Kouzou",
+   "aliases": [
+    {
+     "text": "冬月副司令",
+     "reading": "ふゆつきふくしれい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ibuki-maya",
+   "kind": "person",
+   "name": "伊吹 マヤ",
+   "family": "伊吹",
+   "given": "マヤ",
+   "reading": "いぶき マヤ",
+   "family_reading": "いぶき",
+   "given_reading": "マヤ",
+   "romaji": "Ibuki Maya",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hyuuga-makoto",
+   "kind": "person",
+   "name": "日向 マコト",
+   "family": "日向",
+   "given": "マコト",
+   "reading": "ひゅうが マコト",
+   "family_reading": "ひゅうが",
+   "given_reading": "マコト",
+   "romaji": "Hyuuga Makoto",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aoba-shigeru",
+   "kind": "person",
+   "name": "青葉 シゲル",
+   "family": "青葉",
+   "given": "シゲル",
+   "reading": "あおば シゲル",
+   "family_reading": "あおば",
+   "given_reading": "シゲル",
+   "romaji": "Aoba Shigeru",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kaji-ryouji",
+   "kind": "person",
+   "name": "加持 リョウジ",
+   "family": "加持",
+   "given": "リョウジ",
+   "reading": "かじ リョウジ",
+   "family_reading": "かじ",
+   "given_reading": "リョウジ",
+   "romaji": "Kaji Ryouji",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:suzuhara-touji",
+   "kind": "person",
+   "name": "鈴原 トウジ",
+   "family": "鈴原",
+   "given": "トウジ",
+   "reading": "すずはら トウジ",
+   "family_reading": "すずはら",
+   "given_reading": "トウジ",
+   "romaji": "Suzuhara Touji",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aida-kensuke",
+   "kind": "person",
+   "name": "相田 ケンスケ",
+   "family": "相田",
+   "given": "ケンスケ",
+   "reading": "あいだ ケンスケ",
+   "family_reading": "あいだ",
+   "given_reading": "ケンスケ",
+   "romaji": "Aida Kensuke",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:horaki-hikari",
+   "kind": "person",
+   "name": "洞木 ヒカリ",
+   "family": "洞木",
+   "given": "ヒカリ",
+   "reading": "ほらき ヒカリ",
+   "family_reading": "ほらき",
+   "given_reading": "ヒカリ",
+   "romaji": "Horaki Hikari",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nagisa-kaworu",
+   "kind": "person",
+   "name": "渚 カヲル",
+   "family": "渚",
+   "given": "カヲル",
+   "reading": "なぎさ カヲル",
+   "family_reading": "なぎさ",
+   "given_reading": "カヲル",
+   "romaji": "Nagisa Kaworu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:pen-pen",
+   "kind": "person",
+   "name": "ペンペン",
+   "reading": "ペンペン",
+   "romaji": "Pen Pen",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tokyo-3",
+   "kind": "place",
+   "name": "第3新東京市",
+   "reading": "だいさんしんとうきょうし",
+   "romaji": "Tokyo-3",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:geofront",
+   "kind": "place",
+   "name": "ジオフロント",
+   "reading": "ジオフロント",
+   "romaji": "GeoFront",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:daiichi-middle-school",
+   "kind": "place",
+   "name": "第壱中学校",
+   "reading": "だいいちちゅうがっこう",
+   "romaji": "Daiichi Middle School",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:nerv",
+   "kind": "thing",
+   "name": "ネルフ",
+   "reading": "ネルフ",
+   "romaji": "NERV",
+   "aliases": [
+    {
+     "text": "NERV",
+     "reading": "ネルフ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:seele",
+   "kind": "thing",
+   "name": "ゼーレ",
+   "reading": "ゼーレ",
+   "romaji": "SEELE",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:evangelion",
+   "kind": "thing",
+   "name": "エヴァンゲリオン",
+   "reading": "エヴァンゲリオン",
+   "romaji": "Evangelion",
+   "aliases": [
+    {
+     "text": "エヴァ",
+     "reading": "エヴァ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:unit-00",
+   "kind": "thing",
+   "name": "零号機",
+   "reading": "ぜろごうき",
+   "romaji": "Unit-00",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:unit-01",
+   "kind": "thing",
+   "name": "初号機",
+   "reading": "しょごうき",
+   "romaji": "Unit-01",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:unit-02",
+   "kind": "thing",
+   "name": "弐号機",
+   "reading": "にごうき",
+   "romaji": "Unit-02",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:angel",
+   "kind": "thing",
+   "name": "使徒",
+   "reading": "しと",
+   "romaji": "Angel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

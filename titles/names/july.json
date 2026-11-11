@@ -1,0 +1,99 @@
+{
+ "source": {
+  "vndb": "v3976",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:takamura-makoto",
+   "kind": "person",
+   "name": "高村 誠",
+   "family": "高村",
+   "given": "誠",
+   "reading": "たかむら まこと",
+   "family_reading": "たかむら",
+   "given_reading": "まこと",
+   "romaji": "Takamura Makoto",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:joshua",
+   "kind": "person",
+   "name": "ヨシュア",
+   "reading": "ヨシュア",
+   "romaji": "Joshua",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:eriko",
+   "kind": "person",
+   "name": "えり子",
+   "reading": "えりこ",
+   "romaji": "Eriko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tokyo",
+   "kind": "place",
+   "name": "東京",
+   "reading": "とうきょう",
+   "romaji": "Tokyo",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:london",
+   "kind": "place",
+   "name": "ロンドン",
+   "reading": "ロンドン",
+   "romaji": "London",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:nax-pharmaceutical",
+   "kind": "thing",
+   "name": "NAX製薬",
+   "romaji": "NAX Pharmaceutical",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:sexless-bodies",
+   "kind": "thing",
+   "name": "セックスレス体",
+   "romaji": "Sexless Bodies",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  }
+ ]
+}

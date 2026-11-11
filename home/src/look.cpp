@@ -413,4 +413,12 @@ QList<Theme> LoadThemes(const QString& folder) {
     return themes;
 }
 
+QSize FirstWindowSize(QSize room) {
+    QSize size(1920, 1080);
+    if (size.width() > room.width() || size.height() > room.height()) {
+        size.scale(room, Qt::KeepAspectRatio);
+    }
+    return size;
+}
+
 } // namespace Home

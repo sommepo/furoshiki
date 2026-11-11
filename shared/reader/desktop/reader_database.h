@@ -5,6 +5,7 @@
 
 #include <optional>
 #include <utility>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
 #include <QMutex>
@@ -100,6 +101,20 @@ public:
     /// twice takes nothing out the second time.
     qint64 StripOverlaps(bool apply);
 
+    /**
+     * Works each session's reading time out again from when its lines came and when words were
+     * looked up (ReadingTime in stats.h), with `idle_timeout_ms` as the longest a passage is
+     * read, and lowers each of its days to that where it was counted higher. Time is never
+     * added. The time as counted is kept (`raw_active_ms`), so tidying again, with another
+     * timeout, starts from it, and UntidyReadingTime puts it back. One session, or every one
+     * but `skip_session` (one still being added to). `day_of` is the tracker's.
+     */
+    TidyReport TidyReadingTime(qint64 idle_timeout_ms, std::optional<qint64> only_session = std::nullopt,
+                               std::optional<qint64> skip_session = std::nullopt,
+                               const std::function<QString(qint64)>& day_of = {});
+    /// Every tidied day's time back as it was counted; how many sessions had any.
+    int UntidyReadingTime();
+
     [[nodiscard]] bool HasSeen(const QString& game, const QString& source_id);
 
     // ---- Words looked up ----
@@ -135,6 +150,16 @@ public:
     /// What has been read, by reading day and game, with the games' names: what this install
     /// sends to the save sync service, whole each time ("days" and "games" of its record).
     [[nodiscard]] QJsonObject StatsRecord();
+    /// The most words a record carries (the keeper takes records up to 4 MB; Furochibi's own
+    /// record carries as many).
+    static constexpr int RecordLookups = 20000;
+    /**
+     * The words looked up here, for the record this install sends (its "lookups"): each
+     * {expression, reading, game, title, count, first, last}, the most looked up first, at most
+     * `limit`. Furochibi adds every device's up for its words looked up most
+     * (furochibi/server/console_ocr/library.py, merge_lookups).
+     */
+    [[nodiscard]] QJsonArray LookupsRecord(int limit = RecordLookups);
     /// One CSV row per session, oldest first.
     [[nodiscard]] QString ExportSessionsCsv();
 

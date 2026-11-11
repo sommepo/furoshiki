@@ -46,9 +46,11 @@ class DictionaryLookup(
 
     /**
      * Looks up the words starting at the first character of [text]. Returns at most
-     * [maxResults] headwords, best first.
+     * [maxResults] headwords, best first. [game] is the running game's ID: dictionaries scoped
+     * to it are used, and their entries come first among words of the same length; other
+     * scoped dictionaries are not.
      */
-    fun lookup(text: String, maxResults: Int = 24): List<LookupResult> {
+    fun lookup(text: String, maxResults: Int = 24, game: String = ""): List<LookupResult> {
         val scan = scannable(text)
         if (scan.isEmpty()) return emptyList()
 
@@ -70,7 +72,7 @@ class DictionaryLookup(
             length--
         }
 
-        val rows = database.findTerms(byTerm.keys)
+        val rows = database.findTerms(byTerm.keys, game)
         if (rows.isEmpty()) return emptyList()
 
         // A headword is one expression + reading. Keep, per headword, the best way it matched.
@@ -130,6 +132,8 @@ class DictionaryLookup(
         if (confirmed.isEmpty()) return emptyList()
         val ordered = confirmed.sortedWith(
             compareByDescending<Headword> { it.sourceLength }
+                // A name in the running game before any other word of its length.
+                .thenByDescending { h -> h.entries.any { it.scoped } }
                 .thenBy { it.reasons.size }
                 .thenBy { h -> h.entries.minOf { it.priority } }
                 .thenByDescending { h -> h.entries.maxOf { it.score } }
@@ -146,7 +150,7 @@ class DictionaryLookup(
                 matchedText = text.substring(0, h.sourceLength.coerceAtMost(text.length)),
                 reasons = h.reasons,
                 entries = h.entries.sortedWith(
-                    compareBy<TermEntry> { it.priority }.thenByDescending { it.score }
+                    compareByDescending<TermEntry> { it.scoped }.thenBy { it.priority }.thenByDescending { it.score }
                 ),
                 frequencies = frequencies(meta, h.reading),
                 pitches = pitches(meta, h.reading.ifEmpty { h.expression })

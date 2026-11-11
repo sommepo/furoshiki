@@ -11,6 +11,12 @@ import org.json.JSONObject
 
 /** Where the app keeps things, as the desktop program's `program/consoles/<key>` has them. */
 object Places {
+    /** In the "home" preferences: games without a script are listed too (they play, unread). */
+    const val KEY_ALL_GAMES = "all_games"
+
+    /** A pinned shortcut's intent: the game to start at once. */
+    const val ACTION_PLAY = "io.github.sommepo.furoshiki.PLAY"
+
     const val SYSTEM_PSP = "ppsspp"
     private const val SD_ID = "00000000000000000000000000000000"
 

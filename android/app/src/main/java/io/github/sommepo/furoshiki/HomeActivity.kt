@@ -70,6 +70,87 @@ class HomeActivity : AppCompatActivity() {
         registerReceiver(scanned, IntentFilter(Places.SCANNED), Context.RECEIVER_NOT_EXPORTED)
         page.loadUrl("file:///android_asset/front/index.html")
         scan()
+        playPinned(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        playPinned(intent)
+    }
+
+    /** RetroAchievements: the user and the password, sent once to retroachievements.org for a token. */
+    private fun askAchievements() {
+        val kept = Places.playSettings(this)
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+        val user = android.widget.EditText(themed).apply {
+            hint = "User"
+            setText(kept.raw("achievements.user"))
+            isSingleLine = true
+        }
+        val password = android.widget.EditText(themed).apply {
+            hint = "Password"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            isSingleLine = true
+        }
+        val box = android.widget.LinearLayout(themed).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(user)
+            addView(password)
+        }
+        androidx.appcompat.app.AlertDialog.Builder(themed)
+            .setTitle("RetroAchievements")
+            .setMessage("For the cores that have achievements. The password is sent to retroachievements.org once; only the token it gives is kept.")
+            .setView(box)
+            .setPositiveButton("Log in") { _, _ ->
+                val name = user.text.toString().trim()
+                val secret = password.text.toString()
+                if (name.isEmpty() || secret.isEmpty()) return@setPositiveButton
+                Thread {
+                    val said = runCatching {
+                        val form = "r=login2&u=" + java.net.URLEncoder.encode(name, "UTF-8") + "&p=" + java.net.URLEncoder.encode(secret, "UTF-8")
+                        val link = java.net.URL("https://retroachievements.org/dorequest.php").openConnection() as java.net.HttpURLConnection
+                        link.requestMethod = "POST"
+                        link.doOutput = true
+                        link.connectTimeout = 10000
+                        link.readTimeout = 15000
+                        link.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                        link.setRequestProperty("User-Agent", "Furoshiki/1")
+                        link.outputStream.use { it.write(form.toByteArray()) }
+                        val answer = JSONObject((if (link.responseCode < 400) link.inputStream else link.errorStream).bufferedReader().use { it.readText() })
+                        val token = answer.optString("Token")
+                        if (answer.optBoolean("Success") && token.isNotEmpty()) {
+                            kept.set("achievements.user", name)
+                            kept.set("achievements.token", token)
+                            "Logged in as $name"
+                        } else {
+                            "Not logged in: " + answer.optString("Error", "no answer")
+                        }
+                    }.getOrElse { "Not logged in: ${it.message}" }
+                    callPage("say(${JSONObject.quote(said)}); Front.reload()")
+                }.start()
+            }
+            .setNeutralButton("Log out") { _, _ ->
+                kept.set("achievements.user", "")
+                kept.set("achievements.token", "")
+                callPage("Front.reload()")
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** A game's shortcut on the home screen was tapped: the game, at once. */
+    private fun playPinned(intent: Intent?) {
+        if (intent?.action != Places.ACTION_PLAY) return
+        val path = intent.getStringExtra(GameActivity.EXTRA_PATH) ?: return
+        intent.action = null // once: not again when the page comes back
+        if (!java.io.File(path).exists()) return
+        startActivity(
+            Intent(this, GameActivity::class.java).putExtra(GameActivity.EXTRA_PATH, path)
+                .putExtra(GameActivity.EXTRA_CONSOLE, intent.getStringExtra(GameActivity.EXTRA_CONSOLE))
+                .putExtra(GameActivity.EXTRA_GAME, intent.getStringExtra(GameActivity.EXTRA_GAME))
+        )
     }
 
     override fun onDestroy() {
@@ -83,6 +164,7 @@ class HomeActivity : AppCompatActivity() {
             it.hide(WindowInsets.Type.systemBars())
             it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+        showLower()
         callPage("if (window.Front) Front.reload()")
         offerGettingStarted()
         // Back from the scripts: the games they read are listed.
@@ -90,6 +172,12 @@ class HomeActivity : AppCompatActivity() {
             scriptsOpened = false
             scan()
         }
+    }
+
+    override fun onPause() {
+        // The second display is a game's from here (its trackpad, a 3DS's lower screen).
+        hideLower()
+        super.onPause()
     }
 
     private var scriptsOpened = false
@@ -110,6 +198,58 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun callPage(script: String) = runOnUiThread { page.evaluateJavascript(script, null) }
+
+    // ---- A second display (the Thor's lower screen): the title in hand and the keys ----
+
+    /** The page of the second display, while this page is in front and there is one. */
+    private var lower: LowerPage? = null
+
+    /** What the first page last said the second shows: a page shown later starts with it. */
+    private var lowerShown = ""
+
+    private fun secondDisplay() = getSystemService(android.hardware.display.DisplayManager::class.java)
+        .getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION).firstOrNull()
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private inner class LowerPage(display: android.view.Display) : android.app.Presentation(this@HomeActivity, display) {
+        val view = WebView(context)
+
+        override fun onCreate(state: Bundle?) {
+            super.onCreate(state)
+            view.setBackgroundColor(android.graphics.Color.BLACK)
+            view.settings.javaScriptEnabled = true
+            view.settings.allowFileAccess = true
+            view.isVerticalScrollBarEnabled = false
+            view.addJavascriptInterface(LowerBridge(), "FuroshikiHost")
+            view.webViewClient = object : android.webkit.WebViewClient() {
+                override fun onPageFinished(page: WebView, url: String) = tell(lowerShown)
+            }
+            setContentView(view)
+            view.loadUrl("file:///android_asset/front/index.html#lower")
+        }
+
+        fun tell(json: String) {
+            if (json.isNotEmpty()) view.evaluateJavascript("if (window.Lower) Lower.show(${org.json.JSONObject.quote(json)})", null)
+        }
+    }
+
+    /** What the second display's page may ask: only to tell the first what a finger did. */
+    private inner class LowerBridge {
+        @JavascriptInterface
+        fun remote(what: String) = callPage("Front.remote(${org.json.JSONObject.quote(what)})")
+    }
+
+    private fun showLower() {
+        if (lower != null) return
+        val display = secondDisplay() ?: return
+        lower = runCatching { LowerPage(display).also { it.show() } }.getOrNull()
+        callPage("if (window.Front) { fit(); Front.reload(); }")
+    }
+
+    private fun hideLower() {
+        lower?.dismiss()
+        lower = null
+    }
 
     private fun scan() {
         if (!hasAccess() || scanning.isNotEmpty()) return
@@ -160,8 +300,24 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun asset(path: String): String = assets.open("front/$path").bufferedReader().use { it.readText() }
 
+        /** Whether a second display shows the title in hand and the keys (the page is then all shelf). */
+        @JavascriptInterface
+        fun twoScreens(): Boolean = lower != null
+
+        @JavascriptInterface
+        fun lower(json: String) {
+            lowerShown = json
+            runOnUiThread { lower?.tell(json) }
+        }
+
         @JavascriptInterface
         fun themes(): String = JSONArray(assets.list("front/themes").orEmpty().toList()).toString()
+
+        @JavascriptInterface
+        fun icon(): String = AppIcon.label(this@HomeActivity)
+
+        @JavascriptInterface
+        fun pickIcon() = runOnUiThread { AppIcon.pick(this@HomeActivity) { callPage("Front.reload()") } }
 
         @JavascriptInterface
         fun hasAccess(): Boolean = this@HomeActivity.hasAccess()
@@ -239,6 +395,43 @@ class HomeActivity : AppCompatActivity() {
             )
         }
 
+        /** Whether games without a script are listed too, and that changed (the folders are looked through again). */
+        @JavascriptInterface
+        fun allGames(): Boolean = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, false)
+
+        @JavascriptInterface
+        fun setAllGames(all: Boolean) {
+            getSharedPreferences("home", MODE_PRIVATE).edit().putBoolean(Places.KEY_ALL_GAMES, all).apply()
+            runOnUiThread { scan() }
+        }
+
+        /** A game on the launcher's home screen: tapped, it starts at once. */
+        @JavascriptInterface
+        fun pin(path: String, console: String, game: String, title: String) = runOnUiThread {
+            val shortcuts = getSystemService(android.content.pm.ShortcutManager::class.java)
+            if (shortcuts == null || !shortcuts.isRequestPinShortcutSupported) {
+                callPage("say('This launcher takes no shortcuts')")
+                return@runOnUiThread
+            }
+            val start = Intent(this@HomeActivity, HomeActivity::class.java).setAction(Places.ACTION_PLAY)
+                .putExtra(GameActivity.EXTRA_PATH, path).putExtra(GameActivity.EXTRA_CONSOLE, console)
+                .putExtra(GameActivity.EXTRA_GAME, game)
+            val shortcut = android.content.pm.ShortcutInfo.Builder(this@HomeActivity, "game:$console:$game")
+                .setShortLabel(title.take(24)).setLongLabel(title)
+                .setIcon(android.graphics.drawable.Icon.createWithResource(this@HomeActivity, applicationInfo.icon))
+                .setIntent(start).build()
+            shortcuts.requestPinShortcut(shortcut, null)
+        }
+
+        /** RetroAchievements' user where one is logged in, else empty. */
+        @JavascriptInterface
+        fun achievementsUser(): String = Places.playSettings(this@HomeActivity).raw("achievements.user")
+
+        /** Asks for the login and keeps the token it gives (the password is sent once and not kept); or logs out. */
+        @JavascriptInterface
+        fun achievementsLogin() = runOnUiThread { askAchievements() }
+
+
         /** The consoles whose cores have said what they understand, in the order they are played. */
         @JavascriptInterface
         fun consoles(): String {
@@ -284,6 +477,12 @@ class HomeActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun open(screen: String) {
+            // One page of the reader's settings: "settings:READING", by its section's name.
+            if (screen.startsWith("settings:")) {
+                val section = ReaderSettingsActivity.Section.values().firstOrNull { it.name == screen.substringAfter(':') } ?: return
+                startActivity(ReaderSettingsActivity.intent(this@HomeActivity, section))
+                return
+            }
             val activity = when (screen) {
                 "settings" -> ReaderSettingsActivity::class.java
                 "dictionaries" -> DictionaryManagerActivity::class.java

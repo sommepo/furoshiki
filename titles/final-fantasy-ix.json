@@ -1,0 +1,23 @@
+{
+ "title": "ファイナルファンタジーIX",
+ "english": "Final Fantasy IX",
+ "ids": [
+  "SCPS-45500",
+  "SCPS-45501",
+  "SCPS-45502",
+  "SCPS-45503",
+  "SLPS-02000",
+  "SLPS-02001",
+  "SLPS-02002",
+  "SLPS-02003"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "jiten": 131376,
+ "anilist": null,
+ "guide": null,
+ "screenscraper": {
+  "ps1": 19256
+ }
+}

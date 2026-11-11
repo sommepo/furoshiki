@@ -1,0 +1,210 @@
+{
+ "source": {
+  "vndb": "v1152",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c7877",
+   "kind": "person",
+   "name": "三上 智也",
+   "family": "三上",
+   "given": "智也",
+   "reading": "みかみ ともや",
+   "family_reading": "みかみ",
+   "given_reading": "ともや",
+   "romaji": "Mikami Tomoya",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7878",
+   "kind": "person",
+   "name": "桧月 彩花",
+   "family": "桧月",
+   "given": "彩花",
+   "reading": "ひずき あやか",
+   "family_reading": "ひずき",
+   "given_reading": "あやか",
+   "romaji": "Hizuki Ayaka",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7879",
+   "kind": "person",
+   "name": "今坂 唯笑",
+   "family": "今坂",
+   "given": "唯笑",
+   "reading": "いまさか ゆえ",
+   "family_reading": "いまさか",
+   "given_reading": "ゆえ",
+   "romaji": "Imasaka Yue",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7880",
+   "kind": "person",
+   "name": "双海 詩音",
+   "family": "双海",
+   "given": "詩音",
+   "reading": "ふたみ しおん",
+   "family_reading": "ふたみ",
+   "given_reading": "しおん",
+   "romaji": "Futami Shion",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7881",
+   "kind": "person",
+   "name": "音羽 かおる",
+   "family": "音羽",
+   "given": "かおる",
+   "reading": "おとわ かおる",
+   "family_reading": "おとわ",
+   "given_reading": "かおる",
+   "romaji": "Otowa Kaoru",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7882",
+   "kind": "person",
+   "name": "伊吹 みなも",
+   "family": "伊吹",
+   "given": "みなも",
+   "reading": "いぶき みなも",
+   "family_reading": "いぶき",
+   "given_reading": "みなも",
+   "romaji": "Ibuki Minamo",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c7883",
+   "kind": "person",
+   "name": "霧島 小夜美",
+   "family": "霧島",
+   "given": "小夜美",
+   "reading": "きりしま こよみ",
+   "family_reading": "きりしま",
+   "given_reading": "こよみ",
+   "romaji": "Kirishima Koyomi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c11621",
+   "kind": "person",
+   "name": "稲穂 信",
+   "family": "稲穂",
+   "given": "信",
+   "reading": "いなほ しん",
+   "family_reading": "いなほ",
+   "given_reading": "しん",
+   "romaji": "Inaho Shin",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c171131",
+   "kind": "person",
+   "name": "幸村",
+   "reading": "こうむら",
+   "romaji": "koumura",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c171132",
+   "kind": "person",
+   "name": "伊東",
+   "reading": "いとう",
+   "romaji": "Itou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c171134",
+   "kind": "person",
+   "name": "城崎",
+   "reading": "しろざき",
+   "romaji": "Shirozaki",
+   "aliases": [
+    {
+     "text": "比婆猿人"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:比婆猿人"
+   ]
+  },
+  {
+   "id": "place:sumisora-gakuen",
+   "kind": "place",
+   "name": "澄空学園",
+   "reading": "すみそらがくえん",
+   "romaji": "Sumisora Gakuen",
+   "aliases": [
+    {
+     "text": "澄空",
+     "reading": "すみそら"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:aigaoka",
+   "kind": "place",
+   "name": "藍ヶ丘",
+   "reading": "あいがおか",
+   "romaji": "Aigaoka",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  }
+ ]
+}

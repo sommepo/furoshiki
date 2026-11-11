@@ -1,0 +1,35 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Kuro: a black sheet, each dictionary a block of its own under a thin rule (after JL): Meiryo,
+   the reading beside the word in its own colour, frequencies as plain numbers, most at home at
+   85 % solid. */
+:root {
+  --font: "Meiryo", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  --ground: rgba(0, 0, 0, 0.85); --text: #ffffff; --dim: #a9a9a9; --accent: #7bc8ff; --edge: #5a5a5a; --radius: 0px;
+  --box: #000; --box-pressed: #2b2b2b; --sign: #ffffff; --book: #ffd75e;
+}
+.popup { border: 1px solid #5a5a5a; padding: calc(6px * var(--scale)) calc(9px * var(--scale)); }
+.entry + .entry { border-top: 2px solid #3d3d3d; }
+.headword { font-size: calc(21px * var(--scale)); font-weight: 400; color: #7bc8ff; }
+.reading { color: #ffd75e; font-size: calc(15px * var(--scale)); }
+.reasons { color: #c9a0ff; }
+.pitch { color: #9be29b; }
+.tag { color: #a9a9a9; }
+.tag.frequency .tag-name { color: #ff9ecb; }
+.tag.frequency .tag-value { color: #ff9ecb; }
+.tag.name { border-radius: 0; }
+.lookups { color: #7f7f7f; }
+.dictionary-name { color: #e8c98b; border-top: 1px solid #3d3d3d; margin-top: 4px; padding-top: 3px; font-size: calc(11px * var(--scale)); }
+.dictionary-name:first-of-type { border-top: none; }
+.senses { font-size: calc(14px * var(--scale)); }
+.sense .tag[data-category="part-of-speech"] { color: #9be29b; }
+.sense .tag[data-category="part-of-speech"]::before { content: "("; }
+.sense .tag[data-category="part-of-speech"]::after { content: ")"; }
+.number { color: #fff; }
+.number::after { content: "."; }
+.glosses .gloss + .gloss::before { content: "; "; color: #a9a9a9; }
+.entry.unknown .headword { background: none; box-shadow: none; padding: 0; border-bottom: 1px dashed #7bc8ff; border-radius: 0; }
+.who-name { color: #fff; font-weight: 400; }
+.name-card .portrait { border-radius: 0; border-color: #5a5a5a; }
+.alias { border-radius: 0; background: none; border-color: #3d3d3d; color: #ffd75e; }
+.card { border-radius: 0; border-color: #5a5a5a; }

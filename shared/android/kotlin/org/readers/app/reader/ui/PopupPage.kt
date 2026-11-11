@@ -104,12 +104,13 @@ class PopupPage(context: Context, private val onMessage: (JSONObject) -> Unit) :
         }
 
         fun model(entries: JSONArray, message: JSONObject?, corner: String, duplicates: Boolean, markUnknown: Boolean,
-                  scale: Int, console: String, game: String, labels: JSONObject): JSONObject = JSONObject().apply {
+                  scale: Int, console: String, game: String, labels: JSONObject, look: JSONObject? = null): JSONObject = JSONObject().apply {
             put("entries", entries)
             put("corner", corner)
             put("duplicates", duplicates)
             put("markUnknown", markUnknown)
             put("scale", scale)
+            if (look != null) put("look", look)
             put("console", console)
             put("game", game)
             put("labels", labels)

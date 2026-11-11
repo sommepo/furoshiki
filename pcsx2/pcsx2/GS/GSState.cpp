@@ -13,6 +13,9 @@
 #include "common/StringUtil.h"
 
 #include <algorithm>
+#include <array> // Reader fork
+#include <atomic> // Reader fork
+#include <mutex> // Reader fork
 #include <cfloat>
 #include <fstream>
 #include <sstream>
@@ -2504,6 +2507,288 @@ u32 GSState::CalcMask(int exp, int max_exp)
 	return (1 << std::min(amount, 23)) - 1;
 }
 
+// Reader fork: the wide picture's 2D kept to its own shape. When Furoshiki's core draws a game
+// wider than its own shape (a wide patch makes its 3D see more at the sides), the PS2 still draws
+// its 2D (text boxes, HUD, menus, films) into the same picture, which is then stretched with it.
+// A 2D draw is pulled towards the picture's middle by `squeeze` (native / wide), its scissor too,
+// so that it keeps its shape. Which draws are 2D is the game's recipe's rule (wide_patches.cpp,
+// GSSetReader2DRule), by default: a sprite or a triangle with pixel texture coordinates (FST),
+// with no depth test, into a buffer at least 448 pixels wide. Left as it is in any case: a copy
+// of a picture drawn before (post-processing, a picture moved into place: its texture is a buffer
+// drawn into lately) and an untextured fill as wide as the picture (fades, bars), which must cover
+// the wide picture. Each game's rule is found and checked with the stretch test (wide-check.sh).
+namespace
+{
+	struct Reader2DRule
+	{
+		bool any_prim = false; // every primitive, not only sprites and FST triangles
+		bool depth = false; // depth-tested draws too
+		bool depth_flat = false; // depth-tested draws too, but only flat ones (sprites, FST triangles)
+		bool fills = false; // draws as wide as the picture too (films, full-screen pictures)
+		bool fills_textured = false; // only textured ones (a message window's frame), never clears
+		int min_width = 448; // the buffer drawn into is at least this wide
+		std::vector<u32> ofx; // only draws with one of these XYOFFSET.OFX (1/16 pixel)
+		std::vector<u32> not_ofx; // never draws with these
+		bool fst = false; // any primitive with pixel texture coordinates (FST) is 2D: lines, untextured fans too
+		std::vector<u32> frames; // only draws into these buffers (block addresses); a copy is a texture at one of them
+		bool nocopy = false; // no test for copies of drawn pictures (a game that streams its textures through its buffers)
+		int full = 90; // a draw this many percent of the picture's width or more is a fill
+		bool each = false; // sprites are judged one by one for that (letters spread over the screen)
+		bool cover = false; // a fill must reach from the picture's left edge to its right (full=cover)
+		std::vector<u32> prim_types; // only these GS primitive types (PRIM 0-7) are 2D, whatever else they are
+		std::vector<u32> also_ofx; // every draw with one of these XYOFFSET.OFX is 2D (a piece with a frame of its own)
+		std::vector<u32> move_ofx; // draws with these are moved with their frame (X 0x8000 its middle), their width kept
+	};
+	std::atomic<float> s_reader_squeeze{1.0f};
+	std::mutex s_reader_rule_mutex;
+	Reader2DRule s_reader_rule;
+	std::atomic<int> s_reader_rule_generation{0};
+} // namespace
+
+void GSSetReader2DSqueeze(float squeeze)
+{
+	s_reader_squeeze.store(std::clamp(squeeze, 0.1f, 1.0f), std::memory_order_relaxed);
+}
+
+float GSGetReader2DSqueeze()
+{
+	return s_reader_squeeze.load(std::memory_order_relaxed);
+}
+
+void GSSetReader2DRule(const std::string& spec)
+{
+	Reader2DRule rule;
+	for (const std::string_view token : StringUtil::SplitString(spec, ',', true))
+	{
+		const size_t equals = token.find('=');
+		const std::string_view key = token.substr(0, equals);
+		const std::string_view value = equals == std::string_view::npos ? std::string_view() : token.substr(equals + 1);
+		const auto list = [&value]() {
+			std::vector<u32> out;
+			for (const std::string_view item : StringUtil::SplitString(value, '|', true))
+				out.push_back(StringUtil::FromChars<u32>(item, 16).value_or(0));
+			return out;
+		};
+		if (key == "prims" && value == "all")
+			rule.any_prim = true;
+		else if (key == "depth" && value == "flat")
+			rule.depth_flat = true;
+		else if (key == "depth")
+			rule.depth = true;
+		else if (key == "fills" && value == "tex")
+			rule.fills_textured = true;
+		else if (key == "fills")
+			rule.fills = true;
+		else if (key == "minwidth")
+			rule.min_width = StringUtil::FromChars<int>(value).value_or(448);
+		else if (key == "ofx")
+			rule.ofx = list();
+		else if (key == "notofx")
+			rule.not_ofx = list();
+		else if (key == "fst")
+			rule.fst = true;
+		else if (key == "nocopy")
+			rule.nocopy = true;
+		else if (key == "each")
+			rule.each = true;
+		else if (key == "full" && value == "cover")
+			rule.cover = true;
+		else if (key == "full")
+			rule.full = std::clamp(StringUtil::FromChars<int>(value).value_or(90), 50, 100);
+		else if (key == "prim")
+			rule.prim_types = list();
+		else if (key == "also")
+			rule.also_ofx = list();
+		else if (key == "move")
+			rule.move_ofx = list();
+		else if (key == "frames")
+			rule.frames = list();
+	}
+	std::scoped_lock lock(s_reader_rule_mutex);
+	s_reader_rule = std::move(rule);
+	s_reader_rule_generation.fetch_add(1);
+}
+
+void GSState::ReaderSqueeze2D()
+{
+	const float squeeze = s_reader_squeeze.load(std::memory_order_relaxed);
+	if (squeeze >= 0.999f || m_index->tail == 0)
+		return;
+	static Reader2DRule rule;
+	static int rule_generation = -1;
+	if (rule_generation != s_reader_rule_generation.load())
+	{
+		std::scoped_lock lock(s_reader_rule_mutex);
+		rule = s_reader_rule;
+		rule_generation = s_reader_rule_generation.load();
+	}
+	// The buffers drawn into lately, as block addresses (0 is an empty place).
+	static std::array<u32, 16> drawn{};
+	static u32 drawn_next = 0;
+	const u32 frame = m_context->FRAME.Block();
+	if (std::find(drawn.begin(), drawn.end(), frame + 1) == drawn.end())
+		drawn[drawn_next++ % drawn.size()] = frame + 1;
+	int display = -1;
+	for (int i = 0; i < 2; i++)
+	{
+		if (PCRTCDisplays.PCRTCDisplays[i].enabled)
+			display = i;
+	}
+	// READER_SQUEEZE_LOG=N: the next N draws' properties in the log, for finding a game's rule.
+	static int log_left = std::getenv("READER_SQUEEZE_LOG") ? std::atoi(std::getenv("READER_SQUEEZE_LOG")) : 0;
+	if (log_left > 0)
+	{
+		log_left--;
+		u16 low = 0xFFFF, high = 0;
+		for (u32 i = 0; i < m_index->tail; i++)
+		{
+			low = std::min<u16>(low, m_vertex->buff[m_index->buff[i]].XYZ.X);
+			high = std::max<u16>(high, m_vertex->buff[m_index->buff[i]].XYZ.X);
+		}
+		Console.WriteLn(fmt::format("squeeze: prim {} tme {} fst {} zte {} ztst {} frame {:X} fbw {} tex {:X} ofx {:X} x {}-{} scissor {}-{}",
+			(int)PRIM->PRIM, (int)PRIM->TME, (int)PRIM->FST, (int)m_context->TEST.ZTE, (int)m_context->TEST.ZTST, frame,
+			(int)m_context->FRAME.FBW, (u32)m_context->TEX0.TBP0, (u32)m_context->XYOFFSET.OFX,
+			(low - (int)m_context->XYOFFSET.OFX) / 16, (high - (int)m_context->XYOFFSET.OFX) / 16,
+			m_context->scissor.in.x, m_context->scissor.in.z));
+	}
+	if (display < 0 || static_cast<int>(m_context->FRAME.FBW) * 64 < rule.min_width)
+		return;
+
+	if (!rule.frames.empty() && std::find(rule.frames.begin(), rule.frames.end(), frame) == rule.frames.end())
+		return;
+	const u32 ofx = m_context->XYOFFSET.OFX;
+	if ((!rule.ofx.empty() && std::find(rule.ofx.begin(), rule.ofx.end(), ofx) == rule.ofx.end()) ||
+		std::find(rule.not_ofx.begin(), rule.not_ofx.end(), ofx) != rule.not_ofx.end())
+		return;
+	// Pieces with a frame of their own, by its offset: moved whole (3D in a box, which the game's own
+	// width scale has narrowed already), or 2D whatever it is drawn with.
+	if (std::find(rule.move_ofx.begin(), rule.move_ofx.end(), ofx) != rule.move_ofx.end() ||
+		std::find(rule.also_ofx.begin(), rule.also_ofx.end(), ofx) != rule.also_ofx.end())
+	{
+		const bool move = std::find(rule.move_ofx.begin(), rule.move_ofx.end(), ofx) != rule.move_ofx.end();
+		const GSVector4i rect = PCRTCDisplays.PCRTCDisplays[display].framebufferRect;
+		const float middle_px = (rect.x + rect.z) * 0.5f;
+		const float middle = static_cast<float>(ofx) + middle_px * 16.0f;
+		// The frame's middle on the screen, and how far the squeeze takes it.
+		const float frame_px = (32768.0f - static_cast<float>(ofx)) / 16.0f;
+		const float shift = (frame_px - middle_px) * (squeeze - 1.0f) * 16.0f;
+		for (u32 i = 0; i < m_vertex->tail; i++)
+		{
+			GSVertex& v = m_vertex->buff[i];
+			const float x = move ? static_cast<float>(v.XYZ.X) + shift : middle + (static_cast<float>(v.XYZ.X) - middle) * squeeze;
+			v.XYZ.X = static_cast<u16>(std::clamp(x, 0.0f, 65535.0f));
+		}
+		ReaderSqueezeScissor(squeeze, middle_px, std::max(rect.z - rect.x, 1));
+		return;
+	}
+	const GS_PRIM_CLASS prim_class = GSUtil::GetPrimClass(PRIM->PRIM);
+	const bool flat = rule.prim_types.empty()
+		? (prim_class == GS_SPRITE_CLASS || (prim_class == GS_TRIANGLE_CLASS && PRIM->TME && PRIM->FST) ||
+			  (rule.fst && PRIM->FST))
+		: std::find(rule.prim_types.begin(), rule.prim_types.end(), static_cast<u32>(PRIM->PRIM)) != rule.prim_types.end(); // the draw's own, as the log prints it
+	if (!rule.prim_types.empty() && !flat)
+		return;
+	const bool depth_tested = m_context->TEST.ZTE && m_context->TEST.ZTST > ZTST_ALWAYS;
+	if (!(flat || rule.any_prim) || (depth_tested && !rule.depth && !(rule.depth_flat && flat)))
+		return;
+	// A copy of a picture drawn before: its texture is where a buffer drawn into lately begins.
+	if (PRIM->TME && !rule.nocopy && (rule.frames.empty()
+						 ? std::find(drawn.begin(), drawn.end(), m_context->TEX0.TBP0 + 1) != drawn.end()
+						 : std::find(rule.frames.begin(), rule.frames.end(), m_context->TEX0.TBP0) != rule.frames.end()))
+		return;
+
+	GSVertexBuff& vtx_buff = *m_vertex;
+	GSIndexBuff& idx_buff = *m_index;
+	const GSVector4i shown_rect = PCRTCDisplays.PCRTCDisplays[display].framebufferRect;
+	const int width = std::max(shown_rect.z - shown_rect.x, 1);
+	// Off the shown lines altogether (a picture put together below them, then drawn on screen):
+	// not the screen's 2D.
+	{
+		u16 top = 0xFFFF, bottom = 0;
+		for (u32 i = 0; i < idx_buff.tail; i++)
+		{
+			const u16 y = vtx_buff.buff[idx_buff.buff[i]].XYZ.Y;
+			top = std::min(top, y);
+			bottom = std::max(bottom, y);
+		}
+		const int oy = static_cast<int>(m_context->XYOFFSET.OFY);
+		if ((static_cast<int>(top) - oy) / 16 >= shown_rect.w || (static_cast<int>(bottom) - oy) / 16 <= shown_rect.y)
+			return;
+	}
+	// As wide as the picture, nearly (a fade, a bar, a picture copied in strips, a film): left,
+	// unless the rule says the game's are 2D too. By the whole draw (a full-screen overlay drawn in
+	// tiles is a fill); with "each", sprites one by one (a batch of letters spread over the screen is
+	// not a fill).
+	const bool keep_wide = !rule.fills && !(rule.fills_textured && PRIM->TME);
+	if (keep_wide && rule.each && prim_class == GS_SPRITE_CLASS)
+	{
+		const float middle_px = (shown_rect.x + shown_rect.z) * 0.5f;
+		const float middle = static_cast<float>(ofx) + middle_px * 16.0f;
+		bool any = false;
+		for (u32 i = 0; i + 1 < idx_buff.tail; i += 2)
+		{
+			GSVertex& a = vtx_buff.buff[idx_buff.buff[i]];
+			GSVertex& b = vtx_buff.buff[idx_buff.buff[i + 1]];
+			if (std::abs(static_cast<int>(a.XYZ.X) - static_cast<int>(b.XYZ.X)) >= width * 16 * rule.full / 100)
+				continue; // this sprite is a fill
+			for (GSVertex* v : {&a, &b})
+			{
+				const float x = middle + (static_cast<float>(v->XYZ.X) - middle) * squeeze;
+				v->XYZ.X = static_cast<u16>(std::clamp(x, 0.0f, 65535.0f));
+			}
+			any = true;
+		}
+		if (any)
+			ReaderSqueezeScissor(squeeze, middle_px, width);
+		return;
+	}
+	if (keep_wide)
+	{
+		u16 low = 0xFFFF, high = 0;
+		for (u32 i = 0; i < idx_buff.tail; i++)
+		{
+			const u16 x = vtx_buff.buff[idx_buff.buff[i]].XYZ.X;
+			low = std::min(low, x);
+			high = std::max(high, x);
+		}
+		if (rule.cover)
+		{
+			// Edge to edge, in the draw's units (within 2 % of the width).
+			const int left = static_cast<int>(ofx) + shown_rect.x * 16;
+			const int right = static_cast<int>(ofx) + shown_rect.z * 16;
+			const int slack = width * 16 / 50;
+			if (static_cast<int>(low) <= left + slack && static_cast<int>(high) >= right - slack)
+				return;
+		}
+		else if ((high - low) >= width * 16 * rule.full / 100)
+			return;
+	}
+	// The picture's middle, on the screen (pixels) and in the draw's units (1/16 pixel, offset).
+	const float middle_px = (shown_rect.x + shown_rect.z) * 0.5f;
+	const float middle = static_cast<float>(ofx) + middle_px * 16.0f;
+	for (u32 i = 0; i < vtx_buff.tail; i++)
+	{
+		GSVertex& v = vtx_buff.buff[i];
+		const float x = middle + (static_cast<float>(v.XYZ.X) - middle) * squeeze;
+		v.XYZ.X = static_cast<u16>(std::clamp(x, 0.0f, 65535.0f));
+	}
+	ReaderSqueezeScissor(squeeze, middle_px, width);
+}
+
+// A scissor narrower than the picture (a piece's own frame) goes with the 2D in it.
+void GSState::ReaderSqueezeScissor(float squeeze, float middle_px, int width)
+{
+	GSVector4i& in = m_context->scissor.in;
+	if (in.z - in.x < width)
+	{
+		const auto pull = [&](int x) { return static_cast<int>(std::lround(middle_px + (x - middle_px) * squeeze)); };
+		in.x = pull(in.x);
+		in.z = std::max(pull(in.z), in.x + 1);
+		m_context->scissor.cull.x = in.x * 16 - 8;
+		m_context->scissor.cull.z = (in.z - 1) * 16 + 8;
+	}
+}
+
 void GSState::FlushPrim()
 {
 	if (m_index->tail > 0)
@@ -2581,6 +2866,7 @@ void GSState::FlushPrim()
 #endif
 		// Update scissor, it may have been modified by a previous draw
 		m_env.CTXT[PRIM->CTXT].UpdateScissor();
+		ReaderSqueeze2D(); // Reader fork: before the vertices are measured
 		m_vt.Update(vtx_buff.buff, idx_buff.buff, vtx_buff.tail, idx_buff.tail, GSUtil::GetPrimClass(PRIM->PRIM));
 
 		// Texel coordinate rounding

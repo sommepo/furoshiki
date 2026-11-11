@@ -8,7 +8,7 @@
 # frontend define of PCSX2's Host, without a window, settings file or input of its own. No Qt,
 # no reader engine: those are the program's. Built by tools/reader/build-core.sh (READER_CORE).
 
-add_library(reader_core_pcsx2 MODULE pcsx2_core.cpp)
+add_library(reader_core_pcsx2 MODULE pcsx2_core.cpp wide_patches.cpp)
 set_target_properties(reader_core_pcsx2 PROPERTIES PREFIX "" CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 target_include_directories(reader_core_pcsx2 PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/pcsx2
 	${CMAKE_BINARY_DIR}/common/include ${CMAKE_SOURCE_DIR}/../cores)

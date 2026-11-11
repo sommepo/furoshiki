@@ -15,16 +15,23 @@
 #include <mutex>
 #include <QMainWindow>
 #include <QPointer>
+#include <QSet>
 #include <QThread>
 #include <QTimer>
+#include "updater.h"
 #include "core_library.h"
 #include "core_session.h"
+#include "addons.h"
+#include "line_titles.h"
 #include "play_settings.h"
 
 class QAction;
 class QAudioSink;
 class QMenu;
 class QStackedWidget;
+namespace ReaderApp {
+struct PresentedLine;
+}
 
 namespace Home {
 
@@ -100,6 +107,13 @@ public:
     /// sync tab shown. False, with `error`, when it is not one.
     bool UsePairing(const QString& link, QString& error);
 #endif
+    /// Reads a title from lines (line_source.h) or from a window by OCR (ocr_source.h): `path`
+    /// as the lines' file names it ("lines://websocket/<ID>", "lines://ocr/<ID>",
+    /// line_titles.h). Its lines stand in the text strip over the desktop. False, with `error`,
+    /// when it cannot be read.
+    bool ReadLines(const QString& path, QString& error);
+    /// Ends the reading from lines: the strip goes, what was read goes into the page's sums.
+    void EndLines();
     /// Whether a core here plays the games of this reader app.
     [[nodiscard]] bool Plays(const QString& app);
     /// Ends the game and shows Furoshiki's page again.
@@ -121,10 +135,27 @@ private:
     bool StartSession(Loaded* entry, QString& error);
     /// The settings that apply to the running core's console (and game), handed to it.
     void ApplyPlaySettings(const QString& game);
+    /// The add-ons of the game starting (addons.h): their scripts into the reader's profiles,
+    /// their settings into the game's layer (once), their companion started. True when a
+    /// script changed.
+    bool StartAddons(const QString& console_key, const QString& game);
+    /// The add-on of the game playing that has a companion's page, or none.
+    [[nodiscard]] const Addon* PlayingCompanion() const;
+    /// The reader's own CRT values (reader.ini), under every layer of them.
+    [[nodiscard]] QString CrtBase() const;
     /// The popup's settings (popup_style.h) on every console's list, its CSS files as choices.
     void AddPopupSettings();
     /// The settings window (settings_window.h), made when it is first opened.
     void OpenSettings(const QString& tab = {});
+    /// The settings: the shelf's pages, over the game when one plays (it stands still meanwhile).
+    void ShowSettingsPages();
+    /// Asks the paired save sync service for the user's other services (services.h); `say`: and
+    /// says on the page what came of it.
+    void AskHomeServer(bool say);
+    /// Asks the Files page for another build of the program (updater.h).
+    void CheckUpdate(bool say);
+    Home::Updater::Offer update_offer;
+    QString update_said{QStringLiteral("ENTER LOOKS")};
     QPointer<SettingsWindow> settings_window;
 #ifndef READER_NO_SAVE_SYNC
     QStringList sync_folders; ///< Save sync's notes folder of each console started
@@ -178,8 +209,44 @@ private:
     /// The reading statistics to the service, as the apps send theirs (with save sync on;
     /// nothing in a build without it).
     void SendStats();
+    /// The statistics changed under the page (reading time tidied): its files made again and sent.
+    void StatsChanged();
     /// The development channel's commands for what the menu does (reader_host.cpp asks).
     bool ProgramCommand(const QString& name, const QStringList& parts, const std::function<void(const QString&)>& reply);
+
+    /// The reader's windows and session, made once: before the first game or title read.
+    void InstallReader();
+    /// A page script's commands for the lines and the strip (HomeWindow::SetScriptCommands).
+    bool LinesCommand(const QString& word, const QString& rest);
+    /// The lines' file of the page (apps/reader-home-lines.json) with what was read of them.
+    void WriteLinesFile();
+    class LineSource* lines{};
+    /// A title read by a hook Furoshiki starts itself (hook_source.h), and the programs seen
+    /// running that such titles are hooked in.
+    class HookSource* hook{};
+    QSet<QString> hooks_seen;
+    bool ReadHook(const Lines::Title& title, QString& error);
+    void WatchHooks();
+    class TextStrip* strip{};
+    /// A window read by OCR (ocr_source.h), and the reader's layer over that window.
+    class OcrSource* ocr{};
+    class OcrOverlay* overlay{};
+    // A hooked line placed over the game's own text by OCR (GameSentenceMiner's and Kimochi's way):
+    // the game window's picture read by the helper as each line comes, the two lined up.
+    class OcrClient* placer{};
+    int place_generation{};
+    QRectF place_area{0, 0, 1, 1}; ///< Where in the window the text was last: read there first
+    void PlaceHooked(const ReaderApp::PresentedLine& presented);
+    void HookedPlaced(const ReaderApp::PresentedLine& presented, bool ok, const QString& seen, const QList<QRectF>& layout);
+    /// The strip, made once, for whichever source's lines have no place on a screen.
+    void MakeStrip();
+    /// A title read by a hook or OCR has begun: its cards take the game window's picture and the
+    /// computer's sound (loopback_audio.h), as a core's take the game's.
+    void CardsFromWindow();
+    /// The title of the game's window being read, where it is known.
+    [[nodiscard]] QString GameWindow() const;
+    /// The layer over the read window: where the window is now, whether its line stands there.
+    void PlaceOverlay();
 
     HomeWindow* home{};
     GameScreen* screen{};
@@ -203,6 +270,8 @@ private:
     bool steam_seen{};
     bool reader_installed{};
     PlaySettings play_settings;     ///< program/settings.json in Furoshiki's folder
+    QList<Addon> addons;            ///< The game add-ons found when the program started
+    Companions* companions{};       ///< Their companions that run
     std::map<QString, QList<OwnGame>> own_games; ///< By console: found and played
     QString playing;                ///< The file of the game being played
     QString playing_id;             ///< Its ID, once known (identify, or the core's game_loaded)

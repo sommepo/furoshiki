@@ -22,6 +22,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -38,6 +39,7 @@
 #include "library.h"
 #ifndef READER_NO_SAVE_SYNC
 #include "pairing.h"
+#include "services.h"
 #endif
 #include "reader/qt/install.h"
 #include "reader/qt/reader_session.h"
@@ -107,6 +109,17 @@ SaveSync::Host::Settings CurrentSync() {
 
 } // namespace
 
+#ifndef READER_NO_SAVE_SYNC
+void PairedService(QStringList* addresses, QString* code) {
+    const SaveSync::Host::Settings settings = CurrentSync();
+    addresses->clear();
+    for (const SaveSync::Address& address : SaveSync::ParseAddresses(settings.addresses)) {
+        addresses->append(QString::fromStdString(address.Text()));
+    }
+    *code = QString::fromStdString(settings.code);
+}
+#endif
+
 // ---- Save sync ----
 
 #ifndef READER_NO_SAVE_SYNC
@@ -114,7 +127,7 @@ QWidget* SettingsWindow::SyncTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
     layout->addWidget(Note(QStringLiteral("Every game's save follows you to your other devices through your save sync service "
-                                          "(the service the reader apps use). The quickest way in: the pairing link its page "
+                                          "(the one your other devices use). The quickest way in: the pairing link its page "
                                           "shows, pasted here."),
                            page));
 
@@ -286,6 +299,8 @@ bool SettingsWindow::UsePairing(const QString& link, QString* error) {
     sync_on->setChecked(true);
     filling = false;
     StoreSync();
+    // The user's other services the link names (the tracker, Furochibi, the guides...).
+    Home::Services::Keep(pairing->services);
     pair_link->clear(); // the code is in it
     ShowTab(QStringLiteral("Save sync"));
     sync_test->setText(QStringLiteral("Paired with %1: %2 addresses. Testing them…")
@@ -490,7 +505,7 @@ void SettingsWindow::LogInAchievements() {
 QWidget* SettingsWindow::ControllerTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("The reader's pointer always follows the mouse and the Steam Controller's right pad. "
+    layout->addWidget(Note(QStringLiteral("The lookup pointer always follows the mouse and the Steam Controller's right pad. "
                                           "It can also be moved with the sticks while a button is held; that button then "
                                           "stops reaching the game. With None, every button is the game's."),
                            page));
@@ -512,16 +527,105 @@ QWidget* SettingsWindow::ControllerTab() {
     return page;
 }
 
+// ---- Reading time ----
+
+QWidget* SettingsWindow::ReadingTab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+    layout->addWidget(Note(QStringLiteral("Reading time is counted while a game with a script is in front and a new line or a "
+                                          "word looked up came not long ago. Past this, the clock stops until the next line: "
+                                          "playing on without new text is not reading. Shared with the reader apps (reader.ini)."),
+                           page));
+    auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+    auto* form = new QFormLayout;
+    idle_seconds = new QSpinBox(page);
+    idle_seconds->setRange(ReaderApp::ReaderSettings::IdleSecondsMin,
+                           static_cast<int>(ReaderApp::ReadingRules::MaxIdleTimeoutMs / 1000));
+    idle_seconds->setSuffix(QStringLiteral(" s"));
+    idle_seconds->setSingleStep(5);
+    idle_seconds->setValue(static_cast<int>(settings.IdleTimeoutMs() / 1000));
+    form->addRow(QStringLiteral("Reading time stops after, without a new line"), idle_seconds);
+    layout->addLayout(form);
+    connect(idle_seconds, &QSpinBox::valueChanged, this, [this](int value) {
+        auto& session = ReaderUi::ReaderSession::Instance();
+        session.Settings().SetValue(ReaderApp::ReaderSettings::KeyIdleSeconds, value);
+        session.Settings().Sync();
+        session.OnSettingsChanged();
+    });
+
+    layout->addSpacing(12);
+    layout->addWidget(Note(QStringLiteral("Tidy reading time works every session's time out again from when its lines came: "
+                                          "your own pace in that session (or game) gives how long each line can take at most, "
+                                          "a word looked up shows you were there, and the rest, play without new text, is "
+                                          "taken out. It never adds time. It runs by itself on the session just read when a "
+                                          "game stops; this does every earlier one, with the time above as the longest a "
+                                          "line is read. The time as counted is kept, so it can be put back."),
+                           page));
+    auto* buttons = new QHBoxLayout;
+    tidy_button = new QPushButton(QStringLiteral("Tidy reading time"), page);
+    untidy_button = new QPushButton(QStringLiteral("Put back the time as counted"), page);
+    buttons->addWidget(tidy_button);
+    buttons->addWidget(untidy_button);
+    buttons->addStretch(1);
+    layout->addLayout(buttons);
+    tidy_note = Note({}, page);
+    layout->addWidget(tidy_note);
+    layout->addStretch(1);
+    connect(tidy_button, &QPushButton::clicked, this, [this] { TidyReading(false); });
+    connect(untidy_button, &QPushButton::clicked, this, [this] { TidyReading(true); });
+    return page;
+}
+
+void SettingsWindow::TidyReading(bool undo) {
+    tidy_button->setEnabled(false);
+    untidy_button->setEnabled(false);
+    tidy_note->setText(QStringLiteral("Working…"));
+    QPointer<SettingsWindow> self(this);
+    ReaderUi::ReaderSession::Instance().TidyReadingTime([self, undo](const ReaderApp::TidyReport& report) {
+        if (!self) {
+            return;
+        }
+        self->tidy_button->setEnabled(true);
+        self->untidy_button->setEnabled(true);
+        if (undo) {
+            self->tidy_note->setText(QStringLiteral("The time as counted is back in %1 sessions.").arg(report.sessions));
+        } else {
+            self->tidy_note->setText(Home::TidyReportText(report));
+        }
+        if (self->home) {
+            self->home->SettingsChanged();
+        }
+        if (self->hooks.stats_changed) {
+            self->hooks.stats_changed();
+        }
+    }, undo);
+}
+
+QString TidyReportText(const ReaderApp::TidyReport& report) {
+    const QLocale locale;
+    const auto minutes = [&](qint64 ms) { return locale.toString(static_cast<double>(ms) / 60000.0, 'f', 0) + QStringLiteral(" min"); };
+    const auto speed = [&](qint64 ms) {
+        const std::optional<double> per_hour = ReaderApp::ReadingRules::CharactersPerHour(report.characters, ms);
+        return per_hour ? locale.toString(static_cast<qint64>(*per_hour)) + QStringLiteral("/h") : QStringLiteral("–");
+    };
+    if (report.sessions == 0) {
+        return QStringLiteral("No session to tidy.");
+    }
+    return QStringLiteral("%1 sessions looked at, %2 shortened: %3 → %4 (%5 → %6 characters an hour).")
+        .arg(report.sessions)
+        .arg(report.changed)
+        .arg(minutes(report.before_ms), minutes(report.after_ms), speed(report.before_ms), speed(report.after_ms));
+}
+
 #ifndef READER_NO_TEXT_SERVER
 // ---- The text server ----
 
 QWidget* SettingsWindow::TextServerTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Every line the reader reads, sent as it comes to a WebSocket, as texthooker pages "
+    layout->addWidget(Note(QStringLiteral("Every line read, sent as it comes to a WebSocket, as texthooker pages "
                                           "and sentence-mining tools expect (ws://127.0.0.1:6677 by default). It runs while a "
-                                          "game with a script plays; nothing a page sends is acted on. Shared with the reader "
-                                          "apps (reader.ini)."),
+                                          "game with a script plays; nothing a page sends is acted on."),
                            page));
     auto& settings = ReaderUi::ReaderSession::Instance().Settings();
     auto* form = new QFormLayout;

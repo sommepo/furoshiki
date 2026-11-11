@@ -105,8 +105,11 @@ namespace ReadingRules {
 inline constexpr int DayStartMinutes = 4 * 60 + 1;
 /// A break shorter than this continues the previous session.
 inline constexpr qint64 SessionGapMs = 4 * 60 * 60 * 1000LL;
-/// Active time stops accruing after this long without reading activity.
+/// Active time stops accruing after this long without reading activity: the tracker's own
+/// default, and the longest the setting allows. The setting itself is 30 s unless changed
+/// (ReaderSettings::IdleTimeoutMs; the user, 2026-11-02: a passage is seldom read for longer).
 inline constexpr qint64 DefaultIdleTimeoutMs = 5 * 60 * 1000LL;
+inline constexpr qint64 MaxIdleTimeoutMs = DefaultIdleTimeoutMs;
 /// A single heartbeat never credits more than this.
 inline constexpr qint64 MaxHeartbeatMs = 5000;
 
@@ -211,6 +214,57 @@ private:
     QStringList recent_texts;
     /// Unsaved contributions per reading day, in the order the days were met.
     QList<std::pair<QString, ReadingCounters>> pending;
+};
+
+/**
+ * Reading time worked out again from when each line came (the user, 2026-11-02: time that was
+ * counted while the game was played without new text, up to the idle timeout each time, made
+ * the reading speed sent to the study tracker too low).
+ *
+ * A line is read from when it comes until the next one does. The reader's own pace is taken
+ * from the gaps that look like reading (no longer than the idle timeout, no word looked up in
+ * them): a fixed part (pressing on, the box opening, a voice) and a part per character, each a
+ * median, so a few long gaps do not move it; and how much slower than that a line read at a
+ * slow but real pace still is (the gaps' ninetieth percentile against the pace, between 1.5
+ * and 3 times). A line then counts its gap, but at most what that slow pace would take for its
+ * characters (never less than four seconds, never more than the idle timeout). A word looked
+ * up within a gap shows the reader was there: up to it the gap counts in steps of at most the
+ * idle timeout, and the slow pace counts from it. The last line of a session counts that slow
+ * pace. A session with too few gaps to tell takes the pace of the others (`fallback`), else
+ * 6,000 characters an hour.
+ *
+ * Tidying never adds time: a day keeps the smaller of what was counted and this.
+ */
+namespace ReadingTime {
+struct Event {
+    qint64 ts{};
+    int characters{}; ///< Narrative or choice characters counted; 0 for a word looked up
+    bool line{true};  ///< false: a word looked up
+};
+struct Pace {
+    double fixed_ms{1500};
+    double ms_per_character{600}; ///< 6,000 characters an hour
+    double slow_factor{2.0};
+    int samples{};
+};
+inline constexpr int MinSamples = 8;
+inline constexpr qint64 MinLineMs = 4000;
+/// The reader's pace in `events` (sorted by time), or `fallback` with too few gaps.
+[[nodiscard]] Pace PaceOf(const QList<Event>& events, qint64 idle_timeout_ms, const Pace& fallback = {});
+/// The longest a line of `characters` is believed to be read for.
+[[nodiscard]] qint64 Allowance(const Pace& pace, int characters, qint64 idle_timeout_ms);
+/// The reading time of each line of `events` (sorted by time), as (its time, credited ms).
+[[nodiscard]] QList<std::pair<qint64, qint64>> Credit(const QList<Event>& events, const Pace& pace,
+                                                      qint64 idle_timeout_ms);
+} // namespace ReadingTime
+
+/// What tidying the reading time did.
+struct TidyReport {
+    int sessions{};      ///< Sessions looked at
+    int changed{};       ///< Sessions whose time went down
+    qint64 before_ms{};  ///< Their time as counted
+    qint64 after_ms{};   ///< Their time now
+    qint64 characters{}; ///< Their characters, for the speed before and after
 };
 
 /// A reading session in a few characters, to sit in a corner of the game:

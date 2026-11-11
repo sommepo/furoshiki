@@ -1,0 +1,429 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ムーンライトシンドローム",
+   "http://aki.secret.jp/gamedata/moonlight/index.html",
+   "https://ameblo.jp/ibu999/",
+   "guides/src/guides/moonlight-syndrome",
+   "backlog speakers"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:kishii-mika",
+   "kind": "person",
+   "name": "岸井 ミカ",
+   "family": "岸井",
+   "given": "ミカ",
+   "reading": "きしい ミカ",
+   "family_reading": "きしい",
+   "given_reading": "ミカ",
+   "romaji": "Kishii Mika",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hasegawa-yukari",
+   "kind": "person",
+   "name": "長谷川 ユカリ",
+   "family": "長谷川",
+   "given": "ユカリ",
+   "reading": "はせがわ ユカリ",
+   "family_reading": "はせがわ",
+   "given_reading": "ユカリ",
+   "romaji": "Hasegawa Yukari",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:itsushima-chisato",
+   "kind": "person",
+   "name": "逸島 チサト",
+   "family": "逸島",
+   "given": "チサト",
+   "reading": "いつしま チサト",
+   "family_reading": "いつしま",
+   "given_reading": "チサト",
+   "romaji": "Itsushima Chisato",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kahara-arisa",
+   "kind": "person",
+   "name": "鹿原 アリサ",
+   "family": "鹿原",
+   "given": "アリサ",
+   "reading": "かはら アリサ",
+   "family_reading": "かはら",
+   "given_reading": "アリサ",
+   "romaji": "Kahara Arisa",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kazan-ryou",
+   "kind": "person",
+   "name": "華山 リョウ",
+   "family": "華山",
+   "given": "リョウ",
+   "reading": "かざん リョウ",
+   "family_reading": "かざん",
+   "given_reading": "リョウ",
+   "romaji": "Kazan Ryou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kazan-kyouko",
+   "kind": "person",
+   "name": "華山 キョウコ",
+   "family": "華山",
+   "given": "キョウコ",
+   "reading": "かざん キョウコ",
+   "family_reading": "かざん",
+   "given_reading": "キョウコ",
+   "romaji": "Kazan Kyouko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:touba-sumio",
+   "kind": "person",
+   "name": "冬葉 スミオ",
+   "family": "冬葉",
+   "given": "スミオ",
+   "reading": "とうば スミオ",
+   "family_reading": "とうば",
+   "given_reading": "スミオ",
+   "romaji": "Touba Sumio",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:touba-rumi",
+   "kind": "person",
+   "name": "冬葉 ルミ",
+   "family": "冬葉",
+   "given": "ルミ",
+   "reading": "とうば ルミ",
+   "family_reading": "とうば",
+   "given_reading": "ルミ",
+   "romaji": "Touba Rumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:itsushima-yayoi",
+   "kind": "person",
+   "name": "逸島 ヤヨイ",
+   "family": "逸島",
+   "given": "ヤヨイ",
+   "reading": "いつしま ヤヨイ",
+   "family_reading": "いつしま",
+   "given_reading": "ヤヨイ",
+   "romaji": "Itsushima Yayoi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:takahashi-kimika",
+   "kind": "person",
+   "name": "高橋 キミカ",
+   "family": "高橋",
+   "given": "キミカ",
+   "reading": "たかはし キミカ",
+   "family_reading": "たかはし",
+   "given_reading": "キミカ",
+   "romaji": "Takahashi Kimika",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aramata",
+   "kind": "person",
+   "name": "アラマタ",
+   "reading": "アラマタ",
+   "romaji": "Aramata",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hakuhatsu-no-shounen",
+   "kind": "person",
+   "name": "白髪の少年",
+   "romaji": "the white-haired boy",
+   "aliases": [
+    {
+     "text": "ミトラ",
+     "reading": "ミトラ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:katsuragi-miho",
+   "kind": "person",
+   "name": "桂木 ミホ",
+   "family": "桂木",
+   "given": "ミホ",
+   "given_reading": "ミホ",
+   "romaji": "Katsuragi Miho",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:kazuki",
+   "kind": "person",
+   "name": "カヅキ",
+   "reading": "カヅキ",
+   "romaji": "Kazuki",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:miyuki",
+   "kind": "person",
+   "name": "ミユキ",
+   "reading": "ミユキ",
+   "romaji": "Miyuki",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kousaka-miki",
+   "kind": "person",
+   "name": "香坂 ミキ",
+   "family": "香坂",
+   "given": "ミキ",
+   "given_reading": "ミキ",
+   "romaji": "Kousaka Miki",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:riru",
+   "kind": "person",
+   "name": "リル",
+   "reading": "リル",
+   "romaji": "Riru",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hirose",
+   "kind": "person",
+   "name": "広瀬",
+   "reading": "ひろせ",
+   "romaji": "Hirose",
+   "aliases": [
+    {
+     "text": "広瀬先生",
+     "reading": "ひろせせんせい"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hinashiro",
+   "kind": "place",
+   "name": "雛代",
+   "reading": "ひなしろ",
+   "romaji": "Hinashiro",
+   "aliases": [
+    {
+     "text": "雛代町"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "alias:雛代町"
+   ]
+  },
+  {
+   "id": "place:hinashiro-high",
+   "kind": "place",
+   "name": "雛代高校",
+   "reading": "ひなしろこうこう",
+   "romaji": "Hinashiro High School",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:pyramid-goten",
+   "kind": "place",
+   "name": "ピラミッド御殿",
+   "reading": "ピラミッドごてん",
+   "romaji": "Pyramid Palace",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lost-highway",
+   "kind": "place",
+   "name": "ロストハイウェイ",
+   "reading": "ロストハイウェイ",
+   "romaji": "LOST HIGHWAY",
+   "aliases": [
+    {
+     "text": "LOST HIGHWAY",
+     "reading": "ロストハイウェイ"
+    },
+    {
+     "text": "LOSTHIGHWAY",
+     "reading": "ロストハイウェイ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:shimokita",
+   "kind": "place",
+   "name": "霜北",
+   "reading": "しもきた",
+   "romaji": "Shimokita",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kita-hinashiro-danchi",
+   "kind": "place",
+   "name": "北雛代団地",
+   "reading": "きたひなしろだんち",
+   "romaji": "North Hinashiro estate",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:reigetsu-touge",
+   "kind": "place",
+   "name": "麗月峠",
+   "romaji": "Reigetsu Pass",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:hinashiro-daigaku",
+   "kind": "place",
+   "name": "雛代大学",
+   "reading": "ひなしろだいがく",
+   "romaji": "Hinashiro University",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:aramata-techou",
+   "kind": "thing",
+   "name": "アラマタ手帳",
+   "reading": "アラマタてちょう",
+   "romaji": "Aramata's notebook",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sample",
+   "kind": "thing",
+   "name": "サンプル",
+   "reading": "サンプル",
+   "romaji": "sample",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

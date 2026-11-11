@@ -1,0 +1,702 @@
+{
+ "source": {
+  "vndb": "v3",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c411",
+   "kind": "person",
+   "name": "ハクオロ",
+   "reading": "ハクオロ",
+   "romaji": "Hakuoro",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c417",
+   "kind": "person",
+   "name": "ウィツァルネミテア",
+   "reading": "ウィツァルネミテア",
+   "romaji": "Uitsualnemetia",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c412",
+   "kind": "person",
+   "name": "エルルゥ",
+   "reading": "エルルゥ",
+   "romaji": "Eruruu",
+   "aliases": [
+    {
+     "text": "エルンガア",
+     "reading": "エルンガア"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c413",
+   "kind": "person",
+   "name": "アルルゥ",
+   "reading": "アルルゥ",
+   "romaji": "Aruruu",
+   "aliases": [
+    {
+     "text": "アルちゃん",
+     "reading": "アルちゃん"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c414",
+   "kind": "person",
+   "name": "カミュ",
+   "reading": "カミュ",
+   "romaji": "Camyu",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c415",
+   "kind": "person",
+   "name": "ユズハ",
+   "reading": "ユズハ",
+   "romaji": "Yuzuha",
+   "aliases": [
+    {
+     "text": "ユズっち",
+     "reading": "ユズっち"
+    },
+    {
+     "text": "ユズユズ",
+     "reading": "ユズユズ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8384",
+   "kind": "person",
+   "name": "オボロ",
+   "reading": "オボロ",
+   "romaji": "Oboro",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8387",
+   "kind": "person",
+   "name": "ベナウィ",
+   "reading": "ベナウィ",
+   "romaji": "Benawi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8388",
+   "kind": "person",
+   "name": "クロウ",
+   "reading": "クロウ",
+   "romaji": "Kurou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8395",
+   "kind": "person",
+   "name": "ウルトリィ",
+   "reading": "ウルトリィ",
+   "romaji": "Ulthury",
+   "aliases": [
+    {
+     "text": "ウルト",
+     "reading": "ウルト"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8396",
+   "kind": "person",
+   "name": "カルラ",
+   "reading": "カルラ",
+   "romaji": "Karulau",
+   "aliases": [
+    {
+     "text": "カルラゥアツゥレイ",
+     "reading": "カルラゥアツゥレイ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8397",
+   "kind": "person",
+   "name": "トウカ",
+   "reading": "トウカ",
+   "romaji": "Touka",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8399",
+   "kind": "person",
+   "name": "アムルリネウルカ・クーヤ",
+   "reading": "アムルリネウルカ・クーヤ",
+   "romaji": "Kuuya Amrulineulka",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c416",
+   "kind": "person",
+   "name": "ムツミ",
+   "reading": "ムツミ",
+   "romaji": "Mutsumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c8381",
+   "kind": "person",
+   "name": "トゥスクル",
+   "reading": "トゥスクル",
+   "romaji": "Tuskur",
+   "aliases": [
+    {
+     "text": "ババ",
+     "reading": "ババ"
+    },
+    {
+     "text": "ムラオサ",
+     "reading": "ムラオサ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8382",
+   "kind": "person",
+   "name": "テオロ",
+   "reading": "テオロ",
+   "romaji": "Teoro",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8383",
+   "kind": "person",
+   "name": "ソポク",
+   "reading": "ソポク",
+   "romaji": "Sopoku",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8385",
+   "kind": "person",
+   "name": "ドリィ",
+   "reading": "ドリィ",
+   "romaji": "Dorry",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8386",
+   "kind": "person",
+   "name": "グラァ",
+   "reading": "グラァ",
+   "romaji": "Guraa",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8390",
+   "kind": "person",
+   "name": "ヌワンギ",
+   "reading": "ヌワンギ",
+   "romaji": "Nuwangi",
+   "aliases": [
+    {
+     "text": "クリ霧"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:クリ霧"
+   ]
+  },
+  {
+   "id": "c8393",
+   "kind": "person",
+   "name": "ムント",
+   "reading": "ムント",
+   "romaji": "Munto",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8400",
+   "kind": "person",
+   "name": "サクヤ",
+   "reading": "サクヤ",
+   "romaji": "Sakuya",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c8401",
+   "kind": "person",
+   "name": "ゲンジマル",
+   "reading": "ゲンジマル",
+   "romaji": "Genjimaru",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8402",
+   "kind": "person",
+   "name": "ハウエンクア",
+   "reading": "ハウエンクア",
+   "romaji": "Hauenkua",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c8403",
+   "kind": "person",
+   "name": "ヒエン",
+   "reading": "ヒエン",
+   "romaji": "Hien",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c8405",
+   "kind": "person",
+   "name": "デリホウライ",
+   "reading": "デリホウライ",
+   "romaji": "Derihourai",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c8409",
+   "kind": "person",
+   "name": "ディー",
+   "reading": "ディー",
+   "romaji": "Dii",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c8413",
+   "kind": "person",
+   "name": "ムックル",
+   "reading": "ムックル",
+   "romaji": "Mukkuru",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c88333",
+   "kind": "person",
+   "name": "カムチャタール",
+   "reading": "カムチャタール",
+   "romaji": "Kamuchataal",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45904",
+   "kind": "person",
+   "name": "フミルィル",
+   "reading": "フミルィル",
+   "romaji": "Fumirul",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c8389",
+   "kind": "person",
+   "name": "チキナロ",
+   "reading": "チキナロ",
+   "romaji": "Chikinaro",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8391",
+   "kind": "person",
+   "name": "ササンテ",
+   "reading": "ササンテ",
+   "romaji": "Sasante",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8392",
+   "kind": "person",
+   "name": "インカラ",
+   "reading": "インカラ",
+   "romaji": "Inkalla",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8394",
+   "kind": "person",
+   "name": "ワーベ",
+   "reading": "ワーベ",
+   "romaji": "Waabe",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8398",
+   "kind": "person",
+   "name": "ニウェ",
+   "reading": "ニウェ",
+   "romaji": "Niwe",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8404",
+   "kind": "person",
+   "name": "オリカカン",
+   "reading": "オリカカン",
+   "romaji": "Orikakan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8406",
+   "kind": "person",
+   "name": "スオンカス",
+   "reading": "スオンカス",
+   "romaji": "Suonkasu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8407",
+   "kind": "person",
+   "name": "ポナホイ",
+   "reading": "ポナホイ",
+   "romaji": "Ponahoi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8408",
+   "kind": "person",
+   "name": "カンホルダリ",
+   "reading": "カンホルダリ",
+   "romaji": "Kanhordari",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c8410",
+   "kind": "person",
+   "name": "ミコト",
+   "reading": "ミコト",
+   "romaji": "Mikoto",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c8411",
+   "kind": "person",
+   "name": "ミズシマ",
+   "reading": "ミズシマ",
+   "romaji": "Mizushima",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c8412",
+   "kind": "person",
+   "name": "Mutikapa",
+   "romaji": "Mutikapa",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:yamayura",
+   "kind": "place",
+   "name": "ヤマユラ",
+   "reading": "ヤマユラ",
+   "romaji": "Yamayura",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tusukuru",
+   "kind": "place",
+   "name": "トゥスクル",
+   "reading": "トゥスクル",
+   "romaji": "Tusukuru",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kenashikourupe",
+   "kind": "place",
+   "name": "ケナシコウルペ",
+   "reading": "ケナシコウルペ",
+   "romaji": "Kenashikourupe",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:onkamiyamukai",
+   "kind": "place",
+   "name": "オンカミヤムカイ",
+   "reading": "オンカミヤムカイ",
+   "romaji": "Onkamiyamukai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:shikeripechimu",
+   "kind": "place",
+   "name": "シケリペチム",
+   "reading": "シケリペチム",
+   "romaji": "Shikeripechimu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kunnekamun",
+   "kind": "place",
+   "name": "クンネカムン",
+   "reading": "クンネカムン",
+   "romaji": "Kunnekamun",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:na-tunku",
+   "kind": "place",
+   "name": "ナ・トゥンク",
+   "reading": "ナ・トゥンク",
+   "romaji": "Na Tunku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kuccha-keccha",
+   "kind": "place",
+   "name": "クッチャ・ケッチャ",
+   "reading": "クッチャ・ケッチャ",
+   "romaji": "Kuccha Keccha",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:giriyagina",
+   "kind": "thing",
+   "name": "ギリヤギナ",
+   "reading": "ギリヤギナ",
+   "romaji": "Giriyagina",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:evenkuruga",
+   "kind": "thing",
+   "name": "エヴェンクルガ",
+   "reading": "エヴェンクルガ",
+   "romaji": "Evenkuruga",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:avu-kamuu",
+   "kind": "thing",
+   "name": "アヴ・カムゥ",
+   "reading": "アヴ・カムゥ",
+   "romaji": "Avu Kamuu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:onvitaikayan",
+   "kind": "thing",
+   "name": "オンヴィタイカヤン",
+   "reading": "オンヴィタイカヤン",
+   "romaji": "Onvitaikayan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  }
+ ]
+}

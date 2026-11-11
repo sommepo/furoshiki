@@ -101,6 +101,10 @@ const reader_core_setting Settings[] = {
     {"dc.region", "Console region", READER_CORE_SETTING_CHOICE, "japan", 0, 0, 0, READER_CHOICES(RegionChoices)},
     {"dc.language", "The console's language", READER_CORE_SETTING_CHOICE, "japanese", 0, 0, 0, READER_CHOICES(LanguageChoices)},
     {"dc.widescreen", "Widescreen (a hack: some games)", READER_CORE_SETTING_SWITCH, "0", 0, 0, 0, nullptr, 0},
+    // Karakuri (the branch karakuri/flycast-memory-writes): with the widescreen hack, the picture out
+    // to the window's own shape (Flycast's rend.SuperWideScreen; 32:9 for Shenmue II with Karakuri's
+    // profile) rather than 16:9. Needs proper testing on Windows.
+    {"dc.superwide", "Widescreen to the window's shape (with the widescreen hack)", READER_CORE_SETTING_SWITCH, "0", 0, 0, 0, nullptr, 0},
     {"dc.texture_filter", "Texture smoothing", READER_CORE_SETTING_CHOICE, "default", 0, 0, 0, READER_CHOICES(FilterChoices)},
     {"dc.hle_bios", "Without the console's BIOS (its stand-in)", READER_CORE_SETTING_SWITCH, "0", 0, 0, 0, nullptr, 0},
     {READER_CORE_SETTING_CRT, nullptr, READER_CORE_SETTING_TEXT, "", 0, 0, 0, nullptr, 0},
@@ -218,6 +222,24 @@ size_t ReadMemory(uint64_t address, void* buffer, size_t size) {
     if (start >= SoundBase && start < SoundEnd) {
         return Slice(aica::aica_ram, ARAM_SIZE, start - SoundBase, buffer, size);
     }
+    return 0;
+}
+
+/// Main memory only (and its mirrors), all or nothing: emulator.cpp's DreamcastHost::WriteMemory
+/// for the core. Code the recompiler already translated is not translated again for it.
+int32_t WriteMemory(uint64_t address, const void* buffer, size_t size) {
+    if (address > 0xFFFFFFFFULL || size == 0 || address >= 0xE0000000ULL || &mem_b[0] == nullptr) {
+        return -1;
+    }
+    const u32 start = static_cast<u32>(address) & AreaMask;
+    if (start < MainBase || start >= MainEnd) {
+        return -1;
+    }
+    const u32 offset = (start - MainBase) % RAM_SIZE;
+    if (offset + size > RAM_SIZE) {
+        return -1;
+    }
+    std::memcpy(&mem_b[offset], buffer, size);
     return 0;
 }
 
@@ -379,6 +401,8 @@ void ApplySetting(const std::string& key, const std::string& value,
         set("reicast_language", language);
     } else if (key == "dc.widescreen") {
         set("reicast_widescreen_hack", value == "1" ? "enabled" : "disabled");
+    } else if (key == "dc.superwide") {
+        config::SuperWidescreen.override(value == "1");
     } else if (key == "dc.texture_filter") {
         set("reicast_texture_filtering", value == "nearest" ? "1" : value == "linear" ? "2" : "0");
     } else if (key == "dc.hle_bios") {
@@ -405,6 +429,7 @@ ReaderLibretro::Glue MakeGlue() {
     ReaderLibretro::Glue glue;
     glue.info = MakeInfo();
     glue.read_memory = &ReadMemory;
+    glue.write_memory = &WriteMemory;
     glue.memory_regions = &MemoryRegions;
     glue.identify = &Identify;
     glue.apply_setting = &ApplySetting;

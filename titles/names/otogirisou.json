@@ -1,0 +1,211 @@
+{
+ "source": {
+  "vndb": "v661",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "松平": "まつだいら",
+  "公平": "こうへい",
+  "奈美": "なみ",
+  "有栖川": "ありすがわ",
+  "直美": "なおみ",
+  "直樹": "なおき"
+ },
+ "entries": [
+  {
+   "id": "c135840",
+   "kind": "person",
+   "name": "公平",
+   "reading": "こうへい",
+   "romaji": "Kouhei",
+   "aliases": [
+    {
+     "text": "松平 公平",
+     "reading": "まつだいら こうへい"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c135885",
+   "kind": "person",
+   "name": "奈美",
+   "reading": "なみ",
+   "romaji": "Nami",
+   "aliases": [
+    {
+     "text": "菊島 奈美"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:菊島 奈美"
+   ]
+  },
+  {
+   "id": "c135899",
+   "kind": "person",
+   "name": "ナオミ",
+   "reading": "ナオミ",
+   "romaji": "Naomi",
+   "aliases": [
+    {
+     "text": "有栖川 直美",
+     "reading": "ありすがわ なおみ"
+    },
+    {
+     "text": "階沢 直美"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": [
+    "alias:階沢 直美"
+   ]
+  },
+  {
+   "id": "c135968",
+   "kind": "person",
+   "name": "ナオミの母親",
+   "romaji": "Naomi's mother",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c136149",
+   "kind": "person",
+   "name": "ミイラ",
+   "reading": "ミイラ",
+   "romaji": "Mummy",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c136962",
+   "kind": "person",
+   "name": "怪魚",
+   "romaji": "Fish Monster",
+   "aliases": [
+    {
+     "text": "直樹",
+     "reading": "なおき"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c137267",
+   "kind": "person",
+   "name": "ヨロイ",
+   "reading": "ヨロイ",
+   "romaji": "Armor",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c135969",
+   "kind": "person",
+   "name": "Spirit of the mansion",
+   "romaji": "Spirit of the mansion",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c136150",
+   "kind": "person",
+   "name": "公平の父親",
+   "romaji": "Kouhei's father",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c136963",
+   "kind": "person",
+   "name": "アインシュタイン博",
+   "romaji": "Dr. Einstein",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c137953",
+   "kind": "person",
+   "name": "透明人間",
+   "romaji": "Invisible Man",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c137954",
+   "kind": "person",
+   "name": "フランケンシュタインの怪物",
+   "romaji": "Frankenstein's Monster",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:otogirisou",
+   "kind": "thing",
+   "name": "弟切草",
+   "reading": "おとぎりそう",
+   "romaji": "Otogirisou",
+   "aliases": [
+    {
+     "text": "オトギリソウ",
+     "reading": "オトギリソウ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

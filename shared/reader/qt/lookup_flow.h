@@ -70,6 +70,10 @@ public:
     void Close();
     /// Makes a card of `presented` alone, without a word.
     void MineSentence(const ReaderApp::PresentedLine& presented);
+    /// A card of the word the open popup shows first; false when no popup is open.
+    bool MineShown();
+    /// Takes the card made last back out of Anki, and says so.
+    void UndoLast();
 
     [[nodiscard]] bool IsOpen() const;
     /// True when the open popup is about the character at `offset` of the line `backlog_id`.

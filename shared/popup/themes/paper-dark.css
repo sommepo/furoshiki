@@ -1,8 +1,8 @@
 /* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later
    Paper dark: Paper's quiet serif on dark brown, cream ink. */
-:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #b8a88a; --accent: #d9a55a; }
-.popup { background: #2b2119; border: 1px solid #5a4632; border-radius: 4px; color: #efe4cf; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6); }
+:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #b8a88a; --accent: #d9a55a; --ground: #2b2119; --radius: 4px; --text: #efe4cf; }
+.popup { border: 1px solid #5a4632; color: #efe4cf; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6); }
 .entry + .entry { border-top-color: #4a3a2a; }
 .tag { font-family: "Noto Sans JP", sans-serif; color: #e3cfa6; background: #3e3023; border-radius: 3px; padding: 0 5px; }
 .tag.frequency { background: #2f3a26; color: #bcd6a8; }

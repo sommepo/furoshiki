@@ -1,0 +1,17 @@
+{
+ "title": "ファイナルファンタジーVII",
+ "english": "Final Fantasy VII",
+ "ids": [
+  "SLPS-00700",
+  "SLPS-00701",
+  "SLPS-00702"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "anilist": null,
+ "guide": "final-fantasy-vii",
+ "screenscraper": {
+  "ps1": 19249
+ }
+}

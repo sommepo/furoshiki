@@ -25,13 +25,39 @@ card with the sentence, a screenshot and the audio.
 | Nintendo 3DS | Azahar | ✓ | ✓ |
 | PS Vita | Vita3K | ✓ | ✓ |
 
-**A CRT picture** for every console but the Vita, with sliders and ready-made looks (*Reader
-settings, CRT picture*): scan lines, the phosphor's pattern, the curved glass, and a glow that
+**A CRT picture** for every console but the Vita, with sliders and ready-made looks (*Settings,
+Furoshiki, CRT effect*): scan lines, the phosphor's pattern, the curved glass, and a glow that
 spreads off what is bright into the dark beside it, as a tube's glass spreads light. On Windows
 with an HDR screen, its HDR row lets the lit phosphor shine brighter than white (the Dreamcast,
 PSP and PS2 cores).
 
+## New in Furoshiki 3
+
+- **The shelf.** Every title stands as a spine with its box art; the one in hand opens to its
+  cover, what you have read of it and one key that plays it. Type and hairlines, in four themes
+  (Kon, Mono, Paper, Solarized). Android has the same look, laid out for folding phones and for
+  handhelds with two displays.
+- **Settings as pages**, by what they are for: Reading, Popup, Cards, Sources, Consoles,
+  Controller, Keys. Each page shows the few rows most people change, with the rest behind *More*.
+  `/` finds a setting by name, a small square marks what you changed and Backspace puts it back.
+  Everything works by keyboard, controller or mouse alone.
+- **Cards**: the lines before as context, the audio trimmed to the voice, one card from several
+  lines of the backlog, a card of just the word (Ctrl+W), and the last card taken back (Ctrl+Z).
+  *Explain* (Ctrl+E) gives a line's translation and grammar from Claude Code on your own computer,
+  if you have it.
+- **The popup** has a design page with a live preview, and an opacity slider so the game shows
+  through it.
+- **Other sources** (*Add a title*): besides a console's disc or file, a PC game read by a text
+  hook, or lines from a texthooker's WebSocket or the clipboard.
+- **Widescreen** (16:9, 21:9, 32:9) for the PS2 games that have a checked recipe: the 3D is drawn
+  wide and the 2D keeps its shape, never stretched.
+- **Android**: on-screen buttons and a stick, and a menu over the game with savestate slots, disc
+  change, fast forward, skip to the next choice, patches and cheat codes; a game pinned to the
+  home screen.
+
 ## What it looks like
+
+The pictures below were taken before Furoshiki 3: the games look the same, the menus do not.
 
 All pictures are of Furoshiki for Android on an AYN Thor, the games' own text read as it comes up.
 

@@ -23,6 +23,15 @@ namespace Home {
 /// processor's registers). Only while no game runs.
 void ApplyConsole(const reader_core_info& info);
 
+/// What the reader's emulator side (reader_emu.cpp) is told of a session, where the program has
+/// one: each frame of the game, a button of the game's pressed by the player, the game gone or a
+/// savestate loaded. Null in a program that has no reader (the cores' own tests).
+namespace SessionHooks {
+inline void (*frame)() = nullptr;
+inline void (*player_input)() = nullptr;
+inline void (*game_gone)() = nullptr;
+} // namespace SessionHooks
+
 class CoreSession {
 public:
     /// The profile of a game, by its ID: its source, or nothing (the game is not read).
@@ -194,6 +203,11 @@ public:
 
     /// Runs a game (a file, or an installed title's ID). False with `error` when it did not start.
     bool LoadGame(const std::string& game, std::string& error);
+    /// Why `game` (UTF-8) can be no game at all: it names a file (a path, or a link) that is not
+    /// there, a link to nothing, or a file that cannot be read. Empty when it is there, or when
+    /// it names no file (an installed title's ID). Asked before a game is handed to a core: a
+    /// core given a file that is not there has nothing to say of it but its own log's line.
+    [[nodiscard]] static std::string MissingGame(const std::string& game);
     void Stop();
     [[nodiscard]] bool Running() const {
         return running.load();

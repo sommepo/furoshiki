@@ -82,6 +82,14 @@ object ReaderGlue : ReaderNative.Frontend {
         main.post(watch)
     }
 
+    /** Where the app's own button over the game is (the menu's): the reader's layer leaves taps there to it. */
+    fun setAppControls(at: (Float, Float) -> Boolean) {
+        overlay?.appControlsAt = at
+    }
+
+    /** Whether the on-screen buttons are wanted, as the reader's settings have it now. */
+    fun wantsTouchButtons(): Boolean = activity?.let { ReaderSettings(it).touchButtons } ?: false
+
     fun onResume() {
         resumed = true
         update()
@@ -105,6 +113,8 @@ object ReaderGlue : ReaderNative.Frontend {
         if (front == inFront) return
         inFront = front
         overlay?.visibility = if (front) View.VISIBLE else View.GONE
+        // Back from the settings: the on-screen buttons as they are set now.
+        activity?.let { overlay?.touchButtonsAlways = ReaderSettings(it).touchButtons }
         ReaderSession.setReading(front)
         if (front) {
             second?.start()
@@ -191,7 +201,7 @@ object ReaderGlue : ReaderNative.Frontend {
         ReaderSession.start(context, gameId, title)
         surface?.let { ReaderHost.provideFrames(it) }
         // A touch device has no other buttons: every game shows them, read or not.
-        overlay?.touchButtonsAlways = ReaderSettings.touchPlayAtFirst()
+        overlay?.touchButtonsAlways = ReaderSettings(context).touchButtons
         inFront = false
         update()
     }

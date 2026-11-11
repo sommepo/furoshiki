@@ -29,6 +29,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <functional>
@@ -75,6 +76,7 @@
 #include "pcsx2/MTGS.h"
 #include "pcsx2/Memory.h"
 #include "pcsx2/MemoryTypes.h"
+#include "pcsx2/Patch.h"
 #include "pcsx2/SIO/Memcard/MemoryCardFile.h"
 #include "pcsx2/SIO/Pad/Pad.h"
 #include "pcsx2/SIO/Pad/PadDualshock2.h"
@@ -82,6 +84,7 @@
 #include "pcsx2/ps2/BiosTools.h"
 
 #include "reader/core/console.h"
+#include "reader/core_library/wide_patches.h"
 #include "reader/core/crt.h"
 #include "reader/core/emulator.h"
 #include "reader/core/memory_card.h"
@@ -154,6 +157,9 @@ constexpr const char* DefaultRenderer = "vulkan";
 const char* const AspectChoices[] = {"auto", "4:3", "16:9", "stretch"};
 const char* const BlendingChoices[] = {"minimum", "basic", "medium", "high", "full", "maximum"};
 const char* const FilterChoices[] = {"nearest", "bilinear-ps2", "bilinear-forced", "bilinear-forced-no-sprites"};
+// The wide picture (wide_patches.cpp): the shape a game with a recipe is drawn for. "21:9" is
+// the monitors' 64:27.
+const char* const WideChoices[] = {"off", "16:9", "21:9", "32:9"};
 #define READER_CHOICES(list) list, static_cast<uint32_t>(std::size(list))
 const reader_core_setting CoreSettings[] = {
     {READER_CORE_SETTING_RESOLUTION, nullptr, READER_CORE_SETTING_NUMBER, "1", 1, 8, 1, nullptr, 0},
@@ -166,6 +172,8 @@ const reader_core_setting CoreSettings[] = {
     {"ps2.blending", "Blending accuracy", READER_CORE_SETTING_CHOICE, "basic", 0, 0, 0, READER_CHOICES(BlendingChoices)},
     {"ps2.texture_filter", "Texture smoothing", READER_CORE_SETTING_CHOICE, "bilinear-ps2", 0, 0, 0, READER_CHOICES(FilterChoices)},
     {"ps2.widescreen", "Widescreen patches (some games)", READER_CORE_SETTING_SWITCH, "0", 0, 0, 0, nullptr, 0},
+    {"ps2.wide", "Wide picture, for the games that have a recipe (shape of the picture: auto)", READER_CORE_SETTING_CHOICE,
+     "off", 0, 0, 0, READER_CHOICES(WideChoices)},
     {READER_CORE_SETTING_CRT, nullptr, READER_CORE_SETTING_TEXT, "", 0, 0, 0, nullptr, 0},
     {READER_CORE_SETTING_SPEED, nullptr, READER_CORE_SETTING_NUMBER, "100", 0, 1000, 10, nullptr, 0},
 };
@@ -255,6 +263,12 @@ std::mutex g_values_mutex;
 std::map<std::string, std::string> g_values;
 std::atomic<int> g_volume{100};
 bool g_frame_limit = true; ///< On the CPU thread
+/// The wide picture's shape as width << 16 | height (0: off), and whether it changed since the
+/// running game's patches were made.
+std::atomic<uint32_t> g_wide{0};
+std::atomic<bool> g_wide_changed{false};
+/// False when the picture's place is to be told again (the 2D's squeeze changed).
+std::atomic<bool> g_picture_told{true};
 float g_speed = 100.0f;
 
 std::string Value(const std::string& key, const char* fallback) {
@@ -311,6 +325,11 @@ void PutSettings() {
     si.SetBoolValue("Achievements", "SoundEffects", false); // PCSX2's sounds go past the program's sound
     si.SetBoolValue("EmuCore", "EnableFastBoot", on(Value("ps2.fast_boot", "1")));
     si.SetBoolValue("EmuCore", "EnableWideScreenPatches", on(Value("ps2.widescreen", "0")));
+    const std::string wide = Value("ps2.wide", "off");
+    const uint32_t shape = wide == "16:9" ? (16u << 16 | 9u) : wide == "21:9" ? (64u << 16 | 27u) : wide == "32:9" ? (32u << 16 | 9u) : 0u;
+    if (g_wide.exchange(shape) != shape) {
+        g_wide_changed = true;
+    }
     const std::string blending = Value("ps2.blending", "basic");
     int blending_unit = 1;
     for (int i = 0; i < static_cast<int>(std::size(BlendingChoices)); ++i) {
@@ -324,6 +343,36 @@ void PutSettings() {
                                            : filter == "bilinear-forced"            ? 1
                                            : filter == "bilinear-forced-no-sprites" ? 3
                                                                                     : 2);
+}
+
+/// The running game's wide picture for PCSX2's patches (Patch::SetExtraPatchSource): asked
+/// whenever the game's patches are loaded, on the CPU thread.
+std::string WidePatchesFor(const std::string& serial, u32 crc) {
+    // One owner of the shape: with picture.aspect set (stretch, as an add-on that widens a game itself
+    // sets it: Kakuremino), the wide picture stays off, its 2D squeeze too.
+    const uint32_t shape = Value(READER_CORE_SETTING_ASPECT, "auto") == "auto" ? g_wide.load() : 0;
+    if (shape == 0) {
+        GSSetReader2DSqueeze(1.0f);
+        g_picture_told = false;
+        return {};
+    }
+    // READER_WIDE_TRY: words being tried while a recipe is found (WidePatches::Pnach).
+    const char* trying = std::getenv("READER_WIDE_TRY");
+    // READER_WIDE_UNCHECKED=1: a recipe not yet through the stretch test is used too (to check it).
+    const char* unchecked = std::getenv("READER_WIDE_UNCHECKED");
+    std::string text = WidePatches::Pnach(serial, crc, shape >> 16, shape & 0xFFFFu, trying != nullptr ? trying : "",
+                                          unchecked != nullptr && std::strcmp(unchecked, "1") == 0);
+    if (!text.empty()) {
+        Console.WriteLn(fmt::format("Furoshiki: the wide picture for {} ({:08X}) at {}:{}", serial, crc, shape >> 16, shape & 0xFFFFu));
+    }
+    // The 2D keeps its shape (GSSetReader2DSqueeze): drawn as wide as the 4:3 picture would show it.
+    const float squeeze = text.empty() ? 1.0f : (4.0f / 3.0f) / (static_cast<float>(shape >> 16) / static_cast<float>(shape & 0xFFFFu));
+    // Which draws are its 2D: its recipe's rule, or READER_WIDE_2D's while one is being found.
+    const char* two_d = std::getenv("READER_WIDE_2D");
+    GSSetReader2DRule(two_d != nullptr ? std::string(two_d) : WidePatches::TwoD(serial, crc));
+    GSSetReader2DSqueeze(squeeze);
+    g_picture_told = false;
+    return text;
 }
 
 std::vector<std::string> CoreFolders();
@@ -573,9 +622,14 @@ void ApplyPad() {
     }
 }
 
-/// Tells the program where the picture is in its window, when that changed.
+/// Tells the program where the picture is in its window, when that changed; and where its 2D is
+/// (as screen 0): the picture, or with the wide picture's 2D kept to its shape the middle of it,
+/// where the reader then places a text's characters.
 void TellPictureRect() {
     static std::tuple<int32_t, int32_t, int32_t, int32_t> told{-1, -1, -1, -1};
+    if (!g_picture_told.exchange(true)) {
+        told = {-1, -1, -1, -1};
+    }
     if (!READER_HOST_HAS(picture_rect) || g_host->picture_rect == nullptr) {
         return;
     }
@@ -590,6 +644,11 @@ void TellPictureRect() {
     told = now;
     const auto [x, y, width, height] = now;
     g_host->picture_rect(g_host->user, x, y, width, height);
+    if (READER_HOST_HAS(screen_rect) && g_host->screen_rect != nullptr) {
+        const float squeeze = GSGetReader2DSqueeze();
+        const int32_t text_width = static_cast<int32_t>(width * squeeze + 0.5f);
+        g_host->screen_rect(g_host->user, 0, x + (width - text_width) / 2, y, text_width, height);
+    }
 }
 
 /// The window's new size (or a new window) to the GS, which draws into it. CPU thread.
@@ -1243,6 +1302,7 @@ int32_t Init(const reader_core_host* host, const reader_core_paths* paths) {
     PutFixedSettings();
     PutSettings();
     PutBios();
+    Patch::SetExtraPatchSource(&WidePatchesFor);
     VMManager::Internal::LoadStartupSettings();
 
     // The console's picture has 448 lines (GSRenderer.cpp says so again each frame): what the
@@ -1305,6 +1365,11 @@ void ApplySettings(const reader_core_setting_value* values, uint32_t count) {
         if (VMManager::HasValidVM()) {
             VMManager::ApplySettings();
             ApplyLimiter();
+            // A new shape is the game's at once (going back to off: from the game's next start,
+            // as the words written stay in its memory).
+            if (g_wide_changed.exchange(false)) {
+                VMManager::ReloadPatches(true, false, false, true);
+            }
         }
     };
     // On the CPU thread once it runs: PCSX2 takes its settings there.

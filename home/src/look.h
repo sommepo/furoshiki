@@ -17,6 +17,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QPointF>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 
@@ -124,5 +125,8 @@ private:
 /// The roles a theme's "type" names, and the values every theme must have.
 [[nodiscard]] QStringList TypeRoles();
 [[nodiscard]] QStringList RequiredValues();
+
+/// The window's first size: the Switch's picture, 1920×1080, or as much of it as `room` holds.
+[[nodiscard]] QSize FirstWindowSize(QSize room);
 
 } // namespace Home

@@ -292,3 +292,15 @@ TEST_CASE("AnkiConnectClient: what goes wrong is said", "[reader][anki]") {
     AnkiConnectClient wrong(QStringLiteral("ftp://127.0.0.1"));
     REQUIRE_THROWS_AS(wrong.Version(), AnkiError);
 }
+
+TEST_CASE("AnkiConnectClient: a note is taken back out", "[reader][anki]") {
+    Stand stand(Ok(R"({"result": null, "error": null})"));
+    AnkiConnectClient client(Url(stand), QString());
+    client.DeleteNotes({1496198395707, 12});
+    stand.wait();
+    REQUIRE(stand.request.contains(R"("action":"deleteNotes")"));
+    REQUIRE(stand.request.contains(R"("notes":[1496198395707,12])"));
+    // Nothing to take back: nothing is asked.
+    AnkiConnectClient nowhere(QStringLiteral("http://127.0.0.1:1"), QString());
+    nowhere.DeleteNotes({});
+}

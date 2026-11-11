@@ -38,6 +38,19 @@ std::optional<FileEntry> FileOf(const QJsonObject& object) {
     return file;
 }
 
+std::optional<FileEntry> NamesOf(const QJsonValue& value) {
+    if (!value.isObject()) {
+        return std::nullopt;
+    }
+    const QJsonObject object = value.toObject();
+    FileEntry file{Text(object, "file"), Text(object, "sha256").toLower(),
+                   static_cast<qint64>(object.value(QStringLiteral("size")).toDouble(-1))};
+    if (!IsNamesFile(file.file) || file.sha256.size() != 64 || file.size < 0 || file.size > DataMax) {
+        return std::nullopt;
+    }
+    return file;
+}
+
 bool IsUtf8(const QByteArray& bytes) {
     QStringDecoder decoder(QStringDecoder::Utf8);
     (void)QString(decoder(bytes));
@@ -45,6 +58,11 @@ bool IsUtf8(const QByteArray& bytes) {
 }
 
 } // namespace
+
+bool IsNamesFile(const QString& name) {
+    static const QRegularExpression pattern(QStringLiteral("^names-[a-z0-9][a-z0-9-]*\\.zip$"));
+    return pattern.match(name).hasMatch();
+}
 
 std::optional<QString> IdOfFile(const QString& name) {
     const qsizetype dot = name.indexOf(u'.');
@@ -107,6 +125,8 @@ std::optional<Index> ParseIndex(const QByteArray& json, QString* error) {
         if (!whole) {
             continue;
         }
+        // Names that are not as they should be are passed over; the script is still listed.
+        entry.names = NamesOf(object.value(QStringLiteral("names")));
         if (entry.title.isEmpty()) {
             entry.title = entry.id;
         }
@@ -268,6 +288,12 @@ bool Folder::Install(const Entry& entry, const QHash<QString, QByteArray>& files
     if (!WriteFile(entry.script.file, source, error)) {
         return false;
     }
+    // The names come along where they were fetched as the list has them; without them the
+    // script is installed all the same (the names are fetched again with the list).
+    if (entry.names && files.contains(entry.names->file)) {
+        QString unused;
+        InstallNames(entry, files.value(entry.names->file), &unused);
+    }
     QFile record_file(path + u'/' + RecordName);
     QJsonObject root;
     if (record_file.open(QIODevice::ReadOnly)) {
@@ -277,6 +303,29 @@ bool Folder::Install(const Entry& entry, const QHash<QString, QByteArray>& files
     root.insert(entry.id, QJsonObject{{QStringLiteral("sha256"), entry.script.sha256},
                                       {QStringLiteral("data"), data_names}});
     return WriteFile(RecordName, QJsonDocument(root).toJson(QJsonDocument::Indented), error);
+}
+
+bool Folder::NeedsNames(const Entry& entry) const {
+    if (!entry.names) {
+        return false;
+    }
+    QFile file(path + u'/' + entry.names->file);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return true;
+    }
+    return file.size() != entry.names->size || Sha256(file.readAll()) != entry.names->sha256;
+}
+
+bool Folder::InstallNames(const Entry& entry, const QByteArray& bytes, QString* error) {
+    if (!entry.names) {
+        *error = QStringLiteral("%1 has no names dictionary").arg(entry.id);
+        return false;
+    }
+    if (bytes.size() != entry.names->size || Sha256(bytes) != entry.names->sha256) {
+        *error = QStringLiteral("%1 is not the file the list names").arg(entry.names->file);
+        return false;
+    }
+    return WriteFile(entry.names->file, bytes, error);
 }
 
 QStringList Folder::InstallFiles(const QStringList& paths, QString* error) {

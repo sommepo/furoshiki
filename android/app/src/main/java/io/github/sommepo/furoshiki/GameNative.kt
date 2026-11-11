@@ -53,6 +53,23 @@ object GameNative {
     /** The controller: buttons by the core's bits, sticks from -32768 to 32767, triggers to 255. */
     external fun setPad(buttons: Long, leftX: Int, leftY: Int, rightX: Int, rightY: Int, leftTrigger: Int, rightTrigger: Int)
 
+    /** The core's features (reader_core.h's READER_CORE_HAS_*): 2 discs, 16 savestates told. */
+    external fun features(): Int
+
+    /** How many savestate slots the core has, numbered from 1. */
+    external fun stateSlots(): Int
+
+    /** When the running game's savestate [slot] was written (ms): 0 none, -1 the core does not tell. */
+    external fun stateSaved(slot: Int): Long
+
+    external fun discCount(): Int
+    external fun discCurrent(): Int
+    external fun discLabel(index: Int): ByteArray
+    external fun insertDisc(index: Int): Boolean
+
+    /** The patches the core has for a game, as JSON: [{"name","about","on"}]. */
+    external fun patches(gameId: String): ByteArray
+
     external fun saveState(slot: Int): Boolean
 
     external fun loadState(slot: Int): Boolean

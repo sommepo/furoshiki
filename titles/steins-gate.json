@@ -1,0 +1,19 @@
+{
+ "title": "STEINS;GATE",
+ "english": "STEINS;GATE",
+ "ids": [
+  "0100F160092D2000",
+  "ULJM05887"
+ ],
+ "furochibi": [],
+ "jellyfin": [
+  "Steins;Gate"
+ ],
+ "vndb": "v2002",
+ "jiten": 283,
+ "anilist": null,
+ "guide": "steins-gate",
+ "screenscraper": {
+  "psp": 28096
+ }
+}

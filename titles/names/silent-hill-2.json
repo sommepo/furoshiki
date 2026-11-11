@@ -1,0 +1,439 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/サイレントヒル2",
+   "https://altema.jp/silenthill2/story"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:james-sunderland",
+   "kind": "person",
+   "name": "ジェイムス・サンダーランド",
+   "family": "サンダーランド",
+   "given": "ジェイムス",
+   "reading": "ジェイムス・サンダーランド",
+   "family_reading": "サンダーランド",
+   "given_reading": "ジェイムス",
+   "romaji": "James Sunderland",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mary-sunderland",
+   "kind": "person",
+   "name": "メアリー・シェパード・サンダーランド",
+   "family": "サンダーランド",
+   "given": "メアリー",
+   "reading": "メアリー・シェパード・サンダーランド",
+   "family_reading": "サンダーランド",
+   "given_reading": "メアリー",
+   "romaji": "Mary Shepherd-Sunderland",
+   "aliases": [
+    {
+     "text": "メアリー",
+     "reading": "メアリー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maria",
+   "kind": "person",
+   "name": "マリア",
+   "reading": "マリア",
+   "romaji": "Maria",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:angela-orosco",
+   "kind": "person",
+   "name": "アンジェラ・オラスコ",
+   "family": "オラスコ",
+   "given": "アンジェラ",
+   "reading": "アンジェラ・オラスコ",
+   "family_reading": "オラスコ",
+   "given_reading": "アンジェラ",
+   "romaji": "Angela Orosco",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:eddie-dombrowski",
+   "kind": "person",
+   "name": "エディー・ドンブラウスキー",
+   "family": "ドンブラウスキー",
+   "given": "エディー",
+   "reading": "エディー・ドンブラウスキー",
+   "family_reading": "ドンブラウスキー",
+   "given_reading": "エディー",
+   "romaji": "Eddie Dombrowski",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:laura",
+   "kind": "person",
+   "name": "ローラ",
+   "reading": "ローラ",
+   "romaji": "Laura",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:pyramid-head",
+   "kind": "person",
+   "name": "三角頭",
+   "reading": "さんかくあたま",
+   "romaji": "Pyramid Head",
+   "aliases": [
+    {
+     "text": "レッドピラミッドシング",
+     "reading": "レッドピラミッドシング"
+    }
+   ],
+   "role": "primary",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ernest-baldwin",
+   "kind": "person",
+   "name": "アーネスト・ボールドウィン",
+   "family": "ボールドウィン",
+   "given": "アーネスト",
+   "reading": "アーネスト・ボールドウィン",
+   "family_reading": "ボールドウィン",
+   "given_reading": "アーネスト",
+   "romaji": "Ernest Baldwin",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:amy-baldwin",
+   "kind": "person",
+   "name": "エイミー・ボールドウィン",
+   "family": "ボールドウィン",
+   "given": "エイミー",
+   "reading": "エイミー・ボールドウィン",
+   "family_reading": "ボールドウィン",
+   "given_reading": "エイミー",
+   "romaji": "Amy Baldwin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:walter-sullivan",
+   "kind": "person",
+   "name": "ウォルター・サリバン",
+   "family": "サリバン",
+   "given": "ウォルター",
+   "reading": "ウォルター・サリバン",
+   "family_reading": "サリバン",
+   "given_reading": "ウォルター",
+   "romaji": "Walter Sullivan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:billy-locane",
+   "kind": "person",
+   "name": "ビリー・ロケイン",
+   "family": "ロケイン",
+   "given": "ビリー",
+   "reading": "ビリー・ロケイン",
+   "family_reading": "ロケイン",
+   "given_reading": "ビリー",
+   "romaji": "Billy Locane",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:miriam-locane",
+   "kind": "person",
+   "name": "ミリアム・ロケイン",
+   "family": "ロケイン",
+   "given": "ミリアム",
+   "reading": "ミリアム・ロケイン",
+   "family_reading": "ロケイン",
+   "given_reading": "ミリアム",
+   "romaji": "Miriam Locane",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:thomas-orosco",
+   "kind": "person",
+   "name": "トーマス・オラスコ",
+   "family": "オラスコ",
+   "given": "トーマス",
+   "reading": "トーマス・オラスコ",
+   "family_reading": "オラスコ",
+   "given_reading": "トーマス",
+   "romaji": "Thomas Orosco",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rachel",
+   "kind": "person",
+   "name": "レイチェル",
+   "reading": "レイチェル",
+   "romaji": "Rachel",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:joseph-birkin",
+   "kind": "person",
+   "name": "ジョセフ・バーキン",
+   "family": "バーキン",
+   "given": "ジョセフ",
+   "reading": "ジョセフ・バーキン",
+   "family_reading": "バーキン",
+   "given_reading": "ジョセフ",
+   "romaji": "Joseph Birkin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:silent-hill",
+   "kind": "place",
+   "name": "サイレントヒル",
+   "reading": "サイレントヒル",
+   "romaji": "Silent Hill",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:toluca-lake",
+   "kind": "place",
+   "name": "トルーカ湖",
+   "reading": "トルーカこ",
+   "romaji": "Toluca Lake",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:brookhaven-hospital",
+   "kind": "place",
+   "name": "ブルックヘイヴン病院",
+   "reading": "ブルックヘイヴンびょういん",
+   "romaji": "Brookhaven Hospital",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lakeview-hotel",
+   "kind": "place",
+   "name": "レイクビューホテル",
+   "reading": "レイクビューホテル",
+   "romaji": "Lakeview Hotel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:wood-side-apartments",
+   "kind": "place",
+   "name": "ウッドサイド・アパート",
+   "reading": "ウッドサイド・アパート",
+   "romaji": "Wood Side Apartments",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:blue-creek-apartments",
+   "kind": "place",
+   "name": "ブルークリーク・アパート",
+   "reading": "ブルークリーク・アパート",
+   "romaji": "Blue Creek Apartments",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:rosewater-park",
+   "kind": "place",
+   "name": "ローズウォーター公園",
+   "reading": "ローズウォーターこうえん",
+   "romaji": "Rosewater Park",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:toluca-prison",
+   "kind": "place",
+   "name": "トルーカ刑務所",
+   "reading": "トルーカけいむしょ",
+   "romaji": "Toluca Prison",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:historical-society",
+   "kind": "place",
+   "name": "歴史資料館",
+   "reading": "れきししりょうかん",
+   "romaji": "Silent Hill Historical Society",
+   "aliases": [
+    {
+     "text": "資料館",
+     "reading": "しりょうかん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:heavens-night",
+   "kind": "place",
+   "name": "ヘヴンスナイト",
+   "reading": "ヘヴンスナイト",
+   "romaji": "Heaven's Night",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:marys-letter",
+   "kind": "thing",
+   "name": "メアリーの手紙",
+   "reading": "メアリーのてがみ",
+   "romaji": "Mary's letter",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:red-devil",
+   "kind": "thing",
+   "name": "赤い悪魔",
+   "reading": "あかいあくま",
+   "romaji": "the red devil",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:white-chrism",
+   "kind": "thing",
+   "name": "白の香油",
+   "romaji": "White Chrism",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:obsidian-goblet",
+   "kind": "thing",
+   "name": "黒曜石の酒杯",
+   "reading": "こくようせきのしゅはい",
+   "romaji": "Obsidian Goblet",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:dog-key",
+   "kind": "thing",
+   "name": "犬の鍵",
+   "reading": "いぬのかぎ",
+   "romaji": "Dog Key",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

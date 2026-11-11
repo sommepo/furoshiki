@@ -118,7 +118,9 @@ class Miner : public QObject {
 public:
     struct Outcome {
         /// Cancelled: the user was asked about the audio and called the card off.
-        enum class Kind { Added, Exists, Failed, Cancelled };
+        /// Queued: no Anki answered at any of its addresses; the card is kept on this computer
+        /// and sent when one does.
+        enum class Kind { Added, Exists, Failed, Cancelled, Queued };
         Kind kind{Kind::Failed};
         /// Added: the new note. Exists: the notes Anki has already.
         QList<qint64> notes;
@@ -127,6 +129,8 @@ public:
         /// Added: the field VN Library's media add-on wanted a web address in, when the card
         /// went through it and this was not known yet. It is remembered for the next card.
         QString address_field;
+        /// Added: the picture the card got (sent on to Furochibi's list of today's cards).
+        QByteArray picture;
     };
 
     explicit Miner(QObject* parent = nullptr);
@@ -176,9 +180,16 @@ public:
     void Confirm(const ReaderApp::PresentedLine& presented,
                  const QList<ReaderApp::LookupResult>& words, int first,
                  std::function<void(const Confirmed&)> callback);
+    /**
+     * Takes the card made last back out of Anki (once: the one before it stays). `undone` is
+     * false with no failure when there is none to take back. Main thread.
+     */
+    void Undo(std::function<void(bool undone, const QString& failure)> callback);
     /// Opens Anki's browser on `notes`; the callback gets an empty text, or what went wrong.
     void ShowNotes(const QList<qint64>& notes, std::function<void(const QString&)> callback);
 
+    /// How many cards wait on this computer for an Anki that answers.
+    [[nodiscard]] static int Waiting();
     /// Forgets what was learned from Anki: after the setup changed.
     static void Forget();
 
@@ -189,6 +200,8 @@ private:
     /// Reads the deck into the copy on this computer, without holding up either.
     QThreadPool indexer;
     std::atomic<bool> stopping{false};
+    /// Tries the cards that wait, now and then.
+    QTimer retry;
     /// Reads the deck into the copy when that is due (any thread; `key` is AnkiConnect's).
     void KeepIndex(const ReaderApp::AnkiIndex::Source& source, const QString& key);
 };

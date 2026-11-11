@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dictionary popup. The first 4 are shown; the rest stand behind "More"
+     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:initialExpandedChildrenCount="4">
+
+    <ListPreference
+        app:key="reader_popup_theme"
+        app:defaultValue="console"
+        app:entries="@array/reader_popup_theme_entries"
+        app:entryValues="@array/reader_popup_theme_values"
+        app:title="@string/reader_pref_popup_theme"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_scale"
+        app:defaultValue="100"
+        app:min="60"
+        android:max="200"
+        app:seekBarIncrement="5"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_scale"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_height"
+        app:defaultValue="27"
+        app:min="10"
+        android:max="80"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_height"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_popup_mark_unknown"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_popup_mark_unknown"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_autohide"
+        app:defaultValue="15"
+        app:min="0"
+        android:max="120"
+        app:seekBarIncrement="5"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_autohide"
+        app:summary="@string/reader_pref_popup_autohide_summary"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_popup_hide_on_exit"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_popup_hide_on_exit"
+        app:summary="@string/reader_pref_popup_hide_on_exit_summary"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_card_corner"
+        app:defaultValue="bottom_left"
+        app:entries="@array/reader_card_corner_entries"
+        app:entryValues="@array/reader_card_corner_values"
+        app:title="@string/reader_pref_card_corner"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_opacity"
+        app:defaultValue="0"
+        app:min="0"
+        android:max="100"
+        app:seekBarIncrement="5"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_opacity"
+        app:summary="@string/reader_pref_popup_opacity_summary"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_radius"
+        app:defaultValue="-1"
+        app:min="-1"
+        android:max="28"
+        app:seekBarIncrement="1"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_radius"
+        app:summary="@string/reader_pref_popup_radius_summary"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_popup_compact"
+        app:defaultValue="0"
+        app:min="0"
+        android:max="9"
+        app:seekBarIncrement="1"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_compact"
+        app:summary="@string/reader_pref_popup_compact_summary"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_popup_hide_tags"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_popup_hide_tags"
+        app:summary="@string/reader_pref_popup_hide_tags_summary"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_portrait"
+        app:defaultValue="small"
+        app:entries="@array/reader_popup_portrait_entries"
+        app:entryValues="@array/reader_popup_portrait_values"
+        app:title="@string/reader_pref_popup_portrait"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_lookups"
+        app:defaultValue="count"
+        app:entries="@array/reader_popup_lookups_entries"
+        app:entryValues="@array/reader_popup_lookups_values"
+        app:title="@string/reader_pref_popup_lookups"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <EditTextPreference
+        app:key="reader_popup_css"
+        app:defaultValue=""
+        app:title="@string/reader_pref_popup_css"
+        app:summary="@string/reader_pref_popup_css_summary"
+        app:iconSpaceReserved="false" />
+    <Preference
+        app:key="reader_popup_import"
+        app:persistent="false"
+        app:title="@string/reader_pref_popup_import"
+        app:summary="@string/reader_pref_popup_import_summary"
+        app:iconSpaceReserved="false" />
+    <Preference
+        app:key="reader_popup_export"
+        app:persistent="false"
+        app:title="@string/reader_pref_popup_export"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

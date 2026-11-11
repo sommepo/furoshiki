@@ -1,0 +1,440 @@
+{
+ "source": {
+  "vndb": "v17",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "少": "しょう",
+  "桑古木": "かぶらき",
+  "涼権": "りょうごん",
+  "優": "ゆう",
+  "月海": "つぐみ"
+ },
+ "entries": [
+  {
+   "id": "c23",
+   "kind": "person",
+   "name": "少年",
+   "reading": "しょうねん",
+   "romaji": "Shounen",
+   "aliases": [
+    {
+     "text": "少ちゃん",
+     "reading": "しょうちゃん"
+    },
+    {
+     "text": "桑古木 涼権",
+     "reading": "かぶらき りょうごん"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c24",
+   "kind": "person",
+   "name": "倉成 武",
+   "family": "倉成",
+   "given": "武",
+   "reading": "くらなり たけし",
+   "family_reading": "くらなり",
+   "given_reading": "たけし",
+   "romaji": "Kuranari Takeshi",
+   "aliases": [
+    {
+     "text": "桑古木 涼権",
+     "reading": "かぶらき りょうごん"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c25",
+   "kind": "person",
+   "name": "ホクト",
+   "reading": "ホクト",
+   "romaji": "Hokuto",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c26",
+   "kind": "person",
+   "name": "倉成 武",
+   "family": "倉成",
+   "given": "武",
+   "reading": "くらなり たけし",
+   "family_reading": "くらなり",
+   "given_reading": "たけし",
+   "romaji": "Kuranari Takeshi",
+   "aliases": [
+    {
+     "text": "たけぴょん",
+     "reading": "たけぴょん"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c88537",
+   "kind": "person",
+   "name": "ブリックヴィンケル",
+   "reading": "ブリックヴィンケル",
+   "romaji": "Blick Winkel",
+   "aliases": [],
+   "role": "main",
+   "sex": "n",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c27",
+   "kind": "person",
+   "name": "八神 ココ",
+   "family": "八神",
+   "given": "ココ",
+   "reading": "やがみ ココ",
+   "family_reading": "やがみ",
+   "given_reading": "ココ",
+   "romaji": "Yagami Koko",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c28",
+   "kind": "person",
+   "name": "田中 優美清春香菜",
+   "family": "田中",
+   "given": "優美清春香菜",
+   "reading": "たなか ゆびせいはるかな",
+   "family_reading": "たなか",
+   "given_reading": "ゆびせいはるかな",
+   "romaji": "Tanaka Yubiseiharukana",
+   "aliases": [
+    {
+     "text": "なっきゅ",
+     "reading": "なっきゅ"
+    },
+    {
+     "text": "田中 優",
+     "reading": "たなか ゆう"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c29",
+   "kind": "person",
+   "name": "田中 優美清秋香菜",
+   "family": "田中",
+   "given": "優美清秋香菜",
+   "reading": "たなか ゆびせいあきかな",
+   "family_reading": "たなか",
+   "given_reading": "ゆびせいあきかな",
+   "romaji": "Tanaka Yubiseiakikana",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c30",
+   "kind": "person",
+   "name": "小町 つぐみ",
+   "family": "小町",
+   "given": "つぐみ",
+   "reading": "こまち つぐみ",
+   "family_reading": "こまち",
+   "given_reading": "つぐみ",
+   "romaji": "Komachi Tsugumi",
+   "aliases": [
+    {
+     "text": "つぐみん",
+     "reading": "つぐみん"
+    },
+    {
+     "text": "小町 月海",
+     "reading": "こまち つぐみ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c31",
+   "kind": "person",
+   "name": "松永 沙羅",
+   "family": "松永",
+   "given": "沙羅",
+   "reading": "まつなが さら",
+   "family_reading": "まつなが",
+   "given_reading": "さら",
+   "romaji": "Matsunaga Sara",
+   "aliases": [
+    {
+     "text": "マヨ",
+     "reading": "マヨ"
+    },
+    {
+     "text": "倉成 沙羅",
+     "reading": "くらなり さら"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c32",
+   "kind": "person",
+   "name": "茜ヶ崎 空",
+   "family": "茜ヶ崎",
+   "given": "空",
+   "reading": "あかねがさき そら",
+   "family_reading": "あかねがさき",
+   "given_reading": "そら",
+   "romaji": "Akanegasaki Sora",
+   "aliases": [
+    {
+     "text": "空ピー",
+     "reading": "そらピー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c103515",
+   "kind": "person",
+   "name": "ピピ",
+   "reading": "ピピ",
+   "romaji": "Pipi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c103516",
+   "kind": "person",
+   "name": "田中 陽一",
+   "family": "田中",
+   "given": "陽一",
+   "reading": "たなか よういち",
+   "family_reading": "たなか",
+   "given_reading": "よういち",
+   "romaji": "Tanaka Youichi",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c149389",
+   "kind": "person",
+   "name": "チャミ",
+   "reading": "チャミ",
+   "romaji": "Chami",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c103518",
+   "kind": "person",
+   "name": "八神 岳士",
+   "family": "八神",
+   "given": "岳士",
+   "reading": "やがみ たけし",
+   "family_reading": "やがみ",
+   "given_reading": "たけし",
+   "romaji": "Yagami Takeshi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c149084",
+   "kind": "person",
+   "name": "守野 茂蔵博",
+   "family": "守野",
+   "given": "茂蔵博",
+   "reading": "もりの しげぞう",
+   "family_reading": "もりの",
+   "given_reading": "しげぞう",
+   "romaji": "Morino Shigezou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:lemu",
+   "kind": "place",
+   "name": "LeMU",
+   "reading": "レミュウ",
+   "romaji": "LeMU",
+   "aliases": [
+    {
+     "text": "レミュウ",
+     "reading": "レミュウ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:insel-null",
+   "kind": "place",
+   "name": "インゼル・ヌル",
+   "reading": "インゼル・ヌル",
+   "romaji": "Insel Null",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:erst-boden",
+   "kind": "place",
+   "name": "エルスト・ボーデン",
+   "reading": "エルスト・ボーデン",
+   "romaji": "Erst Boden",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:zweitstock",
+   "kind": "place",
+   "name": "ツヴァイトシュトック",
+   "reading": "ツヴァイトシュトック",
+   "romaji": "Zweitstock",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:drittstock",
+   "kind": "place",
+   "name": "ドリットシュトック",
+   "reading": "ドリットシュトック",
+   "romaji": "Drittstock",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:lemuria-iseki",
+   "kind": "place",
+   "name": "レムリア遺跡",
+   "reading": "レムリアいせき",
+   "romaji": "Lemuria Iseki",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:leiblich-seiyaku",
+   "kind": "thing",
+   "name": "ライプリヒ製薬",
+   "reading": "ライプリヒせいやく",
+   "romaji": "Leiblich Seiyaku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:ibf",
+   "kind": "place",
+   "name": "IBF",
+   "reading": "イーベーエフ",
+   "romaji": "IBF",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:tb-virus",
+   "kind": "thing",
+   "name": "TBウイルス",
+   "romaji": "TB Virus",
+   "aliases": [
+    {
+     "text": "ティーフ・ブラウ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": [
+    "reading",
+    "alias:ティーフ・ブラウ"
+   ]
+  },
+  {
+   "id": "thing:cure",
+   "kind": "thing",
+   "name": "キュレイ",
+   "reading": "キュレイ",
+   "romaji": "Curé",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  }
+ ]
+}

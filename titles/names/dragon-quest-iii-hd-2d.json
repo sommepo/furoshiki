@@ -1,0 +1,861 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ドラゴンクエストIII_そして伝説へ…"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:ortega",
+   "kind": "person",
+   "name": "オルテガ",
+   "reading": "オルテガ",
+   "romaji": "Ortega",
+   "aliases": [
+    {
+     "text": "勇者オルテガ",
+     "reading": "ゆうしゃオルテガ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:baramos",
+   "kind": "person",
+   "name": "バラモス",
+   "reading": "バラモス",
+   "romaji": "Baramos",
+   "aliases": [
+    {
+     "text": "魔王バラモス",
+     "reading": "まおうバラモス"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zoma",
+   "kind": "person",
+   "name": "ゾーマ",
+   "reading": "ゾーマ",
+   "romaji": "Zoma",
+   "aliases": [
+    {
+     "text": "大魔王ゾーマ",
+     "reading": "だいまおうゾーマ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:luida",
+   "kind": "person",
+   "name": "ルイーダ",
+   "reading": "ルイーダ",
+   "romaji": "Luida",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:king-of-aliahan",
+   "kind": "person",
+   "name": "アリアハン王",
+   "reading": "アリアハンおう",
+   "romaji": "King of Aliahan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kandar",
+   "kind": "person",
+   "name": "カンダタ",
+   "reading": "カンダタ",
+   "romaji": "Kandar",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:bakota",
+   "kind": "person",
+   "name": "バコタ",
+   "reading": "バコタ",
+   "romaji": "Bakota",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:king-of-romaly",
+   "kind": "person",
+   "name": "ロマリア王",
+   "reading": "ロマリアおう",
+   "romaji": "King of Romaly",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:queen-of-the-elves",
+   "kind": "person",
+   "name": "エルフの女王",
+   "reading": "エルフのじょおう",
+   "romaji": "Queen of the Elves",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:anne",
+   "kind": "person",
+   "name": "アン",
+   "reading": "アン",
+   "romaji": "Anne",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nord",
+   "kind": "person",
+   "name": "ノルド",
+   "reading": "ノルド",
+   "romaji": "Nord",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:queen-of-isis",
+   "kind": "person",
+   "name": "イシス女王",
+   "reading": "イシスじょおう",
+   "romaji": "Queen of Isis",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:king-of-portoga",
+   "kind": "person",
+   "name": "ポルトガ王",
+   "reading": "ポルトガおう",
+   "romaji": "King of Portoga",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:carlos",
+   "kind": "person",
+   "name": "カルロス",
+   "reading": "カルロス",
+   "romaji": "Carlos",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sabrina",
+   "kind": "person",
+   "name": "サブリナ",
+   "reading": "サブリナ",
+   "romaji": "Sabrina",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:gupta",
+   "kind": "person",
+   "name": "グプタ",
+   "reading": "グプタ",
+   "romaji": "Gupta",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tania",
+   "kind": "person",
+   "name": "タニア",
+   "reading": "タニア",
+   "romaji": "Tania",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:himiko",
+   "kind": "person",
+   "name": "ヒミコ",
+   "reading": "ヒミコ",
+   "romaji": "Himiko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yamata-no-orochi",
+   "kind": "person",
+   "name": "やまたのおろち",
+   "reading": "やまたのおろち",
+   "romaji": "Yamata no Orochi",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yayoi",
+   "kind": "person",
+   "name": "やよい",
+   "reading": "やよい",
+   "romaji": "Yayoi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:popota",
+   "kind": "person",
+   "name": "ポポタ",
+   "reading": "ポポタ",
+   "romaji": "Popota",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:olivia",
+   "kind": "person",
+   "name": "オリビア",
+   "reading": "オリビア",
+   "romaji": "Olivia",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:eric",
+   "kind": "person",
+   "name": "エリック",
+   "reading": "エリック",
+   "romaji": "Eric",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:simon",
+   "kind": "person",
+   "name": "サイモン",
+   "reading": "サイモン",
+   "romaji": "Simon",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dragon-queen",
+   "kind": "person",
+   "name": "竜の女王",
+   "reading": "りゅうのじょおう",
+   "romaji": "Dragon Queen",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:boss-troll",
+   "kind": "person",
+   "name": "ボストロール",
+   "reading": "ボストロール",
+   "romaji": "Boss Troll",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:rubiss",
+   "kind": "person",
+   "name": "ルビス",
+   "reading": "ルビス",
+   "romaji": "Rubiss",
+   "aliases": [
+    {
+     "text": "精霊ルビス",
+     "reading": "せいれいルビス"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:lars-xvi",
+   "kind": "person",
+   "name": "ラルス16世",
+   "reading": "ラルスじゅうろくせい",
+   "romaji": "Lars XVI",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:monster-grandpa",
+   "kind": "person",
+   "name": "モンスターじいさん",
+   "reading": "モンスターじいさん",
+   "romaji": "Monster Grandpa",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:aliahan",
+   "kind": "place",
+   "name": "アリアハン",
+   "reading": "アリアハン",
+   "romaji": "Aliahan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:reeve",
+   "kind": "place",
+   "name": "レーベ",
+   "reading": "レーベ",
+   "romaji": "Reeve",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:najimi-no-tou",
+   "kind": "place",
+   "name": "ナジミの塔",
+   "reading": "ナジミのとう",
+   "romaji": "Najimi no Tou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:izanai-no-doukutsu",
+   "kind": "place",
+   "name": "いざないの洞窟",
+   "reading": "いざないのどうくつ",
+   "romaji": "Izanai no Doukutsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:romaly",
+   "kind": "place",
+   "name": "ロマリア",
+   "reading": "ロマリア",
+   "romaji": "Romaly",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kazave",
+   "kind": "place",
+   "name": "カザーブ",
+   "reading": "カザーブ",
+   "romaji": "Kazave",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:noaniel",
+   "kind": "place",
+   "name": "ノアニール",
+   "reading": "ノアニール",
+   "romaji": "Noaniel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:assaram",
+   "kind": "place",
+   "name": "アッサラーム",
+   "reading": "アッサラーム",
+   "romaji": "Assaram",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:isis",
+   "kind": "place",
+   "name": "イシス",
+   "reading": "イシス",
+   "romaji": "Isis",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:pyramid",
+   "kind": "place",
+   "name": "ピラミッド",
+   "reading": "ピラミッド",
+   "romaji": "Pyramid",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:portoga",
+   "kind": "place",
+   "name": "ポルトガ",
+   "reading": "ポルトガ",
+   "romaji": "Portoga",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:baharata",
+   "kind": "place",
+   "name": "バハラタ",
+   "reading": "バハラタ",
+   "romaji": "Baharata",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:dharma-no-shinden",
+   "kind": "place",
+   "name": "ダーマの神殿",
+   "reading": "ダーマのしんでん",
+   "romaji": "Dharma no Shinden",
+   "aliases": [
+    {
+     "text": "ダーマ",
+     "reading": "ダーマ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:jipang",
+   "kind": "place",
+   "name": "ジパング",
+   "reading": "ジパング",
+   "romaji": "Jipang",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:muor",
+   "kind": "place",
+   "name": "ムオル",
+   "reading": "ムオル",
+   "romaji": "Muor",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tedon",
+   "kind": "place",
+   "name": "テドン",
+   "reading": "テドン",
+   "romaji": "Tedon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lancel",
+   "kind": "place",
+   "name": "ランシール",
+   "reading": "ランシール",
+   "romaji": "Lancel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:samanosa",
+   "kind": "place",
+   "name": "サマンオサ",
+   "reading": "サマンオサ",
+   "romaji": "Samanosa",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:necrogond",
+   "kind": "place",
+   "name": "ネクロゴンド",
+   "reading": "ネクロゴンド",
+   "romaji": "Necrogond",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:baramos-jou",
+   "kind": "place",
+   "name": "バラモス城",
+   "reading": "バラモスじょう",
+   "romaji": "Baramos-jou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:garuna-no-tou",
+   "kind": "place",
+   "name": "ガルナの塔",
+   "reading": "ガルナのとう",
+   "romaji": "Garuna no Tou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:chikyuu-no-heso",
+   "kind": "place",
+   "name": "地球のへそ",
+   "reading": "ちきゅうのへそ",
+   "romaji": "Chikyuu no Heso",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:luida-no-sakaba",
+   "kind": "place",
+   "name": "ルイーダの酒場",
+   "reading": "ルイーダのさかば",
+   "romaji": "Luida no Sakaba",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:giaga-no-ooana",
+   "kind": "place",
+   "name": "ギアガの大穴",
+   "reading": "ギアガのおおあな",
+   "romaji": "Giaga no Ooana",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:alefgard",
+   "kind": "place",
+   "name": "アレフガルド",
+   "reading": "アレフガルド",
+   "romaji": "Alefgard",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:radatome",
+   "kind": "place",
+   "name": "ラダトーム",
+   "reading": "ラダトーム",
+   "romaji": "Radatome",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "thing:orb",
+   "kind": "thing",
+   "name": "オーブ",
+   "reading": "オーブ",
+   "romaji": "Orb",
+   "aliases": [
+    {
+     "text": "レッドオーブ",
+     "reading": "レッドオーブ"
+    },
+    {
+     "text": "ブルーオーブ",
+     "reading": "ブルーオーブ"
+    },
+    {
+     "text": "グリーンオーブ",
+     "reading": "グリーンオーブ"
+    },
+    {
+     "text": "イエローオーブ",
+     "reading": "イエローオーブ"
+    },
+    {
+     "text": "パープルオーブ",
+     "reading": "パープルオーブ"
+    },
+    {
+     "text": "シルバーオーブ",
+     "reading": "シルバーオーブ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ramia",
+   "kind": "thing",
+   "name": "ラーミア",
+   "reading": "ラーミア",
+   "romaji": "Ramia",
+   "aliases": [
+    {
+     "text": "不死鳥ラーミア",
+     "reading": "ふしちょうラーミア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:touzoku-no-kagi",
+   "kind": "thing",
+   "name": "盗賊の鍵",
+   "reading": "とうぞくのかぎ",
+   "romaji": "Touzoku no Kagi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:mahou-no-kagi",
+   "kind": "thing",
+   "name": "魔法の鍵",
+   "reading": "まほうのかぎ",
+   "romaji": "Mahou no Kagi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:saigo-no-kagi",
+   "kind": "thing",
+   "name": "最後の鍵",
+   "reading": "さいごのかぎ",
+   "romaji": "Saigo no Kagi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hikari-no-tama",
+   "kind": "thing",
+   "name": "光の玉",
+   "reading": "ひかりのたま",
+   "romaji": "Hikari no Tama",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sword-of-kings",
+   "kind": "thing",
+   "name": "王者の剣",
+   "romaji": "Sword of Kings",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:sword-of-gaia",
+   "kind": "thing",
+   "name": "ガイアの剣",
+   "romaji": "Sword of Gaia",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:yousei-no-fue",
+   "kind": "thing",
+   "name": "妖精の笛",
+   "reading": "ようせいのふえ",
+   "romaji": "Yousei no Fue",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:tabi-no-tobira",
+   "kind": "thing",
+   "name": "旅の扉",
+   "reading": "たびのとびら",
+   "romaji": "Tabi no Tobira",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:loto",
+   "kind": "thing",
+   "name": "ロト",
+   "reading": "ロト",
+   "romaji": "Loto",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  }
+ ]
+}

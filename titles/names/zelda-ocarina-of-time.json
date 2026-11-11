@@ -1,0 +1,371 @@
+{
+ "source": {
+  "by_hand": "2026-11-08, from the Japanese release's names (Furochibi's OCR game 'Ocarina of Time Remake')"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:link",
+   "kind": "person",
+   "name": "リンク",
+   "reading": "リンク",
+   "aliases": [],
+   "role": "main",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zelda",
+   "kind": "person",
+   "name": "ゼルダ",
+   "reading": "ゼルダ",
+   "aliases": [
+    {
+     "text": "ゼルダ姫",
+     "reading": "ぜるだひめ"
+    }
+   ],
+   "role": "primary",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:navi",
+   "kind": "person",
+   "name": "ナビィ",
+   "reading": "ナビィ",
+   "aliases": [],
+   "role": "primary",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ganondorf",
+   "kind": "person",
+   "name": "ガノンドロフ",
+   "reading": "ガノンドロフ",
+   "aliases": [
+    {
+     "text": "ガノン",
+     "reading": "ガノン"
+    }
+   ],
+   "role": "primary",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:impa",
+   "kind": "person",
+   "name": "インパ",
+   "reading": "インパ",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:saria",
+   "kind": "person",
+   "name": "サリア",
+   "reading": "サリア",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:darunia",
+   "kind": "person",
+   "name": "ダルニア",
+   "reading": "ダルニア",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ruto",
+   "kind": "person",
+   "name": "ルト",
+   "reading": "ルト",
+   "aliases": [
+    {
+     "text": "ルト姫",
+     "reading": "るとひめ"
+    }
+   ],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nabooru",
+   "kind": "person",
+   "name": "ナボール",
+   "reading": "ナボール",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rauru",
+   "kind": "person",
+   "name": "ラウル",
+   "reading": "ラウル",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sheik",
+   "kind": "person",
+   "name": "シーク",
+   "reading": "シーク",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:kaepora-gaebora",
+   "kind": "person",
+   "name": "ケポラ・ゲボラ",
+   "reading": "ケポラ・ゲボラ",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:malon",
+   "kind": "person",
+   "name": "マロン",
+   "reading": "マロン",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:talon",
+   "kind": "person",
+   "name": "タロン",
+   "reading": "タロン",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ingo",
+   "kind": "person",
+   "name": "インゴー",
+   "reading": "インゴー",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mido",
+   "kind": "person",
+   "name": "ミド",
+   "reading": "ミド",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dampe",
+   "kind": "person",
+   "name": "ダンペイ",
+   "reading": "ダンペイ",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:twinrova",
+   "kind": "person",
+   "name": "ツインローバ",
+   "reading": "ツインローバ",
+   "aliases": [],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:deku-tree",
+   "kind": "person",
+   "name": "デクの樹",
+   "reading": "でくのき",
+   "aliases": [
+    {
+     "text": "デクの樹サマ",
+     "reading": "でくのきさま"
+    }
+   ],
+   "role": "side",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hyrule",
+   "kind": "place",
+   "name": "ハイラル",
+   "reading": "ハイラル",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hyrule-castle",
+   "kind": "place",
+   "name": "ハイラル城",
+   "reading": "はいらるじょう",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hyrule-field",
+   "kind": "place",
+   "name": "ハイラル平原",
+   "reading": "はいらるへいげん",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kakariko",
+   "kind": "place",
+   "name": "カカリコ村",
+   "reading": "かかりこむら",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kokiri-forest",
+   "kind": "place",
+   "name": "コキリの森",
+   "reading": "こきりのもり",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:goron-city",
+   "kind": "place",
+   "name": "ゴロンシティ",
+   "reading": "ゴロンシティ",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:zoras-domain",
+   "kind": "place",
+   "name": "ゾーラの里",
+   "reading": "ぞーらのさと",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lon-lon-ranch",
+   "kind": "place",
+   "name": "ロンロン牧場",
+   "reading": "ろんろんぼくじょう",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:death-mountain",
+   "kind": "place",
+   "name": "デスマウンテン",
+   "reading": "デスマウンテン",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:gerudo-valley",
+   "kind": "place",
+   "name": "ゲルドの谷",
+   "reading": "げるどのたに",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:temple-of-time",
+   "kind": "place",
+   "name": "時の神殿",
+   "reading": "ときのしんでん",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lost-woods",
+   "kind": "place",
+   "name": "迷いの森",
+   "reading": "まよいのもり",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lake-hylia",
+   "kind": "place",
+   "name": "ハイリア湖",
+   "reading": "はいりあこ",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:master-sword",
+   "kind": "thing",
+   "name": "マスターソード",
+   "reading": "マスターソード",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:triforce",
+   "kind": "thing",
+   "name": "トライフォース",
+   "reading": "トライフォース",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ocarina-of-time",
+   "kind": "thing",
+   "name": "時のオカリナ",
+   "reading": "ときのおかりな",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sacred-realm",
+   "kind": "thing",
+   "name": "聖地",
+   "reading": "せいち",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

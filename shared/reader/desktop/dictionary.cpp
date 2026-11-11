@@ -75,6 +75,27 @@ DictionaryDatabase::DictionaryDatabase(const QString& path) {
         transaction.Commit();
         db.SetUserVersion(1);
     }
+    if (db.UserVersion() == 1) {
+        // Version 2: the games a dictionary is for (a names dictionary's), "" for every game.
+        // The Android app's DictionaryDatabase makes the same change at the same version.
+        db.Exec("ALTER TABLE dictionaries ADD COLUMN scope TEXT NOT NULL DEFAULT ''");
+        db.SetUserVersion(2);
+    }
+}
+
+QString DictionaryDatabase::ScopeText(const QStringList& games) {
+    QStringList ids;
+    for (const QString& game : games) {
+        const QString id = game.trimmed().toUpper();
+        if (!id.isEmpty() && !id.contains(u'|') && !ids.contains(id)) {
+            ids.append(id);
+        }
+    }
+    return ids.isEmpty() ? QString() : u'|' + ids.join(u'|') + u'|';
+}
+
+QStringList DictionaryDatabase::ScopeList(const QString& text) {
+    return text.split(u'|', Qt::SkipEmptyParts);
 }
 
 QList<DictionaryInfo> DictionaryDatabase::Dictionaries() {
@@ -82,12 +103,13 @@ QList<DictionaryInfo> DictionaryDatabase::Dictionaries() {
     QList<DictionaryInfo> out;
     SqliteDb::Statement statement(
         db, "SELECT id, title, revision, author, description, frequency_mode, priority, enabled, "
-            "terms, metas FROM dictionaries ORDER BY priority, id");
+            "terms, metas, scope FROM dictionaries ORDER BY priority, id");
     while (statement.Step()) {
         out.append(DictionaryInfo{
             statement.Int(0), statement.Text(1), statement.Text(2), statement.Text(3),
             statement.Text(4), statement.Text(5), static_cast<int>(statement.Int(6)),
-            statement.Int(7) != 0, statement.Int(8), statement.Int(9)});
+            statement.Int(7) != 0, statement.Int(8), statement.Int(9),
+            ScopeList(statement.Text(10))});
     }
     return out;
 }
@@ -135,15 +157,23 @@ int DictionaryDatabase::TakeFrom(const QString& other_path) {
                 missing.append(Theirs{statement.Int(0), statement.Text(1)});
             }
         }
+        // A file from before scopes has none: its dictionaries are for every game.
+        bool scoped = false;
+        {
+            SqliteDb::Statement column(
+                db, "SELECT 1 FROM pragma_table_info('dictionaries', 'other') WHERE name = 'scope'");
+            scoped = column.Step();
+        }
+        const std::string insert =
+            std::string("INSERT INTO main.dictionaries (title, revision, author, description, "
+                        "frequency_mode, priority, enabled, terms, metas, scope) SELECT title, "
+                        "revision, author, description, frequency_mode, (SELECT "
+                        "COALESCE(MAX(priority), -1) + 1 FROM main.dictionaries), enabled, terms, "
+                        "metas, ") +
+            (scoped ? "scope" : "''") + " FROM other.dictionaries WHERE id = ?";
         SqliteDb::Transaction transaction(db);
         for (const Theirs& theirs : missing) {
-            SqliteDb::Statement(
-                db, "INSERT INTO main.dictionaries (title, revision, author, description, "
-                    "frequency_mode, priority, enabled, terms, metas) SELECT title, revision, author, "
-                    "description, frequency_mode, (SELECT COALESCE(MAX(priority), -1) + 1 FROM "
-                    "main.dictionaries), enabled, terms, metas FROM other.dictionaries WHERE id = ?")
-                .Bind(1, theirs.id)
-                .Run();
+            SqliteDb::Statement(db, insert.c_str()).Bind(1, theirs.id).Run();
             const qint64 mine = db.LastInsertId();
             SqliteDb::Statement(
                 db, "INSERT INTO main.terms (dict, expression, reading, def_tags, rules, score, "
@@ -179,7 +209,7 @@ void DictionaryDatabase::Delete(qint64 id) {
     transaction.Commit();
 }
 
-QList<TermEntry> DictionaryDatabase::FindTerms(const QStringList& terms) {
+QList<TermEntry> DictionaryDatabase::FindTerms(const QStringList& terms, const QString& game) {
     QList<TermEntry> out;
     if (terms.isEmpty()) {
         return out;
@@ -191,13 +221,17 @@ QList<TermEntry> DictionaryDatabase::FindTerms(const QStringList& terms) {
         for (const char* column : {"expression", "reading"}) {
             const std::string sql =
                 std::string("SELECT t.id, t.dict, d.title, d.priority, t.expression, t.reading, "
-                            "t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags "
-                            "FROM terms t JOIN dictionaries d ON d.id = t.dict WHERE t.") +
-                column + " IN (" + Placeholders(count) + ") AND d.enabled = 1";
+                            "t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags, "
+                            "d.scope != '' FROM terms t JOIN dictionaries d ON d.id = t.dict WHERE t.") +
+                column + " IN (" + Placeholders(count) +
+                ") AND d.enabled = 1 AND (d.scope = '' OR instr(d.scope, ?) > 0)";
             SqliteDb::Statement statement(db, sql.c_str());
             for (qsizetype i = 0; i < count; ++i) {
                 statement.Bind(static_cast<int>(i) + 1, terms.at(from + i));
             }
+            // No game: "||", which no scope holds.
+            statement.Bind(static_cast<int>(count) + 1,
+                           u'|' + game.trimmed().toUpper() + u'|');
             while (statement.Step()) {
                 const qint64 row = statement.Int(0);
                 if (seen.contains(row)) {
@@ -216,6 +250,7 @@ QList<TermEntry> DictionaryDatabase::FindTerms(const QStringList& terms) {
                 entry.glossary_json = Unpack(statement.Blob(9));
                 entry.sequence = statement.Int(10);
                 entry.term_tags = statement.Text(11);
+                entry.scoped = statement.Int(12) != 0;
                 out.append(entry);
             }
         }
@@ -457,6 +492,11 @@ struct Headword {
         }
         return best;
     }
+    /// Whether a dictionary for the running game only has it: a name in this game.
+    [[nodiscard]] bool Scoped() const {
+        return std::any_of(entries.begin(), entries.end(),
+                           [](const TermEntry& entry) { return entry.scoped; });
+    }
     [[nodiscard]] int BestScore() const {
         int best = std::numeric_limits<int>::min();
         for (const TermEntry& entry : entries) {
@@ -468,7 +508,8 @@ struct Headword {
 
 } // namespace
 
-QList<LookupResult> DictionaryLookup::Lookup(const QString& text, int max_results) {
+QList<LookupResult> DictionaryLookup::Lookup(const QString& text, int max_results,
+                                             const QString& game) {
     const QString scan = Scannable(text);
     if (scan.isEmpty()) {
         return {};
@@ -494,7 +535,7 @@ QList<LookupResult> DictionaryLookup::Lookup(const QString& text, int max_result
         }
     }
 
-    const QList<TermEntry> rows = database.FindTerms(terms);
+    const QList<TermEntry> rows = database.FindTerms(terms, game);
     if (rows.isEmpty()) {
         return {};
     }
@@ -571,6 +612,12 @@ QList<LookupResult> DictionaryLookup::Lookup(const QString& text, int max_result
         if (a.source_length != b.source_length) {
             return a.source_length > b.source_length;
         }
+        // A name in the running game before any other word of its length.
+        const bool a_scoped = a.Scoped();
+        const bool b_scoped = b.Scoped();
+        if (a_scoped != b_scoped) {
+            return a_scoped;
+        }
         if (a.reasons.size() != b.reasons.size()) {
             return a.reasons.size() < b.reasons.size();
         }
@@ -606,6 +653,9 @@ QList<LookupResult> DictionaryLookup::Lookup(const QString& text, int max_result
         const QList<TermMeta> meta = metas.value(headword.expression);
         std::stable_sort(headword.entries.begin(), headword.entries.end(),
                          [](const TermEntry& a, const TermEntry& b) {
+                             if (a.scoped != b.scoped) {
+                                 return a.scoped;
+                             }
                              if (a.priority != b.priority) {
                                  return a.priority < b.priority;
                              }

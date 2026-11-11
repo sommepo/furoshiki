@@ -8,10 +8,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.readers.app.reader.cursor.HoverCursor
+import org.readers.app.reader.dict.DictionaryStore
+import org.readers.app.reader.dict.NamesDictionaries
 import org.readers.app.reader.mining.MediaCapture
 import org.readers.app.reader.model.ScreenLayout
 import org.readers.app.reader.model.TextLine
@@ -201,6 +204,21 @@ object ReaderSession {
             lastPresented = null
             publishedActivity = null
             lastFlush = System.currentTimeMillis()
+        }
+        // The game's names dictionary (docs/titles.md), installed or brought up to date: from the
+        // user's profiles folder (it came with the game's script from the list) or the app's
+        // own. Only used while this game runs (DictionaryLookup.lookup).
+        executor.execute {
+            try {
+                val folders = NamesDictionaries.folders(app, app.getExternalFilesDir(null)?.let { File(it, ReaderNative.PROFILE_USER_DIR) })
+                NamesDictionaries.forGame(key, NamesDictionaries.find(folders))?.let { pack ->
+                    if (NamesDictionaries.ensure(DictionaryStore.get(app).database, pack)) {
+                        Log.info("[Reader] Names of $key installed (${pack.revision})")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.warning("[Reader] Names of $key not installed: ${e.message}")
+            }
         }
 
         media = MediaCapture(app, prefs)
@@ -565,6 +583,7 @@ object ReaderSession {
         listeners.forEach { it.onLine(presented) }
         if (line.window.isNotEmpty()) adoptWindowLine(presented)
     }
+
 
     /** [presented] is now the text of its window. */
     private fun adoptWindowLine(presented: PresentedLine) {

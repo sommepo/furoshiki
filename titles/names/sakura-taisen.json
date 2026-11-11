@@ -1,0 +1,481 @@
+{
+ "source": {
+  "vndb": "v952",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c5738",
+   "kind": "person",
+   "name": "大神 一郎",
+   "family": "大神",
+   "given": "一郎",
+   "reading": "おおがみ いちろう",
+   "family_reading": "おおがみ",
+   "given_reading": "いちろう",
+   "romaji": "Oogami Ichirou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c5739",
+   "kind": "person",
+   "name": "真宮寺 さくら",
+   "family": "真宮寺",
+   "given": "さくら",
+   "reading": "しんぐうじ さくら",
+   "family_reading": "しんぐうじ",
+   "given_reading": "さくら",
+   "romaji": "Shinguuji Sakura",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c5740",
+   "kind": "person",
+   "name": "神崎 すみれ",
+   "family": "神崎",
+   "given": "すみれ",
+   "reading": "かんざき すみれ",
+   "family_reading": "かんざき",
+   "given_reading": "すみれ",
+   "romaji": "Kanzaki Sumire",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c5741",
+   "kind": "person",
+   "name": "マリア・タチバナ",
+   "reading": "マリア・タチバナ",
+   "romaji": "Maria Tachibana",
+   "aliases": [
+    {
+     "text": "クワッサリー",
+     "reading": "クワッサリー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c5742",
+   "kind": "person",
+   "name": "イリス・シャトーブリアン",
+   "reading": "イリス・シャトーブリアン",
+   "romaji": "Iris Chateaubriand",
+   "aliases": [
+    {
+     "text": "アイリス",
+     "reading": "アイリス"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c5743",
+   "kind": "person",
+   "name": "李 紅蘭",
+   "family": "李",
+   "given": "紅蘭",
+   "romaji": "Li HongLan",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c60819",
+   "kind": "person",
+   "name": "桐島 カンナ",
+   "family": "桐島",
+   "given": "カンナ",
+   "reading": "きりしま カンナ",
+   "family_reading": "きりしま",
+   "given_reading": "カンナ",
+   "romaji": "Kirishima Kanna",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123609",
+   "kind": "person",
+   "name": "米田 一基",
+   "family": "米田",
+   "given": "一基",
+   "reading": "よねだ いっき",
+   "family_reading": "よねだ",
+   "given_reading": "いっき",
+   "romaji": "Yoneda Ikki",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123610",
+   "kind": "person",
+   "name": "藤枝 あやめ",
+   "family": "藤枝",
+   "given": "あやめ",
+   "reading": "ふじえだ あやめ",
+   "family_reading": "ふじえだ",
+   "given_reading": "あやめ",
+   "romaji": "Fujieda Ayame",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123611",
+   "kind": "person",
+   "name": "藤井 かすみ",
+   "family": "藤井",
+   "given": "かすみ",
+   "reading": "ふじい かすみ",
+   "family_reading": "ふじい",
+   "given_reading": "かすみ",
+   "romaji": "Fujii Kasumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123612",
+   "kind": "person",
+   "name": "榊原 由里",
+   "family": "榊原",
+   "given": "由里",
+   "reading": "さかきばら ゆり",
+   "family_reading": "さかきばら",
+   "given_reading": "ゆり",
+   "romaji": "Sakakibara Yuri",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123613",
+   "kind": "person",
+   "name": "高村 椿",
+   "family": "高村",
+   "given": "椿",
+   "reading": "たかむら つばき",
+   "family_reading": "たかむら",
+   "given_reading": "つばき",
+   "romaji": "Takamura Tsubaki",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123614",
+   "kind": "person",
+   "name": "天海",
+   "reading": "てんかい",
+   "romaji": "Tenkai",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123615",
+   "kind": "person",
+   "name": "紅のミロク",
+   "romaji": "Crimson Miroku",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c123616",
+   "kind": "person",
+   "name": "刹那",
+   "reading": "せつな",
+   "romaji": "Setsuna",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123617",
+   "kind": "person",
+   "name": "羅刹",
+   "reading": "らせつ",
+   "romaji": "Rasetsu",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123618",
+   "kind": "person",
+   "name": "葵 叉丹",
+   "family": "葵",
+   "given": "叉丹",
+   "reading": "あおい さたん",
+   "family_reading": "あおい",
+   "given_reading": "さたん",
+   "romaji": "Aoi Satan",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123619",
+   "kind": "person",
+   "name": "猪",
+   "reading": "いのしし",
+   "romaji": "Inoshishi",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123620",
+   "kind": "person",
+   "name": "鹿",
+   "reading": "しか",
+   "romaji": "Shika",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c123621",
+   "kind": "person",
+   "name": "蝶",
+   "reading": "ちょう",
+   "romaji": "Chou",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c124002",
+   "kind": "person",
+   "name": "ロベール・シャトーブリアン",
+   "reading": "ロベール・シャトーブリアン",
+   "romaji": "Robert Chateaubriand",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c124003",
+   "kind": "person",
+   "name": "マルグリット・シャトーブリアン",
+   "reading": "マルグリット・シャトーブリアン",
+   "romaji": "Marguerite Chateaubriand",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:teito",
+   "kind": "place",
+   "name": "帝都",
+   "reading": "ていと",
+   "romaji": "Teito",
+   "aliases": [
+    {
+     "text": "帝都東京",
+     "reading": "ていととうきょう"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:dai-teikoku-gekijou",
+   "kind": "place",
+   "name": "大帝国劇場",
+   "reading": "だいていこくげきじょう",
+   "romaji": "Dai Teikoku Gekijou",
+   "aliases": [
+    {
+     "text": "帝劇",
+     "reading": "ていげき"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:teikoku-kagekidan",
+   "kind": "thing",
+   "name": "帝国華撃団",
+   "reading": "ていこくかげきだん",
+   "romaji": "Teikoku Kagekidan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:teikoku-kagekidan-kageki",
+   "kind": "thing",
+   "name": "帝国歌劇団",
+   "reading": "ていこくかげきだん",
+   "romaji": "Teikoku Kagekidan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hanagumi",
+   "kind": "thing",
+   "name": "花組",
+   "reading": "はなぐみ",
+   "romaji": "Hanagumi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kazegumi",
+   "kind": "thing",
+   "name": "風組",
+   "reading": "かぜぐみ",
+   "romaji": "Kazegumi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:koubu",
+   "kind": "thing",
+   "name": "光武",
+   "reading": "こうぶ",
+   "romaji": "Koubu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:reishi-kacchuu",
+   "kind": "thing",
+   "name": "霊子甲冑",
+   "reading": "れいしかっちゅう",
+   "romaji": "Reishi Kacchuu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kuronosukai",
+   "kind": "thing",
+   "name": "黒之巣会",
+   "reading": "くろのすかい",
+   "romaji": "Kuronosukai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kouma",
+   "kind": "thing",
+   "name": "降魔",
+   "reading": "こうま",
+   "romaji": "Kouma",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shougeimaru",
+   "kind": "thing",
+   "name": "翔鯨丸",
+   "reading": "しょうげいまる",
+   "romaji": "Shougeimaru",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:taishou",
+   "kind": "thing",
+   "name": "太正",
+   "reading": "たいしょう",
+   "romaji": "Taishou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

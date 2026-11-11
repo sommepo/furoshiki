@@ -10,6 +10,7 @@
 #include <quazipfile.h>
 #include "reader/desktop/dictionary.h"
 #include "reader/desktop/glossary.h"
+#include "reader/desktop/names.h"
 #include "reader/desktop/tests/test_util.h"
 
 using namespace ReaderApp;
@@ -90,6 +91,18 @@ struct Fixture {
                 ["読む","pitch",{"reading":"よむ","pitches":[{"position":1},{"position":0}]}],
                 ["買う","freq","rank 200"]
             ])")}});
+    }
+
+    /// A names dictionary for two games (tools/titles.py makes them: docs/titles.md).
+    QString Names() {
+        return Archive(QStringLiteral("names.zip"),
+                       {{QStringLiteral("index.json"),
+                         Q(uR"({"title":"名前 · Test","revision":"t-1","format":3,
+                               "furoshikiScope":["test-001","TEST-002"],"furoshikiTitle":"test"})")},
+                        {QStringLiteral("term_bank_1.json"),
+                         Q(uR"([["マリアさん","","名前","",25,["マリア"],1,""],
+                ["マリア","","名前","",27,["マリア","Also: 姫"],1,""],
+                ["名","めい","名前","",20,["名（めい）"],2,""]])")}});
     }
 
     /// A monolingual-style dictionary: no word classes at all.
@@ -350,6 +363,83 @@ TEST_CASE("Dictionary: order, enabling and deletion are respected", "[reader][di
     REQUIRE(f.lookup.Lookup(Q(u"食べる")).isEmpty());
     REQUIRE_FALSE(f.db.HasEnabledDictionaries());
     REQUIRE(Titles(f.db) == QStringList{QStringLiteral("Mono")});
+}
+
+TEST_CASE("Dictionary: a names dictionary is used only for its games, and first",
+          "[reader][dictionary]") {
+    Fixture f;
+    REQUIRE(f.importer.Import(f.Main()).ok);
+    REQUIRE(f.importer.Import(f.Names()).ok);
+    const QList<DictionaryInfo> all = f.db.Dictionaries();
+    REQUIRE(all.at(0).scope.isEmpty());
+    REQUIRE(all.at(1).scope == QStringList{QStringLiteral("TEST-001"), QStringLiteral("TEST-002")});
+
+    // No game, or another game: as if the names were not there.
+    for (const QString& game : {QString(), QStringLiteral("OTHER-1"), QStringLiteral("TEST-00")}) {
+        const QList<LookupResult> none = f.lookup.Lookup(Q(u"マリアさん"), 24, game);
+        REQUIRE(Expressions(none) == QStringList{Q(u"マリア")});
+        REQUIRE(DictionariesOf(none.at(0)) == QStringList{QStringLiteral("Test Dict")});
+        REQUIRE_FALSE(none.at(0).entries.at(0).scoped);
+    }
+
+    // Its game (in any case): the names, before the dictionary above them in the order.
+    const QList<LookupResult> named = f.lookup.Lookup(Q(u"マリアさん"), 24, QStringLiteral("test-001"));
+    REQUIRE(Expressions(named) == QStringList{Q(u"マリアさん"), Q(u"マリア")});
+    REQUIRE(named.at(0).entries.at(0).scoped);
+    REQUIRE(DictionariesOf(named.at(1)) == QStringList{Q(u"名前 · Test"), QStringLiteral("Test Dict")});
+
+    // A name of the same length as another word comes first; a longer word still wins.
+    const QList<LookupResult> same = f.lookup.Lookup(Q(u"名は"), 24, QStringLiteral("TEST-002"));
+    REQUIRE(same.size() == 2);
+    REQUIRE(same.at(0).reading == Q(u"めい"));
+    REQUIRE(same.at(1).reading == Q(u"な"));
+    REQUIRE(Expressions(f.lookup.Lookup(Q(u"名乗る"), 24, QStringLiteral("TEST-002"))).first() ==
+            Q(u"名乗る"));
+
+    REQUIRE(DictionaryDatabase::ScopeText({Q(u" a-1 "), Q(u"A-1"), Q(u"b")}) == Q(u"|A-1|B|"));
+    REQUIRE(DictionaryDatabase::ScopeText({}).isEmpty());
+}
+
+TEST_CASE("Names: a game's names dictionary is found, installed once and refreshed",
+          "[reader][dictionary][names]") {
+    Fixture f;
+    const auto pack_zip = [&f](const QString& folder, const QString& revision) {
+        QDir().mkpath(f.folder.filePath(folder));
+        Files files{
+            {QStringLiteral("index.json"),
+             Q(uR"({"title":"名前 · Test","revision":")") + revision +
+                 Q(uR"(","format":3,"furoshikiScope":["TEST-001"],"furoshikiTitle":"test"})")},
+            {QStringLiteral("term_bank_1.json"), Q(uR"([["マリア","","名前","",27,["マリア"],1,""]])")},
+        };
+        return f.Archive(folder + QStringLiteral("/names-test.zip"), files);
+    };
+    pack_zip(QStringLiteral("user"), QStringLiteral("r2"));
+    pack_zip(QStringLiteral("bundled"), QStringLiteral("r1"));
+    // A dictionary that is not a names dictionary is not one, wherever it is.
+    QFile::copy(f.Main(), f.folder.filePath(QStringLiteral("bundled/names-other.zip")));
+
+    // The user's folder before what the program comes with: one pack a title.
+    const QList<Names::Pack> both = Names::Find(
+        {f.folder.filePath(QStringLiteral("user")), f.folder.filePath(QStringLiteral("bundled"))});
+    REQUIRE(both.size() == 1);
+    REQUIRE(both.first().revision == QStringLiteral("r2"));
+    REQUIRE(both.first().scope == QStringList{QStringLiteral("TEST-001")});
+    REQUIRE_FALSE(Names::For(QStringLiteral("OTHER"), both).has_value());
+
+    const QList<Names::Pack> bundled = Names::Find({f.folder.filePath(QStringLiteral("bundled"))});
+    const auto old = Names::For(QStringLiteral("test-001"), bundled);
+    REQUIRE(old.has_value());
+    REQUIRE(Names::Ensure(f.db, *old));
+    REQUIRE_FALSE(Names::Ensure(f.db, *old)); // there at its revision: nothing to do
+    REQUIRE(f.lookup.Lookup(Q(u"マリア"), 24, QStringLiteral("TEST-001")).at(0).entries.at(0).scoped);
+
+    // Switched off, then a newer revision: replaced, and still off.
+    f.db.SetEnabled(f.db.Dictionaries().first().id, false);
+    REQUIRE(Names::Ensure(f.db, both.first()));
+    const QList<DictionaryInfo> after = f.db.Dictionaries();
+    REQUIRE(after.size() == 1);
+    REQUIRE(after.first().revision == QStringLiteral("r2"));
+    REQUIRE_FALSE(after.first().enabled);
 }
 
 TEST_CASE("Dictionary: glossaries are rendered for cards and for the popup",

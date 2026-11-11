@@ -163,3 +163,14 @@ TEST_CASE("CardBuilder: mappings are stored and suggested", "[reader][cards]") {
     REQUIRE(suggested.contains(QStringLiteral("Hint")));
     REQUIRE(suggested.value(QStringLiteral("Hint")).isEmpty());
 }
+
+TEST_CASE("CardBuilder: the lines before, and the line in English", "[reader][cards]") {
+    CardContext card = WordCard();
+    REQUIRE(One(QStringLiteral("{context}|{previous-sentence}|{translation}"), card) ==
+            QStringLiteral("||"));
+    card.before = {Q(u"一つ目"), Q(u"二つ<目>\nの行")};
+    card.translation = QStringLiteral("I ate fish & rice.");
+    REQUIRE(One(QStringLiteral("{context}"), card) == Q(u"一つ目<br>二つ&lt;目&gt;<br>の行"));
+    REQUIRE(One(QStringLiteral("{previous-sentence}"), card) == Q(u"二つ&lt;目&gt;<br>の行"));
+    REQUIRE(One(QStringLiteral("{translation}"), card) == QStringLiteral("I ate fish &amp; rice."));
+}

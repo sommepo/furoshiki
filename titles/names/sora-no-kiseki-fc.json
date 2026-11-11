@@ -1,0 +1,1185 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/英雄伝説_空の軌跡",
+   "https://ja.wikipedia.org/wiki/英雄伝説_軌跡シリーズの登場人物",
+   "backlog speakers"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:estelle-bright",
+   "kind": "person",
+   "name": "エステル・ブライト",
+   "family": "ブライト",
+   "given": "エステル",
+   "reading": "エステル・ブライト",
+   "family_reading": "ブライト",
+   "given_reading": "エステル",
+   "romaji": "Estelle Bright",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:joshua-bright",
+   "kind": "person",
+   "name": "ヨシュア・ブライト",
+   "family": "ブライト",
+   "given": "ヨシュア",
+   "reading": "ヨシュア・ブライト",
+   "family_reading": "ブライト",
+   "given_reading": "ヨシュア",
+   "romaji": "Joshua Bright",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cassius-bright",
+   "kind": "person",
+   "name": "カシウス・ブライト",
+   "family": "ブライト",
+   "given": "カシウス",
+   "reading": "カシウス・ブライト",
+   "family_reading": "ブライト",
+   "given_reading": "カシウス",
+   "romaji": "Cassius Bright",
+   "aliases": [
+    {
+     "text": "剣聖",
+     "reading": "けんせい"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:scherazard-harvey",
+   "kind": "person",
+   "name": "シェラザード・ハーヴェイ",
+   "family": "ハーヴェイ",
+   "given": "シェラザード",
+   "reading": "シェラザード・ハーヴェイ",
+   "family_reading": "ハーヴェイ",
+   "given_reading": "シェラザード",
+   "romaji": "Scherazard Harvey",
+   "aliases": [
+    {
+     "text": "シェラ",
+     "reading": "シェラ"
+    },
+    {
+     "text": "銀閃",
+     "reading": "ぎんせん"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:olivier-lenheim",
+   "kind": "person",
+   "name": "オリビエ・レンハイム",
+   "family": "レンハイム",
+   "given": "オリビエ",
+   "reading": "オリビエ・レンハイム",
+   "family_reading": "レンハイム",
+   "given_reading": "オリビエ",
+   "romaji": "Olivier Lenheim",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kloe-rinz",
+   "kind": "person",
+   "name": "クローゼ・リンツ",
+   "family": "リンツ",
+   "given": "クローゼ",
+   "reading": "クローゼ・リンツ",
+   "family_reading": "リンツ",
+   "given_reading": "クローゼ",
+   "romaji": "Kloe Rinz",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:klaudia-von-auslese",
+   "kind": "person",
+   "name": "クローディア・フォン・アウスレーゼ",
+   "family": "フォン・アウスレーゼ",
+   "given": "クローディア",
+   "reading": "クローディア・フォン・アウスレーゼ",
+   "family_reading": "フォン・アウスレーゼ",
+   "given_reading": "クローディア",
+   "romaji": "Klaudia von Auslese",
+   "aliases": [
+    {
+     "text": "クローディア姫",
+     "reading": "クローディアひめ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:agate-crosner",
+   "kind": "person",
+   "name": "アガット・クロスナー",
+   "family": "クロスナー",
+   "given": "アガット",
+   "reading": "アガット・クロスナー",
+   "family_reading": "クロスナー",
+   "given_reading": "アガット",
+   "romaji": "Agate Crosner",
+   "aliases": [
+    {
+     "text": "重剣",
+     "reading": "じゅうけん"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tita-russell",
+   "kind": "person",
+   "name": "ティータ・ラッセル",
+   "family": "ラッセル",
+   "given": "ティータ",
+   "reading": "ティータ・ラッセル",
+   "family_reading": "ラッセル",
+   "given_reading": "ティータ",
+   "romaji": "Tita Russell",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zin-vathek",
+   "kind": "person",
+   "name": "ジン・ヴァセック",
+   "family": "ヴァセック",
+   "given": "ジン",
+   "reading": "ジン・ヴァセック",
+   "family_reading": "ヴァセック",
+   "given_reading": "ジン",
+   "romaji": "Zin Vathek",
+   "aliases": [
+    {
+     "text": "不動",
+     "reading": "ふどう"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:albert-russell",
+   "kind": "person",
+   "name": "アルバート・ラッセル",
+   "family": "ラッセル",
+   "given": "アルバート",
+   "reading": "アルバート・ラッセル",
+   "family_reading": "ラッセル",
+   "given_reading": "アルバート",
+   "romaji": "Albert Russell",
+   "aliases": [
+    {
+     "text": "ラッセル博士",
+     "reading": "ラッセルはかせ"
+    },
+    {
+     "text": "博士",
+     "reading": "はかせ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:alicia-von-auslese",
+   "kind": "person",
+   "name": "アリシア・フォン・アウスレーゼ",
+   "family": "フォン・アウスレーゼ",
+   "given": "アリシア",
+   "reading": "アリシア・フォン・アウスレーゼ",
+   "family_reading": "フォン・アウスレーゼ",
+   "given_reading": "アリシア",
+   "romaji": "Alicia von Auslese",
+   "aliases": [
+    {
+     "text": "アリシア二世",
+     "reading": "アリシアにせい"
+    },
+    {
+     "text": "女王陛下",
+     "reading": "じょおうへいか"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:duke-dunan-von-auslese",
+   "kind": "person",
+   "name": "デュナン・フォン・アウスレーゼ",
+   "family": "フォン・アウスレーゼ",
+   "given": "デュナン",
+   "reading": "デュナン・フォン・アウスレーゼ",
+   "family_reading": "フォン・アウスレーゼ",
+   "given_reading": "デュナン",
+   "romaji": "Duke Dunan von Auslese",
+   "aliases": [
+    {
+     "text": "デュナン公爵",
+     "reading": "デュナンこうしゃく"
+    },
+    {
+     "text": "公爵",
+     "reading": "こうしゃく"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:philip-renard",
+   "kind": "person",
+   "name": "フィリップ・ルナール",
+   "family": "ルナール",
+   "given": "フィリップ",
+   "reading": "フィリップ・ルナール",
+   "family_reading": "ルナール",
+   "given_reading": "フィリップ",
+   "romaji": "Philip Renard",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:alan-richard",
+   "kind": "person",
+   "name": "アラン・リシャール",
+   "family": "リシャール",
+   "given": "アラン",
+   "reading": "アラン・リシャール",
+   "family_reading": "リシャール",
+   "given_reading": "アラン",
+   "romaji": "Alan Richard",
+   "aliases": [
+    {
+     "text": "リシャール大佐",
+     "reading": "リシャールたいさ"
+    },
+    {
+     "text": "大佐",
+     "reading": "たいさ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cannone-amalthea",
+   "kind": "person",
+   "name": "カノーネ・アマルティア",
+   "family": "アマルティア",
+   "given": "カノーネ",
+   "reading": "カノーネ・アマルティア",
+   "family_reading": "アマルティア",
+   "given_reading": "カノーネ",
+   "romaji": "Cannone Amalthea",
+   "aliases": [
+    {
+     "text": "カノーネ大尉",
+     "reading": "カノーネたいい"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lorence-belgar",
+   "kind": "person",
+   "name": "ロランス・ベルガー",
+   "family": "ベルガー",
+   "given": "ロランス",
+   "reading": "ロランス・ベルガー",
+   "family_reading": "ベルガー",
+   "given_reading": "ロランス",
+   "romaji": "Lorence Belgar",
+   "aliases": [
+    {
+     "text": "ロランス少尉",
+     "reading": "ロランスしょうい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:julia-schwarz",
+   "kind": "person",
+   "name": "ユリア・シュバルツ",
+   "family": "シュバルツ",
+   "given": "ユリア",
+   "reading": "ユリア・シュバルツ",
+   "family_reading": "シュバルツ",
+   "given_reading": "ユリア",
+   "romaji": "Julia Schwarz",
+   "aliases": [
+    {
+     "text": "ユリア中尉",
+     "reading": "ユリアちゅうい"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maximilian-cid",
+   "kind": "person",
+   "name": "マクシミリアン・シード",
+   "family": "シード",
+   "given": "マクシミリアン",
+   "reading": "マクシミリアン・シード",
+   "family_reading": "シード",
+   "given_reading": "マクシミリアン",
+   "romaji": "Maximilian Cid",
+   "aliases": [
+    {
+     "text": "シード中佐",
+     "reading": "シードちゅうさ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:morgan",
+   "kind": "person",
+   "name": "モルガン",
+   "reading": "モルガン",
+   "romaji": "Morgan",
+   "aliases": [
+    {
+     "text": "モルガン将軍",
+     "reading": "モルガンしょうぐん"
+    },
+    {
+     "text": "将軍",
+     "reading": "しょうぐん"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:josette-capua",
+   "kind": "person",
+   "name": "ジョゼット・カプア",
+   "family": "カプア",
+   "given": "ジョゼット",
+   "reading": "ジョゼット・カプア",
+   "family_reading": "カプア",
+   "given_reading": "ジョゼット",
+   "romaji": "Josette Capua",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kyle-capua",
+   "kind": "person",
+   "name": "キール・カプア",
+   "family": "カプア",
+   "given": "キール",
+   "reading": "キール・カプア",
+   "family_reading": "カプア",
+   "given_reading": "キール",
+   "romaji": "Kyle Capua",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:don-capua",
+   "kind": "person",
+   "name": "ドルン・カプア",
+   "family": "カプア",
+   "given": "ドルン",
+   "reading": "ドルン・カプア",
+   "family_reading": "カプア",
+   "given_reading": "ドルン",
+   "romaji": "Don Capua",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maurice-dalmore",
+   "kind": "person",
+   "name": "モーリス・ダルモア",
+   "family": "ダルモア",
+   "given": "モーリス",
+   "reading": "モーリス・ダルモア",
+   "family_reading": "ダルモア",
+   "given_reading": "モーリス",
+   "romaji": "Maurice Dalmore",
+   "aliases": [
+    {
+     "text": "ダルモア市長",
+     "reading": "ダルモアしちょう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:gilbert-stein",
+   "kind": "person",
+   "name": "ギルバート・スタイン",
+   "family": "スタイン",
+   "given": "ギルバート",
+   "reading": "ギルバート・スタイン",
+   "family_reading": "スタイン",
+   "given_reading": "ギルバート",
+   "romaji": "Gilbert Stein",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maybelle",
+   "kind": "person",
+   "name": "メイベル",
+   "reading": "メイベル",
+   "romaji": "Maybelle",
+   "aliases": [
+    {
+     "text": "メイベル市長",
+     "reading": "メイベルしちょう"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:klaus",
+   "kind": "person",
+   "name": "クラウス",
+   "reading": "クラウス",
+   "romaji": "Klaus",
+   "aliases": [
+    {
+     "text": "クラウス市長",
+     "reading": "クラウスしちょう"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aina-holden",
+   "kind": "person",
+   "name": "アイナ・ホールデン",
+   "family": "ホールデン",
+   "given": "アイナ",
+   "reading": "アイナ・ホールデン",
+   "family_reading": "ホールデン",
+   "given_reading": "アイナ",
+   "romaji": "Aina Holden",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lugran",
+   "kind": "person",
+   "name": "ルグラン",
+   "reading": "ルグラン",
+   "romaji": "Lugran",
+   "aliases": [
+    {
+     "text": "ルグラン爺さん",
+     "reading": "ルグランじいさん"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jean",
+   "kind": "person",
+   "name": "ジャン",
+   "reading": "ジャン",
+   "romaji": "Jean",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kilika-rouran",
+   "kind": "person",
+   "name": "キリカ・ロウラン",
+   "family": "ロウラン",
+   "given": "キリカ",
+   "reading": "キリカ・ロウラン",
+   "family_reading": "ロウラン",
+   "given_reading": "キリカ",
+   "romaji": "Kilika Rouran",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:erunan",
+   "kind": "person",
+   "name": "エルナン",
+   "reading": "エルナン",
+   "romaji": "Erunan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nial-burns",
+   "kind": "person",
+   "name": "ナイアル・バーンズ",
+   "family": "バーンズ",
+   "given": "ナイアル",
+   "reading": "ナイアル・バーンズ",
+   "family_reading": "バーンズ",
+   "given_reading": "ナイアル",
+   "romaji": "Nial Burns",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dorothy-hyatt",
+   "kind": "person",
+   "name": "ドロシー・ハイアット",
+   "family": "ハイアット",
+   "given": "ドロシー",
+   "reading": "ドロシー・ハイアット",
+   "family_reading": "ハイアット",
+   "given_reading": "ドロシー",
+   "romaji": "Dorothy Hyatt",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:teresa",
+   "kind": "person",
+   "name": "テレサ",
+   "reading": "テレサ",
+   "romaji": "Teresa",
+   "aliases": [
+    {
+     "text": "テレサ先生",
+     "reading": "テレサせんせい"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:clum",
+   "kind": "person",
+   "name": "クラム",
+   "reading": "クラム",
+   "romaji": "Clum",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jill-leidner",
+   "kind": "person",
+   "name": "ジル・リードナー",
+   "family": "リードナー",
+   "given": "ジル",
+   "reading": "ジル・リードナー",
+   "family_reading": "リードナー",
+   "given_reading": "ジル",
+   "romaji": "Jill Leidner",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hans",
+   "kind": "person",
+   "name": "ハンス",
+   "reading": "ハンス",
+   "romaji": "Hans",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lena-bright",
+   "kind": "person",
+   "name": "レナ・ブライト",
+   "family": "ブライト",
+   "given": "レナ",
+   "reading": "レナ・ブライト",
+   "family_reading": "ブライト",
+   "given_reading": "レナ",
+   "romaji": "Lena Bright",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:alba",
+   "kind": "person",
+   "name": "アルバ",
+   "reading": "アルバ",
+   "romaji": "Alba",
+   "aliases": [
+    {
+     "text": "アルバ教授",
+     "reading": "アルバきょうじゅ"
+    },
+    {
+     "text": "教授",
+     "reading": "きょうじゅ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:georg-weissmann",
+   "kind": "person",
+   "name": "ゲオルグ・ワイスマン",
+   "family": "ワイスマン",
+   "given": "ゲオルグ",
+   "reading": "ゲオルグ・ワイスマン",
+   "family_reading": "ワイスマン",
+   "given_reading": "ゲオルグ",
+   "romaji": "Georg Weissmann",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:liberl-oukoku",
+   "kind": "place",
+   "name": "リベール王国",
+   "reading": "リベールおうこく",
+   "romaji": "Liberl Oukoku",
+   "aliases": [
+    {
+     "text": "リベール",
+     "reading": "リベール"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rolent",
+   "kind": "place",
+   "name": "ロレント",
+   "reading": "ロレント",
+   "romaji": "Rolent",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:bose",
+   "kind": "place",
+   "name": "ボース",
+   "reading": "ボース",
+   "romaji": "Bose",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:ruan",
+   "kind": "place",
+   "name": "ルーアン",
+   "reading": "ルーアン",
+   "romaji": "Ruan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:zeiss",
+   "kind": "place",
+   "name": "ツァイス",
+   "reading": "ツァイス",
+   "romaji": "Zeiss",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:grancel",
+   "kind": "place",
+   "name": "グランセル",
+   "reading": "グランセル",
+   "romaji": "Grancel",
+   "aliases": [
+    {
+     "text": "王都グランセル",
+     "reading": "おうとグランセル"
+    },
+    {
+     "text": "王都",
+     "reading": "おうと"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:grancel-jou",
+   "kind": "place",
+   "name": "グランセル城",
+   "reading": "グランセルじょう",
+   "romaji": "Grancel Jou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:valleria-ko",
+   "kind": "place",
+   "name": "ヴァレリア湖",
+   "reading": "ヴァレリアこ",
+   "romaji": "Valleria Ko",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:haken-mon",
+   "kind": "place",
+   "name": "ハーケン門",
+   "reading": "ハーケンもん",
+   "romaji": "Haken Mon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:levenworth-yousai",
+   "kind": "place",
+   "name": "レイストン要塞",
+   "reading": "レイストンようさい",
+   "romaji": "Levenworth Yousai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:jenis-ouritsu-gakuen",
+   "kind": "place",
+   "name": "ジェニス王立学園",
+   "reading": "ジェニスおうりつがくえん",
+   "romaji": "Jenis Ouritsu Gakuen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:marcia-kojiin",
+   "kind": "place",
+   "name": "マーシア孤児院",
+   "reading": "マーシアこじいん",
+   "romaji": "Marcia Kojiin",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:erebonia-teikoku",
+   "kind": "place",
+   "name": "エレボニア帝国",
+   "reading": "エレボニアていこく",
+   "romaji": "Erebonia Teikoku",
+   "aliases": [
+    {
+     "text": "帝国",
+     "reading": "ていこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:calvard-kyouwakoku",
+   "kind": "place",
+   "name": "カルバード共和国",
+   "reading": "カルバードきょうわこく",
+   "romaji": "Calvard Kyouwakoku",
+   "aliases": [
+    {
+     "text": "共和国",
+     "reading": "きょうわこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:zemuria-tairiku",
+   "kind": "place",
+   "name": "ゼムリア大陸",
+   "reading": "ゼムリアたいりく",
+   "romaji": "Zemuria Tairiku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yuugekishi",
+   "kind": "thing",
+   "name": "遊撃士",
+   "reading": "ゆうげきし",
+   "romaji": "Yuugekishi",
+   "aliases": [
+    {
+     "text": "ブレイサー",
+     "reading": "ブレイサー"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yuugekishi-kyoukai",
+   "kind": "thing",
+   "name": "遊撃士協会",
+   "reading": "ゆうげきしきょうかい",
+   "romaji": "Yuugekishi Kyoukai",
+   "aliases": [
+    {
+     "text": "ブレイサーギルド",
+     "reading": "ブレイサーギルド"
+    },
+    {
+     "text": "ギルド",
+     "reading": "ギルド"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:jun-yuugekishi",
+   "kind": "thing",
+   "name": "準遊撃士",
+   "reading": "じゅんゆうげきし",
+   "romaji": "Jun Yuugekishi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:orbment",
+   "kind": "thing",
+   "name": "オーブメント",
+   "reading": "オーブメント",
+   "romaji": "Orbment",
+   "aliases": [
+    {
+     "text": "導力器",
+     "reading": "オーブメント"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shichiyouseki",
+   "kind": "thing",
+   "name": "七耀石",
+   "reading": "しちようせき",
+   "romaji": "Shichiyouseki",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shichiyou-kyoukai",
+   "kind": "thing",
+   "name": "七耀教会",
+   "reading": "しちようきょうかい",
+   "romaji": "Shichiyou Kyoukai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:jouhoubu",
+   "kind": "thing",
+   "name": "情報部",
+   "reading": "じょうほうぶ",
+   "romaji": "Jouhoubu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:oushitsu-shin-eitai",
+   "kind": "thing",
+   "name": "王室親衛隊",
+   "reading": "おうしつしんえいたい",
+   "romaji": "Oushitsu Shin'eitai",
+   "aliases": [
+    {
+     "text": "親衛隊",
+     "reading": "しんえいたい"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:capua-ikka",
+   "kind": "thing",
+   "name": "カプア一家",
+   "reading": "カプアいっか",
+   "romaji": "Capua Ikka",
+   "aliases": [
+    {
+     "text": "空賊団",
+     "reading": "くうぞくだん"
+    },
+    {
+     "text": "空賊",
+     "reading": "くうぞく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yamaneko-gou",
+   "kind": "thing",
+   "name": "山猫号",
+   "reading": "やまねこごう",
+   "romaji": "Yamaneko Gou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:linde-gou",
+   "kind": "thing",
+   "name": "リンデ号",
+   "reading": "リンデごう",
+   "romaji": "Linde Gou",
+   "aliases": [
+    {
+     "text": "定期船",
+     "reading": "ていきせん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kuro-no-orbment",
+   "kind": "thing",
+   "name": "黒のオーブメント",
+   "reading": "くろのオーブメント",
+   "romaji": "Kuro no Orbment",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:joou-seitansai",
+   "kind": "thing",
+   "name": "女王生誕祭",
+   "reading": "じょおうせいたんさい",
+   "romaji": "Joou Seitansai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:bujutsu-taikai",
+   "kind": "thing",
+   "name": "武術大会",
+   "reading": "ぶじゅつたいかい",
+   "romaji": "Bujutsu Taikai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:mikurau-hebi",
+   "kind": "thing",
+   "name": "身喰らう蛇",
+   "reading": "みくらうへび",
+   "romaji": "Mikurau Hebi",
+   "aliases": [
+    {
+     "text": "ウロボロス",
+     "reading": "ウロボロス"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  }
+ ]
+}

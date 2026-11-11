@@ -60,32 +60,70 @@ void ParallelRows(int rows, long long pixels, const std::function<void(int, int)
 // ARGB, from `in` to `out`.
 void BoxPass(const QImage& in, QImage& out, int r, bool horizontal) {
     const int w = in.width(), h = in.height();
-    const int lines = horizontal ? h : w, length = horizontal ? w : h;
     const int window = 2 * r + 1;
-    const auto at = [&](const QImage& image, int line, int i) -> const uchar* {
-        return horizontal ? image.constScanLine(line) + i * 4 : image.constScanLine(i) + line * 4;
-    };
-    for (int line = 0; line < lines; ++line) {
-        int sum[4] = {0, 0, 0, 0};
-        // The edges stand for what is beyond them (clamped).
-        for (int i = -r; i <= r; ++i) {
-            const uchar* px = at(in, line, std::clamp(i, 0, length - 1));
-            for (int c = 0; c < 4; ++c) {
-                sum[c] += px[c];
-            }
-        }
-        for (int i = 0; i < length; ++i) {
-            uchar* dst = horizontal ? out.scanLine(line) + i * 4 : out.scanLine(i) + line * 4;
-            for (int c = 0; c < 4; ++c) {
-                dst[c] = static_cast<uchar>((sum[c] + window / 2) / window);
-            }
-            const uchar* add = at(in, line, std::min(i + r + 1, length - 1));
-            const uchar* take = at(in, line, std::max(i - r, 0));
-            for (int c = 0; c < 4; ++c) {
-                sum[c] += add[c] - take[c];
-            }
-        }
+    // A sum's average, rounded, from a table: a division for each channel of each pixel was
+    // most of a text's shadows' time.
+    std::vector<uchar> mean(255 * window + 1);
+    for (int n = 0; n <= 255 * window; ++n) {
+        mean[n] = static_cast<uchar>((n + window / 2) / window);
     }
+    // Shared out among the cores, rows or columns each on their own: the same pixels. A pass
+    // is a few sums a pixel, worth sharing from a smaller picture than the fuzz is.
+    const uchar* const in_bits = in.constBits();
+    uchar* const out_bits = out.bits();
+    const qsizetype in_bpl = in.bytesPerLine(), out_bpl = out.bytesPerLine();
+    const long long pixels = static_cast<long long>(w) * h * 4;
+    if (horizontal) {
+        ParallelRows(h, pixels, [&](int from, int to) {
+            for (int line = from; line < to; ++line) {
+                const uchar* src = in_bits + line * in_bpl;
+                uchar* dst = out_bits + line * out_bpl;
+                int sum[4] = {0, 0, 0, 0};
+                // The edges stand for what is beyond them (clamped).
+                for (int i = -r; i <= r; ++i) {
+                    const uchar* px = src + std::clamp(i, 0, w - 1) * 4;
+                    for (int c = 0; c < 4; ++c) {
+                        sum[c] += px[c];
+                    }
+                }
+                for (int i = 0; i < w; ++i) {
+                    for (int c = 0; c < 4; ++c) {
+                        dst[i * 4 + c] = mean[sum[c]];
+                    }
+                    const uchar* add = src + std::min(i + r + 1, w - 1) * 4;
+                    const uchar* take = src + std::max(i - r, 0) * 4;
+                    for (int c = 0; c < 4; ++c) {
+                        sum[c] += add[c] - take[c];
+                    }
+                }
+            }
+        });
+        return;
+    }
+    // Down the columns: a running sum for each column of a stripe, row by row (along the
+    // memory, as the rows are laid out).
+    ParallelRows(w, pixels, [&](int from, int to) {
+        const int n = (to - from) * 4;
+        std::vector<int> sum(n, 0);
+        const auto row = [&](int y) { return in_bits + std::clamp(y, 0, h - 1) * in_bpl + from * 4; };
+        for (int i = -r; i <= r; ++i) {
+            const uchar* px = row(i);
+            for (int k = 0; k < n; ++k) {
+                sum[k] += px[k];
+            }
+        }
+        for (int y = 0; y < h; ++y) {
+            uchar* dst = out_bits + y * out_bpl + from * 4;
+            for (int k = 0; k < n; ++k) {
+                dst[k] = mean[sum[k]];
+            }
+            const uchar* add = row(y + r + 1);
+            const uchar* take = row(y - r);
+            for (int k = 0; k < n; ++k) {
+                sum[k] += add[k] - take[k];
+            }
+        }
+    });
 }
 
 // A small Gaussian, straight, for a sigma under about two pixels (box blurs are too coarse).

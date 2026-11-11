@@ -1,0 +1,572 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/スーパーマリオRPG"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:mario",
+   "kind": "person",
+   "name": "マリオ",
+   "reading": "マリオ",
+   "romaji": "Mario",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maro",
+   "kind": "person",
+   "name": "マロ",
+   "reading": "マロ",
+   "romaji": "Maro",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jiino",
+   "kind": "person",
+   "name": "ジーノ",
+   "reading": "ジーノ",
+   "romaji": "Jiino",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kuppa",
+   "kind": "person",
+   "name": "クッパ",
+   "reading": "クッパ",
+   "romaji": "Kuppa",
+   "aliases": [
+    {
+     "text": "クッパ大王",
+     "reading": "クッパだいおう"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:piichi",
+   "kind": "person",
+   "name": "ピーチ",
+   "reading": "ピーチ",
+   "romaji": "Piichi",
+   "aliases": [
+    {
+     "text": "ピーチ姫",
+     "reading": "ピーチひめ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kajioo",
+   "kind": "person",
+   "name": "カジオー",
+   "reading": "カジオー",
+   "romaji": "Kajioo",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kariba",
+   "kind": "person",
+   "name": "カリバー",
+   "reading": "カリバー",
+   "romaji": "Kariba",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kenzooru",
+   "kind": "person",
+   "name": "ケンゾール",
+   "reading": "ケンゾール",
+   "romaji": "Kenzooru",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yuminpa",
+   "kind": "person",
+   "name": "ユミンパ",
+   "reading": "ユミンパ",
+   "romaji": "Yuminpa",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yaridovich",
+   "kind": "person",
+   "name": "ヤリドヴィッヒ",
+   "reading": "ヤリドヴィッヒ",
+   "romaji": "Yaridovich",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:boomer",
+   "kind": "person",
+   "name": "ブーマー",
+   "reading": "ブーマー",
+   "romaji": "Boomer",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:heipaa",
+   "kind": "person",
+   "name": "ヘイパー",
+   "reading": "ヘイパー",
+   "romaji": "Heipaa",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kuroko",
+   "kind": "person",
+   "name": "クロコ",
+   "reading": "クロコ",
+   "romaji": "Kuroko",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:beroomu",
+   "kind": "person",
+   "name": "ベロ〜ム",
+   "romaji": "Beroomu",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:bukkii",
+   "kind": "person",
+   "name": "ブッキー",
+   "reading": "ブッキー",
+   "romaji": "Bukkii",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:marugariita",
+   "kind": "person",
+   "name": "マルガリータ",
+   "reading": "マルガリータ",
+   "romaji": "Marugariita",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jonasan-joonzu",
+   "kind": "person",
+   "name": "ジョナサン・ジョーンズ",
+   "family": "ジョーンズ",
+   "given": "ジョナサン",
+   "reading": "ジョナサン・ジョーンズ",
+   "family_reading": "ジョーンズ",
+   "given_reading": "ジョナサン",
+   "romaji": "Jonasan Joonzu",
+   "aliases": [
+    {
+     "text": "ジョナサン",
+     "reading": "ジョナサン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kaeru-sennin",
+   "kind": "person",
+   "name": "カエル仙人",
+   "reading": "カエルせんにん",
+   "romaji": "Kaeru Sennin",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kinopio",
+   "kind": "person",
+   "name": "キノピオ",
+   "reading": "キノピオ",
+   "romaji": "Kinopio",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kinoko-daijin",
+   "kind": "person",
+   "name": "キノコ大臣",
+   "reading": "キノコだいじん",
+   "romaji": "Kinoko Daijin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yoshi",
+   "kind": "person",
+   "name": "ヨッシー",
+   "reading": "ヨッシー",
+   "romaji": "Yoshi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maro-papa",
+   "kind": "person",
+   "name": "マロパパ",
+   "reading": "マロパパ",
+   "romaji": "Maro Papa",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maro-mama",
+   "kind": "person",
+   "name": "マロママ",
+   "reading": "マロママ",
+   "romaji": "Maro Mama",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:garo",
+   "kind": "person",
+   "name": "ガロ",
+   "reading": "ガロ",
+   "romaji": "Garo",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kinoko-oukoku",
+   "kind": "place",
+   "name": "キノコ王国",
+   "reading": "キノコおうこく",
+   "romaji": "Kinoko Oukoku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kinoko-jou",
+   "kind": "place",
+   "name": "キノコ城",
+   "reading": "キノコじょう",
+   "romaji": "Kinoko Jou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:mario-no-ie",
+   "kind": "place",
+   "name": "マリオの家",
+   "reading": "マリオのいえ",
+   "romaji": "Mario no Ie",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rose-town",
+   "kind": "place",
+   "name": "ローズタウン",
+   "reading": "ローズタウン",
+   "romaji": "Rose Town",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:monsutaun",
+   "kind": "place",
+   "name": "モンスタウン",
+   "reading": "モンスタウン",
+   "romaji": "Monsutaun",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kerokero-ko",
+   "kind": "place",
+   "name": "ケロケロ湖",
+   "reading": "ケロケロこ",
+   "romaji": "Kerokero Ko",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kinokero-suiro",
+   "kind": "place",
+   "name": "キノケロ水路",
+   "reading": "キノケロすいろ",
+   "romaji": "Kinokero Suiro",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hanachan-no-mori",
+   "kind": "place",
+   "name": "ハナチャンの森",
+   "reading": "ハナチャンのもり",
+   "romaji": "Hanachan no Mori",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:ripple-town",
+   "kind": "place",
+   "name": "リップルタウン",
+   "reading": "リップルタウン",
+   "romaji": "Ripple Town",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:merry-marry-mura",
+   "kind": "place",
+   "name": "メリー・マリー村",
+   "reading": "メリー・マリーむら",
+   "romaji": "Merry Marry Mura",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:barrel-kazan",
+   "kind": "place",
+   "name": "バーレル火山",
+   "reading": "バーレルかざん",
+   "romaji": "Barrel Kazan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:marshmallow-no-kuni",
+   "kind": "place",
+   "name": "マシュマロの国",
+   "reading": "マシュマロのくに",
+   "romaji": "Marshmallow no Kuni",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kuppa-jou",
+   "kind": "place",
+   "name": "クッパ城",
+   "reading": "クッパじょう",
+   "romaji": "Kuppa Jou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:bukkii-tawaa",
+   "kind": "place",
+   "name": "ブッキータワー",
+   "reading": "ブッキータワー",
+   "romaji": "Bukkii Tawaa",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hoshi-no-furu-oka",
+   "kind": "place",
+   "name": "星のふる丘",
+   "reading": "ほしのふるおか",
+   "romaji": "Hoshi no Furu Oka",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:buki-sekai",
+   "kind": "place",
+   "name": "武器世界",
+   "reading": "ぶきせかい",
+   "romaji": "Buki Sekai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:star-road",
+   "kind": "place",
+   "name": "スターロード",
+   "reading": "スターロード",
+   "romaji": "Star Road",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:star-piece",
+   "kind": "thing",
+   "name": "スターピース",
+   "reading": "スターピース",
+   "romaji": "Star Piece",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kajioo-gundan",
+   "kind": "thing",
+   "name": "カジオー軍団",
+   "reading": "カジオーぐんだん",
+   "romaji": "Kajioo Gundan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ono-foosu",
+   "kind": "thing",
+   "name": "オノフォース",
+   "reading": "オノフォース",
+   "romaji": "Ono Foosu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:onorenjaa",
+   "kind": "thing",
+   "name": "オノレンジャー",
+   "reading": "オノレンジャー",
+   "romaji": "Onorenjaa",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

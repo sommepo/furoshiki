@@ -1,0 +1,303 @@
+{
+ "source": {
+  "vndb": "v13",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c6642",
+   "kind": "person",
+   "name": "冬川 こころ",
+   "family": "冬川",
+   "given": "こころ",
+   "reading": "ふゆかわ こころ",
+   "family_reading": "ふゆかわ",
+   "given_reading": "こころ",
+   "romaji": "Fuyukawa Kokoro",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6648",
+   "kind": "person",
+   "name": "優希堂 悟",
+   "family": "優希堂",
+   "given": "悟",
+   "reading": "ゆうきどう さとる",
+   "family_reading": "ゆうきどう",
+   "given_reading": "さとる",
+   "romaji": "Yuukidou Satoru",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c94262",
+   "kind": "person",
+   "name": "Self",
+   "romaji": "Self",
+   "aliases": [],
+   "role": "main",
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c6649",
+   "kind": "person",
+   "name": "黛 鈴",
+   "family": "黛",
+   "given": "鈴",
+   "reading": "まゆずみ りん",
+   "family_reading": "まゆずみ",
+   "given_reading": "りん",
+   "romaji": "Mayuzumi Rin",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6650",
+   "kind": "person",
+   "name": "黄泉木 聖司",
+   "family": "黄泉木",
+   "given": "聖司",
+   "reading": "よもぎ せいじ",
+   "family_reading": "よもぎ",
+   "given_reading": "せいじ",
+   "romaji": "Yomogi Seiji",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6651",
+   "kind": "person",
+   "name": "内海 カーリー",
+   "family": "内海",
+   "given": "カーリー",
+   "reading": "うつみ カーリー",
+   "family_reading": "うつみ",
+   "given_reading": "カーリー",
+   "romaji": "Utsumi Kali",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6657",
+   "kind": "person",
+   "name": "犬伏 景子",
+   "family": "犬伏",
+   "given": "景子",
+   "reading": "いぬぶし けいこ",
+   "family_reading": "いぬぶし",
+   "given_reading": "けいこ",
+   "romaji": "Inubushi Keiko",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6658",
+   "kind": "person",
+   "name": "楠田 ゆに",
+   "family": "楠田",
+   "given": "ゆに",
+   "reading": "くすだ ゆに",
+   "family_reading": "くすだ",
+   "given_reading": "ゆに",
+   "romaji": "Kusuda Yuni",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c6659",
+   "kind": "person",
+   "name": "榎本　尚哉",
+   "family": "榎本",
+   "given": "尚哉",
+   "reading": "えのもと なおや",
+   "family_reading": "えのもと",
+   "given_reading": "なおや",
+   "romaji": "Enomoto Naoya",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c6660",
+   "kind": "person",
+   "name": "涼蔭　穂鳥",
+   "family": "涼蔭",
+   "given": "穂鳥",
+   "reading": "すずかげ ほとり",
+   "family_reading": "すずかげ",
+   "given_reading": "ほとり",
+   "romaji": "Suzukage Hotori",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c6662",
+   "kind": "person",
+   "name": "優希堂 沙也香",
+   "family": "優希堂",
+   "given": "沙也香",
+   "reading": "ゆうきどう さやか",
+   "family_reading": "ゆうきどう",
+   "given_reading": "さやか",
+   "romaji": "Yuukidou Sayaka",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c6669",
+   "kind": "person",
+   "name": "黄泉木 潤一",
+   "family": "黄泉木",
+   "given": "潤一",
+   "reading": "よもぎ じゅんいち",
+   "family_reading": "よもぎ",
+   "given_reading": "じゅんいち",
+   "romaji": "Yomogi Jun'ichi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c6689",
+   "kind": "person",
+   "name": "Unnamed",
+   "romaji": "Unnamed",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c6690",
+   "kind": "person",
+   "name": "Unnamed",
+   "romaji": "Unnamed",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:aosagijima",
+   "kind": "place",
+   "name": "青鷺島",
+   "romaji": "Aosagijima",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:akakuradake",
+   "kind": "place",
+   "name": "朱倉岳",
+   "romaji": "Akakuradake",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:sphia",
+   "kind": "place",
+   "name": "SPHIA",
+   "reading": "スフィア",
+   "romaji": "SPHIA",
+   "aliases": [
+    {
+     "text": "スフィア",
+     "reading": "スフィア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:leiblich-seiyaku",
+   "kind": "thing",
+   "name": "ライプリヒ製薬",
+   "reading": "ライプリヒせいやく",
+   "romaji": "Leiblich Seiyaku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yuukidou-keikaku",
+   "kind": "thing",
+   "name": "ユウキドウ計画",
+   "reading": "ユウキドウけいかく",
+   "romaji": "Yuukidou Keikaku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "thing:jikuukan-ten-i",
+   "kind": "thing",
+   "name": "時空間転移",
+   "reading": "じくうかんてんい",
+   "romaji": "Jikuukan Ten'i",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  }
+ ]
+}

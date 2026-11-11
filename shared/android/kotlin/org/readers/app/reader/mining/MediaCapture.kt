@@ -133,6 +133,7 @@ class MediaCapture(context: Context, private val settings: ReaderSettings) : Car
         val from = clipStart(start, rate)
         val limit = from + settings.audioClipMaxSeconds.toLong() * rate
         val to = minOf(end ?: ReaderNative.audioPosition(), limit)
+        val voice = settings.audioVoiceTrim && settings.audioLeadMs == 0
         background.execute {
             val file = try {
                 val actual = LongArray(1)
@@ -148,12 +149,13 @@ class MediaCapture(context: Context, private val settings: ReaderSettings) : Car
                 if (samples == null || samples.size < rate / 5 * CHANNELS) {
                     null
                 } else {
-                    val trimmed = PcmTools.trimTrailingSilence(
-                        samples,
-                        CHANNELS,
-                        SILENCE_THRESHOLD,
-                        rate / 4
-                    )
+                    // Cut to what is said; a lead the user asked for is theirs to keep (then only
+                    // the end is cut).
+                    val trimmed = if (voice) {
+                        PcmTools.trimToVoice(samples, CHANNELS, rate, SILENCE_THRESHOLD, 180)
+                    } else {
+                        PcmTools.trimTrailingSilence(samples, CHANNELS, SILENCE_THRESHOLD, rate / 4)
+                    }
                     if (trimmed.size < rate / 5 * CHANNELS) {
                         null
                     } else {

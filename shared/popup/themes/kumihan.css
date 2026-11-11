@@ -1,0 +1,59 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Kumihan (組版, typesetting): type and rules, nothing else. One ink on one ground, a single
+   accent used once (the word not yet known), labels in small tracked capitals, figures that
+   line up, hairlines where a box would be. Every colour is a variable: set --ground, --text,
+   --dim, --accent and --rule in your own CSS and the whole look follows. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", sans-serif;
+  --ground: #101012; --text: #ecebe6; --dim: #8d8c86; --accent: #e8502a; --rule: rgba(236, 235, 230, 0.16);
+  --edge: var(--rule); --radius: 0px;
+  --box: transparent; --box-pressed: color-mix(in srgb, var(--text) 14%, transparent); --sign: var(--text); --book: var(--dim);
+  --label: 0.62em;
+}
+.popup {
+  border: 1px solid var(--rule); border-top: 2px solid var(--text);
+  padding: calc(12px * var(--scale)) calc(16px * var(--scale)) calc(10px * var(--scale));
+  font-size: calc(13.5px * var(--scale)); line-height: 1.5; font-feature-settings: "tnum" 1, "palt" 1;
+}
+.entry { padding: 0 0 calc(10px * var(--scale)); }
+.entry + .entry { border-top: 1px solid var(--rule); padding-top: calc(10px * var(--scale)); }
+.head { gap: 0 0.9em; align-items: baseline; }
+.headword { font-size: calc(26px * var(--scale)); font-weight: 500; letter-spacing: 0.02em; line-height: 1.7; }
+.headword rt { display: ruby-text; font-size: 0.4em; color: var(--dim); letter-spacing: 0.12em; }
+.reading { display: none; }
+.reasons, .pitch, .lookups, .tag, .dictionary-name, .romaji, .more {
+  font-size: calc(10px * var(--scale)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim);
+}
+.reasons { color: var(--dim); }
+.pitch { color: var(--dim); }
+.lookups { margin: calc(-2px * var(--scale)) 0 calc(4px * var(--scale)); text-transform: none; letter-spacing: 0.04em; }
+.tags { gap: 0 1em; }
+.tag { background: none; border: none; padding: 0; }
+.tag.frequency .tag-value { color: var(--text); letter-spacing: 0.04em; }
+.tag.name { border: none; padding: 0; color: var(--text); border-bottom: 1px solid var(--text); border-radius: 0; }
+.tag.role { color: var(--text); }
+.dictionary-name { margin-top: calc(8px * var(--scale)); padding-bottom: 2px; border-bottom: 1px solid var(--rule); }
+.senses { margin-top: calc(3px * var(--scale)); }
+.sense { padding-left: 1.6em; margin: 1px 0; }
+.sense > .number { display: inline-block; width: 1.6em; margin: 0 0 0 -1.6em; color: var(--dim); font-size: 1em; text-align: left; }
+.sense .tag { margin-right: 0.7em; }
+.glosses .gloss + .gloss::before { content: " / "; color: var(--dim); }
+.notes { color: var(--dim); font-size: 0.9em; }
+.forms { margin-top: calc(4px * var(--scale)); }
+.entry.unknown .headword { background: none; box-shadow: none; padding: 0; border-radius: 0; color: var(--accent); }
+.name-card { gap: calc(14px * var(--scale)); margin: calc(6px * var(--scale)) 0 calc(4px * var(--scale)); }
+.name-card .portrait { width: calc(60px * var(--scale)); border-radius: 0; border: none; filter: grayscale(1) contrast(1.05); }
+.popup[data-portrait="large"] .name-card .portrait { width: calc(92px * var(--scale)); }
+.who-name { font-size: calc(19px * var(--scale)); font-weight: 500; letter-spacing: 0.04em; }
+.who-name rt { letter-spacing: 0.12em; }
+.who-line { gap: 0 1em; }
+.also { gap: 0 0.9em; margin-top: calc(2px * var(--scale)); }
+.alias { background: none; border: none; padding: 0; border-radius: 0; font-size: calc(12px * var(--scale)); }
+.alias + .alias::before { content: "/ "; color: var(--dim); }
+.about { color: var(--text); opacity: 0.82; margin-top: calc(6px * var(--scale)); max-width: 46em; }
+.card-buttons { margin-top: calc(6px * var(--scale)); }
+.card { border: 1px solid var(--rule); border-radius: 0; width: calc(26px * var(--scale)); height: calc(26px * var(--scale)); }
+.card svg { width: 46%; height: 46%; }
+.link { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.more { margin-top: 2px; display: inline-block; }

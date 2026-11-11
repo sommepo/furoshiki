@@ -10,7 +10,12 @@
       "api": 1,
       "file": "0004000000088A00.lua",
       "size": 16049,
-      "sha256": "23626abd9fdc9d380aa97c23010f209a8b67e7f3e20a7a9514f417b46f9f27e5"
+      "sha256": "23626abd9fdc9d380aa97c23010f209a8b67e7f3e20a7a9514f417b46f9f27e5",
+      "names": {
+        "file": "names-shin-megami-tensei-iv.zip",
+        "size": 6232,
+        "sha256": "3a592c99c8d1376a2aa5679c6c7b9fb786983bbdeb44bc3f9d33bf6449ab331b"
+      }
     }
   ]
 }

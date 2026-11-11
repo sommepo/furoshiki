@@ -199,4 +199,10 @@ namespace Patch
 	extern bool IsGloballyToggleablePatch(const PatchInfo& patch_info);
 
 	extern const char* PlaceToString(std::optional<patch_place_type> place);
+
+	// Reader fork: patches a host makes for the running game itself (Furoshiki's core: the wide
+	// picture, reader/core_library/wide_patches.cpp), as pnach text whose groups are enabled by
+	// being there. Asked for whenever the game's patch files are (re)loaded; an empty text is none.
+	using ExtraPatchSource = std::string (*)(const std::string& serial, u32 crc);
+	extern void SetExtraPatchSource(ExtraPatchSource source);
 } // namespace Patch

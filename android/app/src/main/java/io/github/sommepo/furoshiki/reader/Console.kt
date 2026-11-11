@@ -284,7 +284,7 @@ object Console {
     val BUTTON_PRESS_MS get() = current.pressMs
     val PICK_STEP_MS get() = current.pickStepMs
 
-    const val HAS_NEXT_CHOICE = false
+    const val HAS_NEXT_CHOICE = true
     /** A second display is the reader's unless the console's lower screen goes there. */
     val SECOND_DISPLAY_FREE get() = !TWO_SCREENS
     val TWO_SCREENS get() = current.key == "3ds"

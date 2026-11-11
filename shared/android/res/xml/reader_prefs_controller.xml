@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The reader's pointer and the buttons it takes. The first 6 are shown; the rest stand behind "More"
+     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:initialExpandedChildrenCount="6">
+
+    <!-- The controller on the screen: its buttons small over the game, and playing by touch. -->
+    <SwitchPreferenceCompat
+        app:key="reader_touch_buttons"
+        app:title="@string/reader_pref_touch_buttons"
+        app:summary="@string/reader_pref_touch_buttons_summary"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_touch_play"
+        app:title="@string/reader_pref_touch_play"
+        app:summary="@string/reader_pref_touch_play_summary"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        app:key="reader_cursor_button"
+        app:defaultValue="@string/reader_cursor_button_default"
+        app:entries="@array/reader_cursor_button_entries"
+        app:entryValues="@array/reader_cursor_button_values"
+        app:title="@string/reader_pref_cursor_button"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_cursor_toggle"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_cursor_toggle"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_cursor_speed"
+        app:defaultValue="100"
+        app:min="25"
+        android:max="300"
+        app:seekBarIncrement="5"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_cursor_speed"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_advance_button"
+        app:defaultValue="@string/reader_advance_button_default"
+        app:entries="@array/reader_advance_button_entries"
+        app:entryValues="@array/reader_advance_button_values"
+        app:title="@string/reader_pref_advance_button"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_next_choice_button"
+        app:defaultValue="-1"
+        app:entries="@array/reader_cursor_button_entries"
+        app:entryValues="@array/reader_cursor_button_values"
+        app:title="@string/reader_pref_next_choice_button"
+        app:summary="@string/reader_pref_next_choice_button_summary"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_stats_button"
+        app:defaultValue="-1"
+        app:entries="@array/reader_cursor_button_entries"
+        app:entryValues="@array/reader_cursor_button_values"
+        app:title="@string/reader_pref_stats_button"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_cursor_frame"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_cursor_frame"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_cursor_home"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_cursor_home"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_second_screen"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_second_screen"
+        app:summary="@string/reader_pref_second_screen_summary"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

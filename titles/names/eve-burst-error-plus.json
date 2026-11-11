@@ -1,0 +1,503 @@
+{
+ "source": {
+  "vndb": "v147",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "目": "め",
+  "前": "まえ",
+  "胃": "い",
+  "瘍": "よう"
+ },
+ "entries": [
+  {
+   "id": "c1406",
+   "kind": "person",
+   "name": "天城 小次郎",
+   "family": "天城",
+   "given": "小次郎",
+   "reading": "あまぎ こじろう",
+   "family_reading": "あまぎ",
+   "given_reading": "こじろう",
+   "romaji": "Amagi Kojirou",
+   "aliases": [
+    {
+     "text": "天智 小次郎"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:天智 小次郎"
+   ]
+  },
+  {
+   "id": "c1407",
+   "kind": "person",
+   "name": "法条 まりな",
+   "family": "法条",
+   "given": "まりな",
+   "reading": "ほうじょう まりな",
+   "family_reading": "ほうじょう",
+   "given_reading": "まりな",
+   "romaji": "Houjou Marina",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c1402",
+   "kind": "person",
+   "name": "桂木 弥生",
+   "family": "桂木",
+   "given": "弥生",
+   "reading": "かつらぎ やよい",
+   "family_reading": "かつらぎ",
+   "given_reading": "やよい",
+   "romaji": "Katsuragi Yayoi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c2178",
+   "kind": "person",
+   "name": "氷室 恭子",
+   "family": "氷室",
+   "given": "恭子",
+   "reading": "ひむろ きょうこ",
+   "family_reading": "ひむろ",
+   "given_reading": "きょうこ",
+   "romaji": "Himuro Kyouko",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36724",
+   "kind": "person",
+   "name": "御堂 真弥子",
+   "family": "御堂",
+   "given": "真弥子",
+   "reading": "みどう まやこ",
+   "family_reading": "みどう",
+   "given_reading": "まやこ",
+   "romaji": "Midou Mayako",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36727",
+   "kind": "person",
+   "name": "鈴木 源三郎",
+   "family": "鈴木",
+   "given": "源三郎",
+   "reading": "すずき げんざぶろう",
+   "family_reading": "すずき",
+   "given_reading": "げんざぶろう",
+   "romaji": "Suzuki Genzaburou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4476",
+   "kind": "person",
+   "name": "シリア・フラット",
+   "reading": "シリア・フラット",
+   "romaji": "Siria Flatte",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4477",
+   "kind": "person",
+   "name": "プリン",
+   "reading": "プリン",
+   "romaji": "Purin",
+   "aliases": [
+    {
+     "text": "プリシア",
+     "reading": "プリシア"
+    },
+    {
+     "text": "目の前の子供",
+     "reading": "めのまえのこども"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c97265",
+   "kind": "person",
+   "name": "ロス＝御堂",
+   "romaji": "Ross Midou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c1408",
+   "kind": "person",
+   "name": "甲野 三郎",
+   "family": "甲野",
+   "given": "三郎",
+   "reading": "こうの さぶろう",
+   "family_reading": "こうの",
+   "given_reading": "さぶろう",
+   "romaji": "Kouno Saburou",
+   "aliases": [
+    {
+     "text": "本部長",
+     "reading": "ほんぶちょう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c150800",
+   "kind": "person",
+   "name": "アクア・スティル・ロイド",
+   "reading": "アクア・スティル・ロイド",
+   "romaji": "Aqua Steele Loyd",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c36707",
+   "kind": "person",
+   "name": "グレン",
+   "reading": "グレン",
+   "romaji": "Glen",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36708",
+   "kind": "person",
+   "name": "柴田 茜",
+   "family": "柴田",
+   "given": "茜",
+   "reading": "しばた あかね",
+   "family_reading": "しばた",
+   "given_reading": "あかね",
+   "romaji": "Shibata Akane",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36717",
+   "kind": "person",
+   "name": "二階堂 進",
+   "family": "二階堂",
+   "given": "進",
+   "reading": "にかいどう すすむ",
+   "family_reading": "にかいどう",
+   "given_reading": "すすむ",
+   "romaji": "Nikaidou Susumu",
+   "aliases": [
+    {
+     "text": "東海道",
+     "reading": "とうかいどう"
+    },
+    {
+     "text": "東海道新幹線",
+     "reading": "とうかいどうしんかんせん"
+    },
+    {
+     "text": "胃かい瘍",
+     "reading": "いかいよう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36718",
+   "kind": "person",
+   "name": "ストールマン・孔",
+   "reading": "ストールマン・こう",
+   "romaji": "Stoleman Kou",
+   "aliases": [
+    {
+     "text": "ディーブ",
+     "reading": "ディーブ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36726",
+   "kind": "person",
+   "name": "松乃 広美",
+   "family": "松乃",
+   "given": "広美",
+   "reading": "まつの ひろみ",
+   "family_reading": "まつの",
+   "given_reading": "ひろみ",
+   "romaji": "Matsuno Hiromi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c54842",
+   "kind": "person",
+   "name": "プリシア・レム・クライム",
+   "reading": "プリシア・レム・クライム",
+   "romaji": "Prisia Lem Clime",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c88004",
+   "kind": "person",
+   "name": "香川 美純",
+   "family": "香川",
+   "given": "美純",
+   "reading": "かがわ みすみ",
+   "family_reading": "かがわ",
+   "given_reading": "みすみ",
+   "romaji": "Kagawa Misumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c150675",
+   "kind": "person",
+   "name": "ウェイトレス",
+   "reading": "ウェイトレス",
+   "romaji": "Waitress",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c151986",
+   "kind": "person",
+   "name": "サラ",
+   "reading": "サラ",
+   "romaji": "Sarah",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c151994",
+   "kind": "person",
+   "name": "シルディ",
+   "reading": "シルディ",
+   "romaji": "Sildy",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c80717",
+   "kind": "person",
+   "name": "桂木",
+   "reading": "かつらぎ",
+   "romaji": "Katsuragi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:amagi-tantei-jimusho",
+   "kind": "place",
+   "name": "あまぎ探偵事務所",
+   "reading": "あまぎたんていじむしょ",
+   "romaji": "Amagi Tantei Jimusho",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:katsuragi-tantei-jimusho",
+   "kind": "place",
+   "name": "桂木探偵事務所",
+   "reading": "かつらぎたんていじむしょ",
+   "romaji": "Katsuragi Tantei Jimusho",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:naikaku-chousashitsu",
+   "kind": "thing",
+   "name": "内閣調査室",
+   "reading": "ないかくちょうさしつ",
+   "romaji": "Naikaku Chousashitsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:erdia",
+   "kind": "place",
+   "name": "エルディア",
+   "reading": "エルディア",
+   "romaji": "Erdia",
+   "aliases": [
+    {
+     "text": "エルディア王国",
+     "reading": "エルディアおうこく"
+    },
+    {
+     "text": "エール",
+     "reading": "エール"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:erdia-taishikan",
+   "kind": "place",
+   "name": "エルディア大使館",
+   "reading": "エルディアたいしかん",
+   "romaji": "Erdia Taishikan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:tristan-gou",
+   "kind": "place",
+   "name": "トリスタン号",
+   "reading": "トリスタンごう",
+   "romaji": "Tristan-gou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:princess-hotel",
+   "kind": "place",
+   "name": "プリンセス・ホテル",
+   "reading": "プリンセス・ホテル",
+   "romaji": "Princess Hotel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:eeru-gaikokujin-gakkou",
+   "kind": "place",
+   "name": "エール外国人学校",
+   "reading": "エールがいこくじんがっこう",
+   "romaji": "Eeru Gaikokujin Gakkou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:sun-mansion",
+   "kind": "place",
+   "name": "サン・マンション",
+   "reading": "サン・マンション",
+   "romaji": "Sun Mansion",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:central-avenue",
+   "kind": "place",
+   "name": "セントラル・アベニュー",
+   "reading": "セントラル・アベニュー",
+   "romaji": "Central Avenue",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kokuji",
+   "kind": "thing",
+   "name": "国璽",
+   "reading": "こくじ",
+   "romaji": "Kokuji",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Mono",
+  "order": 1,
+  "ground": "#0a0a0a",
+  "raised": "#161616",
+  "ink": "#f2f2f0",
+  "muted": "#8c8c88",
+  "accent": "#f2f2f0",
+  "rule": "rgba(242,242,240,0.26)",
+  "display": "Michroma-Regular.ttf",
+  "text": "ZenKakuGothicNew-Bold.ttf",
+  "mono": "IBMPlexMono-Medium.ttf"
+}

@@ -220,6 +220,14 @@ TileClipping TransformMatrix::getTileClip(u32 val, Rect& clipRect)
 
 	float csx = (float)(val & 63);
 	float cex = (float)((val >> 6) & 63);
+	// Reader fork (Karakuri): with the widescreen hack, a clip whose x tiles are both 48-63 is read
+	// as -16..-1, left of the 4:3 picture, so a HUD piece moved out there keeps its clip. Those
+	// tiles are past anything a picture shows, so no game loses a clip it could see.
+	if (config::Widescreen && csx >= 48 && cex >= 48)
+	{
+		csx -= 64;
+		cex -= 64;
+	}
 	float csy = (float)((val >> 12) & 31);
 	float cey = (float)((val >> 17) & 31);
 	csx = csx * 32;

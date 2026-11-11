@@ -27,6 +27,9 @@ struct DictionaryInfo {
     bool enabled{};
     qint64 term_count{};
     qint64 meta_count{};
+    /// The games it is for (Furoshiki's game IDs, from `furoshikiScope` in its index.json): a
+    /// names dictionary is used only while one of them runs. Empty: every game.
+    QStringList scope;
 };
 
 /// One dictionary row for a term. `glossary_json` is the entry's glossary array as JSON.
@@ -42,6 +45,8 @@ struct TermEntry {
     QString glossary_json;
     qint64 sequence{};
     QString term_tags;
+    /// From a dictionary for the running game only (a names dictionary): ranked first.
+    bool scoped{};
 };
 
 /// A frequency, pitch or other "meta" row for a term. `data` is its JSON value.
@@ -76,10 +81,17 @@ public:
     /// switched on or off as they were. The other file is left as it is. Returns how many came.
     int TakeFrom(const QString& other_path);
 
-    /// Term rows of enabled dictionaries whose expression or reading is one of `terms`.
-    [[nodiscard]] QList<TermEntry> FindTerms(const QStringList& terms);
+    /**
+     * Term rows of enabled dictionaries whose expression or reading is one of `terms`: of the
+     * dictionaries for every game, and of those scoped to `game` (a game ID) when one is given.
+     */
+    [[nodiscard]] QList<TermEntry> FindTerms(const QStringList& terms, const QString& game = {});
     /// Frequency and pitch rows of enabled dictionaries for the given expressions.
     [[nodiscard]] QList<TermMeta> FindMeta(const QStringList& expressions);
+
+    /// A dictionary's scope as stored: "|ID|ID|" (upper case), or "" for every game.
+    [[nodiscard]] static QString ScopeText(const QStringList& games);
+    [[nodiscard]] static QStringList ScopeList(const QString& text);
 
     /// Compresses a glossary for storage; short ones are stored as they are.
     [[nodiscard]] static QByteArray Pack(const QString& json);
@@ -144,8 +156,13 @@ public:
 
     explicit DictionaryLookup(DictionaryDatabase& database_) : database{database_} {}
 
-    /// The words starting at the first character of `text`: at most `max_results`, best first.
-    [[nodiscard]] QList<LookupResult> Lookup(const QString& text, int max_results = 24);
+    /**
+     * The words starting at the first character of `text`: at most `max_results`, best first.
+     * `game` is the running game's ID: dictionaries scoped to it are used, and their entries
+     * come first among words of the same length; other scoped dictionaries are not.
+     */
+    [[nodiscard]] QList<LookupResult> Lookup(const QString& text, int max_results = 24,
+                                             const QString& game = {});
 
     /**
      * A single rank for sorting cards by frequency: the harmonic mean of the term's ranks in

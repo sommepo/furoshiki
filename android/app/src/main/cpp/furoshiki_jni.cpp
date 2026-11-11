@@ -664,6 +664,59 @@ JNIEXPORT void JNICALL GAME(startSaveSync)(JNIEnv* env, jobject self, jstring ke
 #endif
 }
 
+// ---- What the menu over a game offers besides: savestate slots, discs, as the core has them ----
+
+/// The core's features (READER_CORE_HAS_*), 0 without a core.
+JNIEXPORT jint JNICALL GAME(features)(JNIEnv*, jobject) {
+    return g_session ? static_cast<jint>(g_session->Features()) : 0;
+}
+
+/// How many savestate slots the core has, numbered from 1.
+JNIEXPORT jint JNICALL GAME(stateSlots)(JNIEnv*, jobject) {
+    return g_session ? g_session->Info().state_slots : 0;
+}
+
+/// When the running game's savestate `slot` was written (ms since 1970): 0 when there is none,
+/// -1 when the core does not tell.
+JNIEXPORT jlong JNICALL GAME(stateSaved)(JNIEnv*, jobject, jint slot) {
+    if (!g_session) {
+        return -1;
+    }
+    const auto info = g_session->StateInfo(slot);
+    return !info ? -1 : info->exists ? static_cast<jlong>(std::max<int64_t>(info->saved_ms, 1)) : 0;
+}
+
+JNIEXPORT jint JNICALL GAME(discCount)(JNIEnv*, jobject) {
+    return g_session ? static_cast<jint>(g_session->DiscCount()) : 0;
+}
+
+JNIEXPORT jint JNICALL GAME(discCurrent)(JNIEnv*, jobject) {
+    return g_session ? g_session->DiscCurrent() : -1;
+}
+
+JNIEXPORT jbyteArray JNICALL GAME(discLabel)(JNIEnv* env, jobject, jint index) {
+    return ToBytes(env, g_session ? g_session->DiscLabel(static_cast<uint32_t>(index)) : std::string());
+}
+
+JNIEXPORT jboolean JNICALL GAME(insertDisc)(JNIEnv*, jobject, jint index) {
+    return g_session && g_session->InsertDisc(index) ? JNI_TRUE : JNI_FALSE;
+}
+
+/// The patches the core has for a game: [{"name","about","on"}], "on" what it has by itself.
+JNIEXPORT jbyteArray JNICALL GAME(patches)(JNIEnv* env, jobject, jstring game_id) {
+    std::string json = "[";
+    if (g_session) {
+        bool first = true;
+        for (const Home::CoreSession::Patch& patch : g_session->Patches(FromJava(env, game_id))) {
+            json += std::string(first ? "" : ",") + "{\"name\":" + JsonText(patch.name.c_str()) + ",\"about\":" +
+                    JsonText(patch.about.c_str()) + ",\"on\":" + (patch.on_by_default ? "true" : "false") + "}";
+            first = false;
+        }
+    }
+    json += "]";
+    return ToBytes(env, json);
+}
+
 JNIEXPORT void JNICALL GAME(applySetting)(JNIEnv* env, jobject, jstring key, jstring value) {
     if (g_session) {
         g_session->ApplySettings({{FromJava(env, key), FromJava(env, value)}});

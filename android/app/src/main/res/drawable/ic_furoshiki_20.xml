@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- made by home/tools/icon.py from home/icon/icon.json -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.13200" android:scaleY="0.13200" android:translateX="20.208" android:translateY="20.208">
+        <path android:fillColor="#0B1F4B" android:pathData="M170,72 L316,96 L330,150 L184,126 Z M204,174 L272,174 L366,272 L366,322 L264,434 L176,434 L292,314 L292,284 Z M104,282 L168,282 L124,412 L60,412 Z M378,252 L438,252 L458,384 L398,384 Z" />
+    </group>
+</vector>

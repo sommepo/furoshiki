@@ -8,6 +8,10 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QRegularExpression>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
 #include <QMutexLocker>
 #include <QSaveFile>
 // The emulator's own sound library, whichever generation of it the emulator uses (as
@@ -30,6 +34,7 @@
 #include "reader/desktop/card_builder.h"
 #include "reader/desktop/word_audio.h"
 #include "reader/desktop/media.h"
+#include "reader/qt/reader_dialogs.h"
 #include "reader/qt/reader_games.h"
 #include "reader/qt/reader_media.h"
 #include "reader/qt/reader_session.h"
@@ -237,7 +242,8 @@ void MediaCapture::AudioClip(qint64 backlog_id, qint64 start, std::optional<qint
     const qint64 limit = from + settings.AudioClipMaxSeconds() * rate;
     const qint64 to = std::min(
         end.value_or(static_cast<qint64>(Reader::AudioTap::Instance().Position())), limit);
-    background.start([this, backlog_id, from, to, rate, callback = std::move(callback)] {
+    const bool voice = settings.AudioVoiceTrim() && settings.AudioLeadMs() == 0;
+    background.start([this, backlog_id, from, to, rate, voice, callback = std::move(callback)] {
         Clip clip;
         u64 actual = 0;
         std::vector<s16> samples;
@@ -258,8 +264,14 @@ void MediaCapture::AudioClip(qint64 backlog_id, qint64 start, std::optional<qint
         }
         const std::size_t shortest = static_cast<std::size_t>(rate / 5 * Channels);
         if (samples.size() >= shortest) {
-            std::vector<s16> trimmed = ReaderApp::PcmTools::TrimTrailingSilence(
-                samples, Channels, SilenceThreshold, static_cast<int>(rate / 4));
+            // Cut to what is said (a lead the user asked for is theirs to keep: then only the
+            // end is cut), or as before to the last sound.
+            std::vector<s16> trimmed =
+                voice ? ReaderApp::PcmTools::TrimToVoice(samples, Channels,
+                                                         static_cast<int>(rate),
+                                                         SilenceThreshold, 180)
+                      : ReaderApp::PcmTools::TrimTrailingSilence(
+                            samples, Channels, SilenceThreshold, static_cast<int>(rate / 4));
             if (trimmed.size() >= shortest) {
                 ReaderApp::PcmTools::FadeEdges(trimmed, Channels, static_cast<int>(rate / 100));
                 clip.ogg = ReaderApp::EncodeOggOpusAt(trimmed, Channels, static_cast<int>(rate));
@@ -300,10 +312,15 @@ struct Setup {
     /// The note type's first field, when the setup screen recorded it.
     QString key_field;
     QString game_title;
+    QString game_key;
+    int context_lines{};
     /// The game's page, for {url} and for a card that goes through VN Library's media add-on.
     QString game_url;
     /// The field that add-on asked an address for at this Anki address, when it did.
     QString address_field;
+    /// Every address Anki may answer at, in the order tried: the setup's (several may stand
+    /// there, with spaces or commas between), then the user's Anki on another computer.
+    QStringList addresses;
 
     [[nodiscard]] bool Complete() const {
         return problem.isEmpty() && !deck.isEmpty() && !model.isEmpty() && !templates.isEmpty();
@@ -319,7 +336,13 @@ Setup Snapshot() {
     } else if (settings.AnkiConnectUrl().trimmed().isEmpty()) {
         setup.problem = Miner::tr("Anki is not set up yet: see Reader → Anki setup.");
     }
-    setup.url = settings.AnkiConnectUrl().trimmed();
+    static const QRegularExpression between(QStringLiteral("[\\s,;]+"));
+    setup.addresses = settings.AnkiConnectUrl().split(between, Qt::SkipEmptyParts);
+    if (const QString elsewhere = AnkiElsewhere() ? AnkiElsewhere()().trimmed() : QString();
+        !elsewhere.isEmpty() && !setup.addresses.contains(elsewhere)) {
+        setup.addresses.append(elsewhere);
+    }
+    setup.url = setup.addresses.value(0);
     setup.key = settings.AnkiConnectKey();
     setup.deck = settings.AnkiDeck();
     setup.model = settings.AnkiModel();
@@ -338,6 +361,8 @@ Setup Snapshot() {
     setup.scope = settings.AnkiDuplicatesAnywhere() ? QString() : setup.deck;
     setup.key_field = settings.AnkiKeyField(setup.model);
     setup.game_title = session.GameTitle();
+    setup.game_key = session.GameKey();
+    setup.context_lines = settings.CardContextLines();
     setup.game_url = ReaderApp::SourceAddress::Of(session.GameKey());
     setup.address_field = settings.AnkiAddressField(setup.url);
     return setup;
@@ -347,6 +372,17 @@ QMutex cache_mutex;
 /// First fields of note types, as Anki named them.
 QHash<QString, QString> key_fields;
 std::atomic<qint64> quiet_until{0};
+
+/// The card made last, for taking it back: its note, and what the deck's copy knows it by.
+struct LastCard {
+    qint64 note{};
+    QString url;
+    QString key;
+    std::optional<ReaderApp::AnkiIndex::Source> source;
+    QString value;
+};
+QMutex last_mutex;
+LastCard last_card;
 
 /// What the deck holds, on this computer (ReaderApp::AnkiIndex), and its file.
 ReaderApp::AnkiIndex deck_index;
@@ -423,6 +459,33 @@ CardContext ContextOf(const PresentedLine& presented, const Setup& setup,
     card.word = word;
     card.word_first = first;
     card.word_last = last;
+    const QSet<QString> markers =
+        ReaderApp::CardBuilder::MarkersIn(setup.templates.values());
+    card.translation = presented.line.meta.value(QStringLiteral("translation"));
+    if (card.translation.isEmpty() && markers.contains(QStringLiteral("translation"))) {
+        card.translation = ExplainedTranslation(presented.line.text);
+    }
+    const int wanted = markers.contains(QStringLiteral("context"))
+                           ? setup.context_lines
+                           : markers.contains(QStringLiteral("previous-sentence")) ? 1 : 0;
+    const qint64 before_id =
+        presented.first_backlog_id >= 0 ? presented.first_backlog_id : presented.backlog_id;
+    if (wanted > 0 && before_id >= 0 && !setup.game_key.isEmpty()) {
+        try {
+            // A few more than wanted: choices and menus are passed over.
+            for (const ReaderApp::BacklogEntry& entry : ReaderSession::Instance().Database().RecentLines(
+                     setup.game_key, wanted + 4, before_id)) {
+                if (card.before.size() >= wanted) {
+                    break;
+                }
+                if (!entry.line.IsChoice() && !entry.line.IsMenu()) {
+                    card.before.prepend(entry.line.text);
+                }
+            }
+        } catch (const std::exception& error) {
+            LOG_WARNING(Frontend, "[Reader] The lines before a card: {}", error.what());
+        }
+    }
     return card;
 }
 
@@ -430,9 +493,132 @@ Miner::Outcome Failed(const QString& message) {
     return Miner::Outcome{Miner::Outcome::Kind::Failed, {}, message};
 }
 
+// ---- Anki at more than one address, and cards that wait for it ----
+
+QString QueueFolder() {
+    return ReaderSession::DataDirectory() + QStringLiteral("/card-queue");
+}
+
+/// The first of the setup's addresses where Anki answers now, or nothing.
+QString Reachable(const Setup& setup) {
+    for (const QString& address : setup.addresses) {
+        try {
+            AnkiConnectClient client(address, setup.key, 900, 4000);
+            client.Version();
+            return address;
+        } catch (const std::exception&) {
+            // The next one.
+        }
+    }
+    return {};
+}
+
+/// Keeps a card no Anki could be given: its fields as they will be sent, its files beside them
+/// under the names the fields say.
+Miner::Outcome Queue(const Setup& setup, CardContext card, const QByteArray& picture, const QByteArray& clip) {
+    const QString stamp = QString::number(Now());
+    const QString prefix = QString::fromLatin1(Reader::ConsoleTraits::MediaPrefix);
+    QDir().mkpath(QueueFolder());
+    QJsonObject job{{QStringLiteral("deck"), setup.deck},
+                    {QStringLiteral("model"), setup.model},
+                    {QStringLiteral("tags"), QJsonArray::fromStringList(setup.tags)},
+                    {QStringLiteral("duplicates"), static_cast<int>(setup.duplicates)}};
+    const auto keep = [&](const QByteArray& bytes, const QString& name, const char* as) {
+        QSaveFile out(QueueFolder() + QLatin1Char('/') + name);
+        if (out.open(QIODevice::WriteOnly) && out.write(bytes) == bytes.size() && out.commit()) {
+            job.insert(QString::fromLatin1(as), name);
+            return true;
+        }
+        return false;
+    };
+    if (!picture.isEmpty()) {
+        const QString name = prefix + QStringLiteral("%1.%2").arg(stamp, PictureExtension(picture));
+        if (keep(picture, name, "picture")) {
+            card.screenshot_name = name;
+        }
+    }
+    if (!clip.isEmpty()) {
+        const QString name = prefix + QStringLiteral("%1.ogg").arg(stamp);
+        if (keep(clip, name, "clip")) {
+            card.audio_name = name;
+        }
+    }
+    QJsonObject fields;
+    const QMap<QString, QString> built = ReaderApp::CardBuilder::Build(setup.templates, card);
+    for (auto it = built.constBegin(); it != built.constEnd(); ++it) {
+        fields.insert(it.key(), it.value());
+    }
+    job.insert(QStringLiteral("fields"), fields);
+    QSaveFile out(QueueFolder() + QLatin1Char('/') + stamp + QStringLiteral(".json"));
+    if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(job).toJson(QJsonDocument::Compact)) < 0 || !out.commit()) {
+        return Failed(Miner::tr("Anki is not reachable, and the card could not be kept for later."));
+    }
+    return Miner::Outcome{Miner::Outcome::Kind::Queued, {}, {}};
+}
+
+QStringList QueuedJobs() {
+    return QDir(QueueFolder()).entryList({QStringLiteral("*.json")}, QDir::Files, QDir::Name);
+}
+
+/// Sends the cards that wait to the Anki at `url`, oldest first; stops at the first that
+/// Anki cannot be reached for. A card Anki refuses (it has the word by now) is let go.
+void Flush(const Setup& setup, const QString& url) {
+    for (const QString& name : QueuedJobs()) {
+        const QString path = QueueFolder() + QLatin1Char('/') + name;
+        QFile in(path);
+        if (!in.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        const QJsonObject job = QJsonDocument::fromJson(in.readAll()).object();
+        in.close();
+        QStringList files;
+        try {
+            AnkiConnectClient client(url, setup.key);
+            for (const char* which : {"picture", "clip"}) {
+                const QString media = job.value(QLatin1String(which)).toString();
+                QFile file(QueueFolder() + QLatin1Char('/') + media);
+                if (!media.isEmpty() && file.open(QIODevice::ReadOnly)) {
+                    client.StoreMedia(file.readAll(), media);
+                    files.append(file.fileName());
+                }
+            }
+            QMap<QString, QString> fields;
+            const QJsonObject kept = job.value(QStringLiteral("fields")).toObject();
+            for (auto it = kept.constBegin(); it != kept.constEnd(); ++it) {
+                fields.insert(it.key(), it.value().toString());
+            }
+            QStringList tags;
+            for (const QJsonValue& tag : job.value(QStringLiteral("tags")).toArray()) {
+                tags.append(tag.toString());
+            }
+            client.AddNote(job.value(QStringLiteral("deck")).toString(), job.value(QStringLiteral("model")).toString(), fields, tags,
+                           static_cast<Duplicates>(job.value(QStringLiteral("duplicates")).toInt()));
+            LOG_INFO(Frontend, "[Reader] A card that waited is in Anki");
+        } catch (const ReaderApp::AnkiError& error) {
+            if (Reachable(setup).isEmpty()) {
+                return; // Anki went away again: the rest wait on
+            }
+            LOG_WARNING(Frontend, "[Reader] A card that waited was refused and is let go: {}", error.Message().toStdString());
+        } catch (const std::exception&) {
+            return;
+        }
+        QFile::remove(path);
+        for (const QString& file : std::as_const(files)) {
+            QFile::remove(file);
+        }
+    }
+}
+
 /// On a thread of the miner's: looks for the word, stores the media, adds the note.
-Miner::Outcome Send(const Setup& setup, CardContext card, const QByteArray& picture,
+Miner::Outcome Send(const Setup& given, CardContext card, const QByteArray& picture,
                     const QByteArray& clip) {
+    // Where Anki answers now: the setup's address, another of the user's; nowhere: the card waits.
+    Setup setup = given;
+    setup.url = Reachable(given);
+    if (setup.url.isEmpty()) {
+        return Queue(given, std::move(card), picture, clip);
+    }
+    Flush(setup, setup.url);
     try {
         AnkiConnectClient client(setup.url, setup.key);
         // Not every Anki refuses a duplicate when asked to, so look before sending anything.
@@ -484,7 +670,16 @@ Miner::Outcome Send(const Setup& setup, CardContext card, const QByteArray& pict
         if (key) {
             deck_index.Add(SourceOf(setup, key->field), key->value, id);
         }
+        {
+            QMutexLocker lock(&last_mutex);
+            last_card = LastCard{id, setup.url, setup.key, {}, {}};
+            if (key) {
+                last_card.source = SourceOf(setup, key->field);
+                last_card.value = key->value;
+            }
+        }
         Miner::Outcome outcome{Miner::Outcome::Kind::Added, {id}, {}};
+        outcome.picture = picture;
         if (added.field != setup.address_field) {
             outcome.address_field = added.field;
         }
@@ -503,6 +698,20 @@ Miner::Miner(QObject* parent) : QObject(parent) {
     worker.setMaxThreadCount(1);
     checker.setMaxThreadCount(1);
     indexer.setMaxThreadCount(1);
+    // Cards that wait for an Anki that answers: tried every minute and a half while there are any.
+    retry.setInterval(90000);
+    connect(&retry, &QTimer::timeout, this, [this] {
+        if (QueuedJobs().isEmpty() || ReaderSession::Instance().Settings().AnkiTransport() != QStringLiteral("ankiconnect")) {
+            return;
+        }
+        const Setup setup = Snapshot();
+        worker.start([setup] {
+            if (const QString url = Reachable(setup); !url.isEmpty()) {
+                Flush(setup, url);
+            }
+        });
+    });
+    retry.start();
 }
 
 Miner::~Miner() {
@@ -510,6 +719,10 @@ Miner::~Miner() {
     worker.waitForDone();
     checker.waitForDone();
     indexer.waitForDone();
+}
+
+int Miner::Waiting() {
+    return static_cast<int>(QueuedJobs().size());
 }
 
 void Miner::Forget() {
@@ -801,6 +1014,43 @@ void ClipPlayer::Poll() {
         Stop();
     }
 #endif
+}
+
+void Miner::Undo(std::function<void(bool undone, const QString& failure)> callback) {
+    LastCard card;
+    {
+        QMutexLocker lock(&last_mutex);
+        card = last_card;
+        last_card = LastCard{};
+    }
+    if (card.note == 0) {
+        callback(false, {});
+        return;
+    }
+    worker.start([this, card, callback] {
+        QString failure;
+        try {
+            AnkiConnectClient client(card.url, card.key);
+            client.DeleteNotes({card.note});
+            if (card.source) {
+                // The deck's copy on this computer: the word has no note again.
+                deck_index.Learn(*card.source, card.value, {});
+            }
+        } catch (const ReaderApp::AnkiError& error) {
+            failure = error.Message();
+        } catch (const std::exception& error) {
+            failure = QString::fromUtf8(error.what());
+        }
+        if (!failure.isEmpty()) {
+            // Still the last card: it can be tried again.
+            QMutexLocker lock(&last_mutex);
+            if (last_card.note == 0) {
+                last_card = card;
+            }
+        }
+        QMetaObject::invokeMethod(this, [callback, failure] { callback(failure.isEmpty(), failure); },
+                                  Qt::QueuedConnection);
+    });
 }
 
 void Miner::ShowNotes(const QList<qint64>& notes, std::function<void(const QString&)> callback) {

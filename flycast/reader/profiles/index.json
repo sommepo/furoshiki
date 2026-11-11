@@ -10,7 +10,12 @@
       "api": 1,
       "file": "6107179.lua",
       "size": 3924,
-      "sha256": "7fdff5e0794e4a69dc5f382d798455820c0f8f77be6fe929711c87dad30c6686"
+      "sha256": "7fdff5e0794e4a69dc5f382d798455820c0f8f77be6fe929711c87dad30c6686",
+      "names": {
+        "file": "names-whats-shenmue.zip",
+        "size": 2664,
+        "sha256": "a184c7a4879d84d8d3c1606263f30eac6bd7e640cac633cfea6f3eab4869605e"
+      }
     },
     {
       "id": "HDR-0072",
@@ -20,7 +25,12 @@
       "api": 1,
       "file": "HDR-0072.lua",
       "size": 6436,
-      "sha256": "dd4569986fbcfe2ae60939690f7560d75941e1f2c60532fa3afab53d5f62ee29"
+      "sha256": "dd4569986fbcfe2ae60939690f7560d75941e1f2c60532fa3afab53d5f62ee29",
+      "names": {
+        "file": "names-sakura-taisen.zip",
+        "size": 5911,
+        "sha256": "e0b6d01144726b626aecb7a177aeb53e3ece66a4fd834b86d0a4daa24c9d3ed7"
+      }
     },
     {
       "id": "HDR-0074",
@@ -30,7 +40,12 @@
       "api": 1,
       "file": "HDR-0074.lua",
       "size": 4942,
-      "sha256": "edafed92a6466527f1549853fb013b4eef3c4f9bf23f054cf2401b9ee5182ab2"
+      "sha256": "edafed92a6466527f1549853fb013b4eef3c4f9bf23f054cf2401b9ee5182ab2",
+      "names": {
+        "file": "names-rent-a-hero.zip",
+        "size": 3845,
+        "sha256": "7d00b63884a14430e00c39a2f76d03dea9539d88c5be038c586391f95c3af6f5"
+      }
     },
     {
       "id": "HDR-0151",
@@ -40,7 +55,12 @@
       "api": 1,
       "file": "HDR-0151.lua",
       "size": 4216,
-      "sha256": "569d6942c4175e6acaf4707e4996d62f7532386444a2b5fa29293e8ed29e67fd"
+      "sha256": "569d6942c4175e6acaf4707e4996d62f7532386444a2b5fa29293e8ed29e67fd",
+      "names": {
+        "file": "names-segagaga.zip",
+        "size": 3760,
+        "sha256": "43418fef3f2080cd5f0fd1a5ed6d50787af09f6dff0eba9dd5a96017591f91a9"
+      }
     },
     {
       "id": "HDR-0164",
@@ -50,7 +70,12 @@
       "api": 1,
       "file": "HDR-0164.lua",
       "size": 2522,
-      "sha256": "879fd3159a1f0c4de7f214baac7cdfa0b031e5f38833a7f4101fe7152db35020"
+      "sha256": "879fd3159a1f0c4de7f214baac7cdfa0b031e5f38833a7f4101fe7152db35020",
+      "names": {
+        "file": "names-shenmue-ii.zip",
+        "size": 8021,
+        "sha256": "4aa3dd6e32a1f71ab809bb9767f9c01dae6aa765ffc6ffef08d6884471d190e0"
+      }
     },
     {
       "id": "T14301M",
@@ -60,7 +85,12 @@
       "api": 1,
       "file": "T14301M.lua",
       "size": 6124,
-      "sha256": "78e6d8139c19e8318e2a066b58564e07746f2b297332cf816b45bb1b1f597748"
+      "sha256": "78e6d8139c19e8318e2a066b58564e07746f2b297332cf816b45bb1b1f597748",
+      "names": {
+        "file": "names-kita-e.zip",
+        "size": 3564,
+        "sha256": "f356d6d1d6c8652952d6d3f3ee992ffffdb584f246742e38ee5aa5530154aa7c"
+      }
     },
     {
       "id": "T35401M",
@@ -70,7 +100,12 @@
       "api": 1,
       "file": "T35401M.lua",
       "size": 5637,
-      "sha256": "ec4988157f13fbb663b765d8bd7bdd94ab7406568e36fbc0c7bd2ac5d75aadee"
+      "sha256": "ec4988157f13fbb663b765d8bd7bdd94ab7406568e36fbc0c7bd2ac5d75aadee",
+      "names": {
+        "file": "names-july.zip",
+        "size": 1667,
+        "sha256": "595c0f01f0f4a5a7f2e349ebdc3a1881bd326ff6f2ab61e7f00c4f0eb656f213"
+      }
     },
     {
       "id": "T46303M",
@@ -80,7 +115,12 @@
       "api": 1,
       "file": "T46303M.lua",
       "size": 3991,
-      "sha256": "3e13bcc8eaf3436426e053b5b115d05c7a5d66d20b907796c3ca324326e95f09"
+      "sha256": "3e13bcc8eaf3436426e053b5b115d05c7a5d66d20b907796c3ca324326e95f09",
+      "names": {
+        "file": "names-ayanami-ikusei-keikaku.zip",
+        "size": 6143,
+        "sha256": "2d3ee2626adbec8b583114cb3fee81fc61dba785a93eb2ccd08afedd2eeb59f5"
+      }
     }
   ]
 }

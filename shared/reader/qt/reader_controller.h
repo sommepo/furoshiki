@@ -61,9 +61,13 @@ public:
     QAction* AddWindowEntry(const QString& text, const QString& name,
                             std::function<void(QWidget* parent)> run);
 
+    /// Reads from `source` too: a session begins when it says so (ReadingSource::Began) and ends
+    /// with it. The core's (CoreSource) is used from the first; an app adds its own.
+    void Use(class ReadingSource* source);
+
     // ---- From the main window ----
 
-    /// A game was loaded and is about to run.
+    /// A game was loaded and is about to run: the core's source begins.
     void OnGameBooted(const QString& game_id, const QString& title);
     void OnGameStopped();
     /// The game runs, or is paused.
@@ -146,6 +150,16 @@ private:
         qreal near_x{};
     };
 
+    void SourceBegan(class ReadingSource* source, const QString& game_id, const QString& title);
+    void SourceEnded(class ReadingSource* source);
+    /// Tells the session whether what it has is being read now: the game goes (or stands still
+    /// at the user's word), or the source has no game to stand still; the app in front, none of
+    /// the reader's windows open.
+    void UpdateReading();
+    /// The source being read, while a session runs.
+    QPointer<class ReadingSource> source;
+    /// Whether that source has a game under the reader (true while there is none, as before).
+    bool source_has_game{true};
     void BuildMenu();
     void RefreshPlaced();
     /// Tells the text server's clients that asked where the texts on screen are.
@@ -207,6 +221,9 @@ private:
     QMenu* menu{};
     QAction* action_sentence_card{};
     QAction* action_backlog{};
+    QAction* action_explain{};
+    QAction* action_word_card{};
+    QAction* action_undo_card{};
     QAction* action_reload_profile{};
     QAction* action_pause_stats{};
     QAction* action_status{};

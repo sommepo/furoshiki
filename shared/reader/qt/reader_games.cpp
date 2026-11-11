@@ -408,6 +408,20 @@ void RunGameScriptsDialog(QWidget* parent) {
         }
         if (index) {
             status->setText(Tr("Scripts in the published list: %1.").arg(index->entries.size()));
+            // The names dictionaries of the scripts installed from the list, new or changed
+            // since (a script installed before its game's names were listed has none).
+            QStringList fetched;
+            for (const ReaderApp::Scripts::Entry& entry : index->entries) {
+                if (!entry.names || fetched.contains(entry.names->file) ||
+                    folder.Recorded(entry.id).isEmpty() || !folder.NeedsNames(entry)) {
+                    continue;
+                }
+                fetched.append(entry.names->file);
+                QString unused;
+                if (const auto names = Fetch(index_url.resolved(QUrl(entry.names->file)), &unused)) {
+                    folder.InstallNames(entry, *names, &unused);
+                }
+            }
         } else {
             status->setText(Tr("The list of scripts could not be had: %1").arg(error));
         }
@@ -453,6 +467,14 @@ void RunGameScriptsDialog(QWidget* parent) {
                 break;
             }
             files.insert(file.file, *bytes);
+        }
+        if (entry.names && files.size() == wanted.size()) {
+            // The game's names dictionary, if it can be had: the script goes in without it.
+            QString unused;
+            if (const auto bytes = Fetch(index_url.resolved(QUrl(entry.names->file)), &unused)) {
+                files.insert(entry.names->file, *bytes);
+                wanted.append(*entry.names);
+            }
         }
         if (files.size() == wanted.size() && folder.Install(entry, files, &error)) {
             status->setText(Tr("Installed the script of %1.").arg(entry.title));

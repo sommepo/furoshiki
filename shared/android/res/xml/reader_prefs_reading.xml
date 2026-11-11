@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What is read and how it is shown: the game's own text, the reading panel, the session line. The first 5 are shown; the rest stand behind "More"
+     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:initialExpandedChildrenCount="5">
+
+    <SwitchPreferenceCompat
+        app:key="reader_screen_text"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_screen_text"
+        app:summary="@string/reader_pref_screen_text_summary"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_word_mark"
+        app:defaultValue="outline"
+        app:entries="@array/reader_word_mark_entries"
+        app:entryValues="@array/reader_word_mark_values"
+        app:title="@string/reader_pref_word_mark"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_panel_enabled"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_panel_enabled"
+        app:summary="@string/reader_pref_panel_enabled_summary"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_furigana"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_furigana"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_font_size"
+        app:defaultValue="22"
+        app:min="12"
+        android:max="48"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_font_size"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_screen_text_outline"
+        app:defaultValue="false"
+        app:dependency="reader_screen_text"
+        app:title="@string/reader_pref_screen_text_outline"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_panel_auto_hide"
+        app:defaultValue="true"
+        app:dependency="reader_panel_enabled"
+        app:title="@string/reader_pref_panel_auto_hide"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_panel_display"
+        app:defaultValue="auto"
+        app:entries="@array/reader_display_entries"
+        app:entryValues="@array/reader_display_values"
+        app:title="@string/reader_pref_panel_display"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_panel_position"
+        app:defaultValue="bottom"
+        app:entries="@array/reader_position_entries"
+        app:entryValues="@array/reader_position_values"
+        app:title="@string/reader_pref_panel_position"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_panel_height"
+        app:defaultValue="38"
+        app:min="15"
+        android:max="100"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_panel_height"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_panel_opacity"
+        app:defaultValue="85"
+        app:min="0"
+        android:max="100"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_panel_opacity"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_show_choices"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_show_choices"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_reread_colour"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_reread_colour"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_session_hud"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_session_hud"
+        app:summary="@string/reader_pref_session_hud_summary"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_stats_style"
+        app:defaultValue="paper"
+        app:dependency="reader_session_hud"
+        app:entries="@array/reader_stats_style_entries"
+        app:entryValues="@array/reader_stats_style_values"
+        app:title="@string/reader_pref_stats_style"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_stats_paused"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_stats_paused"
+        app:summary="@string/reader_pref_stats_paused_summary"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_idle_minutes"
+        app:defaultValue="5"
+        app:min="1"
+        android:max="30"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_idle_minutes"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

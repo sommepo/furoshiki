@@ -1,0 +1,45 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Shoin (書院): a page from a well-set dictionary. Ivory paper inside one ruled frame, a mincho
+   headword with its reading over it, senses numbered in the margin in vermilion, the
+   dictionary named in small tracked capitals over a hairline. --ground, --text, --dim,
+   --accent (the vermilion) and --rule are the palette. */
+:root {
+  --font: "Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  --ground: #f5efe1; --text: #26211a; --dim: #807259; --accent: #a8321f; --rule: #c9bb99; --edge: var(--rule); --radius: 0px;
+  --box: transparent; --box-pressed: #e6dcc3; --sign: var(--accent); --book: var(--text);
+  --sans: "Noto Sans JP", "Yu Gothic UI", sans-serif;
+}
+.popup {
+  border: 1px solid var(--text); outline: 1px solid var(--rule); outline-offset: -5px;
+  padding: calc(14px * var(--scale)) calc(17px * var(--scale)) calc(12px * var(--scale));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); font-feature-settings: "palt" 1;
+}
+.entry + .entry { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 8px; }
+.head { gap: 0 0.9em; }
+.headword { font-size: calc(26px * var(--scale)); font-weight: 600; letter-spacing: 0.05em; }
+.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.14em; font-size: 0.4em; }
+.reading { display: none; }
+.reasons { color: var(--dim); font-style: italic; }
+.pitch { color: var(--dim); }
+.tag, .dictionary-name, .lookups, .romaji, .more { font-family: var(--sans); font-size: calc(10px * var(--scale)); letter-spacing: 0.1em; color: var(--dim); }
+.tag, .dictionary-name { text-transform: uppercase; }
+.tags { gap: 0 0.9em; }
+.tag { border: none; background: none; padding: 0; }
+.tag.frequency .tag-value { color: var(--text); font-weight: 700; }
+.tag.name { color: var(--accent); border: none; padding: 0; }
+.tag.role { color: var(--accent); }
+.dictionary-name { margin: 8px 0 3px; padding-bottom: 2px; border-bottom: 1px solid var(--rule); }
+.sense { padding-left: 1.5em; margin: 2px 0; font-size: calc(14px * var(--scale)); line-height: 1.55; }
+.sense > .number { display: inline-block; width: 1.5em; margin: 0 0 0 -1.5em; color: var(--accent); font-size: 1em; font-feature-settings: "tnum" 1; }
+.glosses .gloss + .gloss::before { content: " ・ "; color: var(--dim); }
+.notes { font-style: italic; color: var(--dim); }
+.entry.unknown .headword { background: none; box-shadow: none; padding: 0; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 7px; }
+.name-card .portrait { border: 1px solid var(--text); border-radius: 0; }
+.who-name { font-size: calc(20px * var(--scale)); letter-spacing: 0.05em; }
+.alias { border: none; background: none; padding: 0; border-radius: 0; font-size: calc(12.5px * var(--scale)); }
+.alias + .alias::before { content: "・"; color: var(--rule); }
+.also { gap: 0 0.2em; }
+.about { font-size: calc(12.5px * var(--scale)); line-height: 1.65; }
+.card { border-radius: 0; border-color: var(--text); }
+.link { color: var(--text); }

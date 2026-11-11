@@ -1,0 +1,970 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ファイナルファンタジーX"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:tidus",
+   "kind": "person",
+   "name": "ティーダ",
+   "reading": "ティーダ",
+   "romaji": "Tidus",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yuna",
+   "kind": "person",
+   "name": "ユウナ",
+   "reading": "ユウナ",
+   "romaji": "Yuna",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:wakka",
+   "kind": "person",
+   "name": "ワッカ",
+   "reading": "ワッカ",
+   "romaji": "Wakka",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lulu",
+   "kind": "person",
+   "name": "ルールー",
+   "reading": "ルールー",
+   "romaji": "Lulu",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kimahri-ronso",
+   "kind": "person",
+   "name": "キマリ＝ロンゾ",
+   "family": "ロンゾ",
+   "given": "キマリ",
+   "reading": "キマリ・ロンゾ",
+   "family_reading": "ロンゾ",
+   "given_reading": "キマリ",
+   "romaji": "Kimahri Ronso",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:auron",
+   "kind": "person",
+   "name": "アーロン",
+   "reading": "アーロン",
+   "romaji": "Auron",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rikku",
+   "kind": "person",
+   "name": "リュック",
+   "reading": "リュック",
+   "romaji": "Rikku",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:seymour-guado",
+   "kind": "person",
+   "name": "シーモア＝グアド",
+   "family": "グアド",
+   "given": "シーモア",
+   "reading": "シーモア・グアド",
+   "family_reading": "グアド",
+   "given_reading": "シーモア",
+   "romaji": "Seymour Guado",
+   "aliases": [
+    {
+     "text": "シーモア老師",
+     "reading": "シーモアろうし"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jecht",
+   "kind": "person",
+   "name": "ジェクト",
+   "reading": "ジェクト",
+   "romaji": "Jecht",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:braska",
+   "kind": "person",
+   "name": "ブラスカ",
+   "reading": "ブラスカ",
+   "romaji": "Braska",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yunalesca",
+   "kind": "person",
+   "name": "ユウナレスカ",
+   "reading": "ユウナレスカ",
+   "romaji": "Yunalesca",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:yu-yevon",
+   "kind": "person",
+   "name": "エボン＝ジュ",
+   "family": "ジュ",
+   "given": "エボン",
+   "reading": "エボン・ジュ",
+   "family_reading": "ジュ",
+   "given_reading": "エボン",
+   "romaji": "Yu Yevon",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:yo-mika",
+   "kind": "person",
+   "name": "ヨー＝マイカ",
+   "family": "マイカ",
+   "given": "ヨー",
+   "reading": "ヨー・マイカ",
+   "family_reading": "マイカ",
+   "given_reading": "ヨー",
+   "romaji": "Yo Mika",
+   "aliases": [
+    {
+     "text": "マイカ総老師",
+     "reading": "マイカそうろうし"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:wen-kinoc",
+   "kind": "person",
+   "name": "ウェン＝キノック",
+   "family": "キノック",
+   "given": "ウェン",
+   "reading": "ウェン・キノック",
+   "family_reading": "キノック",
+   "given_reading": "ウェン",
+   "romaji": "Wen Kinoc",
+   "aliases": [
+    {
+     "text": "キノック老師",
+     "reading": "キノックろうし"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kelk-ronso",
+   "kind": "person",
+   "name": "ケルク＝ロンゾ",
+   "family": "ロンゾ",
+   "given": "ケルク",
+   "reading": "ケルク・ロンゾ",
+   "family_reading": "ロンゾ",
+   "given_reading": "ケルク",
+   "romaji": "Kelk Ronso",
+   "aliases": [
+    {
+     "text": "ケルク老師",
+     "reading": "ケルクろうし"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jyscal-guado",
+   "kind": "person",
+   "name": "ジスカル＝グアド",
+   "family": "グアド",
+   "given": "ジスカル",
+   "reading": "ジスカル・グアド",
+   "family_reading": "グアド",
+   "given_reading": "ジスカル",
+   "romaji": "Jyscal Guado",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tromell-guado",
+   "kind": "person",
+   "name": "トワメル＝グアド",
+   "family": "グアド",
+   "given": "トワメル",
+   "reading": "トワメル・グアド",
+   "family_reading": "グアド",
+   "given_reading": "トワメル",
+   "romaji": "Tromell Guado",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cid",
+   "kind": "person",
+   "name": "シド",
+   "reading": "シド",
+   "romaji": "Cid",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:brother",
+   "kind": "person",
+   "name": "アニキ",
+   "reading": "アニキ",
+   "romaji": "Brother",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dona",
+   "kind": "person",
+   "name": "ドナ",
+   "reading": "ドナ",
+   "romaji": "Dona",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:barthello",
+   "kind": "person",
+   "name": "バルテロ",
+   "reading": "バルテロ",
+   "romaji": "Barthello",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:isaaru",
+   "kind": "person",
+   "name": "イサール",
+   "reading": "イサール",
+   "romaji": "Isaaru",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maroda",
+   "kind": "person",
+   "name": "マローダ",
+   "reading": "マローダ",
+   "romaji": "Maroda",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:pacce",
+   "kind": "person",
+   "name": "パッセ",
+   "reading": "パッセ",
+   "romaji": "Pacce",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:belgemine",
+   "kind": "person",
+   "name": "ベルゲミーネ",
+   "reading": "ベルゲミーネ",
+   "romaji": "Belgemine",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:chappu",
+   "kind": "person",
+   "name": "チャップ",
+   "reading": "チャップ",
+   "romaji": "Chappu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:luzzu",
+   "kind": "person",
+   "name": "ルッツ",
+   "reading": "ルッツ",
+   "romaji": "Luzzu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:gatta",
+   "kind": "person",
+   "name": "ガッタ",
+   "reading": "ガッタ",
+   "romaji": "Gatta",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:biran-ronso",
+   "kind": "person",
+   "name": "ビラン＝ロンゾ",
+   "family": "ロンゾ",
+   "given": "ビラン",
+   "reading": "ビラン・ロンゾ",
+   "family_reading": "ロンゾ",
+   "given_reading": "ビラン",
+   "romaji": "Biran Ronso",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yenke-ronso",
+   "kind": "person",
+   "name": "エンケ＝ロンゾ",
+   "family": "ロンゾ",
+   "given": "エンケ",
+   "reading": "エンケ・ロンゾ",
+   "family_reading": "ロンゾ",
+   "given_reading": "エンケ",
+   "romaji": "Yenke Ronso",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:shelinda",
+   "kind": "person",
+   "name": "シェリンダ",
+   "reading": "シェリンダ",
+   "romaji": "Shelinda",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:oaka",
+   "kind": "person",
+   "name": "オオアカ屋",
+   "reading": "オオアカや",
+   "romaji": "O'aka",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:maechen",
+   "kind": "person",
+   "name": "メイチェン",
+   "reading": "メイチェン",
+   "romaji": "Maechen",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rin",
+   "kind": "person",
+   "name": "リン",
+   "reading": "リン",
+   "romaji": "Rin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zuke",
+   "kind": "person",
+   "name": "ズーク",
+   "reading": "ズーク",
+   "romaji": "Zuke",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:spira",
+   "kind": "place",
+   "name": "スピラ",
+   "reading": "スピラ",
+   "romaji": "Spira",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:zanarkand",
+   "kind": "place",
+   "name": "ザナルカンド",
+   "reading": "ザナルカンド",
+   "romaji": "Zanarkand",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:besaid",
+   "kind": "place",
+   "name": "ビサイド島",
+   "reading": "ビサイドとう",
+   "romaji": "Besaid",
+   "aliases": [
+    {
+     "text": "ビサイド",
+     "reading": "ビサイド"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kilika",
+   "kind": "place",
+   "name": "キーリカ島",
+   "reading": "キーリカとう",
+   "romaji": "Kilika",
+   "aliases": [
+    {
+     "text": "キーリカ",
+     "reading": "キーリカ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:luca",
+   "kind": "place",
+   "name": "ルカ",
+   "reading": "ルカ",
+   "romaji": "Luca",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:miihen-highroad",
+   "kind": "place",
+   "name": "ミヘン街道",
+   "reading": "ミヘンかいどう",
+   "romaji": "Mi'ihen Highroad",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:djose",
+   "kind": "place",
+   "name": "ジョゼ",
+   "reading": "ジョゼ",
+   "romaji": "Djose",
+   "aliases": [
+    {
+     "text": "ジョゼ寺院",
+     "reading": "ジョゼじいん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:genkouga",
+   "kind": "place",
+   "name": "幻光河",
+   "reading": "げんこうが",
+   "romaji": "Genkouga",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:guadosalam",
+   "kind": "place",
+   "name": "グアドサラム",
+   "reading": "グアドサラム",
+   "romaji": "Guadosalam",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kaminari-heigen",
+   "kind": "place",
+   "name": "雷平原",
+   "reading": "かみなりへいげん",
+   "romaji": "Kaminari Heigen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:macalania",
+   "kind": "place",
+   "name": "マカラーニャ",
+   "reading": "マカラーニャ",
+   "romaji": "Macalania",
+   "aliases": [
+    {
+     "text": "マカラーニャ寺院",
+     "reading": "マカラーニャじいん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:bikanel",
+   "kind": "place",
+   "name": "ビーカネル島",
+   "reading": "ビーカネルとう",
+   "romaji": "Bikanel",
+   "aliases": [
+    {
+     "text": "ビーカネル",
+     "reading": "ビーカネル"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:bevelle",
+   "kind": "place",
+   "name": "ベベル",
+   "reading": "ベベル",
+   "romaji": "Bevelle",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:nagi-heigen",
+   "kind": "place",
+   "name": "ナギ平原",
+   "reading": "ナギへいげん",
+   "romaji": "Nagi Heigen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:mt-gagazet",
+   "kind": "place",
+   "name": "ガガゼト山",
+   "romaji": "Mt. Gagazet",
+   "aliases": [
+    {
+     "text": "ガガゼト",
+     "reading": "ガガゼト"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:ikai",
+   "kind": "place",
+   "name": "異界",
+   "reading": "いかい",
+   "romaji": "Ikai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:home",
+   "kind": "place",
+   "name": "ホーム",
+   "reading": "ホーム",
+   "romaji": "Home",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sin",
+   "kind": "thing",
+   "name": "シン",
+   "reading": "シン",
+   "romaji": "Sin",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yevon",
+   "kind": "thing",
+   "name": "エボン",
+   "reading": "エボン",
+   "romaji": "Yevon",
+   "aliases": [
+    {
+     "text": "エボン教",
+     "reading": "エボンきょう"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:jiin",
+   "kind": "thing",
+   "name": "寺院",
+   "reading": "じいん",
+   "romaji": "Jiin",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:roushi",
+   "kind": "thing",
+   "name": "老師",
+   "reading": "ろうし",
+   "romaji": "Roushi",
+   "aliases": [
+    {
+     "text": "総老師",
+     "reading": "そうろうし"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shoukanshi",
+   "kind": "thing",
+   "name": "召喚士",
+   "reading": "しょうかんし",
+   "romaji": "Shoukanshi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:guard",
+   "kind": "thing",
+   "name": "ガード",
+   "reading": "ガード",
+   "romaji": "Guard",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shoukanjuu",
+   "kind": "thing",
+   "name": "召喚獣",
+   "reading": "しょうかんじゅう",
+   "romaji": "Shoukanjuu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:inoriko",
+   "kind": "thing",
+   "name": "祈り子",
+   "reading": "いのりこ",
+   "romaji": "Inoriko",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kyuukyoku-shoukan",
+   "kind": "thing",
+   "name": "究極召喚",
+   "reading": "きゅうきょくしょうかん",
+   "romaji": "Kyuukyoku Shoukan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:genkouchuu",
+   "kind": "thing",
+   "name": "幻光虫",
+   "reading": "げんこうちゅう",
+   "romaji": "Genkouchuu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ikai-okuri",
+   "kind": "thing",
+   "name": "異界送り",
+   "reading": "いかいおくり",
+   "romaji": "Ikai Okuri",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:nagi-setsu",
+   "kind": "thing",
+   "name": "ナギ節",
+   "reading": "ナギせつ",
+   "romaji": "Nagi-setsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shibito",
+   "kind": "thing",
+   "name": "死人",
+   "reading": "しびと",
+   "romaji": "Shibito",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:blitzball",
+   "kind": "thing",
+   "name": "ブリッツボール",
+   "reading": "ブリッツボール",
+   "romaji": "Blitzball",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sphere",
+   "kind": "thing",
+   "name": "スフィア",
+   "reading": "スフィア",
+   "romaji": "Sphere",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:al-bhed",
+   "kind": "thing",
+   "name": "アルベド族",
+   "reading": "アルベドぞく",
+   "romaji": "Al Bhed",
+   "aliases": [
+    {
+     "text": "アルベド",
+     "reading": "アルベド"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:guado",
+   "kind": "thing",
+   "name": "グアド族",
+   "reading": "グアドぞく",
+   "romaji": "Guado",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ronso",
+   "kind": "thing",
+   "name": "ロンゾ族",
+   "reading": "ロンゾぞく",
+   "romaji": "Ronso",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:besaid-aurochs",
+   "kind": "thing",
+   "name": "ビサイド・オーラカ",
+   "reading": "ビサイド・オーラカ",
+   "romaji": "Besaid Aurochs",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

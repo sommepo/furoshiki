@@ -2,11 +2,9 @@
    SPDX-License-Identifier: GPL-2.0-or-later
    Furoshiki glass: a translucent indigo panel with a lavender double border and rounded white
    gothic text with a soft glow, as Furoshiki's own menus (and Never7's). */
-:root { --font: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif; --accent: #7ff0c8; --dim: #cfc9f5; }
+:root { --font: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif; --accent: #7ff0c8; --dim: #cfc9f5; --ground: rgba(52, 40, 130, 0.86); --radius: 14px; }
 .popup {
-  background: rgba(52, 40, 130, 0.86);
   border: 3px double #b9b0f2;
-  border-radius: 14px;
   padding: 10px 14px;
   color: #fff;
 }

@@ -25,6 +25,17 @@ namespace PcmTools {
 [[nodiscard]] std::vector<qint16> TrimTrailingSilence(const std::vector<qint16>& input,
                                                       int channels, int threshold,
                                                       int padding_frames);
+/**
+ * The part of a clip in which something is said: from a little before the first sound that
+ * stands out of the clip's own quiet to a little after the last. Loudness is measured in
+ * windows of 20 ms against the clip's quietest tenth, so a hiss or a held room tone counts as
+ * quiet, and a click shorter than three windows is no beginning. A clip that is the same all
+ * through (music under the whole line) is kept whole; one with nothing above `threshold` is
+ * empty. `first_frame`, when given, is told where the kept part began.
+ */
+[[nodiscard]] std::vector<qint16> TrimToVoice(const std::vector<qint16>& input, int channels,
+                                              int rate, int threshold, int padding_ms,
+                                              qint64* first_frame = nullptr);
 /// Fades the first and last `frames` frames to avoid clicks at the clip's edges.
 void FadeEdges(std::vector<qint16>& samples, int channels, int frames);
 } // namespace PcmTools

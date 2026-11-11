@@ -5,10 +5,39 @@
 #include <cmath>
 #include <cstdio>
 #include <QApplication>
+#include <QClipboard>
 #include <QDateTime>
+#include <QDesktopServices>
+#include <QFile>
+#include <QJsonObject>
+#include <QSaveFile>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFontDatabase>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QUrl>
+#include "hook_fetch.h"
+#include "hook_processes.h"
+#include "art_fetch.h"
+#include "hook_runner.h"
+#include "hook_scripts.h"
+#include "line_feed.h"
+#include "line_titles.h"
+#include "ocr_client.h"
+#include "ocr_helper.h"
+#include "window_list.h"
+#include <QGuiApplication>
+#include <QJsonDocument>
+#include <QRawFont>
+#include <QRegularExpression>
+#include <QTime>
+#ifdef HOME_TRACKER
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#endif
 #include <QJsonArray>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -17,8 +46,11 @@
 #include <QPainterPath>
 #include <QScreen>
 #include <QSettings>
+#include <QStyle>
 #include <QWheelEvent>
+#include "app_icon.h"
 #include "home_window.h"
+#include "services.h"
 #include "look_paint.h"
 
 #ifdef _WIN32
@@ -71,6 +103,8 @@ constexpr SystemLook SystemLooks[] = {
     {"PlayStation Vita", "PS Vita", "linear-gradient(135deg,#3b4a63,#10141c)"},
     {"PlayStation 2", "PS2", "radial-gradient(ellipse at 40% 30%,#3c5466,#121a22 75%)"},
     {"Dreamcast", "Dreamcast", "linear-gradient(135deg,#d9752b,#4a2210)"},
+    {"PC", "PC", "linear-gradient(135deg,#3a3f4a,#101216)"},
+    {"PlayStation 3", "PS3", "linear-gradient(135deg,#3d3d44,#0e0e12)"},
 };
 
 const SystemLook* LookOf(const QString& system) {
@@ -114,48 +148,323 @@ struct SettingRow {
     const char* about;
     const char* key; ///< In "steam"; null for a row of Furoshiki's own
     double low, high, step, normal;
+    /// The shelf's page it stands on (Reading, Cards, Sources, Controller, Furoshiki; "Save
+    /// menu": only the old page has it). The old page lists them all as one.
+    const char* section;
+    /// Whose it is: 0 this window's, by its name; else the program's (SetSettingValue says it,
+    /// SetSettingStep changes it): 1 a switch or a choice (Enter goes on to the next), 2
+    /// something Enter opens, 3 a number (the arrows only).
+    int host;
+    /// Stands behind its page's "More" row: what few change.
+    bool more;
 };
 constexpr SettingRow SettingRows[] = {
-    {"Settings window", "Every setting in a window of its own, for the mouse; F2 opens it from anywhere here", nullptr,
-     0, 0, 0, 0},
-    {"Look", "This window's theme; left and right change it", nullptr, 0, 0, 0, 0},
-    {"Fuzz", "A little colour fringe, softness, grain and fine lines, as an old screen had; off, light or heavy", nullptr,
-     0, 0, 0, 0},
-    {"Moving cursor", "The orbs bob and circle the chosen title; off: they stand still", nullptr, 0, 0, 0, 0},
-    {"Menu sounds", "", nullptr, 0, 0, 0, 0},
-    {"Full screen", "", nullptr, 0, 0, 0, 0},
-    {"Games start in a window", "Most of the screen's height, in the middle; off: full screen where the app says how", nullptr, 0, 0, 0, 0},
-    {"Trackpad speed", "How far the pointer goes for a swipe of the right pad", "sensitivity", 0.2, 3.0, 0.1, 1.0},
-    {"Trackpad acceleration", "Extra speed for fast swipes", "acceleration", 0.0, 2.0, 0.25, 1.0},
-    {"Scroll speed", "How far a swipe of the left pad turns the wheel", "scroll", 0.2, 3.0, 0.1, 1.0},
-    {"Pointer rolls on", "After a flick, as a trackball does", "trackball", 0, 0, 0, 1},
-    {"Pad ticks", "The pads tick under the finger and click when pressed", "haptics", 0, 0, 0, 1},
-    {"Tick strength", "", "tick_strength", 0.0, 3.0, 0.25, 1.0},
-    {"Click strength", "", "click_strength", 0.0, 3.0, 0.25, 1.0},
-    {"Pointer button", "Held, the sticks move the reader's pointer instead of the game; none: every button is the game's. "
-     "The mouse and the Steam Controller's pad always point", nullptr, 0, 0, 0, 0},
-#ifndef READER_NO_SAVE_SYNC
-    {"Save sync", "The games' saves kept the same on every device, through a save sync service of your own", nullptr, 0, 0, 0, 0},
-    {"Pair a device", "Save sync set up from the pairing link the service's page shows: Enter, then paste it", nullptr, 0, 0, 0, 0},
-#endif
-    {"RetroAchievements", "Your login and the hardcore switch, for the cores that have achievements; Enter to change", nullptr, 0, 0, 0, 0},
+    {"Click words in the game's text", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Look up by pointing", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Dictionaries", "", nullptr, 0, 0, 0, 0, "Reading", 2, false},
+    {"Explain with", "Ctrl+E on a line: its English and its grammar, by Claude Code on this computer", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Reading", 0, false},
+    {"Play by touch", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Outline what can be clicked", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Session line over the game", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Session line's look", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Pause the reading clock", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Idle after", "A line with no new one for this long stops the reading clock", nullptr, 0, 0, 0, 0, "Reading", 3, true},
+    {"Tidy reading time", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
+    {"Daily goal", "Characters to read in a day; the statistics say how far today is", nullptr, 0, 0, 0, 0, "Reading", 0, true},
+    {"Discord status", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
+    {"Discord application ID", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
+    {"Customise the popup", "Its look and every part of it, with a preview", nullptr, 0, 0, 0, 0, "Popup", 2, false},
+    {"How solid", "Lower lets the game show through the popup; as its look has it at the left end", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Text size", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Popup", 0, false},
+    {"Close after", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
+    {"Close when the pointer leaves", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Add button's corner", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Anki", "Where cards go: the deck, the note type and what each field gets", nullptr, 0, 0, 0, 0, "Cards", 2, false},
+    {"Line audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
+    {"Cut the clip to the voice", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
+    {"Lines before, in {context}", "", nullptr, 0, 0, 0, 0, "Cards", 3, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Cards", 0, false},
+    {"Keep the game's audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, true},
+    {"Clip, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
+    {"Start the clip earlier by", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
+    {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
+    {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
+    {"Add a title", "A disc or file of a console, a game's window on this computer read by OCR, or a text hook's lines: Enter, and it asks what it needs", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR helper", "Furochibi's service, which reads a game window's pictures: its address, this device's picture source there and its token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"Lines address", "The WebSocket a title read from lines listens to: a texthooker's, such as ws://localhost:6677; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #ifndef READER_NO_TEXT_SERVER
-    {"Text server", "Every line read, sent to a WebSocket for texthooker pages; Enter to change", nullptr, 0, 0, 0, 0},
+    {"Text server", "Every line read, sent to a WebSocket for texthooker pages", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #endif
-    {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0},
-    {"Exit", "", nullptr, 0, 0, 0, 0},
+#ifndef READER_NO_TEXT_SERVER
+    {"Text server's port", "", nullptr, 0, 0, 0, 0, "Sources", 3, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Other devices may connect", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Text server's format", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+#endif
+    {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Sources", 0, true},
+    {"Pointer button", "Held, the sticks move the reader's pointer instead of the game; none: every button is the game's. The mouse and the Steam Controller's pad always point", nullptr, 0, 0, 0, 0, "Controller", 1, false},
+    {"Pointer button: press once", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
+    {"Pointer speed", "", nullptr, 0, 0, 0, 0, "Controller", 3, false},
+    {"Reader menu button", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
+    {"Trackpad speed", "How far the pointer goes for a swipe of the right pad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controller", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Controller", 0, false},
+    {"Reading clock button", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Frame the character pointed at", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Pointer jumps to each new line", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Grip 1", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Grip 2", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Grip 3", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Grip 4", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"The \"...\" button", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
+    {"Trackpad acceleration", "Extra speed for fast swipes", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controller", 0, true},
+    {"Scroll speed", "How far a swipe of the left pad turns the wheel", "scroll", 0.2, 3.0, 0.1, 1.0, "Controller", 0, true},
+    {"Pointer rolls on", "After a flick, as a trackball does", "trackball", 0, 0, 0, 1, "Controller", 0, true},
+    {"Pad ticks", "The pads tick under the finger and click when pressed", "haptics", 0, 0, 0, 1, "Controller", 0, true},
+    {"Tick strength", "", "tick_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
+    {"Click strength", "", "click_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
+    // Keys: what each does, said once (the controller's own are the Controller page's rows).
+    {"A card of the sentence", "Ctrl+D", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"A card of the word looked up", "Ctrl+W", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Take the last card back", "Ctrl+Z", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Explain the line", "Ctrl+E", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Backlog", "Ctrl+H", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Pause the game", "Ctrl+G", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Reader menu", "F1, or the right button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Menu over the game", "Escape, or Guide", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Settings", "F2", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Find a setting", "/ on the settings", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Full screen", "F11", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Next look", "F4 on the shelf", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Sort the shelf", "S", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Find box art", "F on a title", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Look", "This window's theme; left and right change it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Wide picture", "Games drawn for a wide screen (16:9, 21:9, 32:9), never stretched: the PS2 and the Switch, for the games that have a checked recipe; from the next game started", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"CRT picture", "The games shown as on a tube: for all consoles, one console or one game", nullptr, 0, 0, 0, 0, "Furoshiki", 2, false},
+    {"Full screen", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+#ifndef READER_NO_SAVE_SYNC
+    {"Save sync", "The games' saves kept the same on every device, through a save sync service of your own", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+#endif
+    {"RetroAchievements", "Your login and the hardcore switch, for the cores that have achievements; Enter to change", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Icon", "The program's icon, on its window and the task bar; left and right change it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Menu sounds", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Games start in a window", "Most of the screen's height, in the middle; off: full screen where the app says how", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+#ifndef READER_NO_SAVE_SYNC
+    {"Pair a device", "Save sync set up from the pairing link the service's page shows: Enter, then paste it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+#endif
+    {"Study tracker", "Where your study tracker answers: its figures stand on the shelf", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+#ifndef READER_NO_SAVE_SYNC
+    {"Update", "A newer build of the program from your Files page: Enter looks, and Enter again takes it for the next start", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+    {"Home server's services", "The tracker, Furochibi, the guides, the Files and Anki, as the save sync service this device is paired with names them: Enter asks it again", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+#endif
+    {"Fuzz", "A little colour fringe, softness, grain and fine lines, as an old screen had; off, light or heavy", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
+    {"Moving cursor", "The orbs turn and spring to the chosen title, its glow breathes; off: they stand still", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
+    {"Exit", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    // Developer: the pages' own words, changed in place and handed back for the next build.
+    {"Rename labels", "On: Enter or a click on any row of any page asks what it is to be called; a click on the page's own name renames the page", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+    {"Copy my labels", "Every label changed here, as text on the clipboard, for the next build", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+    {"Open the labels file", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+    {"Put every label back", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
 };
 constexpr int SettingCount = static_cast<int>(sizeof(SettingRows) / sizeof(SettingRows[0]));
+
+/// What stands for a file in a card's cover: this and an icon's key.
+const QString IconCover = QStringLiteral("icon:");
 
 bool IsSetting(int row, const char* name) {
     return row >= 0 && row < SettingCount && qstrcmp(SettingRows[row].name, name) == 0;
 }
+
+/// The shelf's settings pages, in their order.
+constexpr const char* SettingSections[] = {"Reading", "Popup", "Cards", "Sources", "Controller", "Keys", "Furoshiki", "Developer"};
+
+/// What a row is called on the shelf's pages, where that is not its name in the table (the
+/// maintainer, 2026-11-11: labels that say what the row does, and no "reader" in them). The
+/// table's names stay what the code, the kept settings and the tests know a row by. A name two
+/// pages have is told apart as "Page/Name". The user's own labels (the Developer page,
+/// program/labels.json) come before these; one that stays is written in here for the next build.
+struct RowLabel {
+    const char* name;
+    const char* label;
+};
+constexpr RowLabel RowLabels[] = {
+    {"Click words in the game's text", "Click a word to look it up"},
+    {"Look up by pointing", "Look up on hover"},
+    {"Mark the word looked up", "Highlight the looked-up word"},
+    {"Explain with", "Explain lines with"},
+    {"Play by touch", "Tap the game to advance"},
+    {"Outline what can be clicked", "Outline clickable text"},
+    {"Session line over the game", "Session figures over the game"},
+    {"Session line's look", "Session figures style"},
+    {"Reading/Pause the reading clock", "Reading timer paused"},
+    {"Idle after", "Stop the timer when idle for"},
+    {"Tidy reading time", "Recalculate reading time"},
+    {"Customise the popup", "Popup design"},
+    {"How solid", "Opacity"},
+    {"Height, at most", "Maximum height"},
+    {"Close after", "Close by itself after"},
+    {"Add button's corner", "Add button position"},
+    {"Anki", "Anki setup"},
+    {"Line audio", "Audio on cards"},
+    {"Cut the clip to the voice", "Trim audio to the voice"},
+    {"Lines before, in {context}", "Context lines before"},
+    {"Keep the game's audio", "Record game audio"},
+    {"Clip, at most", "Maximum audio length"},
+    {"Start the clip earlier by", "Start audio earlier by"},
+    {"Pictures kept", "Screenshots kept"},
+    {"Picture width, at most", "Maximum screenshot width"},
+    {"Lines address", "Texthooker address"},
+    {"Text server", "Send lines to texthooker pages"},
+    {"Text server's port", "Text server port"},
+    {"Other devices may connect", "Allow other devices"},
+    {"Text server's format", "Text server format"},
+    {"Speaker's name before the line", "Include the speaker's name"},
+    {"Read again what the reader apps say", "Refresh the library"},
+    {"Pointer button: press once", "Pointer button toggles"},
+    {"Reader menu button", "Quick menu button"},
+    {"Reading clock button", "Timer pause button"},
+    {"Frame the character pointed at", "Box the character under the pointer"},
+    {"The \"...\" button", "The … button"},
+    {"Pointer rolls on", "Trackball glide"},
+    {"Pad ticks", "Trackpad haptics"},
+    {"Tick strength", "Haptic tick strength"},
+    {"Click strength", "Haptic click strength"},
+    {"A card of the sentence", "Make a card of the line"},
+    {"A card of the word looked up", "Make a card of the looked-up word"},
+    {"Take the last card back", "Undo the last card"},
+    {"Keys/Pause the reading clock", "Pause the reading timer"},
+    {"Next choice", "Skip to the next choice"},
+    {"Reader menu", "Quick menu"},
+    {"Menu over the game", "Game menu"},
+    {"Next look", "Next theme"},
+    {"Look", "Theme"},
+    {"Wide picture", "Widescreen"},
+    {"CRT picture", "CRT effect"},
+    {"Games start in a window", "Start games in a window"},
+    {"Home server's services", "Home server services"},
+    {"Update", "Check for an update"},
+    {"Statistics/Days in a row", "Day streak"},
+    {"Statistics/Days with reading", "Days read"},
+    {"Statistics/Games begun", "Games started"},
+};
+
+/// The label a row has by itself: RowLabels', else its name.
+QString OwnLabel(const QString& page, const QString& name) {
+    const QString full = page + QLatin1Char('/') + name;
+    for (const RowLabel& each : RowLabels) {
+        if (full == QLatin1String(each.name)) {
+            return QString::fromUtf8(each.label);
+        }
+    }
+    for (const RowLabel& each : RowLabels) {
+        if (name == QLatin1String(each.name)) {
+            return QString::fromUtf8(each.label);
+        }
+    }
+    return name;
+}
+
+/// Whether a row of the table stands on `section`'s page, with its More opened or not; the old
+/// page (no section) has them all as one list, and no More rows.
+bool SettingShown(int index, const QString& section, bool more) {
+    const SettingRow& row = SettingRows[index];
+    if (section.isEmpty()) {
+        return qstrcmp(row.name, "More") != 0;
+    }
+    return section == QLatin1String(row.section) && (more || !row.more);
+}
+
+/// Which row of the table the page's `row` is, or -1.
+int SettingAt(const QString& section, bool more, int row) {
+    for (int i = 0; i < SettingCount; ++i) {
+        if (SettingShown(i, section, more) && row-- == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/// The daily goal's steps: off, then every 500 characters.
+constexpr int GoalStep = 500, GoalMost = 30000;
 
 /// Whether every key the page takes is written to the log (with where it came from): while a
 /// file "trace-keys" is in the shared folder's "program" folder (a controller that doubles keys).
 bool TraceKeys() {
     static const bool on = QFileInfo::exists(SharedFolder() + QStringLiteral("/program/trace-keys"));
     return on;
+}
+
+/// Whether the time each frame and each key takes is written to the log: while a file
+/// "trace-frames" is in the shared folder's "program" folder (scrolling that lags).
+bool TraceFrames() {
+    static const bool on = QFileInfo::exists(SharedFolder() + QStringLiteral("/program/trace-frames"));
+    return on;
+}
+
+/// The frames' times while traced, and how long a key waited for the frame that shows it.
+struct FrameTrace {
+    QElapsedTimer since;
+    qint64 key_waiting{-1}; ///< When the first key not yet shown came (ns), or -1
+    QList<double> frames, waits;
+
+    void Key() {
+        if (!since.isValid()) {
+            since.start();
+        }
+        if (key_waiting < 0) {
+            key_waiting = since.nsecsElapsed();
+        }
+    }
+    void Frame(double ms, const char* what) {
+        if (!since.isValid()) {
+            since.start();
+        }
+        frames.append(ms);
+        double wait = -1;
+        if (key_waiting >= 0) {
+            wait = (since.nsecsElapsed() - key_waiting) / 1e6;
+            waits.append(wait);
+            key_waiting = -1;
+        }
+        qInfo("frame %.1f ms%s%s", ms, what, wait >= 0 ? qPrintable(QStringLiteral(", a key %1 ms before").arg(wait, 0, 'f', 1)) : "");
+    }
+    void Summary() {
+        const auto line = [](const char* name, QList<double> v) {
+            if (v.isEmpty()) {
+                return;
+            }
+            std::sort(v.begin(), v.end());
+            double sum = 0;
+            for (const double x : v) {
+                sum += x;
+            }
+            qInfo("%s: %lld, mean %.1f ms, median %.1f, 90th %.1f, most %.1f", name, static_cast<long long>(v.size()), sum / v.size(),
+                  v[v.size() / 2], v[std::min<qsizetype>(v.size() - 1, v.size() * 9 / 10)], v.last());
+        };
+        line("frames", frames);
+        line("key to its frame", waits);
+        frames.clear();
+        waits.clear();
+    }
+};
+
+FrameTrace& Trace() {
+    static FrameTrace trace;
+    return trace;
 }
 
 /// Whether the system asks for less motion (Windows: its animations are off).
@@ -213,6 +522,7 @@ double OrbSpread(double t, double from) {
 /// breathing slowly about its rest.
 constexpr double GlowRest = 0.88, GlowFlare = 1, GlowRise = 0.06, GlowFall = 0.5, GlowBreath = 2.6, GlowBreathBy = 0.08;
 constexpr double GlowWide = 34, GlowTall = 0.62; // past each end of the title (px); half its height as a share of the line
+constexpr double HoverGlow = 0.34; // of that glow, behind the title under the pointer
 
 double GlowAt(double t) {
     if (t < GlowRise) {
@@ -358,13 +668,31 @@ struct HomeWindow::Card {
     int slider{-1}; ///< Value: a setting's slider drawn under it
 };
 
+void PlaceFirst(QWidget* window) {
+    if (QGuiApplication::platformName() == QStringLiteral("offscreen") ||
+        qEnvironmentVariableIsSet("READER_DESKTOP_CONTROL")) {
+        return;
+    }
+    const QRect room = window->screen()->availableGeometry();
+    const int title = window->style()->pixelMetric(QStyle::PM_TitleBarHeight);
+    const QSize size = FirstWindowSize(room.size() - QSize(0, title));
+    window->resize(size);
+    window->move(room.x() + (room.width() - size.width()) / 2, room.y() + (room.height() - size.height() - title) / 2);
+}
+
 HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
     setWindowTitle(QStringLiteral("Furoshiki"));
     setMinimumSize(640, 360);
     resize(1280, 720);
+    if (parent == nullptr) {
+        PlaceFirst(this);
+    }
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_OpaquePaintEvent);
     setMouseTracking(true); // the pointer shows what it is over
+    // Where the system lists no windows (not Windows), the program's own stands in for one.
+    // While the wizard that lists the windows is open, as it looked before that.
+    Windows::SetOwn(QStringLiteral("Furoshiki"), [this] { return wizard_on ? own_picture : grab().toImage(); });
     QSettings settings;
     sound_on = settings.value(QStringLiteral("sounds"), true).toBool();
     full_screen = settings.value(QStringLiteral("full_screen"), false).toBool();
@@ -396,8 +724,10 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
     Reload();
     Clamp();
     connect(&ticker, &QTimer::timeout, this, &HomeWindow::Step);
+    ShelfLoad();
     ticker.setTimerType(Qt::PreciseTimer); // a coarse timer's frames come unevenly
     ticker.start(16);
+    Pace(frame_cost);
     connect(&child, &QProcess::finished, this, [this] { Finished(); });
     // The controller's buttons arrive from the thread that reads it.
     connect(&pad, &SteamPad::KeyPressed, this, [this](int key) {
@@ -522,6 +852,9 @@ void HomeWindow::ReloadKeepingChoice() {
 
 void HomeWindow::Reload() {
     library = Load(SharedFolder());
+    shelf_stale = true;
+    tracker_asked = 0; // asked again, as the files are read again
+    title_readings.clear();
     shared = LoadShared(SharedFolder());
     pad.SetTuning(TuningOf(shared.value(QStringLiteral("steam")).toObject()));
     covers.clear();
@@ -530,8 +863,10 @@ void HomeWindow::Reload() {
 QStringList HomeWindow::Systems() const {
     QStringList out;
     for (const App& app : library.apps) {
-        if (!app.games.isEmpty() && !out.contains(app.system)) {
-            out.append(app.system);
+        for (const Game& game : app.games) {
+            if (!out.contains(game.system)) {
+                out.append(game.system);
+            }
         }
     }
     return out;
@@ -543,11 +878,23 @@ QList<HomeWindow::Item> HomeWindow::Items() const {
         items.append({Item::System, ShortSystem(library, system), system});
     }
     items.append({Item::Statistics, QStringLiteral("STATISTICS"), {}});
-    items.append({Item::Readers, QStringLiteral("READERS"), {}});
-    if (!consoles.isEmpty() && play != nullptr) {
-        items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
+    if (!shelf_on) {
+        // The old page: the apps' own menus, and every setting as one list.
+        items.append({Item::Readers, QStringLiteral("READERS"), {}});
+        if (!consoles.isEmpty() && play != nullptr) {
+            items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
+        }
+        items.append({Item::Settings, QStringLiteral("SETTINGS"), {}});
+        return items;
     }
-    items.append({Item::Settings, QStringLiteral("SETTINGS"), {}});
+    // The shelf's: the settings by what they are for, the consoles' among them.
+    for (const char* section : SettingSections) {
+        const QString name = QString::fromLatin1(section);
+        items.append({Item::Settings, name.toUpper(), name});
+        if (name == QStringLiteral("Sources") && !consoles.isEmpty() && play != nullptr) {
+            items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
+        }
+    }
     return items;
 }
 
@@ -612,7 +959,16 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
         for (const Game& game : distinct) {
             begun += game.chars > 0 ? 1 : 0;
         }
-        rows.append({QStringLiteral("Characters read"), QStringLiteral("EVERY READER APP TOGETHER"), CountText(library.chars), {}, -1});
+        {
+            const QString today = QDate::currentDate().toString(Qt::ISODate);
+            const qint64 read = CharsOn(library.days, today);
+            const int goal = DailyGoal();
+            rows.append({QStringLiteral("Today"), {},
+                         goal > 0 ? QStringLiteral("%1／%2").arg(CountText(read), CountText(goal)) : CountText(read), {}, -1});
+            const int streak = Streak(library.days, today);
+            rows.append({QStringLiteral("Days in a row"), {}, QString::number(streak), {}, -1, streak == 0});
+        }
+        rows.append({QStringLiteral("Characters read"), QStringLiteral("EVERY APP TOGETHER"), CountText(library.chars), {}, -1});
         rows.append({QStringLiteral("Time spent reading"), TimeText(library.active_ms).toUpper(), PlayClock(library.active_ms), {}, -1});
         rows.append({QStringLiteral("Days with reading"), {}, QString::number(library.days.size()), {}, -1});
         rows.append({QStringLiteral("Games begun"), {}, QStringLiteral("%1／%2").arg(begun).arg(distinct.size()), {}, -1});
@@ -620,7 +976,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             // Furoshiki's own lines by console ("Furoshiki · PlayStation"), not six "Furoshiki".
             const QString name = app.app.startsWith(QStringLiteral("reader-home-"))
                                      ? QStringLiteral("%1 · %2").arg(app.name, SystemLabel(library, app.system))
-                                     : app.name;
+                                     : QString(app.name).remove(QRegularExpression(QStringLiteral(" Reader$"))); // the old apps' names
             rows.append({name, figures(app.chars, app.active_ms), CountText(app.chars), {}, -1});
         }
         QList<Game> most = distinct;
@@ -639,8 +995,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                          QStringLiteral("%1 TO READ").arg(app.games.size()), {}, -1});
         }
         if (rows.isEmpty()) {
-            rows.append({QStringLiteral("No reader app has been heard from yet"),
-                         QStringLiteral("START EACH READER APP ONCE, THEN PRESS F5 HERE"), {}, {}, -1});
+            rows.append({QStringLiteral("No app has reported its games yet"),
+                         QStringLiteral("START EACH APP ONCE, THEN PRESS F5 HERE"), {}, {}, -1});
         }
         for (const QString& problem : library.problems) {
             rows.append({problem, {}, {}, {}, -1});
@@ -653,12 +1009,14 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
         const QString layer_name = console_layer == 0 ? QStringLiteral("ALL CONSOLES") : consoles[console_layer - 1].name;
         rows.append({QStringLiteral("Settings for"), QStringLiteral("LEFT RIGHT  ALL CONSOLES, OR ONE WHERE IT DIFFERS"),
                      layer_name, {}, -1});
+        rows.last().steps = true;
         if (!console.isEmpty()) {
             const QList<ConsoleGame> games = console_games.value(console);
             rows.append({QStringLiteral("Game"),
                          games.isEmpty() ? QStringLiteral("NO GAME OF IT FOUND YET")
                                          : QStringLiteral("LEFT RIGHT  EVERY GAME, OR ONE WHERE IT DIFFERS (%1 GAMES)").arg(games.size()),
                          game.isEmpty() ? QStringLiteral("EVERY GAME") : games[console_game - 1].title, {}, -1});
+            rows.last().steps = true;
             const QStringList folders = play->Folders(console);
             rows.append({QStringLiteral("Game folders"),
                          (folders.isEmpty() ? QStringLiteral("ENTER  ADD A FOLDER TO LOOK FOR ITS GAMES IN")
@@ -707,31 +1065,66 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 }
             }
             rows.append({label, meta, setting.Shown(value), {}, -1, dim});
+            rows.last().steps = true;
         }
         break;
     }
     case Item::Settings:
         for (int i = 0; i < SettingCount; ++i) {
+            const bool opened = more_open.contains(item.system);
+            if (!SettingShown(i, item.system, opened)) {
+                continue;
+            }
             const SettingRow& setting = SettingRows[i];
             const QString name = QString::fromLatin1(setting.name);
             QString value;
-            if (setting.key != nullptr) {
+            if (name == QStringLiteral("More")) {
+                // How many stand behind it; opened, the way to put them away again.
+                int behind = 0;
+                for (int other = 0; other < SettingCount; ++other) {
+                    behind += SettingRows[other].more && item.system == QLatin1String(SettingRows[other].section) ? 1 : 0;
+                }
+                rows.append({opened ? QStringLiteral("Fewer") : QStringLiteral("More"), {},
+                             opened ? QString() : QStringLiteral("+%1").arg(behind), {}, i, true});
+                continue;
+            }
+            if (qstrcmp(setting.section, "Keys") == 0) {
+                rows.append({name, {}, QString::fromLatin1(setting.about), {}, i});
+                continue;
+            }
+            if (name == QStringLiteral("Daily goal")) {
+                value = DailyGoal() > 0 ? CountText(DailyGoal()) : QStringLiteral("OFF");
+            } else if (setting.key != nullptr) {
                 value = setting.step != 0 ? QStringLiteral("%1%").arg(std::lround(Slide(i, 0) * 100))
                                           : (Slide(i, 0) != 0 ? QStringLiteral("ON") : QStringLiteral("OFF"));
             } else if (name == QStringLiteral("Look")) {
                 value = look->theme.Name().toUpper();
+            } else if (name == QStringLiteral("Icon")) {
+                value = IconLabel(ChosenIcon()).toUpper();
             } else if (name == QStringLiteral("Fuzz")) {
                 value = FuzzLevel().toUpper();
             } else if (name == QStringLiteral("Moving cursor")) {
                 value = motion ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Menu sounds")) {
                 value = sound_on ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Wide picture")) {
+                value = WideValue();
+            } else if (name == QStringLiteral("Rename labels")) {
+                value = renaming ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Copy my labels")) {
+                LabelsLoad();
+                value = labels.isEmpty() ? QStringLiteral("NONE CHANGED") : QStringLiteral("%1 CHANGED").arg(labels.size());
             } else if (name == QStringLiteral("Full screen")) {
                 value = full_screen ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Games start in a window")) {
                 value = games_windowed ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Save sync")) {
                 value = save_sync_state ? save_sync_state() : QStringLiteral("NONE");
+            } else if (name == QStringLiteral("Lines address")) {
+                value = Lines::Load(SharedFolder()).address;
+            } else if (name == QStringLiteral("OCR helper")) {
+                const QString address = Lines::Load(SharedFolder()).ocr.address;
+                value = address.isEmpty() ? QStringLiteral("NOT SET") : address;
             } else if (setting_value) {
                 value = setting_value(name);
             }
@@ -742,7 +1135,14 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             if (setting.key != nullptr && qstrcmp(setting.key, "sensitivity") == 0) {
                 meta += QStringLiteral("  ·  ") + pad.Describe().toUpper();
             }
-            rows.append({name, meta, value, {}, i});
+            // Set by the user: a switch or slider of the pads that is not as it comes, a row of
+            // the program's that has a value kept.
+            const bool yours = setting.key != nullptr ? std::abs(Slide(i, 0) - setting.normal) > 1e-6
+                                                      : (setting.host == 1 || setting.host == 3) && setting_is_set && setting_is_set(name);
+            rows.append({name, meta, value, {}, i, false, yours});
+            rows.last().steps = setting.host == 1 || setting.host == 3 || (setting.key != nullptr && setting.step != 0) ||
+                                name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
+                                name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture");
         }
         break;
     }
@@ -783,6 +1183,10 @@ QPixmap HomeWindow::Cover(const QString& path) {
     if (path.isEmpty()) {
         return {};
     }
+    // The Icon row's card shows the choice itself.
+    if (path.startsWith(IconCover)) {
+        return QPixmap::fromImage(IconImage(path.mid(IconCover.size()), 512));
+    }
     const auto found = covers.constFind(path);
     if (found != covers.constEnd()) {
         return *found;
@@ -799,6 +1203,14 @@ QPixmap HomeWindow::Cover(const QString& path) {
 QPointF HomeWindow::ToSheet(const QPointF& point) const {
     const double scale = std::min(width() / SheetW, height() / SheetH);
     return {(point.x() - (width() - SheetW * scale) / 2) / scale, (point.y() - (height() - SheetH * scale) / 2) / scale};
+}
+
+int HomeWindow::DailyGoal() const {
+    return std::clamp(QSettings().value(QStringLiteral("stats/goal"), 0).toInt(), 0, GoalMost);
+}
+
+void HomeWindow::SetDailyGoal(int characters) {
+    QSettings().setValue(QStringLiteral("stats/goal"), std::clamp(characters / GoalStep * GoalStep, 0, GoalMost));
 }
 
 double HomeWindow::Slide(int row, int steps) {
@@ -998,6 +1410,120 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
     }
 }
 
+QString HomeWindow::LabelsFile() const {
+    return SharedFolder() + QStringLiteral("/program/labels.json");
+}
+
+void HomeWindow::LabelsLoad() {
+    if (labels_read) {
+        return;
+    }
+    labels_read = true;
+    QFile file(LabelsFile());
+    if (file.open(QIODevice::ReadOnly)) {
+        const QJsonObject all = QJsonDocument::fromJson(file.readAll()).object();
+        for (auto each = all.constBegin(); each != all.constEnd(); ++each) {
+            if (!each.value().toString().trimmed().isEmpty()) {
+                labels.insert(each.key(), each.value().toString());
+            }
+        }
+    }
+}
+
+void HomeWindow::LabelsSave() const {
+    QJsonObject all;
+    for (auto each = labels.cbegin(); each != labels.cend(); ++each) {
+        all.insert(each.key(), each.value());
+    }
+    QDir().mkpath(QFileInfo(LabelsFile()).absolutePath());
+    QSaveFile file(LabelsFile());
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(all).toJson(QJsonDocument::Indented));
+        file.commit();
+    }
+}
+
+QString HomeWindow::Labelled(const QString& page, const QString& name) {
+    LabelsLoad();
+    const auto own = labels.constFind(page + QLatin1Char('/') + name);
+    return own != labels.constEnd() ? own.value() : OwnLabel(page, name);
+}
+
+void HomeWindow::Rename(const QString& page, const QString& name) {
+    LabelsLoad();
+    bool ok = false;
+    const QString by_itself = OwnLabel(page, name);
+    const QString typed = QInputDialog::getText(this, QStringLiteral("Rename"),
+                                                QStringLiteral("What \"%1\" is to be called (empty: as it comes)").arg(by_itself), QLineEdit::Normal,
+                                                Labelled(page, name), &ok).trimmed();
+    if (!ok) {
+        return;
+    }
+    const QString key = page + QLatin1Char('/') + name;
+    if (typed.isEmpty() || typed == by_itself) {
+        labels.remove(key);
+    } else {
+        labels.insert(key, typed);
+    }
+    LabelsSave();
+    sounds.Play(Sound::Select);
+    update();
+}
+
+namespace {
+/// The wide shapes, in the row's order; a console without one of them is given "off" for it.
+const QStringList WideShapes{QStringLiteral("off"), QStringLiteral("16:9"), QStringLiteral("21:9"), QStringLiteral("32:9")};
+
+const PlaySetting* WideOf(const PlayConsole& console) {
+    for (const PlaySetting& setting : console.settings) {
+        if (setting.key.endsWith(QStringLiteral(".wide"))) {
+            return &setting;
+        }
+    }
+    return nullptr;
+}
+} // namespace
+
+QString HomeWindow::WideValue() const {
+    // The widest any console is set to: what was chosen here (a console without that shape is off).
+    int widest = -1;
+    for (const PlayConsole& console : consoles) {
+        if (const PlaySetting* wide = play != nullptr ? WideOf(console) : nullptr) {
+            widest = std::max(widest, std::max<int>(0, WideShapes.indexOf(play->Value(*wide, console.key).value)));
+        }
+    }
+    return widest < 0 ? QStringLiteral("NO CORE HAS IT") : WideShapes[widest].toUpper();
+}
+
+void HomeWindow::WideStep(int steps) {
+    const QString now = WideValue().toLower();
+    if (play == nullptr || !WideShapes.contains(now)) {
+        sounds.Play(Sound::Refuse);
+        return;
+    }
+    const int count = static_cast<int>(WideShapes.size());
+    const QString next = WideShapes[((WideShapes.indexOf(now) + steps) % count + count) % count];
+    QStringList given;
+    for (const PlayConsole& console : consoles) {
+        if (const PlaySetting* wide = WideOf(console)) {
+            const bool has = wide->choices.contains(next);
+            play->Set(wide->key, has ? next : QStringLiteral("off"), console.key);
+            if (has && next != QStringLiteral("off")) {
+                given.append(console.name);
+            }
+        }
+    }
+    if (!play->Save()) {
+        Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+    } else if (next == QStringLiteral("off")) {
+        Say(QStringLiteral("Games are drawn in their own shape"));
+    } else {
+        Say(QStringLiteral("%1 for %2, where a game has a checked recipe; from the next game started").arg(next, given.isEmpty() ? QStringLiteral("no console") : given.join(QStringLiteral(" and "))));
+    }
+    sounds.Play(Sound::Move);
+    Changed();
+}
+
 void HomeWindow::Say(const QString& text) {
     notice = text;
     notice_until = clock.elapsed() + 5000;
@@ -1012,6 +1538,10 @@ void HomeWindow::Step() {
     }
     // The controller is this window's while it is the one in use and nothing it started runs.
     pad.SetActive(running.isEmpty() && isActiveWindow());
+    if (shelf_on) {
+        ShelfStep();
+        return;
+    }
     bool again = false;
     const qint64 second = QDateTime::currentSecsSinceEpoch(); // the clock's
     if (second != last_second) {
@@ -1032,8 +1562,8 @@ void HomeWindow::Step() {
     }
     if (gliding || !fade_from.isNull()) {
         again = true;
-    } else if (motion && label.shown && isVisible() && !playing_game && running.isEmpty()) {
-        again = true; // the orbs
+    } else if (motion && label.shown && isVisible() && !isMinimized() && !playing_game && running.isEmpty()) {
+        again = true; // the orbs (not for a window put away: sixty frames a second that nobody sees)
     }
     if (again && isVisible()) {
         update();
@@ -1059,10 +1589,22 @@ void HomeWindow::Key(int key) {
     if (!running.isEmpty() || playing_game) {
         return;
     }
+    if (key == Qt::Key_F3) {
+        // The two pages while Furoshiki 3 is being made: the shelf, and the save menu.
+        SetShelf(!shelf_on, true);
+        sounds.Play(Sound::Tab);
+        return;
+    }
+    if (shelf_on && !shelf_passing && ShelfKey(key)) {
+        return;
+    }
+    HoverNone(); // the keys have it now: no second mark stays where the pointer was left
     const QList<Item> items = Items();
     const Item& item = items[axis_choice];
     int& row = RowChoice(item);
     const int rows = Rows(item).size();
+    // On a settings page: which row of the settings' table the one in hand is.
+    const int srow = item.kind == Item::Settings ? SettingAt(item.system, more_open.contains(item.system), row) : -1;
     int along = 0;
     switch (key) {
     case Qt::Key_Left:
@@ -1073,17 +1615,38 @@ void HomeWindow::Key(int key) {
             ChangeConsoleSetting(row, key == Qt::Key_Left ? -1 : 1);
             return;
         }
-        if (item.kind == Item::Settings && IsSetting(row, "Pointer button")) {
+        if (srow >= 0 && (SettingRows[srow].host == 1 || SettingRows[srow].host == 3)) {
             if (setting_step) {
-                setting_step(QString::fromLatin1(SettingRows[row].name), key == Qt::Key_Left ? -1 : 1);
+                setting_step(QString::fromLatin1(SettingRows[srow].name), key == Qt::Key_Left ? -1 : 1);
                 sounds.Play(Sound::Move);
                 Changed();
             }
             return;
         }
-        if (item.kind == Item::Settings && (IsSetting(row, "Look") || IsSetting(row, "Fuzz"))) {
+        if (IsSetting(srow, "Wide picture")) {
+            WideStep(key == Qt::Key_Left ? -1 : 1);
+            return;
+        }
+        if (IsSetting(srow, "Daily goal")) {
+            SetDailyGoal(DailyGoal() + (key == Qt::Key_Left ? -GoalStep : GoalStep));
+            sounds.Play(Sound::Move);
+            Changed();
+            return;
+        }
+        if (IsSetting(srow, "Icon")) {
+            const QList<IconColours>& choices = IconChoices();
+            int index = 0;
+            while (index < choices.size() && choices[index].key != ChosenIcon()) {
+                ++index;
+            }
+            ChooseIcon(choices[(index + (key == Qt::Key_Left ? -1 : 1) + choices.size()) % choices.size()].key);
+            sounds.Play(Sound::Move);
+            Changed();
+            return;
+        }
+        if ((IsSetting(srow, "Look") || IsSetting(srow, "Fuzz"))) {
             const int step = key == Qt::Key_Left ? -1 : 1;
-            if (IsSetting(row, "Look")) {
+            if (IsSetting(srow, "Look")) {
                 SetTheme(theme_index + step, true);
             } else {
                 static const QStringList levels{QStringLiteral("off"), QStringLiteral("light"), QStringLiteral("heavy")};
@@ -1092,9 +1655,9 @@ void HomeWindow::Key(int key) {
             sounds.Play(Sound::Move);
             return;
         }
-        if (item.kind == Item::Settings && row < SettingCount && SettingRows[row].key != nullptr) {
-            const double before = Slide(row, 0);
-            if (Slide(row, key == Qt::Key_Left ? -1 : 1) != before) {
+        if (srow >= 0 && SettingRows[srow].key != nullptr) {
+            const double before = Slide(srow, 0);
+            if (Slide(srow, key == Qt::Key_Left ? -1 : 1) != before) {
                 sounds.Play(Sound::Move);
                 Changed(PartCard | PartList);
             }
@@ -1133,6 +1696,19 @@ void HomeWindow::Key(int key) {
         return;
     case Qt::Key_Backspace:
     case Qt::Key_Delete:
+        // A setting the user set, back to what it is by itself.
+        if (srow >= 0 && SettingRows[srow].key != nullptr) {
+            SetSlide(srow, SettingRows[srow].normal);
+            sounds.Play(Sound::Back);
+            Changed(PartCard | PartList);
+            return;
+        }
+        if (srow >= 0 && (SettingRows[srow].host == 1 || SettingRows[srow].host == 3) && setting_reset) {
+            setting_reset(QString::fromLatin1(SettingRows[srow].name));
+            sounds.Play(Sound::Back);
+            Changed();
+            return;
+        }
         // CONSOLES: a setting back to the next layer's (all consoles', or the core's own).
         if (item.kind == Item::Consoles && row >= ConsoleHeadRows()) {
             ChangeConsoleSetting(row, 0, true);
@@ -1148,7 +1724,7 @@ void HomeWindow::Key(int key) {
     case Qt::Key_F5:
         ReloadKeepingChoice();
         sounds.Play(Sound::Tab);
-        Say(QStringLiteral("Read again what the reader apps say"));
+        Say(QStringLiteral("Library refreshed"));
         return;
     case Qt::Key_F11:
         full_screen = !full_screen;
@@ -1223,15 +1799,64 @@ void HomeWindow::Accept() {
         } else if (index < settings.size() && settings[index].kind != PlaySetting::Number) {
             ChangeConsoleSetting(row, 1);
         }
-    } else if (item.kind == Item::Settings && row < SettingCount) {
+    } else if (const int srow = item.kind == Item::Settings ? SettingAt(item.system, more_open.contains(item.system), row) : -1; srow >= 0) {
         QSettings settings;
-        const QString name = QString::fromLatin1(SettingRows[row].name);
-        if (SettingRows[row].key != nullptr) {
-            if (SettingRows[row].step == 0) {
-                Slide(row, 1);
+        const QString name = QString::fromLatin1(SettingRows[srow].name);
+        if (qstrcmp(SettingRows[srow].section, "Keys") == 0) {
+            return; // said, not set
+        }
+        if (name == QStringLiteral("More")) {
+            // The rest of the page's settings come, or go again; the row stays in hand.
+            if (!more_open.remove(item.system)) {
+                more_open.insert(item.system);
+            }
+            sounds.Play(Sound::Select);
+        } else if (SettingRows[srow].host == 2) {
+            // The program's own windows (Anki, the dictionaries, the popup...).
+            if (setting_step) {
+                sounds.Play(Sound::Select);
+                setting_step(name, 0);
+            } else {
+                sounds.Play(Sound::Refuse);
+                Say(QStringLiteral("That is in the program that plays the games itself"));
+            }
+        } else if (SettingRows[srow].host == 3) {
+            // A number: the arrows change it.
+        } else if (SettingRows[srow].key != nullptr) {
+            if (SettingRows[srow].step == 0) {
+                Slide(srow, 1);
                 sounds.Play(Sound::Select);
             }
-        } else if (name == QStringLiteral("Look") || name == QStringLiteral("Fuzz") || name == QStringLiteral("Pointer button")) {
+        } else if (name == QStringLiteral("Wide picture")) {
+            WideStep(1);
+            return;
+        } else if (name == QStringLiteral("Rename labels")) {
+            renaming = !renaming;
+            sounds.Play(Sound::Select);
+            Say(renaming ? QStringLiteral("Enter or a click on any row gives it another label") : QStringLiteral("Labels are no longer renamed"));
+        } else if (name == QStringLiteral("Copy my labels")) {
+            LabelsLoad();
+            QJsonObject all;
+            for (auto each = labels.cbegin(); each != labels.cend(); ++each) {
+                all.insert(each.key(), each.value());
+            }
+            QGuiApplication::clipboard()->setText(QString::fromUtf8(QJsonDocument(all).toJson(QJsonDocument::Indented)));
+            sounds.Play(Sound::Select);
+            Say(labels.isEmpty() ? QStringLiteral("No label has been changed yet") : QStringLiteral("Copied %1: paste them to whoever makes the next build").arg(labels.size()));
+        } else if (name == QStringLiteral("Open the labels file")) {
+            LabelsLoad();
+            LabelsSave(); // there, even if empty
+            QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(LabelsFile()).absolutePath()));
+            sounds.Play(Sound::Select);
+        } else if (name == QStringLiteral("Put every label back")) {
+            LabelsLoad();
+            const int count = static_cast<int>(labels.size());
+            labels.clear();
+            LabelsSave();
+            sounds.Play(Sound::Back);
+            Say(QStringLiteral("%1 put back").arg(count == 1 ? QStringLiteral("1 label") : QStringLiteral("%1 labels").arg(count)));
+        } else if (name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz")
+                   || name == QStringLiteral("Daily goal") || SettingRows[srow].host == 1) {
             Key(Qt::Key_Right);
             return;
         } else if (name == QStringLiteral("Moving cursor")) {
@@ -1256,14 +1881,25 @@ void HomeWindow::Accept() {
                 sounds.Play(Sound::Refuse);
                 Say(QStringLiteral("Save sync is in the program that plays the games itself"));
             }
-        } else if (name == QStringLiteral("Settings window") || name == QStringLiteral("Pair a device") ||
-                   name == QStringLiteral("RetroAchievements") || name == QStringLiteral("Text server")) {
+        } else if (name == QStringLiteral("Lines address")) {
+            Lines::Sources sources = Lines::Load(SharedFolder());
+            bool ok = false;
+            const QString address = QInputDialog::getText(this, QStringLiteral("Lines address"), QStringLiteral("The WebSocket lines come from"),
+                                                          QLineEdit::Normal, sources.address, &ok).trimmed();
+            if (ok && !address.isEmpty()) {
+                SetLinesAddress(address);
+            }
+        } else if (name == QStringLiteral("Add a title") || name == QStringLiteral("OCR helper")) {
+            // The shelf's own (wizard_page.inc); from the save menu, the shelf comes with it.
+            if (!shelf_on) {
+                SetShelf(true, false);
+            }
+            OpenWizard(name == QStringLiteral("OCR helper"));
+        } else if (name == QStringLiteral("Pair a device") || name == QStringLiteral("RetroAchievements")) {
             if (open_settings) {
                 sounds.Play(Sound::Select);
                 open_settings(name == QStringLiteral("Pair a device")       ? QStringLiteral("Save sync")
-                              : name == QStringLiteral("RetroAchievements") ? QStringLiteral("Achievements")
-                              : name == QStringLiteral("Text server")       ? QStringLiteral("Text server")
-                                                                            : QString());
+                                                                            : QStringLiteral("Achievements"));
             } else {
                 sounds.Play(Sound::Refuse);
                 Say(QStringLiteral("That is in the program that plays the games itself"));
@@ -1397,14 +2033,28 @@ void HomeWindow::keyPressEvent(QKeyEvent* event) {
         qInfo("key from the keyboard: %s (virtual key %u, scan code %u%s)", qPrintable(QKeySequence(event->key()).toString()),
               event->nativeVirtualKey(), event->nativeScanCode(), event->isAutoRepeat() ? ", repeated" : "");
     }
-    Key(event->key());
+    if (TraceFrames()) {
+        Trace().Key();
+        QElapsedTimer took;
+        took.start();
+        if (!WizardText(event->key(), event->matches(QKeySequence::Paste) ? QGuiApplication::clipboard()->text() : event->text())) {
+            Key(event->key());
+        }
+        qInfo("key %s%s %.1f ms", qPrintable(QKeySequence(event->key()).toString()), event->isAutoRepeat() ? " (repeated)" : "",
+              took.nsecsElapsed() / 1e6);
+        return;
+    }
+    // A line of the wizard being typed on takes what types; every other key is the page's.
+    if (!WizardText(event->key(), event->matches(QKeySequence::Paste) ? QGuiApplication::clipboard()->text() : event->text())) {
+        Key(event->key());
+    }
 }
 
 void HomeWindow::mousePressEvent(QMouseEvent* event) {
     if (!running.isEmpty() || playing_game) {
         return;
     }
-    if (event->button() == Qt::BackButton) {
+    if (event->button() == Qt::BackButton || (event->button() == Qt::RightButton && shelf_on && (shelf_pages || shelf_stage || shelf_log || wizard_on))) {
         Key(Qt::Key_Escape);
         return;
     }
@@ -1412,6 +2062,10 @@ void HomeWindow::mousePressEvent(QMouseEvent* event) {
         return;
     }
     const QPointF at = ToSheet(event->position());
+    if (shelf_on) {
+        ShelfClick(at);
+        return;
+    }
     const QList<Item> items = Items();
     for (const Hit& hit : hits) {
         if (!hit.area.contains(at)) {
@@ -1444,6 +2098,21 @@ void HomeWindow::mousePressEvent(QMouseEvent* event) {
 
 void HomeWindow::mouseMoveEvent(QMouseEvent* event) {
     const QPointF at = ToSheet(event->position());
+    if (shelf_on && wizard_on) {
+        if (event->buttons() & Qt::LeftButton) {
+            WizardDrag(at, false);
+        }
+        ShelfHover(at, event->source() == Qt::MouseEventNotSynthesized);
+        return;
+    }
+    if (shelf_on && pages_drag != 0 && (event->buttons() & Qt::LeftButton)) {
+        PagesDrag(at);
+        return;
+    }
+    if (shelf_on) {
+        ShelfHover(at, event->source() == Qt::MouseEventNotSynthesized);
+        return;
+    }
     if (dragging >= 0 && (event->buttons() & Qt::LeftButton)) {
         for (const Hit& hit : hits) {
             if (hit.kind == 2 && hit.index == dragging) {
@@ -1460,24 +2129,75 @@ void HomeWindow::mouseMoveEvent(QMouseEvent* event) {
         }
         return;
     }
-    Hover(at);
+    // A finger's tap comes as a mouse's too, and leaves no pointer standing over a row.
+    Hover(at, event->source() == Qt::MouseEventNotSynthesized);
+}
+
+void HomeWindow::leaveEvent(QEvent* event) {
+    HoverNone();
+    if (shelf_hover_kind >= 0) {
+        shelf_hover_kind = shelf_hover_index = -1;
+        update();
+    }
+    QWidget::leaveEvent(event);
+}
+
+void HomeWindow::HoverNone() {
+    if (hover_row >= 0) {
+        hover_row = -1;
+        Changed(PartList);
+    }
+    if (hover_tab >= 0) {
+        hover_tab = -1;
+        Changed(PartTabs);
+    }
 }
 
 void HomeWindow::mouseReleaseEvent(QMouseEvent* event) {
+    if (shelf_on && wizard_on && event->button() == Qt::LeftButton) {
+        WizardDrag(ToSheet(event->position()), true);
+    }
     if (event->button() == Qt::LeftButton) {
         dragging = -1;
+        if (pages_drag != 0) {
+            pages_drag = 0;
+            update();
+        }
     }
 }
 
-void HomeWindow::Hover(const QPointF& at) {
-    // A hand over what a click takes, as a link has it.
+void HomeWindow::Hover(const QPointF& at, bool lights) {
+    // A hand over what a click takes, as a link has it; and the row or tab under it lit a
+    // little (a row: a faint glow of the cursor's behind its title; a tab: its text no longer
+    // dim), so that the mouse shows what it would choose before it does.
     bool over = false;
+    int row = -1, tab = -1;
+    const bool idle = running.isEmpty() && !playing_game;
     for (const Hit& hit : hits) {
-        over = over || hit.area.contains(at);
+        if (!hit.area.contains(at)) {
+            continue;
+        }
+        over = true;
+        if (hit.kind == 1) {
+            row = hit.index;
+        } else if (hit.kind == 0) {
+            tab = hit.index;
+        }
     }
-    const Qt::CursorShape shape = over && running.isEmpty() && !playing_game ? Qt::PointingHandCursor : Qt::ArrowCursor;
+    const Qt::CursorShape shape = over && idle ? Qt::PointingHandCursor : Qt::ArrowCursor;
     if (cursor().shape() != shape) {
         setCursor(shape);
+    }
+    if (!idle || !lights) {
+        row = tab = -1;
+    }
+    if (row != hover_row) {
+        hover_row = row;
+        Changed(PartList);
+    }
+    if (tab != hover_tab) {
+        hover_tab = tab;
+        Changed(PartTabs);
     }
 }
 
@@ -1485,6 +2205,51 @@ void HomeWindow::wheelEvent(QWheelEvent* event) {
     // A row for each notch (120); a touchpad's small turns add up to one. A sideways swipe
     // (more across than down) goes along the line, a page for a longer turn.
     const QPoint turn = event->angleDelta();
+    if (shelf_on) {
+        // The shelf: a title for each notch, either way the wheel or the pad is turned; with Shift
+        // held, a shelf (the lift) for each.
+        const int by = std::abs(turn.y()) >= std::abs(turn.x()) ? turn.y() : turn.x();
+        if (event->modifiers() & Qt::ShiftModifier) {
+            wheel_side += by;
+            const int shelves = static_cast<int>(wheel_side / 120);
+            if (shelves != 0 && running.isEmpty() && !playing_game && !shelf_stage && !shelf_pages && !wizard_on) {
+                wheel_side -= shelves * 120;
+                ShelfKey(shelves > 0 ? Qt::Key_Up : Qt::Key_Down);
+            }
+            return;
+        }
+        wheel_side += by;
+        if (shelf_pages && !wizard_on) {
+            // The pages: the list of rows goes, by a touchpad's small turns too.
+            const int rows = static_cast<int>(wheel_side / 40);
+            wheel_side -= rows * 40;
+            if (rows != 0 && find_text.isNull()) {
+                pages_first -= rows; // held to the list's ends where it is drawn
+                update();
+            }
+            return;
+        }
+        const int steps = static_cast<int>(wheel_side / 120);
+        if (steps != 0 && running.isEmpty() && !playing_game) {
+            wheel_side -= steps * 120;
+            if (wizard_on) {
+                ShelfKey(steps > 0 ? Qt::Key_Up : Qt::Key_Down); // the wizard's rows
+            } else if (shelf_log) {
+                for (int i = 0; i < std::abs(steps) * 2; ++i) {
+                    ShelfKey(steps > 0 ? Qt::Key_Up : Qt::Key_Down); // the Log's lines
+                }
+            } else {
+                ShelfMove(-steps);
+            }
+        }
+        return;
+    }
+    if (TraceFrames()) {
+        Trace().Key();
+        qInfo("wheel %d,%d (pixels %d,%d, phase %d, from %d%s), %d left over", turn.x(), turn.y(), event->pixelDelta().x(),
+              event->pixelDelta().y(), static_cast<int>(event->phase()), static_cast<int>(event->source()),
+              event->inverted() ? ", inverted" : "", wheel_rest);
+    }
     if (std::abs(turn.x()) > std::abs(turn.y())) {
         wheel_side += turn.x();
         while (std::abs(wheel_side) >= 240) {
@@ -1640,6 +2405,10 @@ HomeWindow::Card HomeWindow::CardOf(const Item& item, const QList<Row>& rows, in
         card.sub = PageTab(item.kind) + QStringLiteral("  %1／%2").arg(n).arg(total);
         card.note = row.meta;
         card.picture = Card::Value;
+        if (item.kind == Item::Settings && row.setting >= 0 && IsSetting(row.setting, "Icon")) {
+            card.picture = Card::Art;
+            card.cover = IconCover + ChosenIcon();
+        }
         card.sub_dim = row.dim;
         if (row.setting >= 0 && SettingRows[row.setting].step != 0) {
             card.slider = row.setting;
@@ -1752,6 +2521,7 @@ void HomeWindow::DrawClock(QPainter& p, const QString& time) const {
 
 void HomeWindow::DrawScene(double scale) {
     scene_dirty = false;
+    list_waits = false;
     dirty_parts = 0;
     pieces_stale = true;
     scene_scale = scale;
@@ -1818,6 +2588,9 @@ QRectF HomeWindow::PartArea(int part) {
 
 void HomeWindow::DrawParts(int parts) {
     dirty_parts = 0;
+    if ((parts & PartList) != 0) {
+        list_waits = false;
+    }
     pieces_stale = true;
     const double scale = scene_scale;
     const QList<Item> items = Items();
@@ -2015,9 +2788,13 @@ void HomeWindow::DrawCard(QPainter& p, const Item& item, const QList<Row>& rows,
                         l.tab_sh, 1);
     } else {
         // A setting's value, large, and its slider under it.
+        // A row with nothing to show (one that opens or does something) says so as the list
+        // does for a game never read, in the dim colour: an empty box looked unfinished.
         const QString value = chosen < rows.size() ? rows[chosen].value : QString();
+        const bool none = value.isEmpty();
         Paint::PutText(p, l.title, QPointF(inside.center().x(), Paint::CentredBaseline(l.title, inside.center().y() - 14)),
-                        Paint::Fit(value, l.title, inside.width() - 24), card.sub_dim ? l.dim : l.tab_txt, l.tab_sh, 2);
+                        none ? QStringLiteral("- -") : Paint::Fit(value, l.title, inside.width() - 24),
+                        card.sub_dim || none ? l.dim : l.tab_txt, none ? l.dim_sh : l.tab_sh, 2);
         if (card.slider >= 0) {
             const SettingRow& setting = SettingRows[card.slider];
             const QRectF groove(inside.left() + 36, inside.center().y() + 52, inside.width() - 72, 4);
@@ -2104,11 +2881,14 @@ void HomeWindow::DrawList(QPainter& p, const Item& item, const QList<Row>& rows,
             const double room = right - WhenColumn - title_x - OrbAside - 14;
             if (filled) {
                 const QString title = Paint::Fit(rows[i].title, l.row, room);
-                if (on && !glide) {
-                    // Drawn over the scene with the orbs (paintEvent).
+                if (i == hover_row && i != chosen && pass == 0 && l.cursor_glow.isValid()) {
+                    // Under the pointer: the cursor's glow, faint, where the cursor would stand.
                     const double line = Paint::NormalLine(l.row);
-                    label = {true, QRectF(title_x, centre - line / 2, QFontMetricsF(l.row).horizontalAdvance(title), line), title, l.row,
-                             colour, shadows, Paint::CentredBaseline(l.row, centre)};
+                    PaintGlow(p, l.cursor_glow, HoverGlow,
+                              QRectF(title_x, centre - line / 2, QFontMetricsF(l.row).horizontalAdvance(title), line));
+                }
+                if (on && !glide) {
+                    label = ListLabel(rows, i); // drawn over the scene with the orbs (paintEvent)
                 } else {
                     Paint::PutText(p, l.row, QPointF(title_x, Paint::CentredBaseline(l.row, centre)), title, colour, shadows);
                 }
@@ -2151,6 +2931,23 @@ void HomeWindow::DrawList(QPainter& p, const Item& item, const QList<Row>& rows,
     if (first + RowsShown < total) {
         arrow(ListTop + ListHeight - Border - ListPadY - 8, false);
     }
+}
+
+HomeWindow::Label HomeWindow::ListLabel(const QList<Row>& rows, int chosen) const {
+    // DrawList's place and look of the chosen row's title.
+    const Look& l = *look;
+    if (chosen < 0 || chosen >= rows.size()) {
+        return {};
+    }
+    const double left = PanelLeft + l.list_left, right = PanelRight - l.list_right;
+    const double centre = ListTop + Border + ListPadY + (chosen % RowsShown) * RowHeight + RowHeight / 2;
+    const double title_x = left + NumberColumn + TitlePad;
+    const double room = right - WhenColumn - title_x - OrbAside - 14;
+    const bool barred = !l.bar.Empty();
+    const QString title = Paint::Fit(rows[chosen].title, l.row, room);
+    const double line = Paint::NormalLine(l.row);
+    return {true, QRectF(title_x, centre - line / 2, QFontMetricsF(l.row).horizontalAdvance(title), line), title, l.row,
+            barred ? l.sel : l.txt, barred ? l.sel_sh : l.txt_sh, Paint::CentredBaseline(l.row, centre)};
 }
 
 void HomeWindow::DrawTabs(QPainter& p, const QList<Item>& items) {
@@ -2196,8 +2993,9 @@ void HomeWindow::DrawTabs(QPainter& p, const QList<Item>& items) {
         if (on) {
             Paint::PaintShape(p, Rounded(box, 3), l.tab_on, l.tab_on_shadow);
         }
-        Paint::PutText(p, face, QPointF(box.left() + FootPadX, Paint::CentredBaseline(face, centre)), labels[i], on ? l.sel : l.dim,
-                        on ? l.sel_sh : l.dim_sh);
+        const bool lit = !on && i == hover_tab;
+        Paint::PutText(p, face, QPointF(box.left() + FootPadX, Paint::CentredBaseline(face, centre)), labels[i],
+                        on ? l.sel : lit ? l.txt : l.dim, on ? l.sel_sh : lit ? l.txt_sh : l.dim_sh);
         hits.append({box.adjusted(-FootGap / 2, -4, FootGap / 2, 4), 0, i});
         x += widths[i] + FootGap;
     }
@@ -2246,9 +3044,13 @@ void HomeWindow::DrawGlow(QPainter& p, double seconds, const QRectF& box) const 
     if (!label.shown || !look->cursor_glow.isValid()) {
         return;
     }
-    const double strength = motion ? GlowAt(seconds) : GlowRest;
-    const double rx = box.width() / 2 + GlowWide, ry = box.height() * GlowTall;
-    QColor colour = look->cursor_glow;
+    PaintGlow(p, look->cursor_glow, motion ? GlowAt(seconds) : GlowRest, box);
+}
+
+namespace {
+
+void PaintGlowOval(QPainter& p, const QColor& colour, double strength, const QRectF& box, double wide, double tall) {
+    const double rx = box.width() / 2 + wide, ry = box.height() * tall;
     const double alpha = colour.alphaF() * std::clamp(strength, 0.0, 1.0);
     // A soft oval, much the same strength over the title and fading out past its ends.
     QRadialGradient gradient(QPointF(0, 0), 1);
@@ -2271,7 +3073,21 @@ void HomeWindow::DrawGlow(QPainter& p, double seconds, const QRectF& box) const 
     p.restore();
 }
 
+} // namespace
+
+void HomeWindow::PaintGlow(QPainter& p, const QColor& colour, double strength, const QRectF& box) {
+    PaintGlowOval(p, colour, strength, box, GlowWide, GlowTall);
+}
+
 void HomeWindow::paintEvent(QPaintEvent*) {
+    QElapsedTimer took;
+    took.start();
+    if (shelf_on) {
+        PaintShelf();
+        Pace(took.nsecsElapsed() / 1e6);
+        return;
+    }
+    const char* what = "";
     const double ratio = devicePixelRatioF();
     const double fit = std::min(width() / SheetW, height() / SheetH);
     const double scale = fit * ratio;
@@ -2287,6 +3103,7 @@ void HomeWindow::paintEvent(QPaintEvent*) {
         QList<int> fade_parts;
         double length = 0;
         bool fade_starts = false;
+        bool list_later = false; // the list as it is, under the gliding cursor
         if (scene.isNull()) {
             // The first picture comes up out of the page's colour.
             gliding = false;
@@ -2311,6 +3128,10 @@ void HomeWindow::paintEvent(QPaintEvent*) {
                 }
                 gliding = glide_starts = true;
                 fade_parts = {PartCard};
+                // While the cursor glides its piece is the whole list, drawn every frame: the
+                // scene's list under it is drawn once it stops, not on every row (a held key
+                // would draw and fuzz it again many times a second for nothing).
+                list_later = !scene_dirty && !resized;
             } else {
                 fade_parts = {PartCard, PartList};
                 gliding = false;
@@ -2341,8 +3162,18 @@ void HomeWindow::paintEvent(QPaintEvent*) {
         }
         if (scene_dirty || resized) {
             DrawScene(scale);
+            what = ", the whole page";
         } else {
-            DrawParts(dirty_parts);
+            int parts = dirty_parts;
+            if (list_later && (parts & PartList) != 0) {
+                parts &= ~PartList;
+                list_waits = true;
+                const QList<Item> items = Items();
+                const Item& item = items[axis_choice];
+                label = ListLabel(Rows(item), RowChoice(item));
+            }
+            what = (parts & PartCard) != 0 ? ((parts & PartList) != 0 ? ", card and list" : ", card") : ", a part";
+            DrawParts(parts);
         }
         shown = now;
         if (fade_starts) {
@@ -2379,6 +3210,10 @@ void HomeWindow::paintEvent(QPaintEvent*) {
     }
     if (!fade_from.isNull() && fade_clock.elapsed() / 1000.0 >= fade_length) {
         fade_from = QImage();
+    }
+    if (list_waits && !gliding) {
+        DrawParts(PartList); // the cursor at rest: the list it glided over, as it now is
+        what = ", the list at rest";
     }
 
     // The pieces over the scene: the clock, and the chosen title with its orbs (or, while the
@@ -2428,6 +3263,42 @@ void HomeWindow::paintEvent(QPaintEvent*) {
     p.scale(1 / ratio, 1 / ratio);
     p.translate(std::round((width() * ratio - size.width()) / 2), std::round((height() * ratio - size.height()) / 2));
     Compose(p);
+    Pace(took.nsecsElapsed() / 1e6);
+    if (TraceFrames()) {
+        p.end();
+        Trace().Frame(took.nsecsElapsed() / 1e6, *what != 0 ? what : gliding ? ", gliding" : "");
+    }
+}
+
+void HomeWindow::Pace(double frame_ms) {
+    // A frame as often as the screen shows one (sixty a second was all there was, on any screen:
+    // on the Z13's, which shows more, the orbs and the glide moved in uneven steps), or every
+    // second or third of the screen's when a frame takes longer to draw than that, with room
+    // left for the keys: never more often than frames can be drawn, never less often than before.
+    frame_cost += (std::min(frame_ms, 60.0) - frame_cost) * 0.12;
+    // READER_HOME_HZ says the screen's rate instead (60 for the old pace; a test's stand-in screen).
+    static const double said = qEnvironmentVariable("READER_HOME_HZ").toDouble();
+    const QScreen* on = screen();
+    double hertz = said > 0 ? said : on != nullptr ? on->refreshRate() : 60;
+    if (hertz < 50 || hertz > 480) {
+        hertz = 60;
+    }
+    const double period = 1000 / hertz;
+    // Slower as soon as a frame needs it, faster only once there is room to spare (no flutter).
+    const int slower = std::max(1, static_cast<int>(std::ceil(frame_cost * 1.4 / period)));
+    const int faster = std::max(1, static_cast<int>(std::ceil(frame_cost * 1.9 / period)));
+    if (slower > frame_skip) {
+        frame_skip = slower;
+    } else if (faster < frame_skip) {
+        frame_skip = faster;
+    }
+    while (frame_skip > 1 && period * frame_skip > 17) {
+        --frame_skip;
+    }
+    const int every = std::max(4, static_cast<int>(std::lround(period * frame_skip)));
+    if (every != ticker.interval()) {
+        ticker.setInterval(every);
+    }
 }
 
 void HomeWindow::Prewarm(int generation, int step) {
@@ -2500,14 +3371,52 @@ void HomeWindow::NextScriptLine() {
                                               {QStringLiteral("Enter"), Qt::Key_Return}, {QStringLiteral("Escape"), Qt::Key_Escape},
                                               {QStringLiteral("Q"), Qt::Key_Q},         {QStringLiteral("E"), Qt::Key_E},
                                               {QStringLiteral("F5"), Qt::Key_F5}, {QStringLiteral("F2"), Qt::Key_F2},
-                                              {QStringLiteral("Backspace"), Qt::Key_Backspace}};
-        Key(keys.value(rest, 0));
+                                              {QStringLiteral("Backspace"), Qt::Key_Backspace},
+                                              {QStringLiteral("Space"), Qt::Key_Space}, {QStringLiteral("F4"), Qt::Key_F4},
+                                              {QStringLiteral("End"), Qt::Key_End}, {QStringLiteral("Home"), Qt::Key_Home},
+                                              {QStringLiteral("S"), Qt::Key_S}, {QStringLiteral("F"), Qt::Key_F}};
+        // A name of the list, else "/" or one letter or digit (a setting looked for by name).
+        int key = keys.value(rest, 0);
+        if (key == 0 && rest == QStringLiteral("/")) {
+            key = Qt::Key_Slash;
+        } else if (key == 0 && rest.size() == 1 && rest[0].isLetterOrNumber()) {
+            key = rest[0].toUpper().unicode();
+        }
+        Key(key);
+    } else if (word == QStringLiteral("press")) {
+        // A key held down: "press Down 40 33" sends Down 40 times, 33 ms apart, through the
+        // event queue as the system's auto-repeat does (then the frames' times, if traced).
+        const QString name = rest.section(QLatin1Char(' '), 0, 0);
+        const int count = rest.section(QLatin1Char(' '), 1, 1).toInt();
+        const int every = std::max(1, rest.section(QLatin1Char(' '), 2, 2).toInt());
+        const int key = name == QStringLiteral("Up") ? Qt::Key_Up : name == QStringLiteral("Down") ? Qt::Key_Down
+                        : name == QStringLiteral("Left") ? Qt::Key_Left : Qt::Key_Right;
+        Trace().Summary();
+        for (int i = 0; i < count; ++i) {
+            QTimer::singleShot(i * every, this, [this, key, i] {
+                QCoreApplication::postEvent(this, new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier, QString(), i > 0));
+            });
+        }
+        wait = count * every + 600;
+        QTimer::singleShot(wait - 10, this, [] { Trace().Summary(); });
     } else if (word == QStringLiteral("click")) {
         const double scale = std::min(width() / SheetW, height() / SheetH);
         const QPointF at((width() - SheetW * scale) / 2 + rest.section(QLatin1Char(' '), 0, 0).toDouble() * scale,
                          (height() - SheetH * scale) / 2 + rest.section(QLatin1Char(' '), 1, 1).toDouble() * scale);
         QMouseEvent press(QEvent::MouseButtonPress, at, mapToGlobal(at), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
         mousePressEvent(&press);
+    } else if (word == QStringLiteral("shape")) {
+        SetShelf(rest == QStringLiteral("shelf"), false);
+    } else if (word == QStringLiteral("shelf-theme")) {
+        SetShelfTheme(rest, false);
+    } else if (word == QStringLiteral("hover")) {
+        // The pointer over a place on the sheet, for pictures of what it lights.
+        const QPointF at(rest.section(QLatin1Char(' '), 0, 0).toDouble(), rest.section(QLatin1Char(' '), 1, 1).toDouble());
+        if (shelf_on) {
+            ShelfHover(at, true);
+        } else {
+            Hover(at);
+        }
     } else if (word == QStringLiteral("wait")) {
         wait = rest.toInt();
     } else if (word == QStringLiteral("shot")) {
@@ -2536,6 +3445,11 @@ void HomeWindow::NextScriptLine() {
     } else if (word == QStringLiteral("grab")) {
         // The page at rest: what glides or fades is finished first.
         repaint();
+        shelf_at = shelf_choice;
+        stage_at = shelf_stage ? 1 : 0;
+        pages_at = shelf_pages ? 1 : 0;
+        log_at = shelf_log ? 1 : 0;
+        wizard_at = wizard_on ? 1 : 0;
         gliding = false;
         bar_at = bar_to;
         width_at = width_to;
@@ -2556,11 +3470,65 @@ void HomeWindow::NextScriptLine() {
     } else if (word == QStringLiteral("reload")) {
         ReloadKeepingChoice();
         Changed();
+    } else if (word == QStringLiteral("lines-add")) {
+        // lines-add websocket|clipboard TITLE: what the Settings page's rows do, without their window.
+        AddLinesTitle(rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1));
+    } else if (word == QStringLiteral("lines-address")) {
+        SetLinesAddress(rest);
+    } else if (word == QStringLiteral("wizard")) {
+        // The wizard that adds a title ("wizard helper": the OCR helper's settings alone).
+        if (!shelf_on) {
+            SetShelf(true, false);
+        }
+        OpenWizard(rest == QStringLiteral("helper"));
+    } else if (word == QStringLiteral("wizard-window")) {
+        // The game window whose title has these words, chosen among the wizard's (for its pictures).
+        WizardChooseWindow(rest);
+    } else if (word == QStringLiteral("type")) {
+        // Text typed on the wizard's line in hand.
+        WizardText(0, rest);
+    } else if (word == QStringLiteral("drag")) {
+        // drag X1 Y1 X2 Y2 (on the sheet): the pointer pressed, moved and let go.
+        const QStringList at = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (at.size() == 4 && shelf_on) {
+            ShelfClick(QPointF(at[0].toDouble(), at[1].toDouble()));
+            if (wizard_on) {
+                WizardDrag(QPointF(at[2].toDouble(), at[3].toDouble()), true);
+            }
+        }
+    } else if (word == QStringLiteral("hook-add")) {
+        // hook-add ENGINE PROGRAM SCRIPT|- [THREAD,THREAD] TITLE: a title read by a hook, without the wizard (a test's).
+        const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 5) {
+            Lines::Title hook;
+            hook.engine = parts[0];
+            hook.process = parts[1];
+            hook.script = parts[2] == QStringLiteral("-") ? QString() : parts[2];
+            hook.threads = parts[3] == QStringLiteral("-") ? QStringList() : parts[3].split(QLatin1Char(','), Qt::SkipEmptyParts);
+            AddHookTitle(rest.section(QLatin1Char(' '), 4), hook);
+        }
+    } else if (word == QStringLiteral("ocr-helper")) {
+        // ocr-helper ADDRESS SOURCE TOKEN: the helper's settings, as the wizard writes them.
+        SetOcrHelper(rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1, 1), rest.section(QLatin1Char(' '), 2, 2));
+    } else if (word == QStringLiteral("ocr-add")) {
+        // ocr-add X Y W H WINDOW|TITLE: a window read by OCR, without the wizard (a test's).
+        const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        const QString names = rest.section(QLatin1Char(' '), 4);
+        if (parts.size() >= 5) {
+            AddWindowTitle(names.section(QLatin1Char('|'), 1), names.section(QLatin1Char('|'), 0, 0),
+                           QRectF(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble()));
+        }
     } else if (word == QStringLiteral("quit")) {
         window()->close();
         return;
+    } else if (script_commands) {
+        script_commands(word, rest);
     }
     QTimer::singleShot(wait, this, &HomeWindow::NextScriptLine);
 }
+
+#include "shelf_page.inc"
+#include "wizard_page.inc"
+#include "wizard_hooks.inc"
 
 } // namespace Home

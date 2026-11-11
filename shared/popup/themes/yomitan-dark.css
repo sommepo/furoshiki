@@ -2,8 +2,8 @@
    SPDX-License-Identifier: GPL-2.0-or-later
    Yomitan dark, after the maintainer's screenshot: black, serif glosses, glowing tag boxes,
    furigana over the headword, a blue triangle beside it. */
-:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #c8c8d8; }
-.popup { background: #0b0b0b; border: 1px solid #555; border-radius: 8px; padding: 10px 14px 10px 18px; color: #f2f2f2; }
+:root { --font: "Noto Serif JP", "Yu Mincho", serif; --dim: #c8c8d8; --ground: #0b0b0b; --radius: 8px; --text: #f2f2f2; --accent: #6aa0ff; }
+.popup { border: 1px solid #555; padding: 10px 14px 10px 18px; color: #f2f2f2; }
 .entry::before { content: ""; position: absolute; left: -15px; top: calc(20px * var(--scale)); border: 7px solid transparent; border-left: 8px solid #3b8cf0; }
 .headword { font-weight: 400; font-size: calc(26px * var(--scale)); }
 .headword rt { display: ruby-text; }

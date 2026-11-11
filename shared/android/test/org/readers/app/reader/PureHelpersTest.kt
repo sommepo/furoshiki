@@ -7,6 +7,7 @@ import org.readers.app.reader.mining.Letterbox
 import org.readers.app.reader.mining.PcmTools
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PureHelpersTest {
@@ -35,6 +36,29 @@ class PureHelpersTest {
         // Padding never reads past the end.
         val short = ShortArray(20).also { it[18] = 9000 }
         assertEquals(20, PcmTools.trimTrailingSilence(short, 2, 180, 500).size)
+    }
+
+    @Test
+    fun cutsAClipToWhatIsSaid() {
+        val rate = 48000
+        fun tone(samples: ShortArray, fromMs: Int, toMs: Int, level: Int) {
+            for (i in fromMs * rate / 1000 until toMs * rate / 1000) {
+                val value = (level * kotlin.math.sin(i * 2.0 * Math.PI * 300 / rate)).toInt().toShort()
+                samples[i * 2] = value
+                samples[i * 2 + 1] = value
+            }
+        }
+        // Four seconds: a hiss all through, a click at 0.2 s, a voice from 1.0 to 2.5 s.
+        val clip = ShortArray(rate * 4 * 2) { ((it.toLong() * 7919) % 41 - 20).toInt().toShort() }
+        tone(clip, 200, 220, 9000)
+        tone(clip, 1000, 2500, 6000)
+        val seconds = PcmTools.trimToVoice(clip, 2, rate, 180, 150).size / 2 / rate.toDouble()
+        assertTrue(seconds > 1.75 && seconds < 1.9)
+        // Music under the whole line stays whole; hiss alone is nothing.
+        val music = ShortArray(rate * 2 * 2).also { tone(it, 0, 2000, 5000) }
+        assertEquals(music.size, PcmTools.trimToVoice(music, 2, rate, 180, 150).size)
+        val hiss = ShortArray(rate * 2 * 2) { ((it.toLong() * 7919) % 41 - 20).toInt().toShort() }
+        assertEquals(0, PcmTools.trimToVoice(hiss, 2, rate, 180, 150).size)
     }
 
     @Test

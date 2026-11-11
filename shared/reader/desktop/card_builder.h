@@ -31,6 +31,10 @@ struct CardContext {
     QString word_audio_name;
     /// The game's page (SourceAddress::Of); empty when the game is not known.
     QString game_url;
+    /// The lines read just before this one, oldest first, for {context} and {previous-sentence}.
+    QStringList before;
+    /// The line in the reader's own language, when one was made (translate.h).
+    QString translation;
 };
 
 /**

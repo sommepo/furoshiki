@@ -8,6 +8,10 @@
 #include <filesystem>
 #include <string>
 #include <utility>
+#include <QBuffer>
+#include <QImage>
+#include <QSysInfo>
+#include "reader/desktop/glossary.h"
 #include <QClipboard>
 #include <QCoreApplication>
 #include <QDateTime>
@@ -25,6 +29,7 @@
 #include "reader/qt/reader_media.h"
 #include "reader/qt/reader_crt_page.h"
 #include "reader/qt/reader_link.h"
+#include "reader/desktop/names.h"
 #include "reader/qt/reader_session.h"
 
 namespace ReaderUi {
@@ -213,7 +218,7 @@ void ReaderBridge::OnGameLoading() {
     // All of these are called on the emulator's threads: plain data only, handed to the main
     // thread (ReaderUi::PostToGui), where it becomes the app's own.
     engine.SetEventCallback([](const Reader::TextEvent& event) {
-        ReaderUi::PostToGui([event] { ReaderSession::Instance().PostLine(FromEvent(event)); });
+        ReaderUi::PostToGui([event] { CoreSource::Instance().Hand(FromEvent(event)); });
     });
     engine.SetLayoutCallback([](const Reader::TextLayout& layout) {
         ReaderUi::PostToGui(
@@ -264,6 +269,21 @@ void ReaderBridge::ReloadProfile() {
     Reader::Engine::Instance().Post([] { LoadProfileFromFrontend(); });
 }
 
+// ---- The sources ----
+
+CoreSource& CoreSource::Instance() {
+    static CoreSource* instance = [] {
+        auto* source = new CoreSource(nullptr);
+        source->setParent(QCoreApplication::instance());
+        return source;
+    }();
+    return *instance;
+}
+
+ReadingSource::About CoreSource::Describe() const {
+    return {QStringLiteral("core"), QStringLiteral("Core"), true};
+}
+
 // ---- The session ----
 
 ReaderSession& ReaderSession::Instance() {
@@ -283,6 +303,29 @@ ReaderSession::ReaderSession() {
     worker_thread.start();
     heartbeat.setInterval(HeartbeatMs);
     connect(&heartbeat, &QTimer::timeout, this, &ReaderSession::Heartbeat);
+    Use(&CoreSource::Instance());
+}
+
+void ReaderSession::Use(ReadingSource* source) {
+    if (source == nullptr || sources.contains(source)) {
+        return;
+    }
+    sources.removeAll(nullptr);
+    sources.append(source);
+    connect(source, &ReadingSource::Line, this, [this, source](const TextLine& line) {
+        // Only the running session's own source: what another sends meanwhile is not this title's.
+        if (source == active_source) {
+            PostLine(line);
+        }
+    });
+}
+
+ReadingSource::About ReaderSession::Source() const {
+    return IsActive() && active_source ? active_source->Describe() : ReadingSource::About{};
+}
+
+void ReaderSession::TakeBack(const TextLine& line) {
+    CountLine(-1, line.source_id, line.text, false);
 }
 
 ReaderSession::~ReaderSession() {
@@ -356,9 +399,11 @@ void ReaderSession::AfterWrites(std::function<void()> task) {
     OnWorker(std::move(task));
 }
 
-void ReaderSession::Start(const QString& game_id_, const QString& title_) {
+void ReaderSession::Start(const QString& game_id_, const QString& title_, ReadingSource* source) {
     Stop();
     OpenData();
+    active_source = source != nullptr ? source : &CoreSource::Instance();
+    Use(active_source);
     const QString key = game_id_.trimmed().toUpper();
     title = title_;
     title_id = key;
@@ -392,6 +437,27 @@ void ReaderSession::Start(const QString& game_id_, const QString& title_) {
         worker_title_id = key;
     });
 
+    // The game's names dictionary (docs/titles.md), installed or brought up to date: from the
+    // user's profiles folder (it came with the game's script from the list) or what the program
+    // comes with. Only used while this game runs (DictionaryLookup::Lookup).
+    ReaderApp::DictionaryDatabase* dictionaries = &Dictionaries();
+    const QStringList name_folders{ReaderBridge::UserProfileDirectory(),
+                                   QString::fromLatin1(ReaderApp::Names::BundledFolder)};
+    OnWorker([dictionaries, name_folders, key] {
+        try {
+            const auto pack = ReaderApp::Names::For(key, ReaderApp::Names::Find(name_folders));
+            QString error;
+            if (pack && ReaderApp::Names::Ensure(*dictionaries, *pack, &error)) {
+                LOG_INFO(Frontend, "[Reader] Names of {} installed ({})", key.toStdString(),
+                         pack->revision.toStdString());
+            } else if (!error.isEmpty()) {
+                LOG_WARNING(Frontend, "[Reader] Names of {}: {}", key.toStdString(), error.toStdString());
+            }
+        } catch (const ReaderApp::SqliteError& error) {
+            LOG_ERROR(Frontend, "[Reader] Could not install the game's names: {}", error.what());
+        }
+    });
+
     media = std::make_unique<MediaCapture>(*settings);
     Reader::AudioTap::Instance().SetEnabled(settings->CaptureAudio(),
                                             static_cast<u32>(settings->AudioHistorySeconds()));
@@ -405,8 +471,23 @@ void ReaderSession::Stop() {
         return;
     }
     heartbeat.stop();
-    OnWorker([this] {
+    const qint64 idle = settings ? settings->IdleTimeoutMs() : ReaderApp::ReadingRules::DefaultIdleTimeoutMs;
+    OnWorker([this, idle] {
         FlushTracker();
+        // The session just read, its time worked out again from when its lines came: time the
+        // game was played without new text is not reading (stats.h, ReadingTime).
+        if (tracker && tracker->CurrentSessionId()) {
+            try {
+                const ReaderApp::TidyReport report =
+                    database->TidyReadingTime(idle, tracker->CurrentSessionId());
+                if (report.after_ms < report.before_ms) {
+                    LOG_INFO(Frontend, "[Reader] Reading time tidied: {} s counted, {} s kept",
+                             report.before_ms / 1000, report.after_ms / 1000);
+                }
+            } catch (const ReaderApp::SqliteError& error) {
+                LOG_ERROR(Frontend, "[Reader] Could not tidy the reading time: {}", error.what());
+            }
+        }
         tracker.reset();
         worker_title_id.clear();
     });
@@ -416,6 +497,7 @@ void ReaderSession::Stop() {
     media.reset();
     Reader::AudioTap::Instance().SetEnabled(false, 0);
     title_id.clear();
+    active_source.clear();
     ++generation;
     reading = false;
     current.reset();
@@ -535,6 +617,47 @@ void ReaderSession::PublishScreenTexts([[maybe_unused]] const QList<ReaderApp::P
 #endif
 }
 
+void ReaderSession::PublishCard([[maybe_unused]] const ReaderApp::PresentedLine& presented,
+                                [[maybe_unused]] const std::optional<ReaderApp::LookupResult>& word,
+                                [[maybe_unused]] qint64 note,
+                                [[maybe_unused]] const QByteArray& picture) {
+#ifndef READER_NO_TEXT_SERVER
+    if (!hook_server) {
+        return;
+    }
+    QJsonObject card{
+        {QStringLiteral("sentence"), presented.line.text},
+        {QStringLiteral("noteId"), note},
+        {QStringLiteral("device"), QSysInfo::machineHostName()},
+        {QStringLiteral("time"), QDateTime::currentMSecsSinceEpoch()},
+    };
+    if (word) {
+        card.insert(QStringLiteral("expression"), word->expression);
+        card.insert(QStringLiteral("reading"), word->DisplayReading());
+        for (const ReaderApp::TermEntry& entry : word->entries) {
+            const QList<ReaderApp::Glossary::Compact> senses =
+                ReaderApp::Glossary::CompactDefinitions(entry.glossary_json);
+            if (!senses.isEmpty()) {
+                card.insert(QStringLiteral("meaning"), senses.first().glosses);
+                break;
+            }
+        }
+    }
+    // A thumbnail is all the list shows: at most 640 pixels across.
+    QByteArray small;
+    QImage image;
+    if (!picture.isEmpty() && image.loadFromData(picture)) {
+        if (image.width() > 640) {
+            image = image.scaledToWidth(640, Qt::SmoothTransformation);
+        }
+        QBuffer buffer(&small);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "JPEG", 80);
+    }
+    hook_server->BroadcastCard(card, small);
+#endif
+}
+
 void ReaderSession::PublishBoxPicture([[maybe_unused]] const QByteArray& jpeg) {
 #ifndef READER_NO_TEXT_SERVER
     if (WantsScreenTexts()) {
@@ -587,6 +710,35 @@ void ReaderSession::PostProfileStatus(std::string game_id, bool loaded, int hook
         profile_status = ProfileStatus{QString::fromStdString(game_id), loaded, hooks,
                                        QString::fromStdString(message)};
         emit ProfileStatusChanged();
+    });
+}
+
+void ReaderSession::TidyReadingTime(std::function<void(const ReaderApp::TidyReport&)> then, bool undo) {
+    OpenData();
+    const qint64 idle = settings->IdleTimeoutMs();
+    OnWorker([this, idle, undo, then = std::move(then)] {
+        FlushTracker();
+        ReaderApp::TidyReport report;
+        try {
+            if (undo) {
+                report.sessions = database->UntidyReadingTime();
+            } else {
+                report = database->TidyReadingTime(
+                    idle, std::nullopt, tracker ? tracker->CurrentSessionId() : std::nullopt);
+            }
+        } catch (const ReaderApp::SqliteError& error) {
+            LOG_ERROR(Frontend, "[Reader] Could not tidy the reading time: {}", error.what());
+        }
+        if (undo && tracker) {
+            // The open session's time as the tracker holds it is the database's again.
+            tracker->Reset();
+        }
+        QMetaObject::invokeMethod(this, [this, then, report] {
+            if (then) {
+                then(report);
+            }
+            emit ActivityChanged();
+        }, Qt::QueuedConnection);
     });
 }
 
@@ -793,7 +945,7 @@ void ReaderSession::CountLine(qint64 id, const QString& source_id, const QString
             this,
             [this, id, characters] {
 #ifndef READER_NO_TEXT_SERVER
-                if (hook_server) {
+                if (hook_server && id >= 0) {
                     hook_server->AnswerCount(id, characters);
                 }
 #else

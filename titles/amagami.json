@@ -1,0 +1,15 @@
+{
+ "title": "アマガミ",
+ "english": "Amagami",
+ "ids": [
+  "SLPS-25918"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": "v1281",
+ "anilist": null,
+ "guide": "amagami",
+ "screenscraper": {
+  "ps2": 23415
+ }
+}

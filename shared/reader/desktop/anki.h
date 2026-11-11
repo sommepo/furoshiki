@@ -125,6 +125,8 @@ public:
     };
     /// The fields of `note_ids`, in one request.
     [[nodiscard]] QList<NoteFields> NotesInfo(const QList<qint64>& note_ids);
+    /// Takes `note_ids` out of the collection, with their cards.
+    void DeleteNotes(const QList<qint64>& note_ids);
     /// Opens Anki's card browser on `note_ids`.
     void ShowNotes(const QList<qint64>& note_ids);
     /// The protocol version the server reports; a cheap way to test the connection.

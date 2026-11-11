@@ -333,9 +333,9 @@ class ReaderScreensTest {
         assertEquals("Reader", heading(activity))
         assertEquals(
             listOf(
-                "Statistics", "Game scripts", "Settings", "Looking words up", "Cursor", "Reader panel",
-                "Dictionaries", "Anki and cards", "Statistics options"
-            ) + listOfNotNull("Save sync".takeIf { org.readers.app.BuildConfig.READER_SAVE_SYNC }) + listOf("Text output", "CRT picture") +
+                "Statistics", "Game scripts", "Settings", "Find a setting", "Reading", "Popup",
+                "Dictionaries", "Cards", "Sources", "Controller"
+            ) + listOfNotNull("Save sync".takeIf { org.readers.app.BuildConfig.READER_SAVE_SYNC }) + listOf("CRT picture") +
                 listOfNotNull(context.getString(R.string.reader_pref_category_console).takeIf { Console.CONSOLE_PAGE }),
             entries(page.preferenceScreen).map { it.title.toString() }
         )
@@ -365,22 +365,25 @@ class ReaderScreensTest {
     fun aSectionOpensAsAPageOfItsOwnAndBackReturnsToTheFirst() {
         val activity = Robolectric.buildActivity(ReaderSettingsActivity::class.java).setup().get()
         val first = settingsPage(activity)
-        val entry = first.findPreference<Preference>("reader_section_cursor")!!
+        val entry = first.findPreference<Preference>("reader_section_controller")!!
         entry.onPreferenceClickListener!!.onPreferenceClick(entry)
 
-        val cursor = settingsPage(activity)
-        TestSupport.snapshot(root(activity), 1920, 1080, "screen-settings-cursor")
-        assertEquals(ReaderSettingsActivity.Section.CURSOR, activity.openSection)
-        assertEquals("Cursor", heading(activity))
+        val controller = settingsPage(activity)
+        TestSupport.snapshot(root(activity), 1920, 1080, "screen-settings-controller")
+        assertEquals(ReaderSettingsActivity.Section.CONTROLLER, activity.openSection)
+        assertEquals("Controller", heading(activity))
         assertEquals(
             listOfNotNull(
-                "reader_cursor_button", "reader_next_choice_button".takeIf { Console.HAS_NEXT_CHOICE },
-                "reader_cursor_toggle", "reader_cursor_frame",
-                "reader_popup_hide_on_exit", "reader_cursor_home",
-                "reader_second_screen".takeIf { Console.SECOND_DISPLAY_FREE }, "reader_cursor_speed"
+                "reader_touch_buttons", "reader_touch_play",
+                "reader_cursor_button", "reader_cursor_toggle", "reader_cursor_speed", "reader_advance_button",
+                "reader_next_choice_button".takeIf { Console.HAS_NEXT_CHOICE }, "reader_stats_button",
+                "reader_cursor_frame", "reader_cursor_home",
+                "reader_second_screen".takeIf { Console.SECOND_DISPLAY_FREE }
             ),
-            entries(cursor.preferenceScreen).mapNotNull { it.key }
+            entries(controller.preferenceScreen).mapNotNull { it.key }
         )
+        // The few most changed are shown; the rest stand behind "More".
+        assertEquals(6, controller.preferenceScreen.initialExpandedChildrenCount)
         assertTrue(text(activity), text(activity).contains("Press once instead of holding"))
 
         activity.onBackPressedDispatcher.onBackPressed()
@@ -408,28 +411,33 @@ class ReaderScreensTest {
         }
         assertEquals(
             listOfNotNull(
-                ReaderSettings.KEY_SCREEN_TEXT, ReaderSettings.KEY_TOUCH_PLAY, ReaderSettings.KEY_POPUP_SCALE,
-                ReaderSettings.KEY_POPUP_AUTOHIDE,
-                ReaderSettings.KEY_POPUP_HEIGHT, ReaderSettings.KEY_CARD_CORNER,
-                ReaderSettings.KEY_WORD_MARK, ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_CSS,
-                "reader_popup_import", "reader_popup_export", ReaderSettings.KEY_POPUP_MARK_UNKNOWN,
-                ReaderSettings.KEY_POPUP_LOOKUPS,
-                ReaderSettings.KEY_SCREEN_TEXT_OUTLINE,
-                ReaderSettings.KEY_CURSOR_BUTTON, ReaderSettings.KEY_NEXT_CHOICE_BUTTON.takeIf { Console.HAS_NEXT_CHOICE },
-                ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_FRAME,
-                ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CURSOR_HOME,
-                ReaderSettings.KEY_SECOND_SCREEN.takeIf { Console.SECOND_DISPLAY_FREE }, ReaderSettings.KEY_CURSOR_SPEED,
-                ReaderSettings.KEY_PANEL_ENABLED, ReaderSettings.KEY_PANEL_AUTO_HIDE,
-                ReaderSettings.KEY_PANEL_DISPLAY, ReaderSettings.KEY_PANEL_POSITION, ReaderSettings.KEY_FONT_SIZE,
-                ReaderSettings.KEY_PANEL_HEIGHT, ReaderSettings.KEY_PANEL_OPACITY, ReaderSettings.KEY_FURIGANA,
-                ReaderSettings.KEY_SHOW_CHOICES, ReaderSettings.KEY_REREAD_COLOUR, ReaderSettings.KEY_ADVANCE_BUTTON,
-                "reader_open_anki", ReaderSettings.KEY_CARD_AUDIO, ReaderSettings.KEY_CAPTURE_AUDIO,
-                ReaderSettings.KEY_AUDIO_MAX, ReaderSettings.KEY_AUDIO_LEAD, ReaderSettings.KEY_SCREENSHOT_CACHE,
-                ReaderSettings.KEY_SCREENSHOT_WIDTH,
+                // Reading
+                ReaderSettings.KEY_SCREEN_TEXT, ReaderSettings.KEY_WORD_MARK, ReaderSettings.KEY_PANEL_ENABLED,
+                ReaderSettings.KEY_FURIGANA, ReaderSettings.KEY_FONT_SIZE,
+                ReaderSettings.KEY_SCREEN_TEXT_OUTLINE, ReaderSettings.KEY_PANEL_AUTO_HIDE,
+                ReaderSettings.KEY_PANEL_DISPLAY, ReaderSettings.KEY_PANEL_POSITION, ReaderSettings.KEY_PANEL_HEIGHT,
+                ReaderSettings.KEY_PANEL_OPACITY, ReaderSettings.KEY_SHOW_CHOICES, ReaderSettings.KEY_REREAD_COLOUR,
                 ReaderSettings.KEY_SESSION_HUD, ReaderSettings.KEY_STATS_STYLE, ReaderSettings.KEY_STATS_PAUSED,
-                ReaderSettings.KEY_STATS_BUTTON,
                 ReaderSettings.KEY_IDLE_MINUTES,
-                ReaderSettings.KEY_CLIPBOARD_AUTO
+                // Popup
+                ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_POPUP_HEIGHT,
+                ReaderSettings.KEY_POPUP_MARK_UNKNOWN, ReaderSettings.KEY_POPUP_AUTOHIDE,
+                ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CARD_CORNER, ReaderSettings.KEY_POPUP_OPACITY,
+                ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_COMPACT, ReaderSettings.KEY_POPUP_HIDE_TAGS,
+                ReaderSettings.KEY_POPUP_PORTRAIT, ReaderSettings.KEY_POPUP_LOOKUPS, ReaderSettings.KEY_POPUP_CSS,
+                "reader_popup_import", "reader_popup_export",
+                // Cards
+                "reader_open_anki", ReaderSettings.KEY_CARD_AUDIO, ReaderSettings.KEY_AUDIO_VOICE_TRIM,
+                ReaderSettings.KEY_CARD_CONTEXT_LINES, ReaderSettings.KEY_CAPTURE_AUDIO, ReaderSettings.KEY_AUDIO_MAX,
+                ReaderSettings.KEY_AUDIO_LEAD, ReaderSettings.KEY_SCREENSHOT_CACHE, ReaderSettings.KEY_SCREENSHOT_WIDTH,
+                // Sources
+                ReaderSettings.KEY_CLIPBOARD_AUTO,
+                // Controller
+                ReaderSettings.KEY_TOUCH_BUTTONS, ReaderSettings.KEY_TOUCH_PLAY,
+                ReaderSettings.KEY_CURSOR_BUTTON, ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED,
+                ReaderSettings.KEY_ADVANCE_BUTTON, ReaderSettings.KEY_NEXT_CHOICE_BUTTON.takeIf { Console.HAS_NEXT_CHOICE },
+                ReaderSettings.KEY_STATS_BUTTON, ReaderSettings.KEY_CURSOR_FRAME, ReaderSettings.KEY_CURSOR_HOME,
+                ReaderSettings.KEY_SECOND_SCREEN.takeIf { Console.SECOND_DISPLAY_FREE },
             ),
             keys
         )
@@ -442,6 +450,23 @@ class ReaderScreensTest {
                 assertTrue("${entry.key ?: entry.title}: $summary", summary.length <= 120)
             }
         }
+    }
+
+    @Test
+    fun aSettingIsFoundByItsNameAndOpenedOnItsPage() {
+        val activity = Robolectric.buildActivity(ReaderSettingsActivity::class.java).setup().get()
+        val found = ReaderSettingsActivity.find(activity, "furigana")
+        assertEquals(listOf(ReaderSettings.KEY_FURIGANA), found.map { it.key })
+        assertEquals(ReaderSettingsActivity.Section.READING, found.first().section)
+        assertTrue(ReaderSettingsActivity.find(activity, "  ").isEmpty())
+        assertTrue(ReaderSettingsActivity.find(activity, "no such setting").isEmpty())
+        // A setting behind its page's "More": the page comes whole.
+        val behind = ReaderSettingsActivity.find(activity, "screenshot").first()
+        assertEquals(ReaderSettingsActivity.Section.CARDS, behind.section)
+        activity.open(behind.section, behind.key)
+        val page = settingsPage(activity)
+        assertEquals(Int.MAX_VALUE, page.preferenceScreen.initialExpandedChildrenCount)
+        assertEquals(ReaderSettingsActivity.Section.CARDS, activity.openSection)
     }
 
     @Test

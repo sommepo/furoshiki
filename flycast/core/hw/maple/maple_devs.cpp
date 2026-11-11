@@ -111,6 +111,13 @@ struct maple_sega_controller: maple_base
 			return pjs.trigger[PJTI_R];		// Right trigger
 		else if (index == 1)
 			return pjs.trigger[PJTI_L];		// Left trigger
+		// Reader fork: the right stick in the second stick's bytes, which the console's own
+		// controller leaves centred and its games do not read; a patched game can (Karakuri's
+		// camera).
+		else if (index == 4)
+			return pjs.joy[PJAI_X2];
+		else if (index == 5)
+			return pjs.joy[PJAI_Y2];
 		else
 			return 0x80;					// unused
 	}

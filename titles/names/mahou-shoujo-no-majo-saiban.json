@@ -1,0 +1,339 @@
+{
+ "source": {
+  "vndb": "v50283",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "女": "おんな",
+  "怪力": "かいりき",
+  "大魔女": "だいまじょ"
+ },
+ "entries": [
+  {
+   "id": "c137420",
+   "kind": "person",
+   "name": "桜羽 エマ",
+   "family": "桜羽",
+   "given": "エマ",
+   "reading": "さくらば エマ",
+   "family_reading": "さくらば",
+   "given_reading": "エマ",
+   "romaji": "Sakuraba Ema",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c155545",
+   "kind": "person",
+   "name": "二階堂 ヒロ",
+   "family": "二階堂",
+   "given": "ヒロ",
+   "reading": "にかいどう ヒロ",
+   "family_reading": "にかいどう",
+   "given_reading": "ヒロ",
+   "romaji": "Nikaidou Hiro",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c137421",
+   "kind": "person",
+   "name": "二階堂 ヒロ",
+   "family": "二階堂",
+   "given": "ヒロ",
+   "reading": "にかいどう ヒロ",
+   "family_reading": "にかいどう",
+   "given_reading": "ヒロ",
+   "romaji": "Nikaidou Hiro",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137422",
+   "kind": "person",
+   "name": "夏目 アンアン",
+   "family": "夏目",
+   "given": "アンアン",
+   "reading": "なつめ アンアン",
+   "family_reading": "なつめ",
+   "given_reading": "アンアン",
+   "romaji": "Natsume An-An",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137423",
+   "kind": "person",
+   "name": "城ケ崎 ノア",
+   "family": "城ケ崎",
+   "given": "ノア",
+   "reading": "じょうがさき ノア",
+   "family_reading": "じょうがさき",
+   "given_reading": "ノア",
+   "romaji": "Jougasaki Noah",
+   "aliases": [
+    {
+     "text": "バルーン",
+     "reading": "バルーン"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137424",
+   "kind": "person",
+   "name": "蓮見 レイア",
+   "family": "蓮見",
+   "given": "レイア",
+   "reading": "はすみ レイア",
+   "family_reading": "はすみ",
+   "given_reading": "レイア",
+   "romaji": "Hasumi Leia",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137425",
+   "kind": "person",
+   "name": "佐伯 ミリア",
+   "family": "佐伯",
+   "given": "ミリア",
+   "reading": "さえき ミリア",
+   "family_reading": "さえき",
+   "given_reading": "ミリア",
+   "romaji": "Saeki Miria",
+   "aliases": [
+    {
+     "text": "おじさん",
+     "reading": "おじさん"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137426",
+   "kind": "person",
+   "name": "宝生 マーゴ",
+   "family": "宝生",
+   "given": "マーゴ",
+   "reading": "ほうしょう マーゴ",
+   "family_reading": "ほうしょう",
+   "given_reading": "マーゴ",
+   "romaji": "Houshou Margo",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137427",
+   "kind": "person",
+   "name": "黒部 ナノカ",
+   "family": "黒部",
+   "given": "ナノカ",
+   "reading": "くろべ ナノカ",
+   "family_reading": "くろべ",
+   "given_reading": "ナノカ",
+   "romaji": "Kurobe Nanoka",
+   "aliases": [
+    {
+     "text": "なのちゃん",
+     "reading": "なのちゃん"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137428",
+   "kind": "person",
+   "name": "紫藤 アリサ",
+   "family": "紫藤",
+   "given": "アリサ",
+   "reading": "しとう アリサ",
+   "family_reading": "しとう",
+   "given_reading": "アリサ",
+   "romaji": "Shitou Alisa",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137429",
+   "kind": "person",
+   "name": "橘 シェリー",
+   "family": "橘",
+   "given": "シェリー",
+   "reading": "たちばな シェリー",
+   "family_reading": "たちばな",
+   "given_reading": "シェリー",
+   "romaji": "Tachibana Sherry",
+   "aliases": [
+    {
+     "text": "ゴリラ女",
+     "reading": "ゴリラおんな"
+    },
+    {
+     "text": "怪力女"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:怪力女"
+   ]
+  },
+  {
+   "id": "c137430",
+   "kind": "person",
+   "name": "遠野 ハンナ",
+   "family": "遠野",
+   "given": "ハンナ",
+   "reading": "とおの ハンナ",
+   "family_reading": "とおの",
+   "given_reading": "ハンナ",
+   "romaji": "Toono Hanna",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137431",
+   "kind": "person",
+   "name": "沢渡 ココ",
+   "family": "沢渡",
+   "given": "ココ",
+   "reading": "さわたり ココ",
+   "family_reading": "さわたり",
+   "given_reading": "ココ",
+   "romaji": "Sawatari Coco",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c137432",
+   "kind": "person",
+   "name": "氷上 メルル",
+   "family": "氷上",
+   "given": "メルル",
+   "reading": "ひかみ メルル",
+   "family_reading": "ひかみ",
+   "given_reading": "メルル",
+   "romaji": "Hikami Meruru",
+   "aliases": [
+    {
+     "text": "メルっち",
+     "reading": "メルっち"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c155626",
+   "kind": "person",
+   "name": "月代 ユキ",
+   "family": "月代",
+   "given": "ユキ",
+   "reading": "つきしろ ユキ",
+   "family_reading": "つきしろ",
+   "given_reading": "ユキ",
+   "romaji": "Tsukishiro Yuki",
+   "aliases": [
+    {
+     "text": "大魔女",
+     "reading": "だいまじょ"
+    }
+   ],
+   "role": "primary",
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c148547",
+   "kind": "person",
+   "name": "ゴクチョー",
+   "reading": "ゴクチョー",
+   "romaji": "Gokuchou",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c153738",
+   "kind": "person",
+   "name": "看守",
+   "reading": "かんしゅ",
+   "romaji": "Kanshu",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rouyashiki",
+   "kind": "place",
+   "name": "牢屋敷",
+   "reading": "ろうやしき",
+   "romaji": "Rouyashiki",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:majo-saiban",
+   "kind": "thing",
+   "name": "魔女裁判",
+   "reading": "まじょさいばん",
+   "romaji": "Majo Saiban",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

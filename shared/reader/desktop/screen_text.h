@@ -22,6 +22,16 @@ struct PresentedLine {
     TextLine line;
     LineAccounting accounting;
     qint64 backlog_id{-1};
+    /// For several lines joined into one (Join): the oldest's backlog id, else -1.
+    qint64 first_backlog_id{-1};
+
+    /**
+     * Several lines as one, for a card of an exchange: `lines` oldest first. The text is each
+     * line's on a row of its own with the readings kept in place, the speaker the lines' own
+     * when they share one, the audio begins where the oldest's did, and the backlog id is the
+     * newest's (its picture, and where its audio ends). Nothing for an empty list.
+     */
+    [[nodiscard]] static std::optional<PresentedLine> Join(const QList<PresentedLine>& lines);
 };
 
 /**

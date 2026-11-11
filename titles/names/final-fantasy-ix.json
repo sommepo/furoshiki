@@ -1,0 +1,842 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ファイナルファンタジーIX",
+   "backlog speakers"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:zidane-tribal",
+   "kind": "person",
+   "name": "ジタン・トライバル",
+   "family": "トライバル",
+   "given": "ジタン",
+   "reading": "ジタン・トライバル",
+   "family_reading": "トライバル",
+   "given_reading": "ジタン",
+   "romaji": "Zidane Tribal",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:garnet-til-alexandros-xvii",
+   "kind": "person",
+   "name": "ガーネット・ティル・アレクサンドロス17世",
+   "given": "ガーネット",
+   "reading": "ガーネット・ティル・アレクサンドロスじゅうななせい",
+   "given_reading": "ガーネット",
+   "romaji": "Garnet til Alexandros XVII",
+   "aliases": [
+    {
+     "text": "ダガー",
+     "reading": "ダガー"
+    },
+    {
+     "text": "ガーネット姫",
+     "reading": "ガーネットひめ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:vivi-ornitier",
+   "kind": "person",
+   "name": "ビビ・オルニティア",
+   "family": "オルニティア",
+   "given": "ビビ",
+   "reading": "ビビ・オルニティア",
+   "family_reading": "オルニティア",
+   "given_reading": "ビビ",
+   "romaji": "Vivi Ornitier",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:adelbert-steiner",
+   "kind": "person",
+   "name": "アデルバート・スタイナー",
+   "family": "スタイナー",
+   "given": "アデルバート",
+   "reading": "アデルバート・スタイナー",
+   "family_reading": "スタイナー",
+   "given_reading": "アデルバート",
+   "romaji": "Adelbert Steiner",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:freija-crescent",
+   "kind": "person",
+   "name": "フライヤ・クレセント",
+   "family": "クレセント",
+   "given": "フライヤ",
+   "reading": "フライヤ・クレセント",
+   "family_reading": "クレセント",
+   "given_reading": "フライヤ",
+   "romaji": "Freija Crescent",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:quina-quen",
+   "kind": "person",
+   "name": "クイナ・クゥエン",
+   "family": "クゥエン",
+   "given": "クイナ",
+   "reading": "クイナ・クゥエン",
+   "family_reading": "クゥエン",
+   "given_reading": "クイナ",
+   "romaji": "Quina Quen",
+   "aliases": [],
+   "role": "primary",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:eiko-carol",
+   "kind": "person",
+   "name": "エーコ・キャルオル",
+   "family": "キャルオル",
+   "given": "エーコ",
+   "reading": "エーコ・キャルオル",
+   "family_reading": "キャルオル",
+   "given_reading": "エーコ",
+   "romaji": "Eiko Carol",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:salamander-coral",
+   "kind": "person",
+   "name": "サラマンダー・コーラル",
+   "family": "コーラル",
+   "given": "サラマンダー",
+   "reading": "サラマンダー・コーラル",
+   "family_reading": "コーラル",
+   "given_reading": "サラマンダー",
+   "romaji": "Salamander Coral",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kuja",
+   "kind": "person",
+   "name": "クジャ",
+   "reading": "クジャ",
+   "romaji": "Kuja",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:brahne-raza-alexandros-xvi",
+   "kind": "person",
+   "name": "ブラネ・ラザ・アレクサンドロス16世",
+   "given": "ブラネ",
+   "reading": "ブラネ・ラザ・アレクサンドロスじゅうろくせい",
+   "given_reading": "ブラネ",
+   "romaji": "Brahne Raza Alexandros XVI",
+   "aliases": [
+    {
+     "text": "ブラネ女王",
+     "reading": "ブラネじょおう"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:beatrix",
+   "kind": "person",
+   "name": "ベアトリクス",
+   "reading": "ベアトリクス",
+   "romaji": "Beatrix",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cid-fabool-ix",
+   "kind": "person",
+   "name": "シド・ファブール9世",
+   "given": "シド",
+   "reading": "シド・ファブールきゅうせい",
+   "given_reading": "シド",
+   "romaji": "Cid Fabool IX",
+   "aliases": [
+    {
+     "text": "シド大公",
+     "reading": "シドたいこう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:hildagarde-fabool",
+   "kind": "person",
+   "name": "ヒルダガルデ・ファブール",
+   "family": "ファブール",
+   "given": "ヒルダガルデ",
+   "reading": "ヒルダガルデ・ファブール",
+   "family_reading": "ファブール",
+   "given_reading": "ヒルダガルデ",
+   "romaji": "Hildagarde Fabool",
+   "aliases": [
+    {
+     "text": "ヒルダ",
+     "reading": "ヒルダ"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:baku",
+   "kind": "person",
+   "name": "バクー",
+   "reading": "バクー",
+   "romaji": "Baku",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:blank",
+   "kind": "person",
+   "name": "ブランク",
+   "reading": "ブランク",
+   "romaji": "Blank",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cinna",
+   "kind": "person",
+   "name": "シナ",
+   "reading": "シナ",
+   "romaji": "Cinna",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:marcus",
+   "kind": "person",
+   "name": "マーカス",
+   "reading": "マーカス",
+   "romaji": "Marcus",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ruby",
+   "kind": "person",
+   "name": "ルビィ",
+   "reading": "ルビィ",
+   "romaji": "Ruby",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zenero",
+   "kind": "person",
+   "name": "ゼネロ",
+   "reading": "ゼネロ",
+   "romaji": "Zenero",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:benero",
+   "kind": "person",
+   "name": "ベネロ",
+   "reading": "ベネロ",
+   "romaji": "Benero",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zorn",
+   "kind": "person",
+   "name": "ゾーン",
+   "reading": "ゾーン",
+   "romaji": "Zorn",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:thorn",
+   "kind": "person",
+   "name": "ソーン",
+   "reading": "ソーン",
+   "romaji": "Thorn",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:fratley",
+   "kind": "person",
+   "name": "フラットレイ",
+   "reading": "フラットレイ",
+   "romaji": "Fratley",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tot",
+   "kind": "person",
+   "name": "トット",
+   "reading": "トット",
+   "romaji": "Tot",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:puck",
+   "kind": "person",
+   "name": "パック",
+   "reading": "パック",
+   "romaji": "Puck",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:artania",
+   "kind": "person",
+   "name": "オルベルタ",
+   "reading": "オルベルタ",
+   "romaji": "Artania",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:quale",
+   "kind": "person",
+   "name": "クエール",
+   "reading": "クエール",
+   "romaji": "Quale",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:quan",
+   "kind": "person",
+   "name": "クワン",
+   "reading": "クワン",
+   "romaji": "Quan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lani",
+   "kind": "person",
+   "name": "ラニ",
+   "reading": "ラニ",
+   "romaji": "Lani",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:stiltzkin",
+   "kind": "person",
+   "name": "スティルツキン",
+   "reading": "スティルツキン",
+   "romaji": "Stiltzkin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:garland",
+   "kind": "person",
+   "name": "ガーランド",
+   "reading": "ガーランド",
+   "romaji": "Garland",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:mikoto",
+   "kind": "person",
+   "name": "ミコト",
+   "reading": "ミコト",
+   "romaji": "Mikoto",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:alexandria",
+   "kind": "place",
+   "name": "アレクサンドリア",
+   "reading": "アレクサンドリア",
+   "romaji": "Alexandria",
+   "aliases": [
+    {
+     "text": "アレクサンドリア王国",
+     "reading": "アレクサンドリアおうこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lindblum",
+   "kind": "place",
+   "name": "リンドブルム",
+   "reading": "リンドブルム",
+   "romaji": "Lindblum",
+   "aliases": [
+    {
+     "text": "リンドブルム公国",
+     "reading": "リンドブルムこうこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:burmecia",
+   "kind": "place",
+   "name": "ブルメシア",
+   "reading": "ブルメシア",
+   "romaji": "Burmecia",
+   "aliases": [
+    {
+     "text": "ブルメシア王国",
+     "reading": "ブルメシアおうこく"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:cleyra",
+   "kind": "place",
+   "name": "クレイラ",
+   "reading": "クレイラ",
+   "romaji": "Cleyra",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:treno",
+   "kind": "place",
+   "name": "トレノ",
+   "reading": "トレノ",
+   "romaji": "Treno",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:dali",
+   "kind": "place",
+   "name": "ダリ",
+   "reading": "ダリ",
+   "romaji": "Dali",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kuromadoushi-no-mura",
+   "kind": "place",
+   "name": "黒魔道士の村",
+   "reading": "くろまどうしのむら",
+   "romaji": "Kuromadoushi no Mura",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:conde-petie",
+   "kind": "place",
+   "name": "コンデヤ・パタ",
+   "reading": "コンデヤ・パタ",
+   "romaji": "Conde Petie",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:madain-sari",
+   "kind": "place",
+   "name": "マダイン・サリ",
+   "reading": "マダイン・サリ",
+   "romaji": "Madain Sari",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:iifa-tree",
+   "kind": "place",
+   "name": "イーファの樹",
+   "romaji": "Iifa Tree",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:esto-gaza",
+   "kind": "place",
+   "name": "エスト・ガザ",
+   "reading": "エスト・ガザ",
+   "romaji": "Esto Gaza",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:oeilvert",
+   "kind": "place",
+   "name": "ウイユヴェール",
+   "reading": "ウイユヴェール",
+   "romaji": "Oeilvert",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "place:desert-palace",
+   "kind": "place",
+   "name": "デザートエンプレス",
+   "reading": "デザートエンプレス",
+   "romaji": "Desert Palace",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "place:kiri-no-tairiku",
+   "kind": "place",
+   "name": "霧の大陸",
+   "reading": "きりのたいりく",
+   "romaji": "Kiri no Tairiku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:sotogawa-no-tairiku",
+   "kind": "place",
+   "name": "外側の大陸",
+   "reading": "そとがわのたいりく",
+   "romaji": "Sotogawa no Tairiku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:wasuresarareta-tairiku",
+   "kind": "place",
+   "name": "忘れ去られた大陸",
+   "reading": "わすれさられたたいりく",
+   "romaji": "Wasuresarareta Tairiku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:gaia",
+   "kind": "place",
+   "name": "ガイア",
+   "reading": "ガイア",
+   "romaji": "Gaia",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:terra",
+   "kind": "place",
+   "name": "テラ",
+   "reading": "テラ",
+   "romaji": "Terra",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kiri",
+   "kind": "thing",
+   "name": "霧",
+   "reading": "きり",
+   "romaji": "Kiri",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:tantalus",
+   "kind": "thing",
+   "name": "タンタラス",
+   "reading": "タンタラス",
+   "romaji": "Tantalus",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:prima-vista",
+   "kind": "thing",
+   "name": "プリマビスタ",
+   "reading": "プリマビスタ",
+   "romaji": "Prima Vista",
+   "aliases": [
+    {
+     "text": "劇場艇プリマビスタ",
+     "reading": "げきじょうていプリマビスタ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:pluto-tai",
+   "kind": "thing",
+   "name": "プルート隊",
+   "reading": "プルートたい",
+   "romaji": "Pluto-tai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kuromadoushi",
+   "kind": "thing",
+   "name": "黒魔道士",
+   "reading": "くろまどうし",
+   "romaji": "Kuromadoushi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shoukanshi",
+   "kind": "thing",
+   "name": "召喚士",
+   "reading": "しょうかんし",
+   "romaji": "Shoukanshi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:moogle",
+   "kind": "thing",
+   "name": "モーグリ",
+   "reading": "モーグリ",
+   "romaji": "Moogle",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:mognet",
+   "kind": "thing",
+   "name": "モグネット",
+   "reading": "モグネット",
+   "romaji": "Mognet",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ku-zoku",
+   "kind": "thing",
+   "name": "ク族",
+   "reading": "クぞく",
+   "romaji": "Ku-zoku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:genome",
+   "kind": "thing",
+   "name": "ジェノム",
+   "reading": "ジェノム",
+   "romaji": "Genome",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "thing:trance",
+   "kind": "thing",
+   "name": "トランス",
+   "reading": "トランス",
+   "romaji": "Trance",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:chocobo",
+   "kind": "thing",
+   "name": "チョコボ",
+   "reading": "チョコボ",
+   "romaji": "Chocobo",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

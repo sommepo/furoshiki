@@ -93,6 +93,13 @@ copy_deps() {
 }
 
 install -m 755 "$build/reader-home" "$out/reader-home.bin"
+# Frida's frida-inject, which runs Agent's scripts (docs/hooks.md; tools/fetch-hooks.sh linux
+# fetches it into the build folder). Without it the program fetches it at first use.
+if [ -f "$build/hooks/frida-inject" ]; then
+  mkdir -p "$out/hooks"
+  install -m 755 "$build/hooks/frida-inject" "$out/hooks/frida-inject"
+  install -m 644 "$build/hooks/frida-COPYING.txt" "$out/hooks/frida-COPYING.txt"
+fi
 "$strip" --strip-unneeded "$out/reader-home.bin"
 copy_deps "$build/reader-home"
 # Qt's plugins: X11 (with its GL and EGL ways of drawing), the offscreen platform for tests,

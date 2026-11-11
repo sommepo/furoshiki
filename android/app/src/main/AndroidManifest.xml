@@ -23,7 +23,7 @@
     <application
         android:name=".FuroshikiApp"
         android:allowBackup="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_furoshiki_37"
         android:label="@string/app_name"
         android:appCategory="game"
         android:isGame="true"
@@ -36,13 +36,456 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
-            android:resizeableActivity="true">
+            android:resizeableActivity="true" />
+
+        <!-- The launcher's way in, one alias a colour of the icon, one enabled (AppIcon.kt).
+             home/tools/icon.py writes them from home/icon/icon.json. -->
+        <!-- [icons -->
+        <activity-alias
+            android:name=".Icon01"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_01">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon02"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_02">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon03"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_03">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon04"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_04">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon05"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_05">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon06"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_06">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon07"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_07">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon08"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_08">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon09"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_09">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon10"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_10">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon11"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_11">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon12"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_12">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon13"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_13">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon14"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_14">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon15"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_15">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon16"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_16">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon17"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_17">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon18"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_18">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon19"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_19">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon20"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_20">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon21"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_21">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon22"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_22">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon23"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_23">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon24"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_24">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon25"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_25">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon26"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_26">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon27"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_27">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon28"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_28">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon29"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_29">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon30"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_30">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon31"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_31">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon32"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_32">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon33"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_33">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon34"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_34">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon35"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_35">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon36"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_36">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Icon37"
+            android:targetActivity=".HomeActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_furoshiki_37">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <!-- icons] -->
 
         <!-- Everything of the reader is in the process of the game, which ends with the game:
              one core a process, as emulators were never made to share one. -->

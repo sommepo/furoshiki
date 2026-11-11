@@ -6,7 +6,9 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <QJsonObject>
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 
 class QSettings;
@@ -45,9 +47,23 @@ public:
     void SetLayered(Layered layered_) {
         layered = std::move(layered_);
     }
+    /**
+     * Where such a program keeps a value it has in its layers (Furoshiki's CRT picture, for one
+     * game, its console or all consoles): `write` answers true when it took the value, which
+     * then is not written to this file.
+     */
+    using LayeredWrite = std::function<bool(const QString& key, const QVariant& value)>;
+    void SetLayeredWrite(LayeredWrite write) {
+        layered_write = std::move(write);
+    }
+    /// This file's own value of a key, whatever a layer says.
+    [[nodiscard]] QVariant FileValue(const QString& key, const QVariant& fallback = {}) const;
     /// The user's own CSS for the popup page (applied after its theme), or empty.
     [[nodiscard]] QString PopupCss() const;
     void SetValue(const QString& key, const QVariant& value);
+    /// Whether `key` has a value of the user's (not its default), and that value forgotten.
+    [[nodiscard]] bool Has(const QString& key) const;
+    void Remove(const QString& key);
     void Sync();
 
     // ---- Text in the game's picture ----
@@ -81,6 +97,28 @@ public:
     /// The popup's look: "console" (the first value: the popup page in the console's colours),
     /// "furoshiki", "yomitan-dark", "paper", "paper-dark", or "classic" (drawn as before the page).
     [[nodiscard]] QString PopupTheme() const;
+    /// The looks the page has besides the console's own colours, in the order they are offered.
+    /// (Here in the header: Furoshiki's page lists them without the reader's library.)
+    [[nodiscard]] static const QStringList& PopupThemes() {
+        static const QStringList themes{
+            QStringLiteral("furoshiki"),     QStringLiteral("yomitan-dark"),   QStringLiteral("paper"),
+            QStringLiteral("paper-dark"),    QStringLiteral("solarized-dark"), QStringLiteral("solarized-light"),
+            QStringLiteral("glass"),         QStringLiteral("dense"),          QStringLiteral("kuro"),
+            QStringLiteral("shoin"),         QStringLiteral("ookii"),          QStringLiteral("kumihan"), QStringLiteral("kon")};
+        return themes;
+    }
+    /// How solid the popup's ground is, 20 to 100 %; 0: as its look has it.
+    [[nodiscard]] int PopupOpacity() const;
+    /// The popup's corners, 0 to 28 px; -1: as its look has them.
+    [[nodiscard]] int PopupRadius() const;
+    /// How many senses of a word are shown before "more" (1 to 9); 0: all of them.
+    [[nodiscard]] int PopupCompact() const;
+    /// Whether the senses' part-of-speech tags (n, v1, vt...) are left out.
+    [[nodiscard]] bool PopupHideTags() const;
+    /// A name's picture on its card: "small", "large" or "off".
+    [[nodiscard]] QString PopupPortrait() const;
+    /// Those five as the page takes them (Reader.show's "look"; shared/popup/README.md).
+    [[nodiscard]] QJsonObject PopupLook() const;
     /// Looking a word up by resting the mouse pointer on it: "off", "shift" (while Shift is
     /// held) or "always".
     [[nodiscard]] QString HoverLookup() const;
@@ -162,6 +200,13 @@ public:
     }
     [[nodiscard]] int AudioClipMaxSeconds() const;
     [[nodiscard]] int AudioLeadMs() const;
+    /// Whether a card's clip is cut to what is said in it (PcmTools::TrimToVoice).
+    [[nodiscard]] bool AudioVoiceTrim() const;
+    /// How many of the lines before a card's line its {context} holds (0 to 5).
+    [[nodiscard]] int CardContextLines() const;
+    /// Explaining a line (explain.h): the Claude Code program and the model asked.
+    [[nodiscard]] QString ExplainCommand() const;
+    [[nodiscard]] QString ExplainModel() const;
     [[nodiscard]] int ScreenshotCacheLines() const;
     [[nodiscard]] int ScreenshotMaxWidth() const;
 
@@ -242,6 +287,11 @@ public:
     static const QString KeyPopupLookups;
     static const QString KeyPopupTheme;
     static const QString KeyPopupCss;
+    static const QString KeyPopupOpacity;
+    static const QString KeyPopupRadius;
+    static const QString KeyPopupCompact;
+    static const QString KeyPopupHideTags;
+    static const QString KeyPopupPortrait;
     static const QString KeyHoverLookup;
     static const QString KeyCursorButton;
     static const QString KeyStatsButton;
@@ -256,7 +306,10 @@ public:
     static const QString KeyCursorFrame;
     static const QString KeyCursorHome;
     static const QString KeyStatsPaused;
-    static const QString KeyIdleMinutes;
+    static const QString KeyIdleSeconds;
+    /// The reading clock's idle timeout: 30 s unless changed, 10 s to 5 min.
+    static constexpr int IdleSecondsDefault = 30;
+    static constexpr int IdleSecondsMin = 10;
     static const QString KeySessionHud;
     static const QString KeyStatsStyle;
     static const QString KeyDiscordEnabled;
@@ -270,6 +323,10 @@ public:
     static const QString KeyCaptureAudio;
     static const QString KeyAudioMax;
     static const QString KeyAudioLead;
+    static const QString KeyAudioVoiceTrim;
+    static const QString KeyCardContextLines;
+    static const QString KeyExplainCommand;
+    static const QString KeyExplainModel;
     static const QString KeyScreenshotCache;
     static const QString KeyScreenshotWidth;
     static const QString KeyCardAudio;
@@ -292,6 +349,7 @@ private:
     [[nodiscard]] QString String(const QString& key, const QString& fallback) const;
 
     Layered layered;
+    LayeredWrite layered_write;
     std::unique_ptr<QSettings> settings;
     /// The settings every reader app shares; null when this app keeps all its own.
     std::unique_ptr<QSettings> shared;

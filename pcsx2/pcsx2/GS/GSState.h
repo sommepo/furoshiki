@@ -497,6 +497,9 @@ public:
 	void FlushDraw(GSFlushReason reason);
 	u32 CalcMask(int exp, int max_exp);
 	void FlushPrim();
+	// Reader fork: the wide picture's 2D drawn to its own shape (GSSetReader2DSqueeze).
+	void ReaderSqueeze2D();
+	void ReaderSqueezeScissor(float squeeze, float middle_px, int width);
 	bool TestDrawChanged();
 	void FlushWrite();
 	virtual void Draw() = 0;

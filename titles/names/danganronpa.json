@@ -1,0 +1,619 @@
+{
+ "source": {
+  "vndb": "v7014",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "readings": {
+  "超高校級": "ちょうこうこうきゅう",
+  "石田": "いしだ",
+  "安広": "やすひろ",
+  "多恵子": "たえこ",
+  "風紀委員": "ふうきいいん"
+ },
+ "entries": [
+  {
+   "id": "c7828",
+   "kind": "person",
+   "name": "苗木 誠",
+   "family": "苗木",
+   "given": "誠",
+   "reading": "なえぎ まこと",
+   "family_reading": "なえぎ",
+   "given_reading": "まこと",
+   "romaji": "Naegi Makoto",
+   "aliases": [
+    {
+     "text": "なえぎっち",
+     "reading": "なえぎっち"
+    },
+    {
+     "text": "超高校級の「希望」",
+     "reading": "ちょうこうこうきゅうのきぼう"
+    },
+    {
+     "text": "超高校級の「幸運」",
+     "reading": "ちょうこうこうきゅうのこううん"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10190",
+   "kind": "person",
+   "name": "石丸 清多夏",
+   "family": "石丸",
+   "given": "清多夏",
+   "reading": "いしまる きよたか",
+   "family_reading": "いしまる",
+   "given_reading": "きよたか",
+   "romaji": "Ishimaru Kiyotaka",
+   "aliases": [
+    {
+     "text": "石田",
+     "reading": "いしだ"
+    },
+    {
+     "text": "超高校級の「風紀委員」",
+     "reading": "ちょうこうこうきゅうのふうきいいん"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10191",
+   "kind": "person",
+   "name": "十神 白夜",
+   "family": "十神",
+   "given": "白夜",
+   "reading": "とがみ びゃくや",
+   "family_reading": "とがみ",
+   "given_reading": "びゃくや",
+   "romaji": "Togami Byakuya",
+   "aliases": [
+    {
+     "text": "超高校級の「御曹司」",
+     "reading": "ちょうこうこうきゅうのおんぞうし"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10192",
+   "kind": "person",
+   "name": "大和田 紋土",
+   "family": "大和田",
+   "given": "紋土",
+   "reading": "おおわだ もんど",
+   "family_reading": "おおわだ",
+   "given_reading": "もんど",
+   "romaji": "Oowada Mondo",
+   "aliases": [
+    {
+     "text": "超高校級の「暴走族」",
+     "reading": "ちょうこうこうきゅうのぼうそうぞく"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10193",
+   "kind": "person",
+   "name": "桑田 怜恩",
+   "family": "桑田",
+   "given": "怜恩",
+   "romaji": "Kuwata Leon",
+   "aliases": [
+    {
+     "text": "超高校級の「野球選手」",
+     "reading": "ちょうこうこうきゅうのやきゅうせんしゅ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c10194",
+   "kind": "person",
+   "name": "山田 一二三",
+   "family": "山田",
+   "given": "一二三",
+   "reading": "やまだ ひふみ",
+   "family_reading": "やまだ",
+   "given_reading": "ひふみ",
+   "romaji": "Yamada Hifumi",
+   "aliases": [
+    {
+     "text": "超高校級の「同人作家」",
+     "reading": "ちょうこうこうきゅうのどうじんさっか"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10195",
+   "kind": "person",
+   "name": "葉隠 康比呂",
+   "family": "葉隠",
+   "given": "康比呂",
+   "reading": "はがくれ やすひろ",
+   "family_reading": "はがくれ",
+   "given_reading": "やすひろ",
+   "romaji": "Hagakure Yasuhiro",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10196",
+   "kind": "person",
+   "name": "舞園 さやか",
+   "family": "舞園",
+   "given": "さやか",
+   "reading": "まいぞの さやか",
+   "family_reading": "まいぞの",
+   "given_reading": "さやか",
+   "romaji": "Maizono Sayaka",
+   "aliases": [
+    {
+     "text": "超高校級の「アイドル」",
+     "reading": "ちょうこうこうきゅうのアイドル"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10197",
+   "kind": "person",
+   "name": "霧切 響子",
+   "family": "霧切",
+   "given": "響子",
+   "reading": "きりぎり きょうこ",
+   "family_reading": "きりぎり",
+   "given_reading": "きょうこ",
+   "romaji": "Kirigiri Kyouko",
+   "aliases": [
+    {
+     "text": "超高校級の「???」",
+     "reading": "ちょうこうこうきゅうの"
+    },
+    {
+     "text": "超高校級の「探偵」",
+     "reading": "ちょうこうこうきゅうのたんてい"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10198",
+   "kind": "person",
+   "name": "朝日奈 葵",
+   "family": "朝日奈",
+   "given": "葵",
+   "reading": "あさひな あおい",
+   "family_reading": "あさひな",
+   "given_reading": "あおい",
+   "romaji": "Asahina Aoi",
+   "aliases": [
+    {
+     "text": "あさひなっち",
+     "reading": "あさひなっち"
+    },
+    {
+     "text": "超高校級の「スイマー」",
+     "reading": "ちょうこうこうきゅうのスイマー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10199",
+   "kind": "person",
+   "name": "腐川 冬子",
+   "family": "腐川",
+   "given": "冬子",
+   "reading": "ふかわ とうこ",
+   "family_reading": "ふかわ",
+   "given_reading": "とうこ",
+   "romaji": "Fukawa Touko",
+   "aliases": [
+    {
+     "text": "超高校級の「文学少女」",
+     "reading": "ちょうこうこうきゅうのぶんがくしょうじょ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10200",
+   "kind": "person",
+   "name": "大神 さくら",
+   "family": "大神",
+   "given": "さくら",
+   "reading": "おおがみ さくら",
+   "family_reading": "おおがみ",
+   "given_reading": "さくら",
+   "romaji": "Oogami Sakura",
+   "aliases": [
+    {
+     "text": "オーグル",
+     "reading": "オーグル"
+    },
+    {
+     "text": "超高校級の「格闘家」",
+     "reading": "ちょうこうこうきゅうのかくとうか"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10201",
+   "kind": "person",
+   "name": "セレスティア・ルーデンベルク",
+   "reading": "セレスティア・ルーデンベルク",
+   "romaji": "Celestia Ludenberg",
+   "aliases": [
+    {
+     "text": "安広 多恵子",
+     "reading": "やすひろ たえこ"
+    },
+    {
+     "text": "超高校級の「ギャンブラー」",
+     "reading": "ちょうこうこうきゅうのギャンブラー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10202",
+   "kind": "person",
+   "name": "江ノ島 盾子",
+   "family": "江ノ島",
+   "given": "盾子",
+   "reading": "えのしま じゅんこ",
+   "family_reading": "えのしま",
+   "given_reading": "じゅんこ",
+   "romaji": "Enoshima Junko",
+   "aliases": [
+    {
+     "text": "超高校級の「ギャル」",
+     "reading": "ちょうこうこうきゅうのギャル"
+    },
+    {
+     "text": "超高校級の「絶望」",
+     "reading": "ちょうこうこうきゅうのぜつぼう"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10203",
+   "kind": "person",
+   "name": "不二咲 千尋",
+   "family": "不二咲",
+   "given": "千尋",
+   "reading": "ふじさき ちひろ",
+   "family_reading": "ふじさき",
+   "given_reading": "ちひろ",
+   "romaji": "Fujisaki Chihiro",
+   "aliases": [
+    {
+     "text": "超高校級の「プログラマー」",
+     "reading": "ちょうこうこうきゅうのプログラマー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c47550",
+   "kind": "person",
+   "name": "ジェノサイダー 翔",
+   "family": "ジェノサイダー",
+   "given": "翔",
+   "reading": "ジェノサイダー しょう",
+   "family_reading": "ジェノサイダー",
+   "given_reading": "しょう",
+   "romaji": "Genocider Shou",
+   "aliases": [
+    {
+     "text": "超高校級の「殺人鬼」",
+     "reading": "ちょうこうこうきゅうのさつじんき"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c6626",
+   "kind": "person",
+   "name": "モノクマ",
+   "reading": "モノクマ",
+   "romaji": "Monokuma",
+   "aliases": [],
+   "role": "primary",
+   "sex": "n",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c12346",
+   "kind": "person",
+   "name": "戦刃 むくろ",
+   "family": "戦刃",
+   "given": "むくろ",
+   "reading": "いくさば むくろ",
+   "family_reading": "いくさば",
+   "given_reading": "むくろ",
+   "romaji": "Ikusaba Mukuro",
+   "aliases": [
+    {
+     "text": "超高校級の「絶望」",
+     "reading": "ちょうこうこうきゅうのぜつぼう"
+    },
+    {
+     "text": "超高校級の「軍人」",
+     "reading": "ちょうこうこうきゅうのぐんじん"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c47555",
+   "kind": "person",
+   "name": "アルター エゴ",
+   "family": "アルター",
+   "given": "エゴ",
+   "reading": "アルター エゴ",
+   "family_reading": "アルター",
+   "given_reading": "エゴ",
+   "romaji": "Alter Ego",
+   "aliases": [],
+   "role": "side",
+   "sex": "n",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c104732",
+   "kind": "person",
+   "name": "苗木 こまる",
+   "family": "苗木",
+   "given": "こまる",
+   "reading": "なえぎ こまる",
+   "family_reading": "なえぎ",
+   "given_reading": "こまる",
+   "romaji": "Naegi Komaru",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c153906",
+   "kind": "person",
+   "name": "Makoto's Mom",
+   "family": "Makoto's",
+   "given": "Mom",
+   "romaji": "Makoto's Mom",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c153907",
+   "kind": "person",
+   "name": "Makoto's Dad",
+   "family": "Makoto's",
+   "given": "Dad",
+   "romaji": "Makoto's Dad",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c55729",
+   "kind": "person",
+   "name": "霧切 仁",
+   "family": "霧切",
+   "given": "仁",
+   "reading": "きりぎり じん",
+   "family_reading": "きりぎり",
+   "given_reading": "じん",
+   "romaji": "Kirigiri Jin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "place:kibougamine-gakuen",
+   "kind": "place",
+   "name": "希望ヶ峰学園",
+   "reading": "きぼうがみねがくえん",
+   "romaji": "Kibougamine Gakuen",
+   "aliases": [
+    {
+     "text": "希望ヶ峰",
+     "reading": "きぼうがみね"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:choukoukoukyuu",
+   "kind": "thing",
+   "name": "超高校級",
+   "reading": "ちょうこうこうきゅう",
+   "romaji": "Choukoukoukyuu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:koroshiai-gakuen-seikatsu",
+   "kind": "thing",
+   "name": "コロシアイ学園生活",
+   "reading": "コロシアイがくえんせいかつ",
+   "romaji": "Koroshiai Gakuen Seikatsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:gakkyuu-saiban",
+   "kind": "thing",
+   "name": "学級裁判",
+   "reading": "がっきゅうさいばん",
+   "romaji": "Gakkyuu Saiban",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:oshioki",
+   "kind": "thing",
+   "name": "オシオキ",
+   "reading": "オシオキ",
+   "romaji": "Oshioki",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kotodama",
+   "kind": "thing",
+   "name": "言弾",
+   "reading": "ことだま",
+   "romaji": "Kotodama",
+   "aliases": [
+    {
+     "text": "コトダマ",
+     "reading": "コトダマ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:monokuma-file",
+   "kind": "thing",
+   "name": "モノクマファイル",
+   "reading": "モノクマファイル",
+   "romaji": "Monokuma File",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:denshi-seito-techou",
+   "kind": "thing",
+   "name": "電子生徒手帳",
+   "reading": "でんしせいとてちょう",
+   "romaji": "Denshi Seito Techou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:nonstop-giron",
+   "kind": "thing",
+   "name": "ノンストップ議論",
+   "reading": "ノンストップぎろん",
+   "romaji": "Non-stop Giron",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ronpa",
+   "kind": "thing",
+   "name": "論破",
+   "reading": "ろんぱ",
+   "romaji": "Ronpa",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "title": "CLANNAD",
+ "english": "CLANNAD",
+ "ids": [
+  "SLPM-66302"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": "v4",
+ "jiten": 186,
+ "anilist": null,
+ "guide": "clannad",
+ "screenscraper": {
+  "ps2": 23074
+ }
+}

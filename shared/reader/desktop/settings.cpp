@@ -8,6 +8,7 @@
 #include <QSysInfo>
 #include "reader/desktop/card_builder.h"
 #include "reader/desktop/settings.h"
+#include "reader/desktop/stats.h"
 #include "reader/core/console.h"
 
 namespace ReaderApp {
@@ -25,6 +26,11 @@ const QString ReaderSettings::KeyPopupMarkUnknown = QStringLiteral("reader_popup
 const QString ReaderSettings::KeyPopupLookups = QStringLiteral("reader_popup_lookups");
 const QString ReaderSettings::KeyPopupTheme = QStringLiteral("reader_popup_theme");
 const QString ReaderSettings::KeyPopupCss = QStringLiteral("reader_popup_css");
+const QString ReaderSettings::KeyPopupOpacity = QStringLiteral("reader_popup_opacity");
+const QString ReaderSettings::KeyPopupRadius = QStringLiteral("reader_popup_radius");
+const QString ReaderSettings::KeyPopupCompact = QStringLiteral("reader_popup_compact");
+const QString ReaderSettings::KeyPopupHideTags = QStringLiteral("reader_popup_hide_tags");
+const QString ReaderSettings::KeyPopupPortrait = QStringLiteral("reader_popup_portrait");
 const QString ReaderSettings::KeyHoverLookup = QStringLiteral("reader_hover_lookup");
 const QString ReaderSettings::KeyCursorButton = QStringLiteral("reader_cursor_button");
 const QString ReaderSettings::KeyStatsButton = QStringLiteral("reader_stats_button");
@@ -37,7 +43,9 @@ const QString ReaderSettings::KeyCursorSpeed = QStringLiteral("reader_cursor_spe
 const QString ReaderSettings::KeyCursorFrame = QStringLiteral("reader_cursor_frame");
 const QString ReaderSettings::KeyCursorHome = QStringLiteral("reader_cursor_home");
 const QString ReaderSettings::KeyStatsPaused = QStringLiteral("reader_stats_paused");
-const QString ReaderSettings::KeyIdleMinutes = QStringLiteral("reader_idle_minutes");
+// Seconds since 2026-11-02 (it was reader_idle_minutes, five by default): a new key, so
+// the old five minutes are not kept.
+const QString ReaderSettings::KeyIdleSeconds = QStringLiteral("reader_idle_seconds");
 const QString ReaderSettings::KeySessionHud = QStringLiteral("reader_session_hud");
 const QString ReaderSettings::KeyStatsStyle = QStringLiteral("reader_stats_style");
 const QString ReaderSettings::KeyDiscordEnabled = QStringLiteral("reader_discord_enabled");
@@ -51,6 +59,10 @@ const QString ReaderSettings::KeyClipboardAuto = QStringLiteral("reader_clipboar
 const QString ReaderSettings::KeyCaptureAudio = QStringLiteral("reader_capture_audio");
 const QString ReaderSettings::KeyAudioMax = QStringLiteral("reader_audio_max_seconds");
 const QString ReaderSettings::KeyAudioLead = QStringLiteral("reader_audio_lead_ms");
+const QString ReaderSettings::KeyAudioVoiceTrim = QStringLiteral("reader_audio_voice_trim");
+const QString ReaderSettings::KeyCardContextLines = QStringLiteral("reader_card_context_lines");
+const QString ReaderSettings::KeyExplainCommand = QStringLiteral("reader_explain_command");
+const QString ReaderSettings::KeyExplainModel = QStringLiteral("reader_explain_model");
 const QString ReaderSettings::KeyScreenshotCache = QStringLiteral("reader_screenshot_cache");
 const QString ReaderSettings::KeyScreenshotWidth = QStringLiteral("reader_screenshot_width");
 const QString ReaderSettings::KeyCardAudio = QStringLiteral("reader_card_audio");
@@ -148,8 +160,23 @@ QVariant ReaderSettings::Value(const QString& key, const QVariant& fallback) con
     return For(key).value(key, fallback);
 }
 
+QVariant ReaderSettings::FileValue(const QString& key, const QVariant& fallback) const {
+    return For(key).value(key, fallback);
+}
+
 void ReaderSettings::SetValue(const QString& key, const QVariant& value) {
+    if (layered_write && layered_write(key, value)) {
+        return;
+    }
     For(key).setValue(key, value);
+}
+
+bool ReaderSettings::Has(const QString& key) const {
+    return For(key).contains(key);
+}
+
+void ReaderSettings::Remove(const QString& key) {
+    For(key).remove(key);
 }
 
 void ReaderSettings::Sync() {
@@ -220,10 +247,31 @@ QString ReaderSettings::PopupCss() const {
 }
 QString ReaderSettings::PopupTheme() const {
     const QString value = String(KeyPopupTheme, QStringLiteral("console"));
-    static const QStringList themes{QStringLiteral("furoshiki"), QStringLiteral("yomitan-dark"),
-                                    QStringLiteral("paper"), QStringLiteral("paper-dark"),
-                                    QStringLiteral("classic")};
-    return themes.contains(value) ? value : QStringLiteral("console");
+    return value == QStringLiteral("classic") || PopupThemes().contains(value) ? value : QStringLiteral("console");
+}
+int ReaderSettings::PopupOpacity() const {
+    const int value = Int(KeyPopupOpacity, 0, 0, 100);
+    return value == 0 ? 0 : std::max(20, value);
+}
+int ReaderSettings::PopupRadius() const {
+    return Int(KeyPopupRadius, -1, -1, 28);
+}
+int ReaderSettings::PopupCompact() const {
+    return Int(KeyPopupCompact, 0, 0, 9);
+}
+bool ReaderSettings::PopupHideTags() const {
+    return Bool(KeyPopupHideTags, false);
+}
+QString ReaderSettings::PopupPortrait() const {
+    const QString value = String(KeyPopupPortrait, QStringLiteral("small"));
+    return value == QStringLiteral("large") || value == QStringLiteral("off") ? value : QStringLiteral("small");
+}
+QJsonObject ReaderSettings::PopupLook() const {
+    return QJsonObject{{QStringLiteral("opacity"), PopupOpacity()},
+                       {QStringLiteral("radius"), PopupRadius()},
+                       {QStringLiteral("compact"), PopupCompact()},
+                       {QStringLiteral("hideTags"), PopupHideTags()},
+                       {QStringLiteral("portrait"), PopupPortrait()}};
 }
 QString ReaderSettings::PopupLookups() const {
     const QString value = String(KeyPopupLookups, QStringLiteral("count"));
@@ -288,7 +336,8 @@ void ReaderSettings::SetStatsPaused(bool paused) {
     For(KeyStatsPaused).setValue(KeyStatsPaused, paused);
 }
 qint64 ReaderSettings::IdleTimeoutMs() const {
-    return static_cast<qint64>(Int(KeyIdleMinutes, 5, 1, 60)) * 60000;
+    return static_cast<qint64>(Int(KeyIdleSeconds, IdleSecondsDefault, IdleSecondsMin,
+                                   static_cast<int>(ReadingRules::MaxIdleTimeoutMs / 1000))) * 1000;
 }
 bool ReaderSettings::SessionHud() const {
     return Bool(KeySessionHud, true);
@@ -390,6 +439,20 @@ int ReaderSettings::AudioClipMaxSeconds() const {
 }
 int ReaderSettings::AudioLeadMs() const {
     return Int(KeyAudioLead, 0, 0, 2000);
+}
+bool ReaderSettings::AudioVoiceTrim() const {
+    return Bool(KeyAudioVoiceTrim, true);
+}
+QString ReaderSettings::ExplainCommand() const {
+    const QString value = String(KeyExplainCommand, {}).trimmed();
+    return value.isEmpty() ? QStringLiteral("claude") : value;
+}
+QString ReaderSettings::ExplainModel() const {
+    const QString value = String(KeyExplainModel, {}).trimmed();
+    return value.isEmpty() ? QStringLiteral("claude-sonnet-5-5") : value;
+}
+int ReaderSettings::CardContextLines() const {
+    return Int(KeyCardContextLines, 2, 0, 5);
 }
 int ReaderSettings::ScreenshotCacheLines() const {
     return Int(KeyScreenshotCache, 30, 0, 200);

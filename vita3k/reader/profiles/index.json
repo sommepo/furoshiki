@@ -10,7 +10,12 @@
       "api": 1,
       "file": "PCSG00488.lua",
       "size": 10089,
-      "sha256": "c09162bec38d2a46d01798e4c2603679f8d130a9d2637c4ca48ad8a033546bd7"
+      "sha256": "c09162bec38d2a46d01798e4c2603679f8d130a9d2637c4ca48ad8a033546bd7",
+      "names": {
+        "file": "names-sora-no-kiseki-fc.zip",
+        "size": 13844,
+        "sha256": "22b7b8652dac7d0c1a2ca376310a561a9daba58ceb47aab9a4348d4274df1f1c"
+      }
     }
   ]
 }

@@ -1,0 +1,113 @@
+{
+ "source": {
+  "vndb": "v8038",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c4061",
+   "kind": "person",
+   "name": "斧神 滋比古",
+   "family": "斧神",
+   "given": "滋比古",
+   "reading": "おのがみ しげひこ",
+   "family_reading": "おのがみ",
+   "given_reading": "しげひこ",
+   "romaji": "Onogami Shigehiko",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4060",
+   "kind": "person",
+   "name": "篝ノ 霧枝",
+   "family": "篝ノ",
+   "given": "霧枝",
+   "reading": "かがりの きりえ",
+   "family_reading": "かがりの",
+   "given_reading": "きりえ",
+   "romaji": "Kagarino Kirie",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4062",
+   "kind": "person",
+   "name": "ゾンビ執事",
+   "romaji": "Zombie Butler",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c4063",
+   "kind": "person",
+   "name": "蓮華",
+   "reading": "れんげ",
+   "romaji": "Renge",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4064",
+   "kind": "person",
+   "name": "深見 夏彦",
+   "family": "深見",
+   "given": "夏彦",
+   "reading": "ふかみ なつひこ",
+   "family_reading": "ふかみ",
+   "given_reading": "なつひこ",
+   "romaji": "Fukami Natsuhiko",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c4065",
+   "kind": "person",
+   "name": "稲森 はる",
+   "family": "稲森",
+   "given": "はる",
+   "reading": "いなもり はる",
+   "family_reading": "いなもり",
+   "given_reading": "はる",
+   "romaji": "Inamori Haru",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c164136",
+   "kind": "person",
+   "name": "Yoshida Nana",
+   "family": "Yoshida",
+   "given": "Nana",
+   "romaji": "Yoshida Nana",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  }
+ ]
+}

@@ -105,6 +105,20 @@ void GSgetTitleStats(std::string& info);
 void GSTranslateWindowToDisplayCoordinates(float window_x, float window_y, float* display_x, float* display_y);
 /// Reader fork: where the last frame was drawn in the window (left, top, right, bottom), for Reader Home's core.
 void GSGetLastDrawRect(float rect[4]);
+/// Reader fork: the wide picture's 2D kept to its own shape (reader/core_library/wide_patches.cpp):
+/// 2D drawn into the shown picture is drawn `squeeze` as wide (its native shape over the wide one),
+/// about the picture's middle, so text and HUD are not stretched with the picture. 1: as drawn.
+void GSSetReader2DSqueeze(float squeeze);
+float GSGetReader2DSqueeze();
+/// Which draws are the game's 2D (GSState.cpp's ReaderSqueeze2D): "" the default, or comma-separated
+/// "prims=all", "depth" (or "depth=flat": depth-tested sprites and FST triangles only), "fills" (or "fills=tex": textured ones only), "minwidth=N", "ofx=7000|79A0", "notofx=7200", "fst" (every primitive
+/// with pixel texture coordinates), "frames=0|1000" (only draws into these buffers, by block address;
+/// a copy is then a texture at one of them), "nocopy" (no copy test), "full=N" (a draw N % of the width or
+/// more is a fill; 90), "each" (sprites judged one by one for that),
+/// "full=cover" (a fill only from edge to edge), "prim=5|4" (only these GS primitive types are 2D),
+/// "also=64C0" (every draw at these offsets is 2D), "move=79A0|6660" (draws at these offsets are moved with
+/// their frame, their width kept). Numbers are hexadecimal, but full's.
+void GSSetReader2DRule(const std::string& spec);
 
 void GSUpdateConfig(const Pcsx2Config::GSOptions& new_config);
 void GSSetSoftwareRendering(bool software_renderer, GSInterlaceMode new_interlace);

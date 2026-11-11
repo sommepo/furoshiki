@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string_view>
 #include <type_traits>
@@ -66,7 +68,8 @@ void ApplyConsole(const reader_core_info& info) {
     Traits::ScreenWidth = info.screen_width;
     Traits::ScreenHeight = info.screen_height;
     Traits::LowerScreenWidth = info.lower_screen_width;
-    Traits::HasNextChoice = info.has_next_choice != 0;
+    // The program runs any core that names its "yes" on to the next choice (reader_emu.cpp).
+    Traits::HasNextChoice = info.has_next_choice != 0 || info.button_yes >= 0;
     Reader::Registers::SetCpu(info.cpu);
 }
 
@@ -183,6 +186,34 @@ bool CoreSession::LoadGame(const std::string& game, std::string& error) {
         return false;
     }
     return true;
+}
+
+std::string CoreSession::MissingGame(const std::string& game) {
+    namespace fs = std::filesystem;
+    if (game.empty()) {
+        return "No game was named";
+    }
+    const fs::path path{std::u8string(game.begin(), game.end())};
+    std::error_code failed;
+    const fs::file_status link = fs::symlink_status(path, failed);
+    const bool names_file = game.find_first_of("/\\") != std::string::npos || fs::exists(link);
+    if (!names_file) {
+        return {}; // an installed title's ID (Vita3K's PCSG00488), for the core to find
+    }
+    const fs::file_status target = fs::status(path, failed);
+    if (!fs::exists(target)) {
+        if (fs::is_symlink(link)) {
+            const fs::path to = fs::read_symlink(path, failed);
+            const std::u8string named = to.u8string();
+            return "The game's file is a link to something not there: " + game +
+                   (failed ? std::string() : " (to " + std::string(named.begin(), named.end()) + ")");
+        }
+        return "The game's file is not there: " + game;
+    }
+    if (fs::is_regular_file(target) && !std::ifstream(path, std::ios::binary).is_open()) {
+        return "The game's file cannot be read: " + game;
+    }
+    return {};
 }
 
 void CoreSession::Stop() {
@@ -408,6 +439,9 @@ void CoreSession::OnGameStopped(void* user) {
     CoreSession& session = *From(user);
     session.running = false;
     session.ended = true;
+    if (SessionHooks::game_gone != nullptr) {
+        SessionHooks::game_gone();
+    }
     Reader::Engine::Instance().OnShutdown();
     std::function<void()> callback, listener;
     {
@@ -432,6 +466,10 @@ void CoreSession::OnFrame(void* user, uint32_t width, uint32_t height) {
     Reader::Engine& engine = Reader::Engine::Instance();
     engine.OnPicture(width, height);
     engine.OnFrame();
+    // On to the next choice, a frame at a time (reader_emu.cpp).
+    if (SessionHooks::frame != nullptr) {
+        SessionHooks::frame();
+    }
 }
 
 void CoreSession::OnScreenRect(void* user, int32_t screen, int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -480,6 +518,9 @@ void CoreSession::OnPictureRect(void* user, int32_t x, int32_t y, int32_t width,
 }
 
 void CoreSession::OnStateLoaded(void*) {
+    if (SessionHooks::game_gone != nullptr) {
+        SessionHooks::game_gone();
+    }
     Reader::Engine::Instance().OnStateLoaded();
 }
 
@@ -625,6 +666,12 @@ void CoreSession::OnPad(void* user, uint32_t port, reader_core_pad* state) {
     std::scoped_lock lock{session.mutex};
     if (session.pads) {
         session.pads(port, *state);
+    }
+    // A button of the game's pressed by the player ends a run to the next choice.
+    if (state->buttons != 0) {
+        if (SessionHooks::player_input != nullptr) {
+            SessionHooks::player_input();
+        }
     }
 }
 

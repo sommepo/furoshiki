@@ -1,0 +1,13 @@
+{
+  "name": "Solarized",
+  "order": 4,
+  "ground": "#002b36",
+  "raised": "#073642",
+  "ink": "#eee8d5",
+  "muted": "#839496",
+  "accent": "#b58900",
+  "rule": "rgba(147,161,161,0.32)",
+  "display": "Michroma-Regular.ttf",
+  "text": "ZenKakuGothicNew-Bold.ttf",
+  "mono": "IBMPlexMono-Medium.ttf"
+}

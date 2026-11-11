@@ -33,8 +33,19 @@
 #include <QMouseEvent>
 #include <QStackedWidget>
 #include <SDL.h>
+#include <QClipboard>
 #include "home_window.h"
+#include "hook_processes.h"
+#include "hook_source.h"
+#include "loopback_audio.h"
+#include "line_source.h"
+#include "ocr_overlay.h"
+#include "ocr_source.h"
+#include "line_titles.h"
+#include "text_strip.h"
+#include "reader/qt/lookup_flow.h"
 #include "library.h"
+#include "addons.h"
 #include "app_folders.h"
 #include "main_window.h"
 #include "old_settings.h"
@@ -42,9 +53,16 @@
 #include "reader/qt/host.h"
 #include "reader/qt/install.h"
 #include "reader/qt/reader_link.h"
+#include "reader/qt/reader_dialogs.h"
+#include "reader_rows.h"
+#include "services.h"
+#include "guide_window.h"
+#include "updater.h"
 #include "reader/qt/reader_session.h"
 #include "reader/qt/lookup_popup.h"
+#include "crt_layers.h"
 #include "popup_style.h"
+#include "reader/qt/reader_crt_page.h"
 #include "settings_window.h"
 #ifndef HOME_PUBLIC
 #include "feedback_dialog.h"
@@ -56,6 +74,16 @@
 #endif
 
 namespace Home {
+
+namespace {
+
+/// The models a line can be explained with (Ctrl+E), the first the one it starts with.
+QStringList ExplainModels() {
+    return {QStringLiteral("claude-sonnet-5-5"), QStringLiteral("claude-opus-5-5"), QStringLiteral("claude-haiku-5-5"),
+            QStringLiteral("claude-fable-5-2")};
+}
+
+} // namespace
 
 namespace {
 
@@ -456,6 +484,7 @@ MainWindow::MainWindow() {
     pages->addWidget(screen);
     setCentralWidget(pages);
     resize(1280, 720);
+    PlaceFirst(this);
     setStyleSheet(QStringLiteral("QMainWindow { background: black; }"));
 
     sound = new SoundOut;
@@ -481,12 +510,46 @@ MainWindow::MainWindow() {
               qPrintable(value.value));
     }
     LoadAllCores();
+    // The game add-ons (addons.h): those with a companion get the companion channel, opened with
+    // the reader's windows; a development run's own channel is theirs too.
+    {
+        QStringList problems;
+        addons = FindAddons(AddonFolders(SharedFolder(), QCoreApplication::applicationDirPath()), &problems);
+        for (const QString& problem : std::as_const(problems)) {
+            qWarning("add-on: %s", qPrintable(problem));
+        }
+        QString address = qEnvironmentVariable("READER_DESKTOP_CONTROL");
+#ifdef Q_OS_WIN
+        if (!address.isEmpty() && !address.startsWith(QStringLiteral("\\\\"))) {
+            address = QStringLiteral("\\\\.\\pipe\\") + address;
+        }
+#endif
+        const bool companion = std::any_of(addons.cbegin(), addons.cend(),
+                                           [](const Addon& addon) { return !addon.companion.isEmpty(); });
+        if (companion && address.isEmpty()) {
+            const CompanionChannel channel = MakeCompanionChannel(ProgramFolder());
+            qputenv("READER_COMPANION_CONTROL", channel.listen.toUtf8());
+            address = channel.address;
+        }
+        companions = new Companions(address, ProgramFolder() + QStringLiteral("/addons"), this);
+        for (const Addon& addon : std::as_const(addons)) {
+            qInfo("add-on %s (%s): %s", qPrintable(addon.name), qPrintable(addon.games.join(u',')),
+                  qPrintable(addon.folder));
+        }
+    }
     popup_folder = PopupStyle::Folder(ProgramFolder());
     AddPopupSettings();
     home->SetConsoles(consoles, &play_settings);
     // The popup's settings in the layers come before the reader's own: for the game playing
     // and its console, or all consoles' on the page.
     ReaderUi::ReaderSession::Instance().Settings().SetLayered([this](const QString& key) -> std::optional<QString> {
+        // The CRT picture: for the game playing, its console, all consoles (crt_layers.h).
+        if (key == CrtLayers::ReaderKey) {
+            const bool running = current != nullptr;
+            return CrtLayers::Join(CrtLayers::Resolved(play_settings, CrtBase(),
+                                                       running ? QString::fromUtf8(current->core.info->key) : QString(),
+                                                       running ? playing_id : QString()));
+        }
         if (!key.startsWith(QStringLiteral("reader_popup_"))) {
             return std::nullopt;
         }
@@ -495,7 +558,31 @@ MainWindow::MainWindow() {
                                    running ? QString::fromUtf8(current->core.info->key) : QString(),
                                    running ? playing_id : QString());
     });
+    // The Reader menu's CRT page over a game keeps its values in the layers too: in the game's
+    // own where it has them, else its console's where that has, else all consoles'.
+    ReaderUi::ReaderSession::Instance().Settings().SetLayeredWrite([this](const QString& key, const QVariant& value) {
+        if (key != CrtLayers::ReaderKey) {
+            return false;
+        }
+        const bool running = current != nullptr;
+        const CrtLayers::Layer layer = CrtLayers::Target(play_settings, running ? QString::fromUtf8(current->core.info->key) : QString(),
+                                                         running ? playing_id : QString());
+        CrtLayers::Store(play_settings, CrtBase(), CrtLayers::Parse(value.toString()), layer.console, layer.game);
+        play_settings.Save();
+        return true;
+    });
+    ReaderCrtPage::Load(ReaderUi::ReaderSession::Instance().Settings()); // all consoles' layer
     home->SetSettingsWindow([this](const QString& tab) { OpenSettings(tab); });
+    // The Reader settings' popup page opens this program's customiser (the settings window's Popup tab).
+    ReaderUi::PopupCustomiser() = [this] { OpenSettings(QStringLiteral("Popup")); };
+    // What the paired save sync service says of the user's other services, a moment after the start.
+    QTimer::singleShot(4000, this, [this] { AskHomeServer(false); });
+    // A line is explained by Furochibi's service where the device knows it (services.h).
+    ReaderUi::ExplainService() = [] { return Home::Services::Of(QStringLiteral("furochibi")); };
+    // Cards go to the user's Anki on another computer when none answers here (services.h).
+    ReaderUi::AnkiElsewhere() = [] { return Home::Services::Of(QStringLiteral("anki")); };
+    // The Reader menu's settings are the pages too.
+    ReaderUi::SettingsPages() = [this] { ShowSettingsPages(); };
     // L2 was the pointer's by default, and the Reader settings window wrote that default down
     // on saving, so a stored L2 says nothing of a choice. Once, it goes back to the games.
     if (QSettings program; !program.contains(QStringLiteral("pointer_button_left_to_games"))) {
@@ -504,12 +591,132 @@ MainWindow::MainWindow() {
             ReaderUi::SetPointerButton(-1);
         }
     }
-    home->SetSettingStep([](const QString& row, int step) {
+    // Reading time counted before it was tidied when a game stops (2026-11-02): once, every
+    // earlier session is tidied too (ReaderDatabase::TidyReadingTime; the Reading tab of the
+    // settings window puts it back or does it again).
+    if (QSettings program; !program.contains(QStringLiteral("reading_time_tidied"))) {
+        program.setValue(QStringLiteral("reading_time_tidied"), true);
+        ReaderUi::ReaderSession::Instance().TidyReadingTime([this](const ReaderApp::TidyReport& report) {
+            qInfo("reading time tidied once: %s", qPrintable(TidyReportText(report)));
+            StatsChanged();
+        });
+    }
+    home->SetSettingStep([this](const QString& row, int step) {
+        using Settings = ReaderApp::ReaderSettings;
+        auto& session = ReaderUi::ReaderSession::Instance();
+        Settings& settings = session.Settings();
+        // The reader's own rows (reader_rows.h), then the few that are something else.
+        if (ReaderRows::IsNumber(row) && step == 0) {
+            return;
+        }
+        if (row == QStringLiteral("How solid")) {
+            // The popup's own, in the layers (all consoles'): 0 is "as its look has it", then
+            // 20 % to 100 % in fives. Shown at once in a game that plays.
+            if (step != 0) {
+                const int now = play_settings.Raw(QStringLiteral("popup.opacity")).toInt();
+                int next = now == 0 ? (step > 0 ? 20 : 0) : now + step * 5;
+                next = next < 20 ? 0 : std::min(next, 100);
+                if (next == 0) {
+                    play_settings.Clear(QStringLiteral("popup.opacity"));
+                } else {
+                    play_settings.Set(QStringLiteral("popup.opacity"), QString::number(next));
+                }
+                play_settings.Save();
+                ApplyPlaySettings(playing_id);
+            }
+            return;
+        }
+        if (ReaderRows::Step(settings, row, step == 0 ? 1 : step)) {
+            session.OnSettingsChanged();
+            return;
+        }
         if (row == QStringLiteral("Pointer button")) {
             const QList<int> buttons = ReaderUi::PointerButtons();
-            const int now = buttons.indexOf(ReaderUi::ReaderSession::Instance().Settings().CursorButton());
+            const int now = buttons.indexOf(settings.CursorButton());
             ReaderUi::SetPointerButton(buttons[(std::max(now, 0) + step + buttons.size()) % buttons.size()]);
+        } else if (row == QStringLiteral("Explain with")) {
+            const QStringList models = ExplainModels();
+            const int now = std::max<int>(0, models.indexOf(settings.ExplainModel()));
+            settings.SetValue(Settings::KeyExplainModel, models[(now + step + models.size()) % models.size()]);
+            settings.Sync();
+        } else if (row == QStringLiteral("Customise the popup")) {
+            OpenSettings(QStringLiteral("Popup"));
+        } else if (row == QStringLiteral("CRT picture")) {
+            OpenSettings(QStringLiteral("CRT"));
+        } else if (row == QStringLiteral("Tidy reading time")) {
+            OpenSettings(QStringLiteral("Reading"));
+        } else if (row == QStringLiteral("Dictionaries")) {
+            ReaderUi::RunDictionariesDialog(this);
+        } else if (row == QStringLiteral("Anki")) {
+            ReaderUi::RunAnkiSetupDialog(this);
+        } else if (row == QStringLiteral("Discord application ID")) {
+            bool ok = false;
+            const QString id = QInputDialog::getText(this, row, QStringLiteral("Of a Discord application of your own (17 to 20 digits)"),
+                                                     QLineEdit::Normal, settings.DiscordApplicationId(), &ok).trimmed();
+            if (ok) {
+                settings.SetValue(Settings::KeyDiscordApplicationId, id);
+                settings.Sync();
+                session.OnSettingsChanged();
+            }
+        } else if (row == QStringLiteral("Update")) {
+            // Enter looks; with a build offered, Enter takes it.
+            if (!update_offer.IsNone()) {
+                home->Say(QStringLiteral("Fetching the new build…"));
+                Home::Updater::Take(this, update_offer, [this](const QString& error) {
+                    if (error.isEmpty()) {
+                        update_offer = {};
+                        update_said = QStringLiteral("IN PLACE: START AGAIN");
+                        home->Say(QStringLiteral("The new build is in place: it runs at the next start"));
+                    } else {
+                        home->Say(QStringLiteral("Not updated: %1").arg(error));
+                    }
+                    home->Refresh();
+                });
+            } else {
+                CheckUpdate(true);
+            }
+        } else if (row == QStringLiteral("Home server's services")) {
+            AskHomeServer(true);
+        } else if (row == QStringLiteral("Study tracker")) {
+            bool ok = false;
+            const QString url = QInputDialog::getText(this, row, QStringLiteral("Where your study tracker answers"), QLineEdit::Normal,
+                                                      home->TrackerUrl(), &ok).trimmed();
+            if (ok) {
+                home->SetTrackerUrl(url);
+            }
         }
+    });
+    home->SetSettingReset(
+        [this](const QString& row) {
+            if (row == QStringLiteral("How solid")) {
+                return play_settings.IsSet(QStringLiteral("popup.opacity"));
+            }
+            return ReaderRows::IsSet(ReaderUi::ReaderSession::Instance().Settings(), row);
+        },
+        [this](const QString& row) {
+            if (row == QStringLiteral("How solid")) {
+                play_settings.Clear(QStringLiteral("popup.opacity"));
+                play_settings.Save();
+                ApplyPlaySettings(playing_id);
+                return;
+            }
+            auto& session = ReaderUi::ReaderSession::Instance();
+            if (ReaderRows::Reset(session.Settings(), row)) {
+                session.OnSettingsChanged();
+            }
+        });
+    // The shelf's stage and Log show what the reader kept of a title on this device.
+    home->SetTitleReading([](const QString& game) {
+        HomeWindow::TitleReading reading;
+        ReaderApp::ReaderDatabase& database = ReaderUi::ReaderSession::Instance().Database();
+        for (const ReaderApp::BacklogEntry& entry : database.RecentLines(game, 200)) {
+            reading.lines.prepend({entry.line.speaker, entry.line.text, entry.line.timestamp});
+        }
+        reading.line_count = database.LineCount(game);
+        for (const auto& day : database.DailyHistory(game, 30)) {
+            reading.days.append({day.first, day.second.characters});
+        }
+        return reading;
     });
     home->SetSettingValue([this](const QString& row) -> QString {
         if (row == QStringLiteral("RetroAchievements")) {
@@ -519,12 +726,44 @@ MainWindow::MainWindow() {
             }
             return qEnvironmentVariable("READER_RA_USER").isEmpty() ? QStringLiteral("OFF") : QStringLiteral("FRONT END'S");
         }
-        if (row == QStringLiteral("Text server")) {
-            auto& settings = ReaderUi::ReaderSession::Instance().Settings();
-            return settings.TextHookEnabled() ? QStringLiteral(":%1").arg(settings.TextHookPort()) : QStringLiteral("OFF");
-        }
         if (row == QStringLiteral("Pointer button")) {
             return ReaderUi::PointerButtonName(ReaderUi::ReaderSession::Instance().Settings().CursorButton()).toUpper();
+        }
+        const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
+        if (const QString said = ReaderRows::Value(settings, row); !said.isEmpty()) {
+            return said;
+        }
+        if (row == QStringLiteral("How solid")) {
+            const int now = play_settings.Raw(QStringLiteral("popup.opacity")).toInt();
+            return now == 0 ? QStringLiteral("AS ITS LOOK") : QStringLiteral("%1%").arg(now);
+        }
+        if (row == QStringLiteral("Explain with")) {
+            // "claude-sonnet-5-5" as SONNET 5.5
+            QStringList words = settings.ExplainModel().mid(7).split(QLatin1Char('-'));
+            const QString name = words.isEmpty() ? QString() : words.takeFirst();
+            return (name + QLatin1Char(' ') + words.join(QLatin1Char('.'))).toUpper();
+        }
+        if (row == QStringLiteral("Update")) {
+            return update_said;
+        }
+        if (row == QStringLiteral("Home server's services")) {
+            const QMap<QString, QString> known = Home::Services::All();
+            return known.isEmpty() ? QStringLiteral("NONE YET") : QStringList(known.keys()).join(QStringLiteral(" · ")).toUpper();
+        }
+        if (row == QStringLiteral("Study tracker")) {
+            return home->TrackerUrl().isEmpty() ? QStringLiteral("NOT SET") : home->TrackerUrl();
+        }
+        if (row == QStringLiteral("Discord application ID")) {
+            return settings.DiscordApplicationId().isEmpty() ? QStringLiteral("NOT SET") : settings.DiscordApplicationId();
+        }
+        if (row == QStringLiteral("Anki")) {
+            if (settings.AnkiTransport() != QStringLiteral("ankiconnect")) {
+                return QStringLiteral("OFF");
+            }
+            // Cards that wait for an Anki that answers are said with the deck.
+            const int waiting = ReaderUi::Miner::Waiting();
+            const QString deck = settings.AnkiDeck().isEmpty() ? QStringLiteral("NOT SET") : settings.AnkiDeck();
+            return waiting > 0 ? QStringLiteral("%1  ·  %2 WAITING").arg(deck).arg(waiting) : deck;
         }
         return {};
     });
@@ -578,10 +817,28 @@ MainWindow::MainWindow() {
 #endif
     home->SetConsoleSetup([this](const QString& key) { return SetupOf(key); },
                           [this](const QString&) { FindGames(); });
+    // The titles read from lines, listed as a console's games are; the page's own commands for them.
+    home->SetLinesChanged([this] { WriteLinesFile(); });
+    {
+        auto* watch = new QTimer(this);
+        watch->setInterval(3000);
+        connect(watch, &QTimer::timeout, this, [this] { WatchHooks(); });
+        watch->start();
+    }
+    home->SetScriptCommands([this](const QString& word, const QString& rest) { return LinesCommand(word, rest); });
+    if (!Lines::Load(SharedFolder()).titles.isEmpty()) {
+        WriteLinesFile();
+    }
     // The games of the consoles played here, listed by Furoshiki's page as an app's are.
     QTimer::singleShot(0, this, [this] { FindGames(); });
     home->SetCorePlayer([this](const QString& app, const QString& path) {
         QString error;
+        if (app == Lines::AppKey) {
+            if (!ReadLines(path, error)) {
+                home->Notify(error);
+            }
+            return true;
+        }
         if (!Plays(app)) {
             return false;
         }
@@ -669,6 +926,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    EndLines();
     if (current != nullptr && current->session && current->session->Running()) {
         current->session->Stop();
     }
@@ -883,7 +1141,95 @@ bool MainWindow::UsePairing(const QString& link, QString& error) {
 }
 #endif
 
+void MainWindow::CheckUpdate(bool say) {
+    Home::Updater::Check(this, Home::Services::Of(QStringLiteral("files")), [this, say](const Home::Updater::Offer& offer, const QString& error) {
+        update_offer = offer;
+        update_said = !error.isEmpty() ? QStringLiteral("NOT KNOWN")
+                      : offer.IsNone() ? QStringLiteral("UP TO DATE")
+                                       : QStringLiteral("A NEW BUILD  ·  ENTER TAKES IT");
+        if (!offer.IsNone()) {
+            // Said once on the page, whoever asked: what changed, where the index says it.
+            home->Say(offer.changes.isEmpty() ? QStringLiteral("A new build of Furoshiki is on your Files page: Settings, Furoshiki, Update")
+                                              : QStringLiteral("A new build is on your Files page: %1").arg(offer.changes));
+        } else if (say) {
+            home->Say(error.isEmpty() ? QStringLiteral("This is the build your Files page has") : QStringLiteral("The Files page did not answer: %1").arg(error));
+        }
+        home->Refresh();
+    });
+}
+
+void MainWindow::AskHomeServer(bool say) {
+#ifndef READER_NO_SAVE_SYNC
+    QStringList addresses;
+    QString code;
+    PairedService(&addresses, &code);
+    if (addresses.isEmpty() || code.isEmpty()) {
+        if (say) {
+            home->Say(QStringLiteral("Not paired with a save sync service yet: Pair a device"));
+        }
+        return;
+    }
+    // Which device read each game last, for the stage.
+    const QString own = ReaderUi::ReaderSession::Instance().Settings().StatsInstall();
+    Home::Services::AskSync(this, addresses, code, QStringLiteral("/v1/stats"), [this, own](const Home::Services::Answer& answer) {
+        if (!answer.Ok()) {
+            return;
+        }
+        QHash<QString, QPair<QString, QString>> read;
+        const auto found = Home::Services::ReadElsewhere(answer.body, own);
+        for (auto it = found.constBegin(); it != found.constEnd(); ++it) {
+            read.insert(it.key(), {it->device, it->day});
+        }
+        home->SetElsewhere(read);
+    });
+    Home::Services::AskPaired(this, addresses, code, [this, say](int count) {
+        if (say) {
+            home->Say(count < 0 ? QStringLiteral("The save sync service did not answer")
+                                : count == 0 ? QStringLiteral("It names no other service (its config.json's \"services\")")
+                                             : QStringLiteral("%1 services known").arg(count));
+        }
+        if (count > 0) {
+            home->Refresh();
+        }
+        // With the Files page known: whether it has another build of this program.
+        if (!say && !Home::Services::Of(QStringLiteral("files")).isEmpty()) {
+            CheckUpdate(false);
+        }
+    });
+#else
+    Q_UNUSED(say);
+#endif
+}
+
+void MainWindow::ShowSettingsPages() {
+    if (current != nullptr && pages->currentWidget() == screen) {
+        // Over the game, which stands still meanwhile; leaving the pages goes back to it.
+        ReaderUi::ProgramPaused(true);
+        ReaderUi::SetScreenShown(false);
+        pages->setCurrentWidget(home);
+        home->SetPlaying(false);
+        home->setFocus();
+        home->OpenPages([this] {
+            if (current == nullptr) {
+                return;
+            }
+            pages->setCurrentWidget(screen);
+            home->SetPlaying(true);
+            ReaderUi::SetScreenShown(true);
+            screen->setFocus();
+            ReaderUi::ProgramPaused(false);
+        });
+    } else {
+        home->OpenPages();
+    }
+}
+
 void MainWindow::OpenSettings(const QString& tab) {
+    if (tab.isEmpty()) {
+        // The settings are the shelf's pages; a tab named is one of the few editors they open.
+        ShowSettingsPages();
+        return;
+    }
     if (!settings_window) {
         SettingsWindow::Hooks hooks;
         hooks.playing = [this](QString& console, QString& game, QString& title) {
@@ -903,6 +1249,7 @@ void MainWindow::OpenSettings(const QString& tab) {
         hooks.open_sync_window = [this] { OpenSaveSync(); };
 #endif
         hooks.folders_changed = [this] { FindGames(); };
+        hooks.stats_changed = [this] { StatsChanged(); };
         settings_window = new SettingsWindow(this, play_settings, consoles, popup_folder, home, std::move(hooks));
         settings_window->setAttribute(Qt::WA_DeleteOnClose);
     } else {
@@ -928,10 +1275,16 @@ void MainWindow::AddPopupSettings() {
     }
 }
 
+QString MainWindow::CrtBase() const {
+    return ReaderUi::ReaderSession::Instance().Settings().FileValue(CrtLayers::ReaderKey).toString();
+}
+
 void MainWindow::ApplyPlaySettings(const QString& game) {
     if (current == nullptr || !current->session) {
         return;
     }
+    // The CRT picture of this game's layers, to the core and the frame (they follow its revision).
+    ReaderCrtPage::Load(ReaderUi::ReaderSession::Instance().Settings());
     const QString key = QString::fromUtf8(current->core.info->key);
     for (const PlayConsole& console : std::as_const(consoles)) {
         if (console.key == key) {
@@ -1050,6 +1403,12 @@ bool MainWindow::Plays(const QString& app) {
 }
 
 bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
+    // A file that is not there (a link to a folder since moved) is said here, before a game
+    // that plays is stopped, an add-on started or a core handed a file it can only log.
+    if (const std::string missing = CoreSession::MissingGame(path.toStdString()); !missing.empty()) {
+        error = QString::fromStdString(missing);
+        return false;
+    }
     Loaded* entry = CoreFor(app, path, error);
     if (entry == nullptr) {
         return false;
@@ -1061,25 +1420,9 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
     if (!entry->session && !StartSession(entry, error)) {
         return false;
     }
-    if (!reader_installed) {
-        reader_installed = true;
-        ReaderUi::Install(this, screen);
-        ReaderUi::SetEndGame([](void* window) { static_cast<MainWindow*>(window)->EndGame(); }, this);
-        ReaderUi::SetProgramCommands([this](const QString& name, const QStringList& parts,
-                                            const std::function<void(const QString&)>& reply) {
-            return ProgramCommand(name, parts, reply);
-        });
-        // What was read goes into Furoshiki's sums once the reader has written it.
-        ReaderUi::SetGameStopped(
-            [](void* context) {
-                auto* window = static_cast<MainWindow*>(context);
-                if (window->current != nullptr) {
-                    window->WriteOwnFile(QString::fromUtf8(window->current->core.info->key), true);
-                }
-                window->SendStats();
-            },
-            this);
-    }
+    // One thing is read at a time: a title read from lines ends as a game starts.
+    EndLines();
+    InstallReader();
     current = entry;
     ApplyConsole(info); // the console's values are the reader's now
     ReaderUi::Style::SetConsoleLook(info.key);
@@ -1098,6 +1441,7 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
             playing_id = QString::fromUtf8(id);
         }
     }
+    StartAddons(QString::fromUtf8(info.key), playing_id);
     ApplyPlaySettings(playing_id);
     current->session->SetGameListener([this](const std::string& game_id) {
         ReaderUi::PostToGui([this, id = QString::fromStdString(game_id)] {
@@ -1107,6 +1451,9 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
             const QString key = QString::fromUtf8(current->core.info->key);
             if (id != playing_id) {
                 playing_id = id;
+                if (StartAddons(key, id)) {
+                    ReaderUi::ReaderBridge::ReloadProfile(); // an add-on's script, come late
+                }
                 ApplyPlaySettings(id);
             }
             RememberGame(key, id, playing);
@@ -1121,6 +1468,488 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
         return false;
     }
     QTimer::singleShot(10000, this, [this] { SendStats(); }); // what earlier runs counted
+    return true;
+}
+
+bool MainWindow::StartAddons(const QString& console_key, const QString& game) {
+    bool scripts = false;
+    for (const Addon& addon : std::as_const(addons)) {
+        if (!addon.For(console_key, game)) {
+            continue;
+        }
+        const QString state = ProgramFolder() + QStringLiteral("/addons.json");
+        const QStringList copied =
+            InstallScripts(addon, ReaderUi::ReaderBridge::UserProfileDirectory(), state);
+        if (!copied.isEmpty()) {
+            qInfo("add-on %s: %s into the profiles", qPrintable(addon.name), qPrintable(copied.join(u' ')));
+            scripts = true;
+        }
+        if (ApplySettings(addon, play_settings, console_key, game, state)) {
+            play_settings.Save();
+        }
+        if (addon.companion.isEmpty()) {
+            continue;
+        }
+        const bool was = companions->Running(addon.name);
+        QString problem;
+        if (!companions->Start(addon, &problem)) {
+            qWarning("add-on %s: its companion did not start: %s", qPrintable(addon.name), qPrintable(problem));
+            ReaderUi::Notify(QStringLiteral("%1's companion did not start").arg(addon.name));
+        } else if (!was) {
+            qInfo("add-on %s: its companion started", qPrintable(addon.name));
+            ReaderUi::Notify(addon.url.isEmpty()
+                                 ? QStringLiteral("%1's companion is on").arg(addon.name)
+                                 : QStringLiteral("%1's companion: %2 (Escape: Open the companion)").arg(addon.name, addon.url));
+        }
+    }
+    return scripts;
+}
+
+const Addon* MainWindow::PlayingCompanion() const {
+    if (current == nullptr) {
+        return nullptr;
+    }
+    const QString key = QString::fromUtf8(current->core.info->key);
+    for (const Addon& addon : addons) {
+        if (addon.For(key, playing_id) && !addon.url.isEmpty()) {
+            return &addon;
+        }
+    }
+    return nullptr;
+}
+
+void MainWindow::InstallReader() {
+    if (reader_installed) {
+        return;
+    }
+    reader_installed = true;
+    ReaderUi::Install(this, screen);
+    ReaderUi::SetEndGame([](void* window) { static_cast<MainWindow*>(window)->EndGame(); }, this);
+    ReaderUi::SetProgramCommands([this](const QString& name, const QStringList& parts,
+                                        const std::function<void(const QString&)>& reply) {
+        return ProgramCommand(name, parts, reply);
+    });
+    // What was read goes into Furoshiki's sums once the reader has written it.
+    ReaderUi::SetGameStopped(
+        [](void* context) {
+            auto* window = static_cast<MainWindow*>(context);
+            if (window->current != nullptr) {
+                window->WriteOwnFile(QString::fromUtf8(window->current->core.info->key), true);
+            }
+            window->SendStats();
+        },
+        this);
+}
+
+// ---- Titles read from lines (docs/furoshiki-3.md, "Sources") ----
+
+bool MainWindow::ReadLines(const QString& path, QString& error) {
+    const Lines::Sources sources = Lines::Load(SharedFolder());
+    const Lines::Title* title = nullptr;
+    for (const Lines::Title& known : sources.titles) {
+        title = Lines::PathOf(known) == path ? &known : title;
+    }
+    if (title == nullptr) {
+        error = QStringLiteral("No title is read from %1").arg(path);
+        return false;
+    }
+    const bool by_ocr = title->by == QStringLiteral("ocr");
+    if (title->by == QStringLiteral("hook")) {
+        return ReadHook(*title, error); // a hook Furoshiki starts itself (hook_source.h)
+    }
+    if ((!by_ocr && lines != nullptr && lines->Running() && lines->GameId() == title->id && lines->By() == title->by) ||
+        (by_ocr && ocr != nullptr && ocr->Running() && ocr->GameId() == title->id)) {
+        // It is being read: its strip comes to the front.
+        strip->show();
+        strip->raise();
+        return true;
+    }
+    // One thing is read at a time.
+    if (current != nullptr && current->session && current->session->Running()) {
+        EndGame();
+    }
+    EndLines();
+    InstallReader();
+    auto& session = ReaderUi::ReaderSession::Instance();
+#ifndef READER_NO_TEXT_SERVER
+    // Furoshiki's own text server sends the lines read on: reading from it would read each
+    // line back for ever.
+    if (title->by == QStringLiteral("websocket") && session.Settings().TextHookEnabled()) {
+        const QUrl address(sources.address);
+        const QString host = address.host().toLower();
+        if (address.port() == session.Settings().TextHookPort() &&
+            (host == QStringLiteral("localhost") || host == QStringLiteral("127.0.0.1") || host == QStringLiteral("::1"))) {
+            error = QStringLiteral("%1 is Furoshiki's own text server: give it or the lines another port").arg(sources.address);
+            return false;
+        }
+    }
+#endif
+    MakeStrip();
+    if (!by_ocr && lines == nullptr) {
+        lines = new LineSource(this);
+        ReaderUi::UseSource(lines);
+        connect(lines, &LineSource::StatusChanged, strip, [this] {
+            if (lines->Running()) {
+                strip->SetHead(lines->Title(), QStringLiteral("LINES  ·  ") + lines->Describe().label, lines->Status());
+            }
+        });
+    }
+    if (by_ocr && ocr == nullptr) {
+        ocr = new OcrSource(this);
+        ReaderUi::UseSource(ocr);
+        // After the reader's own (connected by UseSource): its cards, from the window.
+        connect(ocr, &ReaderUi::ReadingSource::Began, this, [this] { CardsFromWindow(); });
+        connect(ocr, &ReaderUi::ReadingSource::Ended, this, [] { Loopback::Instance().Stop(); });
+        overlay = new OcrOverlay(this);
+        connect(ocr, &OcrSource::StatusChanged, strip, [this] {
+            if (ocr->Running()) {
+                strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), ocr->Status());
+            }
+        });
+        connect(ocr, &OcrSource::ScreenChanged, this, [this] { PlaceOverlay(); });
+    }
+    // The popup is the reader's own, in a look no console gave it.
+    ReaderUi::Style::SetConsoleLook("lines");
+    ReaderUi::LookupPopup::SetConsoleKey(QStringLiteral("lines"));
+    const HomeWindow::StripLook look = home->LookOfStrip();
+    if (by_ocr) {
+        overlay->SetAccent(look.accent);
+        overlay->SetLine({}, {});
+        if (!ocr->Start(*title, sources.ocr, error)) {
+            return false;
+        }
+    } else if (!lines->Start(title->by, title->id, title->title, sources.address, error)) {
+        return false;
+    }
+    strip->SetLook({look.ground, look.ink, look.muted, look.accent, look.rule, look.text, look.mono});
+    strip->SetOpacity(session.Settings().PopupOpacity());
+    strip->SetLine({});
+    strip->Place();
+    strip->show();
+    home->Notify(by_ocr ? QStringLiteral("Reading %1 from the window \"%2\": %3").arg(title->title, title->window, ocr->Status())
+                        : QStringLiteral("Reading %1 from lines: %2").arg(title->title, lines->Status()));
+    return true;
+}
+
+// ---- Titles read by a hook Furoshiki starts itself (docs/hooks.md) ----
+
+bool MainWindow::ReadHook(const Lines::Title& title, QString& error) {
+    if (hook != nullptr && hook->Running() && hook->GameId() == title.id) {
+        strip->show();
+        strip->raise();
+        return true;
+    }
+    if (current != nullptr && current->session && current->session->Running()) {
+        EndGame();
+    }
+    EndLines();
+    InstallReader();
+    MakeStrip();
+    if (hook == nullptr) {
+        hook = new HookSource(this);
+        ReaderUi::UseSource(hook);
+        connect(hook, &ReaderUi::ReadingSource::Began, this, [this] { CardsFromWindow(); });
+        connect(hook, &ReaderUi::ReadingSource::Ended, this, [] { Loopback::Instance().Stop(); });
+        connect(hook, &HookSource::StatusChanged, strip, [this] {
+            if (hook->Running()) {
+                strip->SetHead(hook->Title(), hook->Label(), hook->Status());
+            }
+        });
+    }
+    ReaderUi::Style::SetConsoleLook("lines");
+    ReaderUi::LookupPopup::SetConsoleKey(QStringLiteral("lines"));
+    if (!hook->Start(title, SharedFolder(), error)) {
+        return false;
+    }
+    // With an OCR helper, the hooked text is also laid over the game's own: invisibly, to be
+    // pointed at there as in a game a core plays.
+    if (const Lines::Helper helper = Lines::Load(SharedFolder()).ocr; !helper.address.isEmpty()) {
+        if (overlay == nullptr) {
+            overlay = new OcrOverlay(this);
+        }
+        overlay->SetAccent(home->LookOfStrip().accent);
+        overlay->SetLine({}, {});
+        overlay->SetPlace({}, false);
+        if (placer == nullptr) {
+            placer = new OcrClient(this);
+        }
+        placer->Set(helper);
+        placer->Choose(); // this device's pictures are the ones it reads
+        place_area = QRectF(0, 0, 1, 1);
+    } else if (placer != nullptr) {
+        placer->Set({});
+    }
+    const HomeWindow::StripLook look = home->LookOfStrip();
+    strip->SetLook({look.ground, look.ink, look.muted, look.accent, look.rule, look.text, look.mono});
+    strip->SetOpacity(ReaderUi::ReaderSession::Instance().Settings().PopupOpacity());
+    strip->SetLine({});
+    strip->Place();
+    strip->show();
+    home->Notify(QStringLiteral("Reading %1 by a hook: %2").arg(title.title, hook->Status()));
+    return true;
+}
+
+void MainWindow::WatchHooks() {
+    // A title read by a hook is read by itself when its program is seen running (once each
+    // time the program starts: closing the strip does not bring it back).
+    const bool busy = (current != nullptr && current->session && current->session->Running()) || (lines != nullptr && lines->Running()) ||
+                      (ocr != nullptr && ocr->Running()) || (hook != nullptr && hook->Running()) || home->Adding();
+    const Lines::Sources sources = Lines::Load(SharedFolder());
+    QSet<QString> running;
+    for (const Lines::Title& title : sources.titles) {
+        const QString process = title.process.toLower();
+        if (title.by != QStringLiteral("hook") || running.contains(process) || !Hooks::ProgramNamed(title.process)) {
+            continue;
+        }
+        running.insert(process);
+        if (busy || hooks_seen.contains(process)) {
+            continue;
+        }
+        for (const Lines::Title& one : Lines::HookedIn(sources, title.process)) {
+            QString error;
+            if (!ReadHook(one, error)) {
+                home->Notify(error);
+            }
+            hooks_seen = running;
+            return;
+        }
+    }
+    if (!busy) {
+        hooks_seen = running;
+    }
+}
+
+QString MainWindow::GameWindow() const {
+    if (ocr != nullptr && ocr->Running()) {
+        return ocr->Of().window;
+    }
+    if (hook != nullptr && hook->Running()) {
+        if (const auto program = Hooks::ProgramNamed(hook->Of().process)) {
+            return program->window;
+        }
+    }
+    return {};
+}
+
+void MainWindow::CardsFromWindow() {
+    auto& session = ReaderUi::ReaderSession::Instance();
+    ReaderUi::MediaCapture* media = session.Media();
+    if (media == nullptr) {
+        return;
+    }
+    media->frame_source = [this](int max_width, std::function<void(const QImage&)> callback) {
+        // The game's window as it is now (the reader asks a moment after a line came).
+        const QString window = GameWindow();
+        QImage picture = window.isEmpty() ? QImage() : Windows::Grab(Windows::Find(window));
+        const int width = std::max(max_width, 320);
+        if (!picture.isNull() && picture.width() > width) {
+            picture = picture.scaledToWidth(width, Qt::SmoothTransformation);
+        }
+        callback(picture);
+    };
+    if (session.Settings().CaptureAudio()) {
+        Loopback::Instance().Start();
+    }
+}
+
+void MainWindow::MakeStrip() {
+    if (strip != nullptr) {
+        return;
+    }
+    strip = new TextStrip(this);
+    strip->close_wanted = [this] { EndLines(); };
+    connect(&ReaderUi::ReaderSession::Instance(), &ReaderUi::ReaderSession::LinePresented, strip, [this](const ReaderApp::PresentedLine& presented) {
+        if (presented.line.IsChoice()) {
+            return;
+        }
+        if (lines != nullptr && lines->Running()) {
+            strip->SetLine(presented);
+        } else if (hook != nullptr && hook->Running()) {
+            strip->SetLine(presented);
+            PlaceHooked(presented);
+        } else if (ocr != nullptr && ocr->Running()) {
+            // In the strip, and where the helper says its characters are over the game's window.
+            strip->SetLine(presented);
+            overlay->SetLine(presented, ocr->Boxes());
+            PlaceOverlay();
+        }
+    });
+}
+
+void MainWindow::PlaceHooked(const ReaderApp::PresentedLine& presented) {
+    if (placer == nullptr || !placer->Configured() || overlay == nullptr) {
+        return;
+    }
+    overlay->SetPlace({}, false); // the line before is no longer where it was
+    const int generation = ++place_generation;
+    // A moment for the game to draw it, then its window's picture, then the helper's reading.
+    QTimer::singleShot(350, this, [this, presented, generation] {
+        if (generation != place_generation || hook == nullptr || !hook->Running()) {
+            return;
+        }
+        const Windows::Entry window = Windows::Find(GameWindow());
+        const QImage picture = window.title.isEmpty() ? QImage() : Windows::Grab(window);
+        if (picture.isNull() || !placer->Push(picture)) {
+            return;
+        }
+        QTimer::singleShot(250, this, [this, presented, generation] {
+            if (generation != place_generation) {
+                return;
+            }
+            auto* once = new QObject(this);
+            connect(placer, &OcrClient::Placed, once, [this, presented, generation, once](bool ok, const QString& seen, const QList<QRectF>& layout) {
+                once->deleteLater();
+                if (generation == place_generation) {
+                    HookedPlaced(presented, ok, seen, layout);
+                }
+            });
+            placer->Test(place_area);
+        });
+    });
+}
+
+void MainWindow::HookedPlaced(const ReaderApp::PresentedLine& presented, bool ok, const QString& seen, const QList<QRectF>& layout) {
+    if (!ok || hook == nullptr || !hook->Running()) {
+        return;
+    }
+    int matched = 0;
+    const QList<QRectF> boxes = Lines::PlaceAlong(presented.line.text, seen, layout, &matched);
+    const int length = static_cast<int>(presented.line.text.toUcs4().size());
+    if (length == 0 || matched * 2 < length) {
+        // Not there as the hook has it: the whole window is read next time.
+        if (place_area != QRectF(0, 0, 1, 1)) {
+            place_area = QRectF(0, 0, 1, 1);
+            PlaceHooked(presented);
+        }
+        return;
+    }
+    // Where it stood, a little round it, is read first next time: quicker than the whole window.
+    QRectF found;
+    for (const QRectF& box : boxes) {
+        if (!box.isEmpty()) {
+            found = found.isNull() ? box : found.united(box);
+        }
+    }
+    place_area = found.adjusted(-0.08, -0.12, 0.08, 0.12).intersected(QRectF(0, 0, 1, 1));
+    overlay->SetLine(presented, boxes);
+    const Windows::Entry window = Windows::Find(GameWindow());
+    overlay->SetPlace(Windows::Place(window), !window.title.isEmpty());
+}
+
+void MainWindow::PlaceOverlay() {
+    if (overlay != nullptr && ocr != nullptr) {
+        overlay->SetPlace(ocr->Place(), ocr->Running() && ocr->OnScreen());
+    }
+}
+
+void MainWindow::EndLines() {
+    const bool from_lines = lines != nullptr && lines->Running(), from_window = ocr != nullptr && ocr->Running();
+    const bool from_hook = hook != nullptr && hook->Running();
+    if (!from_lines && !from_window && !from_hook) {
+        return;
+    }
+    if (from_hook) {
+        hook->Stop();
+        ++place_generation;
+        if (overlay != nullptr) {
+            overlay->SetPlace({}, false);
+        }
+    }
+    Loopback::Instance().Stop();
+    if (from_lines) {
+        lines->Stop();
+    }
+    if (from_window) {
+        ocr->Stop();
+        PlaceOverlay();
+    }
+    strip->hide();
+    WriteLinesFile();
+    SendStats();
+}
+
+void MainWindow::WriteLinesFile() {
+    const QString folder = SharedFolder();
+    const QString program = QCoreApplication::applicationFilePath();
+    const Lines::Sources sources = Lines::Load(folder);
+    if (!reader_installed) {
+        Lines::WriteApp(folder, sources, program, nullptr);
+        return;
+    }
+    // What was read of these titles, out of the program's one record (as WriteOwnFile).
+    QSet<QString> ids;
+    for (const Lines::Title& title : sources.titles) {
+        ids.insert(title.id);
+    }
+    auto& session = ReaderUi::ReaderSession::Instance();
+    ReaderApp::ReaderDatabase* database = &session.Database();
+    session.AfterWrites([this, folder, program, sources, ids, database] {
+        const QJsonObject all = database->StatsRecord();
+        QJsonObject record = all;
+        QJsonObject games;
+        const QJsonObject all_games = all.value(QStringLiteral("games")).toObject();
+        for (auto it = all_games.begin(); it != all_games.end(); ++it) {
+            if (ids.contains(it.key())) {
+                games.insert(it.key(), it.value());
+            }
+        }
+        QJsonArray days;
+        for (const QJsonValue& day : all.value(QStringLiteral("days")).toArray()) {
+            if (ids.contains(day.toObject().value(QStringLiteral("game")).toString())) {
+                days.append(day);
+            }
+        }
+        record.insert(QStringLiteral("games"), games);
+        record.insert(QStringLiteral("days"), days);
+        Lines::WriteApp(folder, sources, program, &record);
+        QMetaObject::invokeMethod(this, [this] { home->Refresh(); }, Qt::QueuedConnection);
+    });
+}
+
+bool MainWindow::LinesCommand(const QString& word, const QString& rest) {
+    if (word == QStringLiteral("lines-say")) {
+        // lines-say TEXT: text as if the source had sent it.
+        if (lines != nullptr) {
+            lines->Arrived(Lines::MessageText(rest));
+        }
+    } else if (word == QStringLiteral("hook-say")) {
+        // What the hook does, for a test to read in the log.
+        if (hook != nullptr) {
+            qInfo("hook: %s; %lld lines handed over; %lld threads; said: %s", qPrintable(hook->Status()), static_cast<long long>(hook->Handed()),
+                  static_cast<long long>(hook->Engine().Threads().size()), qPrintable(hook->Engine().Said().join(QStringLiteral(" / "))));
+        } else {
+            qInfo("hook: none");
+        }
+    } else if (word == QStringLiteral("lines-stop")) {
+        EndLines();
+    } else if (word == QStringLiteral("clipboard")) {
+        QGuiApplication::clipboard()->setText(rest);
+    } else if (word == QStringLiteral("strip-lookup")) {
+        // strip-lookup OFFSET: the word at that place of the strip's line, as a click on it.
+        if (strip != nullptr && !strip->LookUpAt(rest.toInt())) {
+            qWarning("strip-lookup: no character %d in the strip's line", rest.toInt());
+        }
+    } else if (word == QStringLiteral("ocr-say")) {
+        // What the window read by OCR does, for a test to read in the log.
+        if (ocr != nullptr) {
+            qInfo("ocr: %s; pictures sent %d, taken %d; %lld boxes, %s the screen, overlay %s, popup %s", qPrintable(ocr->Status()),
+                  ocr->Client().Sent(), ocr->Client().Taken(), static_cast<long long>(ocr->Boxes().size()), ocr->OnScreen() ? "on" : "off",
+                  overlay->isVisible() ? "shown" : "hidden", overlay->Lookups().IsOpen() ? "open" : "closed");
+        }
+    } else if (word == QStringLiteral("overlay-lookup")) {
+        // overlay-lookup OFFSET: the word at that character of the line over the window.
+        if (overlay != nullptr && !overlay->LookUpAt(rest.toInt())) {
+            qWarning("overlay-lookup: character %d has no place over the window", rest.toInt());
+        }
+    } else if (word == QStringLiteral("strip-say")) {
+        // What the strip and its lookup hold, for a test to read in the log.
+        if (strip != nullptr) {
+            qInfo("strip: line %lld \"%s\", popup %s", static_cast<long long>(strip->Line().backlog_id),
+                  qPrintable(strip->Line().line.text), strip->Lookups().IsOpen() ? "open" : "closed");
+        }
+    } else {
+        return false;
+    }
     return true;
 }
 
@@ -1272,8 +2101,10 @@ void MainWindow::FindGames() {
                     if (!task.types.contains(suffix)) {
                         continue;
                     }
-                    // A track of a disc whose sheet is beside it is the sheet's.
-                    if (suffix == QStringLiteral("bin") &&
+                    // A track of a disc whose sheet is beside it is the sheet's, where the
+                    // core takes sheets (Station's). One that does not (PCSX2's: a PS2 CD as
+                    // .bin and .cue) is given the .bin, else nobody would list the disc.
+                    if (suffix == QStringLiteral("bin") && task.types.contains(QStringLiteral("cue")) &&
                         (QFileInfo::exists(info.path() + QLatin1Char('/') + info.completeBaseName() + QStringLiteral(".cue")) ||
                          QFileInfo::exists(info.path() + QLatin1Char('/') + info.completeBaseName() + QStringLiteral(".CUE")))) {
                         continue;
@@ -1311,6 +2142,13 @@ void MainWindow::FindGames() {
     });
 }
 
+void MainWindow::StatsChanged() {
+    for (const auto& [key, games] : own_games) {
+        WriteOwnFile(key, true);
+    }
+    SendStats();
+}
+
 void MainWindow::SendStats() {
 #ifndef READER_NO_SAVE_SYNC
     // The reading statistics go along with the saves, as the apps send theirs: every reading
@@ -1324,6 +2162,8 @@ void MainWindow::SendStats() {
     ReaderApp::ReaderDatabase* database = &session.Database();
     session.AfterWrites([install, device, database] {
         QJsonObject record = database->StatsRecord();
+        // The words looked up here, which Furochibi adds up with every device's.
+        record.insert(QStringLiteral("lookups"), database->LookupsRecord());
         record.insert(QStringLiteral("app"), QStringLiteral("reader-home"));
 #ifdef _WIN32
         record.insert(QStringLiteral("platform"), QStringLiteral("windows"));
@@ -1796,8 +2636,31 @@ void MainWindow::OpenMenu() {
             box->open();
         });
 #endif
+        // The game's playthrough guide where it stands, ticked here (guide_window.h): where the
+        // device knows Furochibi's service.
+        QAction* guide = menu->addAction(QStringLiteral("Guide…"));
+        guide->setObjectName(QStringLiteral("guide"));
+        connect(guide, &QAction::triggered, this, [this] {
+            const QString service = Home::Services::Of(QStringLiteral("furochibi"));
+            if (service.isEmpty() || current == nullptr) {
+                return;
+            }
+            ReaderUi::ProgramPaused(true);
+            GuideWindow window(this, service, playing_id);
+            window.exec();
+            ReaderUi::ProgramPaused(false);
+            screen->setFocus();
+        });
         QAction* folder = menu->addAction(QStringLiteral("Open the save folder"));
         connect(folder, &QAction::triggered, this, [this] { OpenSaveFolder(); });
+        // The page of the game's add-on's companion (addons.h), in the browser.
+        QAction* companion_page = menu->addAction(QStringLiteral("Open the companion"));
+        companion_page->setObjectName(QStringLiteral("companion"));
+        connect(companion_page, &QAction::triggered, this, [this] {
+            if (const Addon* addon = PlayingCompanion()) {
+                QDesktopServices::openUrl(QUrl(addon->url));
+            }
+        });
         menu->addSeparator();
         QAction* quit = menu->addAction(QStringLiteral("Back to Furoshiki"));
         connect(quit, &QAction::triggered, this, [this] { EndGame(); });
@@ -1813,6 +2676,16 @@ void MainWindow::OpenMenu() {
             ports->menuAction()->setVisible(current != nullptr && (PortCount(*current->core.info) > 1 ||
                                                                    !Devices(*current->core.info).isEmpty()));
             patches->menuAction()->setVisible((features & (READER_CORE_HAS_PATCHES | READER_CORE_HAS_CODES)) != 0);
+            if (auto* entry = menu->findChild<QAction*>(QStringLiteral("guide"))) {
+                entry->setVisible(!Home::Services::Of(QStringLiteral("furochibi")).isEmpty());
+            }
+            if (auto* page = menu->findChild<QAction*>(QStringLiteral("companion"))) {
+                const Addon* addon = PlayingCompanion();
+                page->setVisible(addon != nullptr);
+                if (addon != nullptr) {
+                    page->setText(QStringLiteral("Open the companion (%1)").arg(addon->name));
+                }
+            }
         });
         connect(menu, &QMenu::aboutToHide, this, [this] {
             ReaderUi::ProgramPaused(false);

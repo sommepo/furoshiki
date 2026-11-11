@@ -65,6 +65,7 @@ class ScanService : Service() {
         val titles = ReaderCatalog.games(this).associate { it.titleId to it.title }
         val found = JSONArray()
         val seen = HashSet<String>()
+        val all = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, false)
         for (folder in Places.gameFolders(this)) {
             folder.walkTopDown().maxDepth(4)
                 .filter { it.isFile && it.extension.lowercase() in types && seen.add(it.path) }
@@ -75,11 +76,15 @@ class ScanService : Service() {
                 }
                 .forEach { game ->
                     val said = GameNative.identify(game.path) ?: return@forEach
-                    val title = titles[said[0]] ?: return@forEach
+                    // Games with a script, under its title; with "all games" (the Settings page's
+                    // row) the others too, under what the core says they are called.
+                    val scripted = titles[said[0]]
+                    val title = scripted ?: said.getOrNull(1)?.takeIf { all && it.isNotBlank() } ?: (if (all) game.nameWithoutExtension else return@forEach)
                     // Two discs of one game have one ID and one script: the file tells them apart.
                     val disc = DISC.find(game.name)?.takeUnless { "ディスク" in title }
                         ?.let { " (Disc ${it.groupValues[1]})" }.orEmpty()
                     val entry = JSONObject().put("id", said[0]).put("title", title + disc).put("path", game.path)
+                        .put("script", scripted != null)
                         .put("console", key).put("system", info.getString("system"))
                         .put("short", info.getString("short"))
                     Covers.of(this, key, said[0], game)?.let { entry.put("cover", it.path) }

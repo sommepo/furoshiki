@@ -1,0 +1,15 @@
+{
+ "title": "シャドウハーツ",
+ "english": "Shadow Hearts",
+ "ids": [
+  "SLPS-25041"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "anilist": null,
+ "guide": "shadow-hearts",
+ "screenscraper": {
+  "ps2": 22123
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "title": "ペルソナ3",
+ "english": "Persona 3",
+ "ids": [
+  "SLPM-66445"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "anilist": null,
+ "guide": "persona-3",
+ "screenscraper": {
+  "ps2": 22002
+ }
+}

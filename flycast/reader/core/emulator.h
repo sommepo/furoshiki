@@ -76,6 +76,8 @@ void PressTrigger(int trigger, bool down);
 void RestSticks();
 /// The first controller's stick, each way from -100 to 100 (the development channel).
 void MoveStick(int x, int y);
+// The first controller\'s right stick (the second stick\'s bytes the game is sent), -100 to 100.
+void MoveRightStick(int x, int y);
 /// A stick moved. True when the game must see it at rest instead.
 bool FilterStick(int stick, float x, float y);
 
@@ -98,3 +100,21 @@ void ToggleNextChoice();
 void SetNextChoiceCallback(std::function<void(bool running, int end, std::uint64_t passed)> callback);
 
 } // namespace Reader::Emu
+
+#ifdef READER_WATCH
+/// A debug build's write watch (Karakuri: built with -DREADER_WATCH, run with the recompiler off,
+/// since its writes go straight to memory and are not seen here). Every write the processor
+/// makes into the watched range is recorded with the instruction's address (pc) and the
+/// return address (pr). Development channel: `watch ADDR LEN [MAX]`, `watch-log [clear]`.
+namespace Reader::Watch {
+extern volatile bool active;
+extern volatile bool reading;
+void Hit(std::uint32_t addr, std::uint64_t value, std::uint32_t size);
+/// Reads, from `watch-read ADDR LEN [MAX]`: recorded in the same log, marked "read".
+void Read(std::uint32_t addr, std::uint32_t size);
+void SetRead(std::uint32_t addr, std::uint32_t len, std::uint32_t max_hits);
+void Set(std::uint32_t addr, std::uint32_t len, std::uint32_t max_hits);
+std::string Log(bool clear);
+} // namespace Reader::Watch
+#endif
+

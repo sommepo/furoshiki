@@ -1,0 +1,16 @@
+{
+ "title": "Kanon",
+ "english": "Kanon",
+ "ids": [
+  "SLPS-20121"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": "v33",
+ "jiten": 118876,
+ "anilist": null,
+ "guide": "kanon",
+ "screenscraper": {
+  "ps2": 483185
+ }
+}

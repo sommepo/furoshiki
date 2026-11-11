@@ -6,7 +6,8 @@
 // (headword, reading, length matched, inflections, entries, each entry's compact glosses).
 // Built against a fork's desktop library and Qt (tests/parity.sh). Prints each difference and
 // the count; exits 1 on any.
-//   parity DICT_DB [TEXT_FILE]   (one text a line; without it, the texts below)
+//   parity DICT_DB [TEXT_FILE [GAME]]   (one text a line; without it, the texts below; GAME, a
+//   game ID, looks up as while that game runs, with its names dictionaries; "-" for the texts below)
 
 #include <cstdio>
 #include <fstream>
@@ -56,7 +57,8 @@ int main(int argc, char** argv) {
         return 2;
     }
     std::vector<std::string> texts(std::begin(Texts), std::end(Texts));
-    if (argc > 2) {
+    const std::string game = argc > 3 ? argv[3] : "";
+    if (argc > 2 && std::string(argv[2]) != "-") {
         texts.clear();
         std::ifstream file{argv[2]};
         for (std::string line; std::getline(file, line);) {
@@ -78,8 +80,8 @@ int main(int argc, char** argv) {
         const std::u16string utf16 = ReaderLookup::Utf16(text);
         for (std::size_t at = 0; at < utf16.size(); ++at) {
             const std::string from = ReaderLookup::Utf8(utf16.substr(at));
-            const QList<ReaderApp::LookupResult> theirs = qt_lookup.Lookup(QString::fromStdString(from));
-            const std::vector<ReaderLookup::LookupResult> ours = dictionary.Lookup(from);
+            const QList<ReaderApp::LookupResult> theirs = qt_lookup.Lookup(QString::fromStdString(from), 24, QString::fromStdString(game));
+            const std::vector<ReaderLookup::LookupResult> ours = dictionary.Lookup(from, 24, game);
             ++lookups;
             found += !ours.empty();
             std::vector<std::string> a, b;
@@ -93,7 +95,8 @@ int main(int argc, char** argv) {
                         glosses.push_back(compact.glosses.toStdString() + " / " + compact.notes.toStdString());
                     }
                 }
-                a.push_back(Describe(r.expression.toStdString(), r.reading.toStdString(),
+                a.push_back((r.entries.isEmpty() || !r.entries.first().scoped ? "" : "name:") +
+                            Describe(r.expression.toStdString(), r.reading.toStdString(),
                                      static_cast<int>(r.matched_text.size()), reasons, glosses));
             }
             for (const ReaderLookup::LookupResult& r : ours) {
@@ -103,7 +106,8 @@ int main(int argc, char** argv) {
                         glosses.push_back(compact.glosses + " / " + compact.notes);
                     }
                 }
-                b.push_back(Describe(r.expression, r.reading, r.matched_length, r.reasons, glosses));
+                b.push_back((r.entries.empty() || !r.entries.front().scoped ? "" : "name:") +
+                            Describe(r.expression, r.reading, r.matched_length, r.reasons, glosses));
             }
             if (a != b) {
                 ++differences;

@@ -1,0 +1,988 @@
+{
+ "source": {
+  "vndb": "v93",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c96",
+   "kind": "person",
+   "name": "白銀 武",
+   "family": "白銀",
+   "given": "武",
+   "reading": "しろがね たける",
+   "family_reading": "しろがね",
+   "given_reading": "たける",
+   "romaji": "Shirogane Takeru",
+   "aliases": [
+    {
+     "text": "たけるさん",
+     "reading": "たけるさん"
+    },
+    {
+     "text": "タケルちゃん",
+     "reading": "タケルちゃん"
+    },
+    {
+     "text": "御剣 武",
+     "reading": "みつるぎ たける"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c97",
+   "kind": "person",
+   "name": "白銀 武",
+   "family": "白銀",
+   "given": "武",
+   "reading": "しろがね たける",
+   "family_reading": "しろがね",
+   "given_reading": "たける",
+   "romaji": "Shirogane Takeru",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c104",
+   "kind": "person",
+   "name": "御剣 冥夜",
+   "family": "御剣",
+   "given": "冥夜",
+   "reading": "みつるぎ めいや",
+   "family_reading": "みつるぎ",
+   "given_reading": "めいや",
+   "romaji": "Mitsurugi Meiya",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c105",
+   "kind": "person",
+   "name": "御剣 冥夜",
+   "family": "御剣",
+   "given": "冥夜",
+   "reading": "みつるぎ めいや",
+   "family_reading": "みつるぎ",
+   "given_reading": "めいや",
+   "romaji": "Mitsurugi Meiya",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c108",
+   "kind": "person",
+   "name": "鑑 純夏",
+   "family": "鑑",
+   "given": "純夏",
+   "reading": "かがみ すみか",
+   "family_reading": "かがみ",
+   "given_reading": "すみか",
+   "romaji": "Kagami Sumika",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c115",
+   "kind": "person",
+   "name": "榊 千鶴",
+   "family": "榊",
+   "given": "千鶴",
+   "reading": "さかき ちずる",
+   "family_reading": "さかき",
+   "given_reading": "ちずる",
+   "romaji": "Sakaki Chizuru",
+   "aliases": [
+    {
+     "text": "委員長",
+     "reading": "いいんちょう"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c117",
+   "kind": "person",
+   "name": "榊 千鶴",
+   "family": "榊",
+   "given": "千鶴",
+   "reading": "さかき ちずる",
+   "family_reading": "さかき",
+   "given_reading": "ちずる",
+   "romaji": "Sakaki Chizuru",
+   "aliases": [
+    {
+     "text": "委員長",
+     "reading": "いいんちょう"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c123",
+   "kind": "person",
+   "name": "彩峰 慧",
+   "family": "彩峰",
+   "given": "慧",
+   "reading": "あやみね けい",
+   "family_reading": "あやみね",
+   "given_reading": "けい",
+   "romaji": "Ayamine Kei",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c124",
+   "kind": "person",
+   "name": "彩峰 慧",
+   "family": "彩峰",
+   "given": "慧",
+   "reading": "あやみね けい",
+   "family_reading": "あやみね",
+   "given_reading": "けい",
+   "romaji": "Ayamine Kei",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c130",
+   "kind": "person",
+   "name": "珠瀬 壬姫",
+   "family": "珠瀬",
+   "given": "壬姫",
+   "reading": "たませ みき",
+   "family_reading": "たませ",
+   "given_reading": "みき",
+   "romaji": "Tamase Miki",
+   "aliases": [
+    {
+     "text": "たま",
+     "reading": "たま"
+    },
+    {
+     "text": "ミキ",
+     "reading": "ミキ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c131",
+   "kind": "person",
+   "name": "珠瀬 壬姫",
+   "family": "珠瀬",
+   "given": "壬姫",
+   "reading": "たませ みき",
+   "family_reading": "たませ",
+   "given_reading": "みき",
+   "romaji": "Tamase Miki",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c134",
+   "kind": "person",
+   "name": "鎧衣 尊人",
+   "family": "鎧衣",
+   "given": "尊人",
+   "reading": "よろい みこと",
+   "family_reading": "よろい",
+   "given_reading": "みこと",
+   "romaji": "Yoroi Mikoto",
+   "aliases": [
+    {
+     "text": "色代 常美"
+    },
+    {
+     "text": "鎧衣 美琴",
+     "reading": "よろい みこと"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:色代 常美"
+   ]
+  },
+  {
+   "id": "c135",
+   "kind": "person",
+   "name": "鎧衣 美琴",
+   "family": "鎧衣",
+   "given": "美琴",
+   "reading": "よろい みこと",
+   "family_reading": "よろい",
+   "given_reading": "みこと",
+   "romaji": "Yoroi Mikoto",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c111",
+   "kind": "person",
+   "name": "神宮司 まりも",
+   "family": "神宮司",
+   "given": "まりも",
+   "reading": "じんぐうじ まりも",
+   "family_reading": "じんぐうじ",
+   "given_reading": "まりも",
+   "romaji": "Jinguuji Marimo",
+   "aliases": [
+    {
+     "text": "狂犬",
+     "reading": "きょうけん"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c112",
+   "kind": "person",
+   "name": "神宮司 まりも",
+   "family": "神宮司",
+   "given": "まりも",
+   "reading": "じんぐうじ まりも",
+   "family_reading": "じんぐうじ",
+   "given_reading": "まりも",
+   "romaji": "Jinguuji Marimo",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c113",
+   "kind": "person",
+   "name": "香月 夕呼",
+   "family": "香月",
+   "given": "夕呼",
+   "reading": "こうずき ゆうこ",
+   "family_reading": "こうずき",
+   "given_reading": "ゆうこ",
+   "romaji": "Kouzuki Yuuko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c114",
+   "kind": "person",
+   "name": "香月 夕呼",
+   "family": "香月",
+   "given": "夕呼",
+   "reading": "こうずき ゆうこ",
+   "family_reading": "こうずき",
+   "given_reading": "ゆうこ",
+   "romaji": "Kouzuki Yuuko",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c127",
+   "kind": "person",
+   "name": "月詠 真那",
+   "family": "月詠",
+   "given": "真那",
+   "reading": "つくよみ まな",
+   "family_reading": "つくよみ",
+   "given_reading": "まな",
+   "romaji": "Tsukuyomi Mana",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c129",
+   "kind": "person",
+   "name": "月詠 真那",
+   "family": "月詠",
+   "given": "真那",
+   "reading": "つくよみ まな",
+   "family_reading": "つくよみ",
+   "given_reading": "まな",
+   "romaji": "Tsukuyomi Mana",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c137",
+   "kind": "person",
+   "name": "戎 美凪",
+   "family": "戎",
+   "given": "美凪",
+   "reading": "えびす みなぎ",
+   "family_reading": "えびす",
+   "given_reading": "みなぎ",
+   "romaji": "Ebisu Minagi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c138",
+   "kind": "person",
+   "name": "神代 巽",
+   "family": "神代",
+   "given": "巽",
+   "reading": "かみよ たつみ",
+   "family_reading": "かみよ",
+   "given_reading": "たつみ",
+   "romaji": "Kamiyo Tatsumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c139",
+   "kind": "person",
+   "name": "巴 雪乃",
+   "family": "巴",
+   "given": "雪乃",
+   "reading": "ともえ ゆきの",
+   "family_reading": "ともえ",
+   "given_reading": "ゆきの",
+   "romaji": "Tomoe Yukino",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c140",
+   "kind": "person",
+   "name": "巴 雪乃",
+   "family": "巴",
+   "given": "雪乃",
+   "reading": "ともえ ゆきの",
+   "family_reading": "ともえ",
+   "given_reading": "ゆきの",
+   "romaji": "Tomoe Yukino",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c141",
+   "kind": "person",
+   "name": "戎 美凪",
+   "family": "戎",
+   "given": "美凪",
+   "reading": "えびす みなぎ",
+   "family_reading": "えびす",
+   "given_reading": "みなぎ",
+   "romaji": "Ebisu Minagi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c142",
+   "kind": "person",
+   "name": "神代 巽",
+   "family": "神代",
+   "given": "巽",
+   "reading": "かみよ たつみ",
+   "family_reading": "かみよ",
+   "given_reading": "たつみ",
+   "romaji": "Kamiyo Tatsumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c166",
+   "kind": "person",
+   "name": "京塚 志津江",
+   "family": "京塚",
+   "given": "志津江",
+   "reading": "きょうずか しずえ",
+   "family_reading": "きょうずか",
+   "given_reading": "しずえ",
+   "romaji": "Kyouzuka Shizue",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c172",
+   "kind": "person",
+   "name": "柏木 晴子",
+   "family": "柏木",
+   "given": "晴子",
+   "reading": "かしわぎ はるこ",
+   "family_reading": "かしわぎ",
+   "given_reading": "はるこ",
+   "romaji": "Kashiwagi Haruko",
+   "aliases": [
+    {
+     "text": "ハル",
+     "reading": "ハル"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c177",
+   "kind": "person",
+   "name": "社 霞",
+   "family": "社",
+   "given": "霞",
+   "reading": "やしろ かすみ",
+   "family_reading": "やしろ",
+   "given_reading": "かすみ",
+   "romaji": "Yashiro Kasumi",
+   "aliases": [
+    {
+     "text": "トリースタ・シェスチナ",
+     "reading": "トリースタ・シェスチナ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c116544",
+   "kind": "person",
+   "name": "天野原 翠子",
+   "family": "天野原",
+   "given": "翠子",
+   "reading": "あまのはら すいこ",
+   "family_reading": "あまのはら",
+   "given_reading": "すいこ",
+   "romaji": "Amanohara Suiko",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c116549",
+   "kind": "person",
+   "name": "天野原 甚五郎",
+   "family": "天野原",
+   "given": "甚五郎",
+   "reading": "あまのはら じんごろう",
+   "family_reading": "あまのはら",
+   "given_reading": "じんごろう",
+   "romaji": "Amanohara  Jingorou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c124100",
+   "kind": "person",
+   "name": "高原 萌香",
+   "family": "高原",
+   "given": "萌香",
+   "reading": "たかはら もえか",
+   "family_reading": "たかはら",
+   "given_reading": "もえか",
+   "romaji": "Takahara Moeka",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c124101",
+   "kind": "person",
+   "name": "麻倉",
+   "reading": "あさくら",
+   "romaji": "Asakura",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c143",
+   "kind": "person",
+   "name": "イリーナ・ピアティフ",
+   "reading": "イリーナ・ピアティフ",
+   "romaji": "Irina Pyatkh",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c147",
+   "kind": "person",
+   "name": "一文字 鷹嘴",
+   "family": "一文字",
+   "given": "鷹嘴",
+   "reading": "いちもんじ たかはし",
+   "family_reading": "いちもんじ",
+   "given_reading": "たかはし",
+   "romaji": "Ichimonji Takahashi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c156",
+   "kind": "person",
+   "name": "涼宮 茜",
+   "family": "涼宮",
+   "given": "茜",
+   "reading": "すずみや あかね",
+   "family_reading": "すずみや",
+   "given_reading": "あかね",
+   "romaji": "Suzumiya Akane",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c162047",
+   "kind": "person",
+   "name": "Takeru's and Meiya's Daughter",
+   "romaji": "Takeru's and Meiya's Daughter",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c162101",
+   "kind": "person",
+   "name": "Takeru's and Mikoto's Daughter",
+   "romaji": "Takeru's and Mikoto's Daughter",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c162102",
+   "kind": "person",
+   "name": "Takeru's and Miki's Daughter",
+   "romaji": "Takeru's and Miki's Daughter",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c162103",
+   "kind": "person",
+   "name": "Takeru's and Chizuru's Daughter",
+   "romaji": "Takeru's and Chizuru's Daughter",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c162104",
+   "kind": "person",
+   "name": "Takeru's and Kei's Daughter",
+   "romaji": "Takeru's and Kei's Daughter",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c165217",
+   "kind": "person",
+   "name": "ユウタ",
+   "reading": "ユウタ",
+   "romaji": "Yuuta",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c165428",
+   "kind": "person",
+   "name": "千鶴の母",
+   "romaji": "Chizuru's Mother",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c165676",
+   "kind": "person",
+   "name": "師岡",
+   "reading": "もろおか",
+   "romaji": "Morooka",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c165678",
+   "kind": "person",
+   "name": "川副",
+   "reading": "かわぞえ",
+   "romaji": "Kawazoe",
+   "aliases": [
+    {
+     "text": "ゾエさん",
+     "reading": "ゾエさん"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c168",
+   "kind": "person",
+   "name": "パウル・ラダビノッド",
+   "reading": "パウル・ラダビノッド",
+   "romaji": "Paul Radhabinod",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c168537",
+   "kind": "person",
+   "name": "築地 多恵",
+   "family": "築地",
+   "given": "多恵",
+   "reading": "つきじ たえ",
+   "family_reading": "つきじ",
+   "given_reading": "たえ",
+   "romaji": "Tsukiji Tae",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c173",
+   "kind": "person",
+   "name": "珠瀬 玄丞斎",
+   "family": "珠瀬",
+   "given": "玄丞斎",
+   "reading": "たませ げんじょうさい",
+   "family_reading": "たませ",
+   "given_reading": "げんじょうさい",
+   "romaji": "Tamase Genjousai",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c179",
+   "kind": "person",
+   "name": "沙霧 尚哉",
+   "family": "沙霧",
+   "given": "尚哉",
+   "reading": "さぎり なおや",
+   "family_reading": "さぎり",
+   "given_reading": "なおや",
+   "romaji": "Sagiri Naoya",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c181",
+   "kind": "person",
+   "name": "お婆さん",
+   "reading": "おばあさん",
+   "romaji": "Obaa-san",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c37395",
+   "kind": "person",
+   "name": "星乃 文緒",
+   "family": "星乃",
+   "given": "文緒",
+   "reading": "ほしの ふみお",
+   "family_reading": "ほしの",
+   "given_reading": "ふみお",
+   "romaji": "Hoshino Fumio",
+   "aliases": [
+    {
+     "text": "文緒っち",
+     "reading": "ふみおっち"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c909",
+   "kind": "person",
+   "name": "珠瀬 玄丞斎",
+   "family": "珠瀬",
+   "given": "玄丞斎",
+   "reading": "たませ げんじょうさい",
+   "family_reading": "たませ",
+   "given_reading": "げんじょうさい",
+   "romaji": "Tamase Genjousai",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hakuryou-hiiragi-gakuen",
+   "kind": "place",
+   "name": "白陵大付属柊学園",
+   "reading": "はくりょうだいふぞくひいらぎがくえん",
+   "romaji": "Hakuryoudai Fuzoku Hiiragi Gakuen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hiiragi-chou",
+   "kind": "place",
+   "name": "柊町",
+   "reading": "ひいらぎちょう",
+   "romaji": "Hiiragi-chou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:yokohama-kichi",
+   "kind": "place",
+   "name": "国連軍横浜基地",
+   "reading": "こくれんぐんよこはまきち",
+   "romaji": "Kokurengun Yokohama Kichi",
+   "aliases": [
+    {
+     "text": "横浜基地",
+     "reading": "よこはまきち"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:mitsurugi-zaibatsu",
+   "kind": "thing",
+   "name": "御剣財閥",
+   "reading": "みつるぎざいばつ",
+   "romaji": "Mitsurugi Zaibatsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:beta",
+   "kind": "thing",
+   "name": "BETA",
+   "reading": "ベータ",
+   "romaji": "BETA",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:senjutsuki",
+   "kind": "thing",
+   "name": "戦術機",
+   "reading": "せんじゅつき",
+   "romaji": "Senjutsuki",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:eishi",
+   "kind": "thing",
+   "name": "衛士",
+   "reading": "えいし",
+   "romaji": "Eishi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:teikoku-konoegun",
+   "kind": "thing",
+   "name": "帝国斯衛軍",
+   "reading": "ていこくこのえぐん",
+   "romaji": "Teikoku Konoegun",
+   "aliases": [
+    {
+     "text": "斯衛",
+     "reading": "このえ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shiranui",
+   "kind": "thing",
+   "name": "不知火",
+   "reading": "しらぬい",
+   "romaji": "Shiranui",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:takemikazuchi",
+   "kind": "thing",
+   "name": "武御雷",
+   "reading": "たけみかづち",
+   "romaji": "Takemikazuchi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:alternative-4",
+   "kind": "thing",
+   "name": "オルタネイティヴ4",
+   "reading": "オルタネイティヴフォー",
+   "romaji": "Alternative 4",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  }
+ ]
+}

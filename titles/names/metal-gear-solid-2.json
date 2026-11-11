@@ -1,0 +1,672 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/メタルギアソリッド2_サンズ・オブ・リバティ",
+   "https://ja.wikipedia.org/wiki/メタルギアソリッド2_サブスタンス"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:solid-snake",
+   "kind": "person",
+   "name": "ソリッド・スネーク",
+   "reading": "ソリッド・スネーク",
+   "romaji": "Solid Snake",
+   "aliases": [
+    {
+     "text": "スネーク",
+     "reading": "スネーク"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:raiden",
+   "kind": "person",
+   "name": "雷電",
+   "reading": "らいでん",
+   "romaji": "Raiden",
+   "aliases": [
+    {
+     "text": "ジャック",
+     "reading": "ジャック"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hal-emmerich",
+   "kind": "person",
+   "name": "ハル・エメリッヒ",
+   "family": "エメリッヒ",
+   "given": "ハル",
+   "reading": "ハル・エメリッヒ",
+   "family_reading": "エメリッヒ",
+   "given_reading": "ハル",
+   "romaji": "Hal Emmerich",
+   "aliases": [
+    {
+     "text": "オタコン",
+     "reading": "オタコン"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rosemary",
+   "kind": "person",
+   "name": "ローズマリー",
+   "reading": "ローズマリー",
+   "romaji": "Rosemary",
+   "aliases": [
+    {
+     "text": "ローズ",
+     "reading": "ローズ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:roy-campbell",
+   "kind": "person",
+   "name": "ロイ・キャンベル",
+   "family": "キャンベル",
+   "given": "ロイ",
+   "reading": "ロイ・キャンベル",
+   "family_reading": "キャンベル",
+   "given_reading": "ロイ",
+   "romaji": "Roy Campbell",
+   "aliases": [
+    {
+     "text": "大佐",
+     "reading": "たいさ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:iroquois-pliskin",
+   "kind": "person",
+   "name": "イロコィ・プリスキン",
+   "family": "プリスキン",
+   "given": "イロコィ",
+   "reading": "イロコィ・プリスキン",
+   "family_reading": "プリスキン",
+   "given_reading": "イロコィ",
+   "romaji": "Iroquois Pliskin",
+   "aliases": [
+    {
+     "text": "プリスキン",
+     "reading": "プリスキン"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:peter-stillman",
+   "kind": "person",
+   "name": "ピーター・スティルマン",
+   "family": "スティルマン",
+   "given": "ピーター",
+   "reading": "ピーター・スティルマン",
+   "family_reading": "スティルマン",
+   "given_reading": "ピーター",
+   "romaji": "Peter Stillman",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:emma-emmerich",
+   "kind": "person",
+   "name": "エマ・エメリッヒ",
+   "family": "エメリッヒ",
+   "given": "エマ",
+   "reading": "エマ・エメリッヒ",
+   "family_reading": "エメリッヒ",
+   "given_reading": "エマ",
+   "romaji": "Emma Emmerich",
+   "aliases": [
+    {
+     "text": "E.E.",
+     "reading": "イーイー"
+    },
+    {
+     "text": "エマ",
+     "reading": "エマ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:solidus-snake",
+   "kind": "person",
+   "name": "ソリダス・スネーク",
+   "reading": "ソリダス・スネーク",
+   "romaji": "Solidus Snake",
+   "aliases": [
+    {
+     "text": "ソリダス",
+     "reading": "ソリダス"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:george-sears",
+   "kind": "person",
+   "name": "ジョージ・シアーズ",
+   "family": "シアーズ",
+   "given": "ジョージ",
+   "reading": "ジョージ・シアーズ",
+   "family_reading": "シアーズ",
+   "given_reading": "ジョージ",
+   "romaji": "George Sears",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:revolver-ocelot",
+   "kind": "person",
+   "name": "リボルバー・オセロット",
+   "reading": "リボルバー・オセロット",
+   "romaji": "Revolver Ocelot",
+   "aliases": [
+    {
+     "text": "オセロット",
+     "reading": "オセロット"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:liquid-snake",
+   "kind": "person",
+   "name": "リキッド・スネーク",
+   "reading": "リキッド・スネーク",
+   "romaji": "Liquid Snake",
+   "aliases": [
+    {
+     "text": "リキッド",
+     "reading": "リキッド"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:sergei-gurlukovich",
+   "kind": "person",
+   "name": "セルゲイ・ゴルルコビッチ",
+   "family": "ゴルルコビッチ",
+   "given": "セルゲイ",
+   "reading": "セルゲイ・ゴルルコビッチ",
+   "family_reading": "ゴルルコビッチ",
+   "given_reading": "セルゲイ",
+   "romaji": "Sergei Gurlukovich",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:olga-gurlukovich",
+   "kind": "person",
+   "name": "オルガ・ゴルルコビッチ",
+   "family": "ゴルルコビッチ",
+   "given": "オルガ",
+   "reading": "オルガ・ゴルルコビッチ",
+   "family_reading": "ゴルルコビッチ",
+   "given_reading": "オルガ",
+   "romaji": "Olga Gurlukovich",
+   "aliases": [
+    {
+     "text": "オルガ",
+     "reading": "オルガ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mr-x",
+   "kind": "person",
+   "name": "ミスターX",
+   "reading": "ミスターエックス",
+   "romaji": "Mr. X",
+   "aliases": [
+    {
+     "text": "サイボーグ忍者",
+     "reading": "サイボーグにんじゃ"
+    }
+   ],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:fortune",
+   "kind": "person",
+   "name": "フォーチュン",
+   "reading": "フォーチュン",
+   "romaji": "Fortune",
+   "aliases": [
+    {
+     "text": "幸運の女神",
+     "reading": "こううんのめがみ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:vamp",
+   "kind": "person",
+   "name": "ヴァンプ",
+   "reading": "ヴァンプ",
+   "romaji": "Vamp",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:fatman",
+   "kind": "person",
+   "name": "ファットマン",
+   "reading": "ファットマン",
+   "romaji": "Fatman",
+   "aliases": [
+    {
+     "text": "爆弾王",
+     "reading": "ばくだんおう"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:richard-ames",
+   "kind": "person",
+   "name": "リチャード・エイムズ",
+   "family": "エイムズ",
+   "given": "リチャード",
+   "reading": "リチャード・エイムズ",
+   "family_reading": "エイムズ",
+   "given_reading": "リチャード",
+   "romaji": "Richard Ames",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:james-johnson",
+   "kind": "person",
+   "name": "ジェームズ・ジョンソン",
+   "family": "ジョンソン",
+   "given": "ジェームズ",
+   "reading": "ジェームズ・ジョンソン",
+   "family_reading": "ジョンソン",
+   "given_reading": "ジェームズ",
+   "romaji": "James Johnson",
+   "aliases": [
+    {
+     "text": "大統領",
+     "reading": "だいとうりょう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:scott-dolph",
+   "kind": "person",
+   "name": "スコット・ドルフ",
+   "family": "ドルフ",
+   "given": "スコット",
+   "reading": "スコット・ドルフ",
+   "family_reading": "ドルフ",
+   "given_reading": "スコット",
+   "romaji": "Scott Dolph",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:johnny-sasaki",
+   "kind": "person",
+   "name": "ジョニー佐々木",
+   "family": "佐々木",
+   "given": "ジョニー",
+   "reading": "ジョニーささき",
+   "family_reading": "ささき",
+   "given_reading": "ジョニー",
+   "romaji": "Johnny Sasaki",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mei-ling",
+   "kind": "person",
+   "name": "メイ・リン",
+   "reading": "メイ・リン",
+   "romaji": "Mei Ling",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:vulcan-raven",
+   "kind": "person",
+   "name": "バルカン・レイブン",
+   "reading": "バルカン・レイブン",
+   "romaji": "Vulcan Raven",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:big-shell",
+   "kind": "place",
+   "name": "ビッグ・シェル",
+   "reading": "ビッグ・シェル",
+   "romaji": "Big Shell",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:shell-1",
+   "kind": "place",
+   "name": "シェル1",
+   "romaji": "Shell 1",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:shell-2",
+   "kind": "place",
+   "name": "シェル2",
+   "romaji": "Shell 2",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:federal-hall",
+   "kind": "place",
+   "name": "フェデラル・ホール",
+   "reading": "フェデラル・ホール",
+   "romaji": "Federal Hall",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:manhattan",
+   "kind": "place",
+   "name": "マンハッタン",
+   "reading": "マンハッタン",
+   "romaji": "Manhattan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hudson-river",
+   "kind": "place",
+   "name": "ハドソン川",
+   "reading": "ハドソンがわ",
+   "romaji": "Hudson River",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:shadow-moses",
+   "kind": "place",
+   "name": "シャドー・モセス島",
+   "reading": "シャドー・モセスとう",
+   "romaji": "Shadow Moses Island",
+   "aliases": [
+    {
+     "text": "シャドー・モセス",
+     "reading": "シャドー・モセス"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:discovery",
+   "kind": "place",
+   "name": "ディスカバリー号",
+   "reading": "ディスカバリーごう",
+   "romaji": "USS Discovery",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "thing:sons-of-liberty",
+   "kind": "thing",
+   "name": "サンズ・オブ・リバティ",
+   "reading": "サンズ・オブ・リバティ",
+   "romaji": "Sons of Liberty",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:dead-cell",
+   "kind": "thing",
+   "name": "デッドセル",
+   "reading": "デッドセル",
+   "romaji": "Dead Cell",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:patriots",
+   "kind": "thing",
+   "name": "愛国者達",
+   "reading": "あいこくしゃたち",
+   "romaji": "The Patriots",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:philanthropy",
+   "kind": "thing",
+   "name": "フィランソロピー",
+   "reading": "フィランソロピー",
+   "romaji": "Philanthropy",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:metal-gear-ray",
+   "kind": "thing",
+   "name": "メタルギアRAY",
+   "reading": "メタルギアレイ",
+   "romaji": "Metal Gear RAY",
+   "aliases": [
+    {
+     "text": "RAY",
+     "reading": "レイ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:arsenal-gear",
+   "kind": "thing",
+   "name": "アーセナルギア",
+   "reading": "アーセナルギア",
+   "romaji": "Arsenal Gear",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:foxhound",
+   "kind": "thing",
+   "name": "FOXHOUND",
+   "reading": "フォックスハウンド",
+   "romaji": "FOXHOUND",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:foxdie",
+   "kind": "thing",
+   "name": "FOXDIE",
+   "reading": "フォックスダイ",
+   "romaji": "FOXDIE",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:gw",
+   "kind": "thing",
+   "name": "G.W",
+   "romaji": "G.W",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:s3-plan",
+   "kind": "thing",
+   "name": "S3計画",
+   "romaji": "S3 Plan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:gurlukovich-mercenaries",
+   "kind": "thing",
+   "name": "ゴルルコビッチ隊",
+   "reading": "ゴルルコビッチたい",
+   "romaji": "Gurlukovich Mercenaries",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

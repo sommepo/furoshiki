@@ -24,7 +24,9 @@ data class CardContext(
     /** The word as somebody says it ([org.readers.app.reader.mining.WordAudio]), once it is in Anki. */
     val wordAudioName: String? = null,
     /** The game's page ([SourceAddress.of]); empty when the game is not known. */
-    val gameUrl: String = ""
+    val gameUrl: String = "",
+    /** The lines read just before this one, oldest first, for {context} and {previous-sentence}. */
+    val before: List<String> = emptyList()
 )
 
 /**
@@ -45,7 +47,10 @@ object CardBuilder {
         "sentence" to "The line, with the word in bold",
         "sentence-plain" to "The line as plain text",
         "sentence-furigana" to "The line with the game's furigana: 君[きみ]",
+        "translation" to "The line's English, where it has one (a subtitle's)",
         "sentence-furigana-html" to "The line with the game's furigana as ruby HTML",
+        "context" to "The lines read just before this one",
+        "previous-sentence" to "The one line before this one",
         "screenshot" to "Picture of the game screen",
         "audio" to "Game audio of the line",
         "word-audio" to "The word spoken (JapanesePod101)",
@@ -120,6 +125,13 @@ object CardBuilder {
             "sentence" -> sentenceHtml(c.line.text, c.wordRange)
 
             "sentence-plain" -> JapaneseText.escapeHtml(c.line.text).replace("\n", "<br>")
+
+            "translation" -> JapaneseText.escapeHtml(c.line.meta["translation"].orEmpty())
+
+            "context" -> c.before.joinToString("<br>") { JapaneseText.escapeHtml(it).replace("\n", "<br>") }
+
+            "previous-sentence" ->
+                c.before.lastOrNull()?.let { JapaneseText.escapeHtml(it).replace("\n", "<br>") } ?: ""
 
             "sentence-furigana" ->
                 JapaneseText.escapeHtml(c.line.toAnkiFurigana()).replace("\n", "<br>")
@@ -243,6 +255,8 @@ object CardBuilder {
                     "{sentence}"
 
                 name in setOf("sentenceaudio", "contextaudio") -> "{audio}"
+                name in setOf("englishsentence", "sentenceenglish", "translation", "sentencetranslation",
+                    "sentencemeaning") -> "{translation}"
 
                 name in WORD_AUDIO_FIELDS -> "{word-audio}"
 

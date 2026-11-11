@@ -192,8 +192,10 @@ void LookupFlow::Lookup(const PresentedLine& presented, int offset, const Anchor
     ReaderApp::DictionaryLookup* lookup = &session.Lookup();
     ReaderApp::ReaderDatabase* database = &session.Database();
     const bool histories = session.Settings().PopupLookups() != QStringLiteral("off");
+    // The running game's names dictionaries are used, and first (DictionaryLookup::Lookup).
+    const QString game = session.GameKey();
     worker.start([this, request, presented, offset, quiet, rest, dictionaries, lookup, database,
-                  histories] {
+                  histories, game] {
         if (request != asked) {
             return; // the pointer has gone on to another word since
         }
@@ -203,7 +205,7 @@ void LookupFlow::Lookup(const PresentedLine& presented, int offset, const Anchor
         try {
             has_dictionaries = dictionaries->HasEnabledDictionaries();
             if (has_dictionaries) {
-                results = lookup->Lookup(rest);
+                results = lookup->Lookup(rest, 24, game);
             }
             if (histories) {
                 for (const LookupResult& result : results) {
@@ -246,6 +248,7 @@ void LookupFlow::OnLookupDone(int request, const PresentedLine& presented, int o
     popup->SetTextScale(settings.PopupScale());
     popup->SetTheme(settings.PopupTheme());
     popup->SetUserCss(settings.PopupCss());
+    popup->SetLook(settings.PopupLook());
     if (popup->IsWeb()) {
         // The page lays itself out at the popup's width: it has that width before it is shown.
         popup->resize(PopupWidth(), std::max(popup->height(), 56));
@@ -581,8 +584,13 @@ void LookupFlow::Mine(int index) {
                [this](const MediaCapture::Clip& clip, Miner::AudioAnswer answer) {
                    Ask(clip, std::move(answer));
                },
-               [this, request, index, before](const Miner::Outcome& outcome) {
+               [this, request, index, before, presented = pinned->presented,
+                result](const Miner::Outcome& outcome) {
                    Report(outcome);
+                   if (outcome.kind == Miner::Outcome::Kind::Added) {
+                       ReaderSession::Instance().PublishCard(presented, result,
+                                                             outcome.notes.value(0), outcome.picture);
+                   }
                    if (request != token || !pinned) {
                        return;
                    }
@@ -607,7 +615,13 @@ void LookupFlow::MineSentence(const PresentedLine& presented) {
                [this](const MediaCapture::Clip& clip, Miner::AudioAnswer answer) {
                    Ask(clip, std::move(answer));
                },
-               [this](const Miner::Outcome& outcome) { Report(outcome); });
+               [this, presented](const Miner::Outcome& outcome) {
+                   Report(outcome);
+                   if (outcome.kind == Miner::Outcome::Kind::Added) {
+                       ReaderSession::Instance().PublishCard(presented, std::nullopt,
+                                                             outcome.notes.value(0), outcome.picture);
+                   }
+               });
 }
 
 void LookupFlow::ShowNotes(int index) {
@@ -626,19 +640,40 @@ void LookupFlow::ShowNotes(int index) {
     });
 }
 
+void LookupFlow::UndoLast() {
+    miner.Undo([this](bool undone, const QString& failure) {
+        if (!notify) {
+            return;
+        }
+        notify(undone ? tr("Card taken back")
+                      : failure.isEmpty() ? tr("No card to take back") : tr("Still in Anki: %1").arg(failure));
+    });
+}
+
+bool LookupFlow::MineShown() {
+    if (!pinned) {
+        return false;
+    }
+    Mine(0);
+    return true;
+}
+
 void LookupFlow::Report(const Miner::Outcome& outcome) {
     if (!notify) {
         return;
     }
     switch (outcome.kind) {
     case Miner::Outcome::Kind::Added:
-        notify(tr("Card added"));
+        notify(tr("Card added  ·  Ctrl+Z takes it back"));
         break;
     case Miner::Outcome::Kind::Exists:
         notify(tr("Anki has this word already"));
         break;
     case Miner::Outcome::Kind::Failed:
         notify(tr("No card: %1").arg(outcome.message));
+        break;
+    case Miner::Outcome::Kind::Queued:
+        notify(tr("Anki is not reachable: the card is kept, and sent when it is"));
         break;
     case Miner::Outcome::Kind::Cancelled:
         break; // the user called it off: nothing to say

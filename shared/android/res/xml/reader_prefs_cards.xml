@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reader settings, the page "Anki and cards": where cards go, and their picture and audio. -->
+<!-- Anki cards: where they go and what they carry. The first 4 are shown; the rest stand behind "More"
+     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:initialExpandedChildrenCount="4">
 
     <Preference
         app:key="reader_open_anki"
@@ -14,6 +16,19 @@
         app:entryValues="@array/reader_card_audio_values"
         app:title="@string/reader_pref_card_audio"
         app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_audio_voice_trim"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_audio_voice_trim"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_card_context_lines"
+        app:defaultValue="2"
+        app:min="0"
+        android:max="5"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_card_context_lines"
         app:iconSpaceReserved="false" />
     <SwitchPreferenceCompat
         app:key="reader_capture_audio"

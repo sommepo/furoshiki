@@ -1,0 +1,1253 @@
+{
+ "source": {
+  "vndb": "v15125",
+  "fetched": "2026-11-08",
+  "vndb_also": [
+   "v19987"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "c17644",
+   "kind": "person",
+   "name": "成歩堂 龍ノ介",
+   "family": "成歩堂",
+   "given": "龍ノ介",
+   "reading": "なるほどう りゅうのすけ",
+   "family_reading": "なるほどう",
+   "given_reading": "りゅうのすけ",
+   "romaji": "Naruhodou Ryuunosuke",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113560",
+   "kind": "person",
+   "name": "裁判長",
+   "reading": "さいばんちょう",
+   "romaji": "Saibanchou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159655",
+   "kind": "person",
+   "name": "仮面の従者",
+   "romaji": "Masked Disciple",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c17645",
+   "kind": "person",
+   "name": "御琴羽 寿沙都",
+   "family": "御琴羽",
+   "given": "寿沙都",
+   "reading": "みことば すさと",
+   "family_reading": "みことば",
+   "given_reading": "すさと",
+   "romaji": "Mikotoba Susato",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c21488",
+   "kind": "person",
+   "name": "シャーロック・ホームズ",
+   "reading": "シャーロック・ホームズ",
+   "romaji": "Sherlock Holmes",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c21489",
+   "kind": "person",
+   "name": "アイリス・ワトソン",
+   "reading": "アイリス・ワトソン",
+   "romaji": "Iris Watson",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c25199",
+   "kind": "person",
+   "name": "亜双義 一真",
+   "family": "亜双義",
+   "given": "一真",
+   "reading": "あそうぎ かずま",
+   "family_reading": "あそうぎ",
+   "given_reading": "かずま",
+   "romaji": "Asougi Kazuma",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c83949",
+   "kind": "person",
+   "name": "バロック・ バンジークス",
+   "family": "バロック・",
+   "given": "バンジークス",
+   "reading": "バロック・ バンジークス",
+   "family_reading": "バロック・",
+   "given_reading": "バンジークス",
+   "romaji": "Barok van Zieks",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c85355",
+   "kind": "person",
+   "name": "ハート・ヴォルテックス",
+   "reading": "ハート・ヴォルテックス",
+   "romaji": "Hart Vortex",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88903",
+   "kind": "person",
+   "name": "御琴羽 悠仁",
+   "family": "御琴羽",
+   "given": "悠仁",
+   "reading": "みことば ゆうじん",
+   "family_reading": "みことば",
+   "given_reading": "ゆうじん",
+   "romaji": "Mikotoba Yuujin",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111987",
+   "kind": "person",
+   "name": "ウイリアム・ペテンシー",
+   "reading": "ウイリアム・ペテンシー",
+   "romaji": "William Petency",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111988",
+   "kind": "person",
+   "name": "豆籾 平太",
+   "family": "豆籾",
+   "given": "平太",
+   "reading": "まめもみ へいた",
+   "family_reading": "まめもみ",
+   "given_reading": "へいた",
+   "romaji": "Mamemomi Heita",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111989",
+   "kind": "person",
+   "name": "ジェゼール・ブレット",
+   "reading": "ジェゼール・ブレット",
+   "romaji": "Jezail Bullet",
+   "aliases": [
+    {
+     "text": "アンサッシャー",
+     "reading": "アンサッシャー"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111990",
+   "kind": "person",
+   "name": "イーノック・ドレッバー",
+   "reading": "イーノック・ドレッバー",
+   "romaji": "Enoch Drebber",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111991",
+   "kind": "person",
+   "name": "コートニー・シス",
+   "reading": "コートニー・シス",
+   "romaji": "Courtney Sithe",
+   "aliases": [
+    {
+     "text": "コートニー・サイモン",
+     "reading": "コートニー・サイモン"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111992",
+   "kind": "person",
+   "name": "慈獄 政士郎",
+   "family": "慈獄",
+   "given": "政士郎",
+   "reading": "じごく せいしろう",
+   "family_reading": "じごく",
+   "given_reading": "せいしろう",
+   "romaji": "Jigoku Seishirou",
+   "aliases": [
+    {
+     "text": "裁判長",
+     "reading": "さいばんちょう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111993",
+   "kind": "person",
+   "name": "エッグ・ベネディクト",
+   "reading": "エッグ・ベネディクト",
+   "romaji": "Egg Benedict",
+   "aliases": [
+    {
+     "text": "ルバート・クログレイ",
+     "reading": "ルバート・クログレイ"
+    },
+    {
+     "text": "ルバート・ミルバートン",
+     "reading": "ルバート・ミルバートン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111994",
+   "kind": "person",
+   "name": "ジョン・ガリデブ",
+   "reading": "ジョン・ガリデブ",
+   "romaji": "John Garidebu",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111995",
+   "kind": "person",
+   "name": "ハッチ・ウィンデバンク",
+   "reading": "ハッチ・ウィンデバンク",
+   "romaji": "Hatch Windibank",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111996",
+   "kind": "person",
+   "name": "マリア・グーロイネ",
+   "reading": "マリア・グーロイネ",
+   "romaji": "Maria Goulloyne",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111997",
+   "kind": "person",
+   "name": "デカーゴ・ミターマン",
+   "reading": "デカーゴ・ミターマン",
+   "romaji": "Decargo Mieterman",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c111998",
+   "kind": "person",
+   "name": "エブリディ・ミテルモン",
+   "reading": "エブリディ・ミテルモン",
+   "romaji": "Everydae Mittermont",
+   "aliases": [
+    {
+     "text": "ゴシップ",
+     "reading": "ゴシップ"
+    },
+    {
+     "text": "トビアス・グレグソン",
+     "reading": "トビアス・グレグソン"
+    },
+    {
+     "text": "ヒュー・ブーン",
+     "reading": "ヒュー・ブーン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113548",
+   "kind": "person",
+   "name": "渦久丸 泰三",
+   "family": "渦久丸",
+   "given": "泰三",
+   "reading": "うずくまる たいぞう",
+   "family_reading": "うずくまる",
+   "given_reading": "たいぞう",
+   "romaji": "Uzukumaru Taizou",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113549",
+   "kind": "person",
+   "name": "園日暮 三文",
+   "family": "園日暮",
+   "given": "三文",
+   "reading": "そのひぐらし さんもん",
+   "family_reading": "そのひぐらし",
+   "given_reading": "さんもん",
+   "romaji": "Sonohigurashi Sanmon",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113553",
+   "kind": "person",
+   "name": "ニコミナ・ボルシビッチ",
+   "reading": "ニコミナ・ボルシビッチ",
+   "romaji": "Nikomina Borchevic",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c113554",
+   "kind": "person",
+   "name": "ミトロフ・ストロガノフ",
+   "reading": "ミトロフ・ストロガノフ",
+   "romaji": "Mitrov Stroganov",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113556",
+   "kind": "person",
+   "name": "ベッポ",
+   "reading": "ベッポ",
+   "romaji": "Beppo",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113557",
+   "kind": "person",
+   "name": "サンドイッチ",
+   "reading": "サンドイッチ",
+   "romaji": "Sandwich",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113558",
+   "kind": "person",
+   "name": "アダム・レディファスト",
+   "reading": "アダム・レディファスト",
+   "romaji": "Adam Redifast",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113559",
+   "kind": "person",
+   "name": "オスカー・フェアプレイ",
+   "reading": "オスカー・フェアプレイ",
+   "romaji": "Oscar Fairplay",
+   "aliases": [
+    {
+     "text": "1ゴウ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:1ゴウ"
+   ]
+  },
+  {
+   "id": "c113561",
+   "kind": "person",
+   "name": "メイド",
+   "reading": "メイド",
+   "romaji": "Maid",
+   "aliases": [
+    {
+     "text": "ジョーン・ガリデブ",
+     "reading": "ジョーン・ガリデブ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113562",
+   "kind": "person",
+   "name": "パトリック・オマーリ",
+   "reading": "パトリック・オマーリ",
+   "romaji": "Patrick O'Malley",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113563",
+   "kind": "person",
+   "name": "ローラ・オマーリ",
+   "reading": "ローラ・オマーリ",
+   "romaji": "Rola O'Malley",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113583",
+   "kind": "person",
+   "name": "ネミー・ティンピラー",
+   "reading": "ネミー・ティンピラー",
+   "romaji": "Nemmy Tinpiller",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113584",
+   "kind": "person",
+   "name": "タリー・ティンピラー",
+   "reading": "タリー・ティンピラー",
+   "romaji": "Tarry Tinpiller",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113585",
+   "kind": "person",
+   "name": "村雨 葉織",
+   "family": "村雨",
+   "given": "葉織",
+   "reading": "むらさめ はおり",
+   "family_reading": "むらさめ",
+   "given_reading": "はおり",
+   "romaji": "Murasame Haori",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113586",
+   "kind": "person",
+   "name": "アルタモント社長夫人",
+   "romaji": "Madam President Altamont",
+   "aliases": [
+    {
+     "text": "アルタモント夫人",
+     "reading": "アルタモントふじん"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c113590",
+   "kind": "person",
+   "name": "ベンジャミン・ドビンボー",
+   "reading": "ベンジャミン・ドビンボー",
+   "romaji": "Benjamin Dobinbough",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159656",
+   "kind": "person",
+   "name": "ルンバ・マルマッチ",
+   "reading": "ルンバ・マルマッチ",
+   "romaji": "Rumba Malmacci",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159657",
+   "kind": "person",
+   "name": "ヴィルヘルム・ゴッツライヒ・ジギスモント・オルムシュタイン",
+   "reading": "ヴィルヘルム・ゴッツライヒ・ジギスモント・オルムシュタイン",
+   "romaji": "Wilhelm Gottsreich Sigismond Ormstein",
+   "aliases": [
+    {
+     "text": "ゴッツ",
+     "reading": "ゴッツ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159701",
+   "kind": "person",
+   "name": "ハリー・バリケード",
+   "reading": "ハリー・バリケード",
+   "romaji": "Harry Barricade",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159702",
+   "kind": "person",
+   "name": "ゴシップ",
+   "reading": "ゴシップ",
+   "romaji": "Gossip",
+   "aliases": [
+    {
+     "text": "ヒュー・ブーン",
+     "reading": "ヒュー・ブーン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159703",
+   "kind": "person",
+   "name": "ビーナス",
+   "reading": "ビーナス",
+   "romaji": "Venus",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159704",
+   "kind": "person",
+   "name": "モーリス・デ・キルコ",
+   "reading": "モーリス・デ・キルコ",
+   "romaji": "Maurice de Kilco",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c159705",
+   "kind": "person",
+   "name": "マルコ・ド・ジッコ",
+   "reading": "マルコ・ド・ジッコ",
+   "romaji": "Marco d'Ogicco",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c30294",
+   "kind": "person",
+   "name": "亜内 武土",
+   "family": "亜内",
+   "given": "武土",
+   "reading": "あうち たけつち",
+   "family_reading": "あうち",
+   "given_reading": "たけつち",
+   "romaji": "Auchi Taketsuchi",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88896",
+   "kind": "person",
+   "name": "ジーナ・レストレード",
+   "reading": "ジーナ・レストレード",
+   "romaji": "Gina Lestrade",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88898",
+   "kind": "person",
+   "name": "細長 悟",
+   "family": "細長",
+   "given": "悟",
+   "reading": "ほそなが さとる",
+   "family_reading": "ほそなが",
+   "given_reading": "さとる",
+   "romaji": "Hosonaga Satoru",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88899",
+   "kind": "person",
+   "name": "コゼニー・メグンダル",
+   "reading": "コゼニー・メグンダル",
+   "romaji": "Cosney Megundal",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88900",
+   "kind": "person",
+   "name": "トビアス・グレグソン",
+   "reading": "トビアス・グレグソン",
+   "romaji": "Tobias Gregson",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c88901",
+   "kind": "person",
+   "name": "夏目 漱石",
+   "family": "夏目",
+   "given": "漱石",
+   "reading": "なつめ そうせき",
+   "family_reading": "なつめ",
+   "given_reading": "そうせき",
+   "romaji": "Natsume Souseki",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c94412",
+   "kind": "person",
+   "name": "コネット・ローザイク",
+   "reading": "コネット・ローザイク",
+   "romaji": "Connette Rozaic",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c99357",
+   "kind": "person",
+   "name": "ビリジアン・グリーン",
+   "reading": "ビリジアン・グリーン",
+   "romaji": "Viridian Green",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113550",
+   "kind": "person",
+   "name": "渦久丸 九郎丸",
+   "family": "渦久丸",
+   "given": "九郎丸",
+   "reading": "うずくまる くろうまる",
+   "family_reading": "うずくまる",
+   "given_reading": "くろうまる",
+   "romaji": "Uzukumaru Kuroumaru",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c113555",
+   "kind": "person",
+   "name": "モルター・ミルバートン",
+   "reading": "モルター・ミルバートン",
+   "romaji": "Molter Milverton",
+   "aliases": [
+    {
+     "text": "三度焼きのモルター"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:三度焼きのモルター"
+   ]
+  },
+  {
+   "id": "c113564",
+   "kind": "person",
+   "name": "デミトリ・デミグラスキー",
+   "reading": "デミトリ・デミグラスキー",
+   "romaji": "Dmitri Demiglaski",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c113587",
+   "kind": "person",
+   "name": "エライダー・メニンゲン",
+   "reading": "エライダー・メニンゲン",
+   "romaji": "Elyder Meningen",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113588",
+   "kind": "person",
+   "name": "トビー",
+   "reading": "トビー",
+   "romaji": "Toby",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113591",
+   "kind": "person",
+   "name": "ビクトリア女王",
+   "romaji": "Queen Victoria",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c128038",
+   "kind": "person",
+   "name": "クリムト・バンジークズ",
+   "reading": "クリムト・バンジークズ",
+   "romaji": "Krimmet van Zieks",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c128070",
+   "kind": "person",
+   "name": "亜双義 玄真",
+   "family": "亜双義",
+   "given": "玄真",
+   "reading": "あそぎ げんしん",
+   "family_reading": "あそぎ",
+   "given_reading": "げんしん",
+   "romaji": "Asogi Genshin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c159559",
+   "kind": "person",
+   "name": "1ゴウ",
+   "romaji": "1 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159560",
+   "kind": "person",
+   "name": "2ゴウ",
+   "romaji": "2 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159561",
+   "kind": "person",
+   "name": "3ゴウ",
+   "romaji": "3 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159582",
+   "kind": "person",
+   "name": "4ゴウ",
+   "romaji": "4 Gou",
+   "aliases": [
+    {
+     "text": "5ゴウ"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "alias:5ゴウ"
+   ]
+  },
+  {
+   "id": "c159583",
+   "kind": "person",
+   "name": "5ゴウ",
+   "romaji": "5 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159584",
+   "kind": "person",
+   "name": "6ゴウ",
+   "romaji": "6 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159589",
+   "kind": "person",
+   "name": "2ゴウ",
+   "romaji": "2 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159590",
+   "kind": "person",
+   "name": "3ゴウ",
+   "romaji": "3 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159591",
+   "kind": "person",
+   "name": "5ゴウ",
+   "romaji": "5 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159594",
+   "kind": "person",
+   "name": "6ゴウ",
+   "romaji": "6 Gou",
+   "aliases": [
+    {
+     "text": "4ゴウ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "alias:4ゴウ"
+   ]
+  },
+  {
+   "id": "c159595",
+   "kind": "person",
+   "name": "3ゴウ",
+   "romaji": "3 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159596",
+   "kind": "person",
+   "name": "デミトリ・デミグラスキー",
+   "reading": "デミトリ・デミグラスキー",
+   "romaji": "Dmitri Demiglaski",
+   "aliases": [
+    {
+     "text": "6ゴウ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:6ゴウ"
+   ]
+  },
+  {
+   "id": "c159645",
+   "kind": "person",
+   "name": "1ゴウ",
+   "romaji": "1 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159646",
+   "kind": "person",
+   "name": "3ゴウ",
+   "romaji": "3 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159647",
+   "kind": "person",
+   "name": "4ゴウ",
+   "romaji": "4 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159648",
+   "kind": "person",
+   "name": "5ゴウ",
+   "romaji": "5 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159649",
+   "kind": "person",
+   "name": "6ゴウ",
+   "romaji": "6 Gou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c159650",
+   "kind": "person",
+   "name": "アンナ・ミテルモン",
+   "reading": "アンナ・ミテルモン",
+   "romaji": "Anna Mittermon",
+   "aliases": [
+    {
+     "text": "2ゴウ"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:2ゴウ"
+   ]
+  },
+  {
+   "id": "c159654",
+   "kind": "person",
+   "name": "ダンカン・ロス",
+   "reading": "ダンカン・ロス",
+   "romaji": "Duncan Ross",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c88897",
+   "kind": "person",
+   "name": "ジョン・H・ワトソン",
+   "romaji": "John H. Watson",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "c88902",
+   "kind": "person",
+   "name": "ワガハイ",
+   "reading": "ワガハイ",
+   "romaji": "Wagahai",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:daiei-teikoku",
+   "kind": "place",
+   "name": "大英帝国",
+   "reading": "だいえいていこく",
+   "romaji": "Daiei Teikoku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:london",
+   "kind": "place",
+   "name": "倫敦",
+   "reading": "ロンドン",
+   "romaji": "London",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:baker-gai",
+   "kind": "place",
+   "name": "ベイカー街",
+   "reading": "ベイカーがい",
+   "romaji": "Baker-gai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:daishinin",
+   "kind": "place",
+   "name": "大審院",
+   "reading": "だいしんいん",
+   "romaji": "Daishin-in",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:teito-yuumei-daigaku",
+   "kind": "place",
+   "name": "帝都勇盟大学",
+   "reading": "ていとゆうめいだいがく",
+   "romaji": "Teito Yuumei Daigaku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:chuuou-keiji-saibansho",
+   "kind": "place",
+   "name": "中央刑事裁判所",
+   "reading": "ちゅうおうけいじさいばんしょ",
+   "romaji": "Chuuou Keiji Saibansho",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:karuma",
+   "kind": "thing",
+   "name": "狩魔",
+   "reading": "かるま",
+   "romaji": "Karuma",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

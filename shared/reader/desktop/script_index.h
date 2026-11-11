@@ -48,6 +48,9 @@ struct Entry {
     int api = 1;     ///< The profile API the script needs
     FileEntry script;
     QList<FileEntry> data; ///< Data files it asks for with reader.data(name), "<ID>.<name>"
+    /// The game's names dictionary ("names-<title>.zip", tools/titles.py: docs/titles.md),
+    /// installed beside the script; one zip may be several games'.
+    std::optional<FileEntry> names;
 };
 
 struct Index {
@@ -106,6 +109,13 @@ public:
      * check fails or a file cannot be written.
      */
     bool Install(const Entry& entry, const QHash<QString, QByteArray>& files, QString* error);
+    /// Whether the folder lacks `entry`'s names dictionary as the list has it (none, or another).
+    [[nodiscard]] bool NeedsNames(const Entry& entry) const;
+    /**
+     * Writes `entry`'s names dictionary, `bytes` checked against the list. Install does this
+     * too where `files` has it; this is for a script installed before its names were listed.
+     */
+    bool InstallNames(const Entry& entry, const QByteArray& bytes, QString* error);
 
     /**
      * Installs scripts and data files the user chose: a file named `<ID>.lua` is a script, a
@@ -125,6 +135,9 @@ private:
 
     QString path;
 };
+
+/// Whether `name` is a names dictionary's file: "names-<title>.zip", the title in lower case.
+[[nodiscard]] bool IsNamesFile(const QString& name);
 
 /// Whether `name` is a file a script may ask for or be: "<ID>.lua" or "<ID>.<name>" (the ID as
 /// Catalog::TitleIdOf knows it), no folders. The ID it is for, or nothing.

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The reader's first page: statistics and the supported games, then one entry per page of
-     settings (res/xml/reader_prefs_*.xml). -->
+     settings (res/xml/reader_prefs_*.xml), under the names Furoshiki's pages have on a computer. -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -16,20 +16,20 @@
         app:iconSpaceReserved="false" />
 
     <PreferenceCategory app:title="@string/reader_pref_category_settings" app:iconSpaceReserved="false">
+        <!-- Any setting, by its name. -->
         <Preference
-            app:key="reader_section_lookup"
-            app:title="@string/reader_pref_category_screen_text"
-            app:summary="@string/reader_section_lookup_summary"
+            app:key="reader_find_setting"
+            app:title="@string/reader_find_setting"
             app:iconSpaceReserved="false" />
         <Preference
-            app:key="reader_section_cursor"
-            app:title="@string/reader_pref_category_cursor"
-            app:summary="@string/reader_section_cursor_summary"
+            app:key="reader_section_reading"
+            app:title="@string/reader_section_reading"
+            app:summary="@string/reader_section_reading_summary"
             app:iconSpaceReserved="false" />
         <Preference
-            app:key="reader_section_panel"
-            app:title="@string/reader_pref_category_panel"
-            app:summary="@string/reader_section_panel_summary"
+            app:key="reader_section_popup"
+            app:title="@string/reader_section_popup"
+            app:summary="@string/reader_section_popup_summary"
             app:iconSpaceReserved="false" />
         <Preference
             app:key="reader_open_dictionaries"
@@ -38,18 +38,18 @@
             app:iconSpaceReserved="false" />
         <Preference
             app:key="reader_section_cards"
-            app:title="@string/reader_pref_category_mining"
+            app:title="@string/reader_section_cards"
             app:summary="@string/reader_section_cards_summary"
             app:iconSpaceReserved="false" />
         <Preference
-            app:key="reader_section_stats"
-            app:title="@string/reader_pref_category_stats"
-            app:summary="@string/reader_section_stats_summary"
+            app:key="reader_section_sources"
+            app:title="@string/reader_section_sources"
+            app:summary="@string/reader_section_sources_summary"
             app:iconSpaceReserved="false" />
         <Preference
-            app:key="reader_section_output"
-            app:title="@string/reader_pref_category_output"
-            app:summary="@string/reader_section_output_summary"
+            app:key="reader_section_controller"
+            app:title="@string/reader_section_controller"
+            app:summary="@string/reader_section_controller_summary"
             app:iconSpaceReserved="false" />
         <!-- The CRT picture: a page of its own, built from the native side's table
              (reader/ui/CrtSettings.kt). -->

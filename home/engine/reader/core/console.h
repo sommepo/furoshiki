@@ -47,7 +47,7 @@ inline float ScreenWidth = 1280.0f;
 inline float ScreenHeight = 720.0f;
 inline float LowerScreenWidth = 0.0f;
 
-inline bool HasNextChoice = false;
+inline bool HasNextChoice = true; // the program runs any core to its next choice (reader_emu.cpp)
 
 // ---- The program's own ----
 

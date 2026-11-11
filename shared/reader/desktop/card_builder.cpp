@@ -111,6 +111,19 @@ std::optional<QString> Value(const QString& marker, const CardContext& c) {
     if (is(u"sentence-plain")) {
         return Breaks(EscapeHtml(c.line.text));
     }
+    if (is(u"translation")) {
+        return Breaks(EscapeHtml(c.translation));
+    }
+    if (is(u"context")) {
+        QStringList lines;
+        for (const QString& line : c.before) {
+            lines.append(Breaks(EscapeHtml(line)));
+        }
+        return lines.join(QStringLiteral("<br>"));
+    }
+    if (is(u"previous-sentence")) {
+        return c.before.isEmpty() ? QString() : Breaks(EscapeHtml(c.before.last()));
+    }
     if (is(u"sentence-furigana")) {
         return Breaks(EscapeHtml(c.line.ToAnkiFurigana()));
     }
@@ -213,6 +226,9 @@ QList<std::pair<QString, QString>> Markers() {
          QStringLiteral("The line with the game's furigana: 君[きみ]")},
         {QStringLiteral("sentence-furigana-html"),
          QStringLiteral("The line with the game's furigana as ruby HTML")},
+        {QStringLiteral("context"), QStringLiteral("The lines read just before this one")},
+        {QStringLiteral("previous-sentence"), QStringLiteral("The one line before this one")},
+        {QStringLiteral("translation"), QStringLiteral("The line in English, when it was translated")},
         {QStringLiteral("screenshot"), QStringLiteral("Picture of the game screen")},
         {QStringLiteral("audio"), QStringLiteral("Game audio of the line")},
         {QStringLiteral("word-audio"), QStringLiteral("The word spoken (JapanesePod101)")},
@@ -346,6 +362,9 @@ QMap<QString, QString> SuggestMapping(const QStringList& fields) {
         } else if (among(name, {"sentence", "context", "example", "sentencekanji",
                                 "expressionsentence"})) {
             marker = QStringLiteral("{sentence}");
+        } else if (among(name, {"englishsentence", "sentenceenglish", "translation",
+                                "sentencetranslation", "sentencemeaning"})) {
+            marker = QStringLiteral("{translation}");
         } else if (among(name, {"sentenceaudio", "contextaudio"})) {
             marker = QStringLiteral("{audio}");
         } else if (IsWordAudioField(field)) {

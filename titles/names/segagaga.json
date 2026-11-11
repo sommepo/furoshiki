@@ -1,0 +1,345 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/セガガガ",
+   "https://segaretro.org/SGGG",
+   "flycast/docs/reader/games/segagaga.md"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:sega-tarou",
+   "kind": "person",
+   "name": "瀬賀 太郎",
+   "family": "瀬賀",
+   "given": "太郎",
+   "reading": "せが たろう",
+   "family_reading": "せが",
+   "given_reading": "たろう",
+   "romaji": "Sega Tarou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:haneda-yayoi",
+   "kind": "person",
+   "name": "羽田 弥生",
+   "family": "羽田",
+   "given": "弥生",
+   "reading": "はねだ やよい",
+   "family_reading": "はねだ",
+   "given_reading": "やよい",
+   "romaji": "Haneda Yayoi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:alis",
+   "kind": "person",
+   "name": "アリサ",
+   "reading": "アリサ",
+   "romaji": "Alis",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:shachou",
+   "kind": "person",
+   "name": "人交社長",
+   "romaji": "Shachou",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:cool",
+   "kind": "person",
+   "name": "クール",
+   "reading": "クール",
+   "romaji": "Cool",
+   "aliases": [
+    {
+     "text": "クール特務部長",
+     "reading": "クールとくむぶちょう"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:suzuki",
+   "kind": "person",
+   "name": "鈴キ",
+   "romaji": "Suzuki",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:flagman",
+   "kind": "person",
+   "name": "フラグマン",
+   "reading": "フラグマン",
+   "romaji": "Flagman",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:laman",
+   "kind": "person",
+   "name": "ラマン",
+   "reading": "ラマン",
+   "romaji": "Laman",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:depro",
+   "kind": "person",
+   "name": "デプロ",
+   "reading": "デプロ",
+   "romaji": "Depro",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dogma-shachou",
+   "kind": "person",
+   "name": "ドグマ社長",
+   "reading": "ドグマしゃちょう",
+   "romaji": "Dogma Shachou",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nijino-kaorin",
+   "kind": "person",
+   "name": "虹野 カオリン",
+   "family": "虹野",
+   "given": "カオリン",
+   "reading": "にじの カオリン",
+   "family_reading": "にじの",
+   "given_reading": "カオリン",
+   "romaji": "Nijino Kaorin",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dogma-hakase",
+   "kind": "person",
+   "name": "ドグマ博士",
+   "reading": "ドグマはかせ",
+   "romaji": "Dogma Hakase",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:asobin-kyouju",
+   "kind": "person",
+   "name": "アソビン教授",
+   "reading": "アソビンきょうじゅ",
+   "romaji": "Asobin Kyouju",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mogetan",
+   "kind": "person",
+   "name": "モゲタン",
+   "reading": "モゲタン",
+   "romaji": "Mogetan",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:haneda",
+   "kind": "place",
+   "name": "羽田",
+   "reading": "はねだ",
+   "romaji": "Haneda",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:akihabara",
+   "kind": "place",
+   "name": "秋葉原",
+   "reading": "あきはばら",
+   "romaji": "Akihabara",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:main-tower",
+   "kind": "place",
+   "name": "メインタワー",
+   "reading": "メインタワー",
+   "romaji": "Main Tower",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:a-ken",
+   "kind": "place",
+   "name": "A研",
+   "reading": "エーけん",
+   "romaji": "A-ken",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:b-ken",
+   "kind": "place",
+   "name": "B研",
+   "reading": "ビーけん",
+   "romaji": "B-ken",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:c-ken",
+   "kind": "place",
+   "name": "C研",
+   "reading": "シーけん",
+   "romaji": "C-ken",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:sega",
+   "kind": "thing",
+   "name": "セガ",
+   "reading": "セガ",
+   "romaji": "Sega",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:dogma",
+   "kind": "thing",
+   "name": "ドグマ社",
+   "reading": "ドグマしゃ",
+   "romaji": "Dogma",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:tera-drive",
+   "kind": "thing",
+   "name": "テラドライブ",
+   "reading": "テラドライブ",
+   "romaji": "Tera Drive",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:dolmehica",
+   "kind": "thing",
+   "name": "ドルメヒカ",
+   "reading": "ドルメヒカ",
+   "romaji": "Dolmehica",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:share",
+   "kind": "thing",
+   "name": "シェア",
+   "reading": "シェア",
+   "romaji": "Share",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:project-segagaga",
+   "kind": "thing",
+   "name": "プロジェクトセガガガ",
+   "reading": "プロジェクトセガガガ",
+   "romaji": "Project Segagaga",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

@@ -4,6 +4,9 @@
 // The program's emulator.cpp (engine/reader/core/emulator.h): what the shared reader windows
 // ask of the emulator, asked of the core that runs the game.
 
+#include "reader/core/engine.h"
+#include "reader/core/next_choice.h"
+#include <mutex>
 #include <atomic>
 #include <cstdio>
 #include <vector>
@@ -20,8 +23,15 @@ namespace {
 std::atomic<Home::CoreSession*> g_session{nullptr};
 } // namespace
 
+void NextChoiceFrame();
+void NextChoicePlayerInput();
+void NextChoiceGameGone();
+
 void SetSession(Home::CoreSession* session) {
     g_session = session;
+    Home::SessionHooks::frame = &NextChoiceFrame;
+    Home::SessionHooks::player_input = &NextChoicePlayerInput;
+    Home::SessionHooks::game_gone = &NextChoiceGameGone;
 }
 
 Home::CoreSession* Session() {
@@ -70,13 +80,111 @@ bool DumpMemory(const std::string& path) {
     return ok;
 }
 
-void ToggleNextChoice() {}
+// ---- On to the next choice (reader/core/next_choice.h), as PCSX2 Reader has it: the game runs
+// as fast as it goes with the console's "yes" pressed over and over, the engine kept quiet,
+// until the script says a choice is up, nothing was said for a long while, or the player
+// presses a button. Any core: it asks only for the speed setting and a button pressed. ----
 
-bool GoingToNextChoice() {
-    return false;
+namespace {
+NextChoice g_next_choice;
+std::atomic<bool> g_next_choice_running{false};
+std::atomic<bool> g_next_choice_wanted{false}; ///< Asked for from another thread: taken at a frame
+std::atomic<bool> g_player_pressed{false};
+std::mutex g_next_choice_mutex;
+std::function<void(bool, int, std::uint64_t)> g_next_choice_callback;
+bool g_yes_held = false;
+
+void TellNextChoice(bool running, int end, std::uint64_t passed) {
+    std::function<void(bool, int, std::uint64_t)> callback;
+    {
+        std::scoped_lock lock{g_next_choice_mutex};
+        callback = g_next_choice_callback;
+    }
+    if (callback) {
+        callback(running, end, passed);
+    }
 }
 
-void SetNextChoiceCallback(std::function<void(bool, int, std::uint64_t)>) {}
+void HoldYes(Home::CoreSession& session, bool down) {
+    const int yes = session.Info().button_yes;
+    if (yes >= 0 && down != g_yes_held && session.Api().press_button != nullptr) {
+        g_yes_held = down;
+        session.Api().press_button(yes, down ? 1 : 0);
+    }
+}
+
+void EndNextChoice(Home::CoreSession& session, NextChoice::End end) {
+    if (!g_next_choice_running.exchange(false)) {
+        return;
+    }
+    const std::uint64_t passed = g_next_choice.Passed();
+    g_next_choice.Cancel();
+    HoldYes(session, false);
+    session.ApplySettings({{READER_CORE_SETTING_SPEED, "100"}});
+    Engine::Instance().SetQuiet(false);
+    TellNextChoice(false, static_cast<int>(end), passed);
+}
+} // namespace
+
+void NextChoiceFrame() {
+    Home::CoreSession* session = g_session.load();
+    if (session == nullptr) {
+        return;
+    }
+    Engine& engine = Engine::Instance();
+    if (g_next_choice_wanted.exchange(false)) {
+        if (g_next_choice_running) {
+            EndNextChoice(*session, NextChoice::End::Stopped);
+        } else if (engine.HasProfile() && !engine.ChoiceShown()) {
+            engine.SetQuiet(true);
+            g_player_pressed = false;
+            g_next_choice.Begin(engine.Frame(), engine.ChoicesEmitted(), engine.TextsEmitted());
+            g_next_choice_running = true;
+            session->ApplySettings({{READER_CORE_SETTING_SPEED, "0"}});
+            TellNextChoice(true, -1, 0);
+        }
+        return;
+    }
+    if (!g_next_choice_running) {
+        return;
+    }
+    const NextChoice::Step step = g_next_choice.OnFrame(engine.Frame(), engine.ChoicesEmitted(), engine.TextsEmitted(),
+                                                        g_player_pressed.exchange(false));
+    if (step.end) {
+        EndNextChoice(*session, *step.end);
+        return;
+    }
+    HoldYes(*session, step.press);
+}
+
+void NextChoicePlayerInput() {
+    if (g_next_choice_running) {
+        g_player_pressed = true;
+    }
+}
+
+void NextChoiceGameGone() {
+    if (g_next_choice_running.exchange(false)) {
+        g_next_choice.Cancel();
+        g_yes_held = false;
+        Engine::Instance().SetQuiet(false);
+        TellNextChoice(false, static_cast<int>(NextChoice::End::GameGone), 0);
+    }
+}
+
+void ToggleNextChoice() {
+    // Taken at the game's next frame, on the thread the engine's counts are the game's on.
+    g_next_choice_wanted = true;
+}
+
+bool GoingToNextChoice() {
+    return g_next_choice_running;
+}
+
+void SetNextChoiceCallback(std::function<void(bool, int, std::uint64_t)> callback) {
+    std::scoped_lock lock{g_next_choice_mutex};
+    g_next_choice_callback = std::move(callback);
+}
 
 bool EnsureSaveSync() {
 #ifdef READER_NO_SAVE_SYNC

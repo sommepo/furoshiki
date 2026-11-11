@@ -11,6 +11,7 @@
 #include <optional>
 #include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QThread>
 #include <QTimer>
@@ -38,7 +39,65 @@ struct ProfileStatus {
 };
 
 /**
- * The reading session of the running game, on the desktop: receives text from the core, counts
+ * What a reading session's lines come from: the thing that begins a session, says the game's ID
+ * and title, and hands over its lines. The text engine over a running game is the first one
+ * (CoreSource); an app may have others (lines another program sends, text copied, a window read
+ * by OCR), which it makes and hands to ReaderController::Use. One source at a time is the
+ * session's; another's lines are not taken meanwhile.
+ *
+ * Main thread: its signals are emitted there.
+ */
+class ReadingSource : public QObject {
+    Q_OBJECT
+
+public:
+    struct About {
+        /// What it is, as a word that is kept: "core", "websocket", "clipboard".
+        QString kind;
+        /// The same for the user ("WebSocket").
+        QString label;
+        /// A game runs in the app's window under the reader: there is a picture for cards, sound,
+        /// places for the text, a controller's pointer. Without one the lines are all there is.
+        bool game{};
+    };
+
+    using QObject::QObject;
+    [[nodiscard]] virtual About Describe() const = 0;
+
+signals:
+    /// A title is being read from here on. The game's ID is the session's key: statistics, the
+    /// backlog, the names dictionary and the settings of one game go by it.
+    void Began(const QString& game_id, const QString& title);
+    void Line(const ReaderApp::TextLine& line);
+    void Ended();
+};
+
+/// The text engine's lines of the game an emulator runs: the source every reader app has.
+/// ReaderBridge hands it the engine's events; the app's window says when a game begins and ends
+/// (ReaderController::OnGameBooted, OnGameStopped).
+class CoreSource final : public ReadingSource {
+    Q_OBJECT
+
+public:
+    static CoreSource& Instance();
+    [[nodiscard]] About Describe() const override;
+    void Begin(const QString& game_id, const QString& title) {
+        emit Began(game_id, title);
+    }
+    void Hand(const ReaderApp::TextLine& line) {
+        emit Line(line);
+    }
+    void End() {
+        emit Ended();
+    }
+
+private:
+    using ReadingSource::ReadingSource;
+};
+
+/**
+ * The reading session of the running game, on the desktop: receives text from its source (the
+ * core's text engine, or another ReadingSource), counts
  * it, keeps the backlog and feeds everything that shows or forwards text. The desktop sibling
  * of the Android app's ReaderSession.
  *
@@ -65,8 +124,16 @@ public:
 
     // ---- The running game ----
 
-    /// Starts a session for the game that was just loaded.
-    void Start(const QString& game_id, const QString& title);
+    /// Takes the lines `source` hands over while it is the running session's (Start). The
+    /// engine's (CoreSource) is taken from the first.
+    void Use(ReadingSource* source);
+    /// Starts a session for the game that was just loaded, read from `source` (none: the core).
+    void Start(const QString& game_id, const QString& title, ReadingSource* source = nullptr);
+    /// What the running session is read from; its kind is empty while there is none.
+    [[nodiscard]] ReadingSource::About Source() const;
+    /// A line already presented turned out to be the beginning of the next one (text that was
+    /// still being written when it was handed over): it is taken back out of what was counted.
+    void TakeBack(const ReaderApp::TextLine& line);
     /// Ends the session and saves pending activity.
     void Stop();
     /// True while the game is running in front of the user.
@@ -79,6 +146,13 @@ public:
     void OnActivityCleared();
     /// Saves pending activity now, then runs `then` on the main thread.
     void Flush(std::function<void()> then = {});
+    /**
+     * Works the reading time of every session out again from when its lines came
+     * (ReaderDatabase::TidyReadingTime, with the idle timeout set), all but the one a game is
+     * adding to (that one is tidied when the game stops), then runs `then` on the main thread
+     * with what it did. `undo` puts every tidied day's time back as it was counted instead.
+     */
+    void TidyReadingTime(std::function<void(const ReaderApp::TidyReport&)> then, bool undo = false);
 
     [[nodiscard]] bool IsActive() const {
         return !title_id.isEmpty();
@@ -131,8 +205,13 @@ public:
                             const QSize& pixels);
     /// A picture (JPEG) of the game's text box, for the clients that asked where the text is.
     void PublishBoxPicture(const QByteArray& jpeg);
+    /// A card made, for the text server's clients (Furochibi's 今日): the word (none for a
+    /// sentence card), the line, Anki's note and the card's picture (made small here).
+    void PublishCard(const ReaderApp::PresentedLine& presented,
+                     const std::optional<ReaderApp::LookupResult>& word, qint64 note,
+                     const QByteArray& picture);
 
-    // ---- From the core, on whatever thread it reports from ----
+    // ---- From the source (the core's reports come from whatever thread it has) ----
 
     void PostLine(ReaderApp::TextLine line);
     void PostLayout(ReaderApp::ScreenLayout layout);
@@ -184,6 +263,8 @@ private:
     QString worker_title_id;
 
     // Main thread only.
+    QList<QPointer<ReadingSource>> sources;
+    QPointer<ReadingSource> active_source;
     QString title_id;
     QString title;
     bool reading{};

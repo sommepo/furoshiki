@@ -1,0 +1,35 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Solarized Dark (Ethan Schoonover's palette): base03 ground, base02 panels, base1 text, the
+   yellow as the accent; labels as coloured text, no boxes; the palette's names are in the rules below, the main ones variables. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #002b36; --text: #93a1a1; --dim: #839496; --accent: #b58900; --edge: #586e75; --radius: 8px;
+  --box: #073642; --box-pressed: #0a4a5a; --sign: #b58900; --book: #2aa198;
+}
+.popup { border: 1px solid #586e75; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45); }
+.entry + .entry { border-top-color: #073642; }
+.headword { color: #eee8d5; font-weight: 700; font-size: calc(20px * var(--scale)); }
+.headword rt { display: ruby-text; color: #839496; }
+.reading { display: none; }
+.reasons { color: #cb4b16; }
+.pitch { color: #6c71c4; }
+.tag { background: none; padding: 0; color: #93a1a1; letter-spacing: 0.04em; }
+.tags { gap: 0 0.9em; }
+.tag.frequency .tag-name { color: #2aa198; }
+.tag.frequency .tag-value { color: #eee8d5; }
+.tag.name { background: none; color: var(--accent); border: none; padding: 0; font-weight: 700; }
+.tag.role { background: none; border: none; color: var(--accent); }
+.sense .tag[data-category="part-of-speech"] { color: #268bd2; }
+.number { color: #586e75; }
+.glosses { color: #93a1a1; }
+.glosses .gloss + .gloss::before { color: #586e75; }
+.dictionary-name { color: #2aa198; letter-spacing: 0.06em; text-transform: uppercase; font-size: calc(9.5px * var(--scale)); margin-top: 3px; }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #b58900; border-radius: 0; padding: 0; }
+.who-name { color: #eee8d5; }
+.alias { background: none; border: none; padding: 0; }
+.alias + .alias::before { content: "/ "; color: var(--dim); }
+.also { gap: 0 0.7em; }
+.name-card .portrait { border-color: #586e75; }
+.card { border-color: #586e75; border-radius: 6px; }
+.link { color: #268bd2; }

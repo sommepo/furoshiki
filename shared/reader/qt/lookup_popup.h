@@ -100,6 +100,11 @@ public:
     }
     /// A word not in Anki gets a soft tint behind its headword, when that is switched on.
     void SetMarkUnknown(bool mark);
+    /// The look's own settings as the page takes them (ReaderSettings::PopupLook): how solid,
+    /// how round, how many senses, the tags, a name's picture. The classic popup has none of it.
+    void SetLook(const QJsonObject& look_) {
+        look = look_;
+    }
     void SetUnknown(int index, bool unknown);
     [[nodiscard]] bool IsUnknown(int index) const;
     void ShowMessage(const QString& message, bool offer_dictionaries);
@@ -190,6 +195,7 @@ private:
     int text_scale{100};
     bool allow_duplicates{};
     bool mark_unknown{true};
+    QJsonObject look;
     Corner card_corner{Corner::BottomLeft};
     int content_width{};
     int content_height{};

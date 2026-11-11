@@ -10,6 +10,7 @@ add_executable(reader_desktop_tests
     ${READER_SHARED}/reader/desktop/tests/popup_model.cpp
     ${READER_SHARED}/reader/desktop/tests/card_builder.cpp
     ${READER_SHARED}/reader/desktop/tests/word_audio.cpp
+    ${READER_SHARED}/reader/desktop/tests/explain.cpp
     ${READER_SHARED}/reader/desktop/tests/catalog.cpp
     console.cpp
     # The CRT picture's values and what the shader is handed (crt.h in the reader's core),

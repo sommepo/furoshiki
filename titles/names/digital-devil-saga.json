@@ -1,0 +1,416 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/DIGITAL_DEVIL_SAGA_アバタール・チューナー",
+   "https://megatenwiki.com/wiki/Varin_Omega",
+   "backlog speakers"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:serph",
+   "kind": "person",
+   "name": "サーフ",
+   "reading": "サーフ",
+   "romaji": "Serph",
+   "aliases": [
+    {
+     "text": "ヴァルナ",
+     "reading": "ヴァルナ"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sera",
+   "kind": "person",
+   "name": "セラ",
+   "reading": "セラ",
+   "romaji": "Sera",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:argilla",
+   "kind": "person",
+   "name": "アルジラ",
+   "reading": "アルジラ",
+   "romaji": "Argilla",
+   "aliases": [
+    {
+     "text": "プリティヴィー",
+     "reading": "プリティヴィー"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:heat",
+   "kind": "person",
+   "name": "ヒート",
+   "reading": "ヒート",
+   "romaji": "Heat",
+   "aliases": [
+    {
+     "text": "アグニ",
+     "reading": "アグニ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:gale",
+   "kind": "person",
+   "name": "ゲイル",
+   "reading": "ゲイル",
+   "romaji": "Gale",
+   "aliases": [
+    {
+     "text": "ヴァーユ",
+     "reading": "ヴァーユ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cielo",
+   "kind": "person",
+   "name": "シエロ",
+   "reading": "シエロ",
+   "romaji": "Cielo",
+   "aliases": [
+    {
+     "text": "ディアウス",
+     "reading": "ディアウス"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:harley-q",
+   "kind": "person",
+   "name": "ハーリーQ",
+   "reading": "ハーリーキュー",
+   "romaji": "Harley Q",
+   "aliases": [
+    {
+     "text": "ハヤグリーヴァ",
+     "reading": "ハヤグリーヴァ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jinana",
+   "kind": "person",
+   "name": "ジナーナ",
+   "reading": "ジナーナ",
+   "romaji": "Jinana",
+   "aliases": [
+    {
+     "text": "ウシャス",
+     "reading": "ウシャス"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:bat",
+   "kind": "person",
+   "name": "バット",
+   "reading": "バット",
+   "romaji": "Bat",
+   "aliases": [
+    {
+     "text": "カマソッソ",
+     "reading": "カマソッソ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mick-the-nick",
+   "kind": "person",
+   "name": "ミック・ザ・ニック",
+   "family": "ニック",
+   "given": "ミック",
+   "reading": "ミック・ザ・ニック",
+   "family_reading": "ニック",
+   "given_reading": "ミック",
+   "romaji": "Mick the Nick",
+   "aliases": [
+    {
+     "text": "ラーフ",
+     "reading": "ラーフ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lupa",
+   "kind": "person",
+   "name": "ルーパ",
+   "reading": "ルーパ",
+   "romaji": "Lupa",
+   "aliases": [
+    {
+     "text": "ケルベロス",
+     "reading": "ケルベロス"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:varin-omega",
+   "kind": "person",
+   "name": "バロン・オメガ",
+   "family": "オメガ",
+   "given": "バロン",
+   "reading": "バロン・オメガ",
+   "family_reading": "オメガ",
+   "given_reading": "バロン",
+   "romaji": "Varin Omega",
+   "aliases": [
+    {
+     "text": "ラーヴァナ",
+     "reading": "ラーヴァナ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:angel",
+   "kind": "person",
+   "name": "エンジェル",
+   "reading": "エンジェル",
+   "romaji": "Angel",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:junkyard",
+   "kind": "place",
+   "name": "ジャンクヤード",
+   "reading": "ジャンクヤード",
+   "romaji": "Junkyard",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:nirvana",
+   "kind": "place",
+   "name": "ニルヴァーナ",
+   "reading": "ニルヴァーナ",
+   "romaji": "Nirvana",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:embryon",
+   "kind": "thing",
+   "name": "エンブリオン",
+   "reading": "エンブリオン",
+   "romaji": "Embryon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:brutes",
+   "kind": "thing",
+   "name": "ブルーティッシュ",
+   "reading": "ブルーティッシュ",
+   "romaji": "Brutes",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hounds",
+   "kind": "thing",
+   "name": "ハウンズ",
+   "reading": "ハウンズ",
+   "romaji": "Hounds",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:solids",
+   "kind": "thing",
+   "name": "ソリッド",
+   "reading": "ソリッド",
+   "romaji": "Solids",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:maribel",
+   "kind": "thing",
+   "name": "メリーベル",
+   "reading": "メリーベル",
+   "romaji": "Maribel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:assignments",
+   "kind": "thing",
+   "name": "アサインメンツ",
+   "reading": "アサインメンツ",
+   "romaji": "Assignments",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:karma-kyoukai",
+   "kind": "thing",
+   "name": "カルマ教会",
+   "reading": "カルマきょうかい",
+   "romaji": "Karma Kyoukai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:atma",
+   "kind": "thing",
+   "name": "アートマ",
+   "reading": "アートマ",
+   "romaji": "Atma",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:avatar-tuner",
+   "kind": "thing",
+   "name": "アバタール・チューナー",
+   "reading": "アバタール・チューナー",
+   "romaji": "Avatar Tuner",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kuraudo",
+   "kind": "thing",
+   "name": "喰奴",
+   "romaji": "Kuraudo",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:mantra",
+   "kind": "thing",
+   "name": "マントラ",
+   "reading": "マントラ",
+   "romaji": "Mantra",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:rasetsu",
+   "kind": "thing",
+   "name": "羅刹",
+   "reading": "らせつ",
+   "romaji": "Rasetsu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:tribe",
+   "kind": "thing",
+   "name": "トライブ",
+   "reading": "トライブ",
+   "romaji": "Tribe",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

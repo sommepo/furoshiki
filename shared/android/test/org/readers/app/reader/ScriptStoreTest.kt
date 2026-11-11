@@ -131,6 +131,31 @@ class ScriptStoreTest {
     }
 
     @Test
+    fun aGamesNamesDictionaryComesWithItsScript() {
+        val names = "PK made-up names".toByteArray()
+        fun withNames(name: String): ByteArray {
+            val root = JSONObject(String(list(older)))
+            root.getJSONArray("scripts").getJSONObject(0).put("names", file(name, names))
+            return root.toString().toByteArray()
+        }
+        val folder = folder()
+        val entry = entryOf(withNames("names-made-up.zip"))
+        assertEquals("names-made-up.zip", entry.names?.file)
+        assertTrue(folder.needsNames(entry))
+        // Without the names fetched, the script goes in all the same.
+        folder.install(entry, mapOf("${Console.Test.SCRIPT_GAME}.lua" to older))
+        assertTrue(folder.needsNames(entry))
+        // Names that are not the list's are refused; the list's are written.
+        assertThrows(ScriptStore.ScriptException::class.java) { folder.installNames(entry, "other".toByteArray()) }
+        folder.installNames(entry, names)
+        assertFalse(folder.needsNames(entry))
+        // A names file that is not one is passed over; the script is still listed.
+        assertNull(entryOf(withNames("../names.zip")).names)
+        assertTrue(ScriptStore.isNamesFile("names-steins-gate.zip"))
+        assertFalse(ScriptStore.isNamesFile("names-Steins.zip"))
+    }
+
+    @Test
     fun installingFilesTheUserChose() {
         val folder = folder()
         folder.install(entryOf(list(newer)), mapOf("${Console.Test.SCRIPT_GAME}.lua" to newer))

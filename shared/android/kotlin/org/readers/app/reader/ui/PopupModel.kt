@@ -7,6 +7,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.readers.app.reader.dict.GlossaryRenderer
 import org.readers.app.reader.dict.LookupResult
+import org.readers.app.reader.dict.NamesDictionaries
 import org.readers.app.reader.dict.TermEntry
 
 /**
@@ -27,8 +28,31 @@ object PopupModel {
         put("forms", JSONArray(forms(result)))
         put("state", "add")
         put("unknown", false)
+        // A name in the running game, from its names dictionary: the page tags it 名前.
+        result.entries.firstOrNull()?.takeIf { it.scoped }?.let { first ->
+            put("name", true)
+            // Who or what it is, as a card, when its dictionary says (tools/titles.py): the page
+            // draws that in place of the senses, with the picture the dictionary's zip has.
+            NamesDictionaries.cardOf(first.glossaryJson)?.let { card ->
+                put("card", JSONObject().apply {
+                    put("name", card.name)
+                    put("kind", card.kind)
+                    put("also", JSONArray(card.also))
+                    fun say(name: String, value: String) { if (value.isNotEmpty()) put(name, value) }
+                    say("id", card.id)
+                    say("reading", card.reading)
+                    say("romaji", card.romaji)
+                    say("role", card.role)
+                    say("about", card.about)
+                    say("image", NamesDictionaries.picture(first.dictionary, card.image))
+                })
+            }
+        }
         if (!history.isNullOrEmpty()) put("history", history)
     }
+
+    /** The tag a names dictionary gives its entries (tools/titles.py). */
+    const val NAME_TAG = "名前"
 
     /**
      * The senses in the page's form: {heading?, dictionary, number, tags, glosses, notes}. A
@@ -53,9 +77,12 @@ object PopupModel {
                 if (several) sense.put("heading", entry.dictionary)
             }
             number++
-            // Numbers among the tags only repeat the order of the senses.
-            val tags = entry.definitionTags.split(' ').filter { it.isNotBlank() && it.toIntOrNull() == null }
+            // Numbers among the tags only repeat the order of the senses; a name's 名前 is said
+            // once, by the headword.
+            val tags = entry.definitionTags.split(' ')
+                .filter { it.isNotBlank() && it.toIntOrNull() == null && !(entry.scoped && it == NAME_TAG) }
             sense.put("dictionary", entry.dictionary)
+            if (entry.scoped) sense.put("name", true)
             sense.put("number", number)
             sense.put("tags", JSONArray(if (tags == lastTags) emptyList() else tags))
             sense.put("glosses", JSONArray(definitions.flatMap { it.glosses.split(" | ").filter(String::isNotEmpty) }))

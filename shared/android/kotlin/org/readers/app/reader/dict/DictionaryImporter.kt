@@ -85,14 +85,19 @@ class DictionaryImporter(private val database: DictionaryDatabase) {
                 ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
                 db.execSQL(
                     "INSERT INTO dictionaries(title, revision, author, description, " +
-                        "frequency_mode, priority) VALUES(?, ?, ?, ?, ?, ?)",
+                        "frequency_mode, priority, scope) VALUES(?, ?, ?, ?, ?, ?, ?)",
                     arrayOf<Any>(
                         title,
                         index.optString("revision"),
                         index.optString("author"),
                         index.optString("description"),
                         index.optString("frequencyMode"),
-                        priority
+                        priority,
+                        // Furoshiki's names dictionaries say which games they are for (docs/titles.md).
+                        DictionaryDatabase.scopeText(
+                            index.optJSONArray("furoshikiScope")?.let { games -> (0 until games.length()).map { games.optString(it) } }
+                                .orEmpty()
+                        )
                     )
                 )
                 val dictId = db.rawQuery("SELECT last_insert_rowid()", emptyArray())

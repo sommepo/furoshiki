@@ -1,0 +1,142 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/シェンムーII",
+   "https://ja.wikipedia.org/wiki/湯川英一",
+   "https://en.wikipedia.org/wiki/Shenmue_(video_game)",
+   "flycast/docs/reader/games/whats-shenmue.md"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:hazuki-ryou",
+   "kind": "person",
+   "name": "芭月 涼",
+   "family": "芭月",
+   "given": "涼",
+   "reading": "はづき りょう",
+   "family_reading": "はづき",
+   "given_reading": "りょう",
+   "romaji": "Hazuki Ryou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tom-johnson",
+   "kind": "person",
+   "name": "トム・ジョンソン",
+   "family": "ジョンソン",
+   "given": "トム",
+   "reading": "トム・ジョンソン",
+   "family_reading": "ジョンソン",
+   "given_reading": "トム",
+   "romaji": "Tom Johnson",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yukawa-hidekazu",
+   "kind": "person",
+   "name": "湯川 英一",
+   "family": "湯川",
+   "given": "英一",
+   "reading": "ゆかわ ひでかず",
+   "family_reading": "ゆかわ",
+   "given_reading": "ひでかず",
+   "romaji": "Yukawa Hidekazu",
+   "aliases": [
+    {
+     "text": "湯川専務",
+     "reading": "ゆかわせんむ"
+    },
+    {
+     "text": "湯川元専務",
+     "reading": "ゆかわもとせんむ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:enoki-akio",
+   "kind": "person",
+   "name": "榎 彰男",
+   "family": "榎",
+   "given": "彰男",
+   "reading": "えのき あきお",
+   "family_reading": "えのき",
+   "given_reading": "あきお",
+   "romaji": "Enoki Akio",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nagashima-tetsuya",
+   "kind": "person",
+   "name": "長島 哲也",
+   "family": "長島",
+   "given": "哲也",
+   "reading": "ながしま てつや",
+   "family_reading": "ながしま",
+   "given_reading": "てつや",
+   "romaji": "Nagashima Tetsuya",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:yokosuka",
+   "kind": "place",
+   "name": "横須賀",
+   "reading": "よこすか",
+   "romaji": "Yokosuka",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:dobuita",
+   "kind": "place",
+   "name": "ドブ板",
+   "reading": "ドブいた",
+   "romaji": "Dobuita",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "thing:sega",
+   "kind": "thing",
+   "name": "セガ",
+   "reading": "セガ",
+   "romaji": "Sega",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

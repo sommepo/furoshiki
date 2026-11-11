@@ -1,0 +1,982 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ファイナルファンタジーVIIの登場人物"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:cloud-strife",
+   "kind": "person",
+   "name": "クラウド・ストライフ",
+   "family": "ストライフ",
+   "given": "クラウド",
+   "reading": "クラウド・ストライフ",
+   "family_reading": "ストライフ",
+   "given_reading": "クラウド",
+   "romaji": "Cloud Strife",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:barret-wallace",
+   "kind": "person",
+   "name": "バレット・ウォーレス",
+   "family": "ウォーレス",
+   "given": "バレット",
+   "reading": "バレット・ウォーレス",
+   "family_reading": "ウォーレス",
+   "given_reading": "バレット",
+   "romaji": "Barret Wallace",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tifa-lockhart",
+   "kind": "person",
+   "name": "ティファ・ロックハート",
+   "family": "ロックハート",
+   "given": "ティファ",
+   "reading": "ティファ・ロックハート",
+   "family_reading": "ロックハート",
+   "given_reading": "ティファ",
+   "romaji": "Tifa Lockhart",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aerith-gainsborough",
+   "kind": "person",
+   "name": "エアリス・ゲインズブール",
+   "family": "ゲインズブール",
+   "given": "エアリス",
+   "reading": "エアリス・ゲインズブール",
+   "family_reading": "ゲインズブール",
+   "given_reading": "エアリス",
+   "romaji": "Aerith Gainsborough",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:red-xiii",
+   "kind": "person",
+   "name": "レッドXIII",
+   "reading": "レッドサーティーン",
+   "romaji": "Red XIII",
+   "aliases": [
+    {
+     "text": "ナナキ",
+     "reading": "ナナキ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:yuffie-kisaragi",
+   "kind": "person",
+   "name": "ユフィ・キサラギ",
+   "family": "キサラギ",
+   "given": "ユフィ",
+   "reading": "ユフィ・キサラギ",
+   "family_reading": "キサラギ",
+   "given_reading": "ユフィ",
+   "romaji": "Yuffie Kisaragi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cait-sith",
+   "kind": "person",
+   "name": "ケット・シー",
+   "reading": "ケット・シー",
+   "romaji": "Cait Sith",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:vincent-valentine",
+   "kind": "person",
+   "name": "ヴィンセント・ヴァレンタイン",
+   "family": "ヴァレンタイン",
+   "given": "ヴィンセント",
+   "reading": "ヴィンセント・ヴァレンタイン",
+   "family_reading": "ヴァレンタイン",
+   "given_reading": "ヴィンセント",
+   "romaji": "Vincent Valentine",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cid-highwind",
+   "kind": "person",
+   "name": "シド・ハイウインド",
+   "family": "ハイウインド",
+   "given": "シド",
+   "reading": "シド・ハイウインド",
+   "family_reading": "ハイウインド",
+   "given_reading": "シド",
+   "romaji": "Cid Highwind",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sephiroth",
+   "kind": "person",
+   "name": "セフィロス",
+   "reading": "セフィロス",
+   "romaji": "Sephiroth",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jenova",
+   "kind": "person",
+   "name": "ジェノバ",
+   "reading": "ジェノバ",
+   "romaji": "Jenova",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zack",
+   "kind": "person",
+   "name": "ザックス",
+   "reading": "ザックス",
+   "romaji": "Zack",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:president-shinra",
+   "kind": "person",
+   "name": "プレジデント神羅",
+   "reading": "プレジデントしんら",
+   "romaji": "President Shinra",
+   "aliases": [
+    {
+     "text": "社長",
+     "reading": "しゃちょう"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rufus-shinra",
+   "kind": "person",
+   "name": "ルーファウス神羅",
+   "family": "神羅",
+   "given": "ルーファウス",
+   "reading": "ルーファウスしんら",
+   "family_reading": "しんら",
+   "given_reading": "ルーファウス",
+   "romaji": "Rufus Shinra",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:reeve",
+   "kind": "person",
+   "name": "リーブ",
+   "reading": "リーブ",
+   "romaji": "Reeve",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:heidegger",
+   "kind": "person",
+   "name": "ハイデッカー",
+   "reading": "ハイデッカー",
+   "romaji": "Heidegger",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:scarlet",
+   "kind": "person",
+   "name": "スカーレット",
+   "reading": "スカーレット",
+   "romaji": "Scarlet",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:houjou",
+   "kind": "person",
+   "name": "宝条",
+   "reading": "ほうじょう",
+   "romaji": "Houjou",
+   "aliases": [
+    {
+     "text": "宝条博士",
+     "reading": "ほうじょうはかせ"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:palmer",
+   "kind": "person",
+   "name": "パルマー",
+   "reading": "パルマー",
+   "romaji": "Palmer",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tseng",
+   "kind": "person",
+   "name": "ツォン",
+   "reading": "ツォン",
+   "romaji": "Tseng",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:reno",
+   "kind": "person",
+   "name": "レノ",
+   "reading": "レノ",
+   "romaji": "Reno",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:rude",
+   "kind": "person",
+   "name": "ルード",
+   "reading": "ルード",
+   "romaji": "Rude",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:elena",
+   "kind": "person",
+   "name": "イリーナ",
+   "reading": "イリーナ",
+   "romaji": "Elena",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:biggs",
+   "kind": "person",
+   "name": "ビッグス",
+   "reading": "ビッグス",
+   "romaji": "Biggs",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:wedge",
+   "kind": "person",
+   "name": "ウェッジ",
+   "reading": "ウェッジ",
+   "romaji": "Wedge",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:jessie",
+   "kind": "person",
+   "name": "ジェシー",
+   "reading": "ジェシー",
+   "romaji": "Jessie",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:marlene",
+   "kind": "person",
+   "name": "マリン",
+   "reading": "マリン",
+   "romaji": "Marlene",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:elmyra",
+   "kind": "person",
+   "name": "エルミナ",
+   "reading": "エルミナ",
+   "romaji": "Elmyra",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:don-corneo",
+   "kind": "person",
+   "name": "ドン・コルネオ",
+   "reading": "ドン・コルネオ",
+   "romaji": "Don Corneo",
+   "aliases": [
+    {
+     "text": "コルネオ",
+     "reading": "コルネオ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:bugenhagen",
+   "kind": "person",
+   "name": "ブーゲンハーゲン",
+   "reading": "ブーゲンハーゲン",
+   "romaji": "Bugenhagen",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:shera",
+   "kind": "person",
+   "name": "シエラ",
+   "reading": "シエラ",
+   "romaji": "Shera",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dyne",
+   "kind": "person",
+   "name": "ダイン",
+   "reading": "ダイン",
+   "romaji": "Dyne",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:zangan",
+   "kind": "person",
+   "name": "ザンガン",
+   "reading": "ザンガン",
+   "romaji": "Zangan",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:godo",
+   "kind": "person",
+   "name": "ゴドー",
+   "reading": "ゴドー",
+   "romaji": "Godo",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dio",
+   "kind": "person",
+   "name": "ディオ",
+   "reading": "ディオ",
+   "romaji": "Dio",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:chocobo-sennin",
+   "kind": "person",
+   "name": "チョコボ仙人",
+   "reading": "チョコボせんにん",
+   "romaji": "Chocobo Sennin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lucrecia",
+   "kind": "person",
+   "name": "ルクレツィア",
+   "reading": "ルクレツィア",
+   "romaji": "Lucrecia",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:gast",
+   "kind": "person",
+   "name": "ガスト",
+   "reading": "ガスト",
+   "romaji": "Gast",
+   "aliases": [
+    {
+     "text": "ガスト博士",
+     "reading": "ガストはかせ"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:ifalna",
+   "kind": "person",
+   "name": "イファルナ",
+   "reading": "イファルナ",
+   "romaji": "Ifalna",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "place:midgar",
+   "kind": "place",
+   "name": "ミッドガル",
+   "reading": "ミッドガル",
+   "romaji": "Midgar",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:sector-7",
+   "kind": "place",
+   "name": "七番街",
+   "romaji": "Sector 7",
+   "aliases": [
+    {
+     "text": "スラム",
+     "reading": "スラム"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "name"
+   ]
+  },
+  {
+   "id": "place:wall-market",
+   "kind": "place",
+   "name": "ウォールマーケット",
+   "reading": "ウォールマーケット",
+   "romaji": "Wall Market",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:seventh-heaven",
+   "kind": "place",
+   "name": "セブンスヘブン",
+   "reading": "セブンスヘブン",
+   "romaji": "Seventh Heaven",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kalm",
+   "kind": "place",
+   "name": "カーム",
+   "reading": "カーム",
+   "romaji": "Kalm",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:junon",
+   "kind": "place",
+   "name": "ジュノン",
+   "reading": "ジュノン",
+   "romaji": "Junon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:costa-del-sol",
+   "kind": "place",
+   "name": "コスタ・デル・ソル",
+   "reading": "コスタ・デル・ソル",
+   "romaji": "Costa del Sol",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:corel",
+   "kind": "place",
+   "name": "コレル",
+   "reading": "コレル",
+   "romaji": "Corel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:gold-saucer",
+   "kind": "place",
+   "name": "ゴールドソーサー",
+   "reading": "ゴールドソーサー",
+   "romaji": "Gold Saucer",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:cosmo-canyon",
+   "kind": "place",
+   "name": "コスモキャニオン",
+   "reading": "コスモキャニオン",
+   "romaji": "Cosmo Canyon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:nibelheim",
+   "kind": "place",
+   "name": "ニブルヘイム",
+   "reading": "ニブルヘイム",
+   "romaji": "Nibelheim",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rocket-town",
+   "kind": "place",
+   "name": "ロケット村",
+   "reading": "ロケットむら",
+   "romaji": "Rocket Town",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:wutai",
+   "kind": "place",
+   "name": "ウータイ",
+   "reading": "ウータイ",
+   "romaji": "Wutai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:gongaga",
+   "kind": "place",
+   "name": "ゴンガガ",
+   "reading": "ゴンガガ",
+   "romaji": "Gongaga",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:forgotten-capital",
+   "kind": "place",
+   "name": "忘らるる都",
+   "romaji": "Forgotten Capital",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:kodaishu-no-shinden",
+   "kind": "place",
+   "name": "古代種の神殿",
+   "reading": "こだいしゅのしんでん",
+   "romaji": "Kodaishu no Shinden",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:icicle-inn",
+   "kind": "place",
+   "name": "アイシクルロッジ",
+   "reading": "アイシクルロッジ",
+   "romaji": "Icicle Inn",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kita-no-daikuudou",
+   "kind": "place",
+   "name": "北の大空洞",
+   "reading": "きたのだいくうどう",
+   "romaji": "Kita no Daikuudou",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "place:mideel",
+   "kind": "place",
+   "name": "ミディール",
+   "reading": "ミディール",
+   "romaji": "Mideel",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:shinra-building",
+   "kind": "place",
+   "name": "神羅ビル",
+   "reading": "しんらビル",
+   "romaji": "Shinra Building",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:shinra",
+   "kind": "thing",
+   "name": "神羅",
+   "reading": "しんら",
+   "romaji": "Shinra",
+   "aliases": [
+    {
+     "text": "神羅カンパニー",
+     "reading": "しんらカンパニー"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:avalanche",
+   "kind": "thing",
+   "name": "アバランチ",
+   "reading": "アバランチ",
+   "romaji": "AVALANCHE",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:turks",
+   "kind": "thing",
+   "name": "タークス",
+   "reading": "タークス",
+   "romaji": "Turks",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:soldier",
+   "kind": "thing",
+   "name": "ソルジャー",
+   "reading": "ソルジャー",
+   "romaji": "SOLDIER",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:makou",
+   "kind": "thing",
+   "name": "魔晄",
+   "reading": "まこう",
+   "romaji": "Makou",
+   "aliases": [
+    {
+     "text": "魔晄炉",
+     "reading": "まこうろ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:materia",
+   "kind": "thing",
+   "name": "マテリア",
+   "reading": "マテリア",
+   "romaji": "Materia",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:black-materia",
+   "kind": "thing",
+   "name": "黒マテリア",
+   "reading": "くろマテリア",
+   "romaji": "Black Materia",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:lifestream",
+   "kind": "thing",
+   "name": "ライフストリーム",
+   "reading": "ライフストリーム",
+   "romaji": "Lifestream",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:kodaishu",
+   "kind": "thing",
+   "name": "古代種",
+   "reading": "こだいしゅ",
+   "romaji": "Kodaishu",
+   "aliases": [
+    {
+     "text": "セトラ",
+     "reading": "セトラ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yakusoku-no-chi",
+   "kind": "thing",
+   "name": "約束の地",
+   "reading": "やくそくのち",
+   "romaji": "Yakusoku no Chi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:meteor",
+   "kind": "thing",
+   "name": "メテオ",
+   "reading": "メテオ",
+   "romaji": "Meteor",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:holy",
+   "kind": "thing",
+   "name": "ホーリー",
+   "reading": "ホーリー",
+   "romaji": "Holy",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:weapon",
+   "kind": "thing",
+   "name": "ウェポン",
+   "reading": "ウェポン",
+   "romaji": "Weapon",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:reunion",
+   "kind": "thing",
+   "name": "リユニオン",
+   "reading": "リユニオン",
+   "romaji": "Reunion",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:chocobo",
+   "kind": "thing",
+   "name": "チョコボ",
+   "reading": "チョコボ",
+   "romaji": "Chocobo",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

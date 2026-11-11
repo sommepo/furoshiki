@@ -3,18 +3,22 @@
 
 #pragma once
 
+#include "popup_design.h"
+
 // Furoshiki's settings in a window of its own, for the mouse (the maintainer: "there should be a
 // windows style mouse oriented settings window for furoshiki not just the controller friendly
-// one"): the popup's look with a live preview and the user's own CSS, the consoles' settings in
+// one"): the popup's look with a live preview and its customiser, the consoles' settings in
 // their layers (and the folders of each console's games), save sync (with a pairing link), the
-// RetroAchievements login, the text server, and this window's own look. Everything it changes is what the pages change
+// RetroAchievements login, the text server, the CRT picture in its layers, and this window's own look. Everything it changes is what the pages change
 // (program/settings.json, QSettings), so the two always agree.
 
 #include <functional>
 #include <QDialog>
+#include <QHash>
 #include <QList>
 #include <QMap>
 #include <QString>
+#include "crt_layers.h"
 #include "play_settings.h"
 
 class QCheckBox;
@@ -34,9 +38,22 @@ namespace ReaderUi {
 class PopupWeb;
 }
 
+namespace ReaderApp {
+struct TidyReport;
+}
+
 namespace Home {
 
 class HomeWindow;
+
+/// What tidying the reading time did, in a sentence (ReaderApp::TidyReport).
+QString TidyReportText(const ReaderApp::TidyReport& report);
+
+#ifndef READER_NO_SAVE_SYNC
+/// The save sync service this device is paired with: its addresses in the order tried, its code
+/// (both empty where it is not paired).
+void PairedService(QStringList* addresses, QString* code);
+#endif
 
 class SettingsWindow : public QDialog {
     Q_OBJECT
@@ -56,6 +73,8 @@ public:
         /// The shared Save sync window, which answers a conflict.
         std::function<void()> open_sync_window;
 #endif
+        /// Reading time was tidied: the statistics shown and sent are made again.
+        std::function<void()> stats_changed;
         /// A console's game folders changed: the games are looked for again.
         std::function<void()> folders_changed;
     };
@@ -95,6 +114,11 @@ private:
     QWidget* PopupTab();
     QWidget* ConsolesTab();
     QWidget* LookTab();
+    QWidget* CrtTab();
+    void FillCrtRows();
+    /// One CRT value changed on the layer chosen; all of them kept there (what differs).
+    void SetCrt(const QString& key, double value);
+    void StoreCrt(const CrtLayers::Values& values);
 #ifndef READER_NO_SAVE_SYNC
     QWidget* SyncTab();
 #endif
@@ -103,6 +127,7 @@ private:
 #ifndef READER_NO_TEXT_SERVER
     QWidget* TextServerTab();
 #endif
+    QWidget* ReadingTab();
     void FillFolders();
 #ifndef READER_NO_SAVE_SYNC
     void LoadSync();
@@ -115,18 +140,23 @@ private:
 #ifndef READER_NO_TEXT_SERVER
     void StoreTextServer();
 #endif
+    void TidyReading(bool undo);
     void FillPopupRows();
     void FillConsoleRows();
-    void LoadCssFile();
-    /// The built-in look shown in the CSS editor ("yomitan-dark"...), or nothing for a file.
-    [[nodiscard]] QString BuiltInShown() const;
-    void SaveCopy(const QString& theme);
     void Calm(QWidget* box);
-    /// The popup's look as controls (popup_controls.h), written into the CSS shown.
-    QWidget* ControlsPanel(QWidget* parent);
-    void ControlsFromCss();
-    void CssFromControls();
     void ShowPreview();
+    // The popup customiser (popup_design.h): the elements, the one picked, its settings.
+    QWidget* CustomiserPanel(QWidget* parent);
+    /// The look in use on the popup tab's layer, and the design over it there (none: empty).
+    [[nodiscard]] QString PopupBase() const;
+    [[nodiscard]] QString PopupDesignName() const;
+    /// The design being changed: the layer's, else a new one over its look, chosen there at once.
+    PopupDesign::Design& EditedDesign();
+    void LoadDesign();
+    void DesignChanged(bool refill);
+    void PickElement(const QString& id);
+    void FillInspector();
+    void PreviewMessage(const QJsonObject& message);
 
     PlaySettings& play;
     QList<PlayConsole> consoles;
@@ -136,17 +166,34 @@ private:
 
     QComboBox* popup_layer{};
     QFormLayout* popup_form{};
-    QComboBox* css_file{};
-    QPlainTextEdit* css_text{};
-    QPushButton* css_save{};
-    QTabWidget* editor_tabs{};
-    QMap<QString, QWidget*> controls; ///< By the control's key
+    QListWidget* design_elements{};
+    QFormLayout* look_form{};   ///< The look, at the head of the tab
+    QFormLayout* design_form{}; ///< The design over it, beside it
+    class QStackedWidget* inspector_stack{}; ///< The element's settings, or what the popup shows
+    QWidget* settings_page{};
+    QWidget* inspector{};
+    QLabel* design_title{};
+    QPushButton* design_reset_element{};
+    QPushButton* design_reset_all{};
+    QPushButton* design_rename{};
+    QPushButton* design_remove{};
+    PopupDesign::Design design; ///< As it is in its file (or about to be)
+    bool design_loaded{};
+    QString picked_element{QStringLiteral("headword")};
+    QTimer* design_save_timer{};
+    QHash<QString, std::function<void()>> inspector_sync; ///< Shows a property's value again (by its key)
     ReaderUi::PopupWeb* preview{};
     QTimer* preview_timer{};
     QComboBox* console_layer{};
     QFormLayout* console_form{};
     QWidget* folders_box{};
     QListWidget* folders_list{};
+    // The CRT picture
+    QComboBox* crt_layer{};
+    QComboBox* crt_looks{};
+    QLabel* crt_note{};
+    QPushButton* crt_follow{};
+    QList<std::function<void(const CrtLayers::Values&)>> crt_refresh;
     QTabWidget* tabs{};
 #ifndef READER_NO_SAVE_SYNC
     // Save sync
@@ -173,6 +220,11 @@ private:
     QSpinBox* hook_port{};
     QCheckBox* hook_lan{};
     QLabel* hook_note{};
+    // Reading time
+    QSpinBox* idle_seconds{};
+    QLabel* tidy_note{};
+    QPushButton* tidy_button{};
+    QPushButton* untidy_button{};
     bool filling{};
 };
 

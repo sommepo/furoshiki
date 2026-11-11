@@ -32,6 +32,42 @@ TEST_CASE("PcmTools: trailing silence is dropped, with a little kept", "[reader]
     REQUIRE(PcmTools::TrimTrailingSilence(input, 2, 6000, 2).empty());
 }
 
+TEST_CASE("PcmTools: a clip is cut to what is said in it", "[reader][media]") {
+    constexpr int Rate = 48000;
+    const auto tone = [](std::vector<qint16>& samples, int from_ms, int to_ms, int level) {
+        for (int i = from_ms * Rate / 1000; i < to_ms * Rate / 1000; ++i) {
+            const auto value =
+                static_cast<qint16>(level * std::sin(i * 2.0 * 3.141592653589793 * 300 / Rate));
+            samples[i * 2] = value;
+            samples[i * 2 + 1] = value;
+        }
+    };
+    // Four seconds: a hiss all through, a click at 0.2 s, a voice from 1.0 to 2.5 s.
+    std::vector<qint16> clip(Rate * 4 * 2);
+    for (std::size_t i = 0; i < clip.size(); ++i) {
+        clip[i] = static_cast<qint16>((i * 7919) % 41) - 20;
+    }
+    tone(clip, 200, 220, 9000);
+    tone(clip, 1000, 2500, 6000);
+    qint64 first = -1;
+    const std::vector<qint16> voice = PcmTools::TrimToVoice(clip, 2, Rate, 180, 150, &first);
+    const double seconds = static_cast<double>(voice.size()) / 2 / Rate;
+    REQUIRE(seconds > 1.75);
+    REQUIRE(seconds < 1.9);
+    REQUIRE(first > Rate * 800 / 1000);
+    REQUIRE(first < Rate * 900 / 1000);
+
+    // Music under the whole line stays whole; a clip of hiss alone is nothing.
+    std::vector<qint16> music(Rate * 2 * 2);
+    tone(music, 0, 2000, 5000);
+    REQUIRE(PcmTools::TrimToVoice(music, 2, Rate, 180, 150).size() == music.size());
+    std::vector<qint16> hiss(Rate * 2 * 2);
+    for (std::size_t i = 0; i < hiss.size(); ++i) {
+        hiss[i] = static_cast<qint16>((i * 7919) % 41) - 20;
+    }
+    REQUIRE(PcmTools::TrimToVoice(hiss, 2, Rate, 180, 150).empty());
+}
+
 TEST_CASE("PcmTools: the edges are faded", "[reader][media]") {
     std::vector<qint16> samples(16, 1000);
     PcmTools::FadeEdges(samples, 2, 2);

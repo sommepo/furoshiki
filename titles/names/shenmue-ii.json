@@ -1,0 +1,712 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/シェンムーII",
+   "flycast/docs/reader/games/shenmue2.md (subtitles seen in the game)",
+   "guides/src/guides/shenmue-ii"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:hazuki-ryou",
+   "kind": "person",
+   "name": "芭月 涼",
+   "family": "芭月",
+   "given": "涼",
+   "reading": "はづき りょう",
+   "family_reading": "はづき",
+   "given_reading": "りょう",
+   "romaji": "Hazuki Ryou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ling-shenhua",
+   "kind": "person",
+   "name": "玲 莎花",
+   "family": "玲",
+   "given": "莎花",
+   "reading": "レイ シェンファ",
+   "family_reading": "レイ",
+   "given_reading": "シェンファ",
+   "romaji": "Ling Shenhua",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ren-wuying",
+   "kind": "person",
+   "name": "刃 武鷹",
+   "family": "刃",
+   "given": "武鷹",
+   "reading": "レン ウーイン",
+   "family_reading": "レン",
+   "given_reading": "ウーイン",
+   "romaji": "Ren Wuying",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lan-di",
+   "kind": "person",
+   "name": "藍帝",
+   "reading": "ランテイ",
+   "romaji": "Lan Di",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:hong-xiuying",
+   "kind": "person",
+   "name": "紅 秀瑛",
+   "family": "紅",
+   "given": "秀瑛",
+   "reading": "コウ シュウエイ",
+   "family_reading": "コウ",
+   "given_reading": "シュウエイ",
+   "romaji": "Hong Xiuying",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:wong",
+   "kind": "person",
+   "name": "ウォン",
+   "reading": "ウォン",
+   "romaji": "Wong",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:joy",
+   "kind": "person",
+   "name": "ジョイ",
+   "reading": "ジョイ",
+   "romaji": "Joy",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:xun-fangmei",
+   "kind": "person",
+   "name": "薫 芳梅",
+   "family": "薫",
+   "given": "芳梅",
+   "reading": "クン ファンメイ",
+   "family_reading": "クン",
+   "given_reading": "ファンメイ",
+   "romaji": "Xun Fangmei",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zhu-yuanda",
+   "kind": "person",
+   "name": "朱 元達",
+   "family": "朱",
+   "given": "元達",
+   "reading": "シュ ゲンタツ",
+   "family_reading": "シュ",
+   "given_reading": "ゲンタツ",
+   "romaji": "Zhu Yuanda",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:dou-niu",
+   "kind": "person",
+   "name": "斗牛",
+   "reading": "トギュウ",
+   "romaji": "Dou Niu",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:baihu",
+   "kind": "person",
+   "name": "白虎",
+   "reading": "びゃっこ",
+   "romaji": "Baihu",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yuan",
+   "kind": "person",
+   "name": "ユアン・オニール",
+   "reading": "ユアン・オニール",
+   "romaji": "Yuan O'Neill",
+   "aliases": [
+    {
+     "text": "ユアン",
+     "reading": "ユアン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:tao-lishao",
+   "kind": "person",
+   "name": "桃李少",
+   "reading": "トウリショウ",
+   "romaji": "Tao Lishao",
+   "aliases": [],
+   "role": "side",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:takano-izumi",
+   "kind": "person",
+   "name": "高野 和泉",
+   "family": "高野",
+   "given": "和泉",
+   "reading": "たかの いずみ",
+   "family_reading": "たかの",
+   "given_reading": "いずみ",
+   "romaji": "Takano Izumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hong-delin",
+   "kind": "person",
+   "name": "洪 徳林",
+   "family": "洪",
+   "given": "徳林",
+   "reading": "コウ トクリン",
+   "family_reading": "コウ",
+   "given_reading": "トクリン",
+   "romaji": "Hong Delin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:li-guixiang",
+   "kind": "person",
+   "name": "李 桂香",
+   "family": "李",
+   "given": "桂香",
+   "reading": "リ ケイカ",
+   "family_reading": "リ",
+   "given_reading": "ケイカ",
+   "romaji": "Li Guixiang",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kong-zhangyu",
+   "kind": "person",
+   "name": "孔 張愉",
+   "family": "孔",
+   "given": "張愉",
+   "reading": "コウ チョウユ",
+   "family_reading": "コウ",
+   "given_reading": "チョウユ",
+   "romaji": "Kong Zhangyu",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tao-jianmin",
+   "kind": "person",
+   "name": "陶 健民",
+   "family": "陶",
+   "given": "健民",
+   "reading": "トウ ケンミン",
+   "family_reading": "トウ",
+   "given_reading": "ケンミン",
+   "romaji": "Tao Jianmin",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:xuan-zhoushan",
+   "kind": "person",
+   "name": "玄 周善",
+   "family": "玄",
+   "given": "周善",
+   "reading": "ゲン シュウゼン",
+   "family_reading": "ゲン",
+   "given_reading": "シュウゼン",
+   "romaji": "Xuan Zhoushan",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:bai-zongquan",
+   "kind": "person",
+   "name": "白 宗泉",
+   "family": "白",
+   "given": "宗泉",
+   "reading": "ハク ソウセン",
+   "family_reading": "ハク",
+   "given_reading": "ソウセン",
+   "romaji": "Bai Zongquan",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:liu-hanhui",
+   "kind": "person",
+   "name": "劉 漢輝",
+   "family": "劉",
+   "given": "漢輝",
+   "reading": "リュウ カンキ",
+   "family_reading": "リュウ",
+   "given_reading": "カンキ",
+   "romaji": "Liu Hanhui",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:eileen-m-edelweiss",
+   "kind": "person",
+   "name": "アイリン・Ｍ・エーデルワイス",
+   "family": "エーデルワイス",
+   "given": "アイリン",
+   "reading": "アイリン・エム・エーデルワイス",
+   "family_reading": "エーデルワイス",
+   "given_reading": "アイリン",
+   "romaji": "Eileen M. Edelweiss",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sam",
+   "kind": "person",
+   "name": "サム",
+   "reading": "サム",
+   "romaji": "Sam",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:larry",
+   "kind": "person",
+   "name": "ラリー",
+   "reading": "ラリー",
+   "romaji": "Larry",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yang",
+   "kind": "person",
+   "name": "ヤン",
+   "reading": "ヤン",
+   "romaji": "Yang",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zhang-shuqin",
+   "kind": "person",
+   "name": "張 書勤",
+   "family": "張",
+   "given": "書勤",
+   "reading": "チョウ ショキン",
+   "family_reading": "チョウ",
+   "given_reading": "ショキン",
+   "romaji": "Zhang Shuqin",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:chai",
+   "kind": "person",
+   "name": "チャイ",
+   "reading": "チャイ",
+   "romaji": "Chai",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hazuki-iwao",
+   "kind": "person",
+   "name": "芭月 巌",
+   "family": "芭月",
+   "given": "巌",
+   "reading": "はづき いわお",
+   "family_reading": "はづき",
+   "given_reading": "いわお",
+   "romaji": "Hazuki Iwao",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:chen-daren",
+   "kind": "person",
+   "name": "陳 大人",
+   "family": "陳",
+   "given": "大人",
+   "reading": "チン タイジン",
+   "family_reading": "チン",
+   "given_reading": "タイジン",
+   "romaji": "Chen Daren",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:chen-guizhang",
+   "kind": "person",
+   "name": "陳 貴章",
+   "family": "陳",
+   "given": "貴章",
+   "reading": "チン キショウ",
+   "family_reading": "チン",
+   "given_reading": "キショウ",
+   "romaji": "Chen Guizhang",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:hong-kong",
+   "kind": "place",
+   "name": "香港",
+   "reading": "ほんこん",
+   "romaji": "Hong Kong",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:kowloon-walled-city",
+   "kind": "place",
+   "name": "九龍城",
+   "romaji": "Kowloon Walled City",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:guilin",
+   "kind": "place",
+   "name": "桂林",
+   "reading": "けいりん",
+   "romaji": "Guilin",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:wan-chai",
+   "kind": "place",
+   "name": "ワンチャイ",
+   "reading": "ワンチャイ",
+   "romaji": "Wan Chai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:aberdeen",
+   "kind": "place",
+   "name": "アバディーン",
+   "reading": "アバディーン",
+   "romaji": "Aberdeen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "place:scarlet-hills",
+   "kind": "place",
+   "name": "紅南街",
+   "romaji": "Scarlet Hills",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:yan-tin-apartments",
+   "kind": "place",
+   "name": "恩田楼",
+   "romaji": "Yan Tin Apartments",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:man-mo-temple",
+   "kind": "place",
+   "name": "文武廟",
+   "reading": "ぶんぶびょう",
+   "romaji": "Man Mo Temple",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:guang-martial-arts-school",
+   "kind": "place",
+   "name": "光武館",
+   "romaji": "Guang Martial Arts School",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:yellow-head-building",
+   "kind": "place",
+   "name": "黄天楼",
+   "romaji": "Yellow Head Building",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:bailu-village",
+   "kind": "place",
+   "name": "白鹿村",
+   "romaji": "Bailu Village",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:yokosuka",
+   "kind": "place",
+   "name": "横須賀",
+   "reading": "よこすか",
+   "romaji": "Yokosuka",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:chiyoumen",
+   "kind": "thing",
+   "name": "蚩尤門",
+   "reading": "しゆうもん",
+   "romaji": "Chiyoumen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:yellow-heads",
+   "kind": "thing",
+   "name": "黄天会",
+   "romaji": "Yellow Heads",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:heavens",
+   "kind": "thing",
+   "name": "ヘヴンズ",
+   "reading": "ヘヴンズ",
+   "romaji": "Heavens",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:blue-spiders",
+   "kind": "thing",
+   "name": "青蜘蛛",
+   "romaji": "Blue Spiders",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:dragon-mirror",
+   "kind": "thing",
+   "name": "龍鏡",
+   "romaji": "Dragon Mirror",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:phoenix-mirror",
+   "kind": "thing",
+   "name": "鳳凰鏡",
+   "romaji": "Phoenix Mirror",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:chawan-formation",
+   "kind": "thing",
+   "name": "茶碗陣",
+   "romaji": "Chawan Formation",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "thing:bajiquan",
+   "kind": "thing",
+   "name": "八極拳",
+   "reading": "はっきょくけん",
+   "romaji": "Bajiquan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

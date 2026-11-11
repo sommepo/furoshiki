@@ -1,0 +1,17 @@
+{
+ "title": "英雄伝説 空の軌跡FC",
+ "english": "Trails in the Sky FC",
+ "ids": [
+  "PCSG00488",
+  "ULJM05170"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "jiten": 359,
+ "anilist": null,
+ "guide": "sora-no-kiseki-fc",
+ "screenscraper": {
+  "psp": 103341
+ }
+}

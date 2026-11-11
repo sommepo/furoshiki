@@ -1,0 +1,332 @@
+{
+ "source": {
+  "vndb": "v33133",
+  "fetched": "2026-11-08"
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:hasegawa-yukari",
+   "kind": "person",
+   "name": "長谷川 ユカリ",
+   "family": "長谷川",
+   "given": "ユカリ",
+   "reading": "はせがわ ユカリ",
+   "family_reading": "はせがわ",
+   "given_reading": "ユカリ",
+   "romaji": "Hasegawa Yukari",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:itsushima-chisato",
+   "kind": "person",
+   "name": "逸島 チサト",
+   "family": "逸島",
+   "given": "チサト",
+   "reading": "いつしま チサト",
+   "family_reading": "いつしま",
+   "given_reading": "チサト",
+   "romaji": "Itsushima Chisato",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kishii-mika",
+   "kind": "person",
+   "name": "岸井 ミカ",
+   "family": "岸井",
+   "given": "ミカ",
+   "reading": "きしい ミカ",
+   "family_reading": "きしい",
+   "given_reading": "ミカ",
+   "romaji": "Kishii Mika",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:aramata",
+   "kind": "person",
+   "name": "アラマタ",
+   "reading": "アラマタ",
+   "romaji": "Aramata",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kimika",
+   "kind": "person",
+   "name": "キミカ",
+   "reading": "キミカ",
+   "romaji": "Kimika",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:miho",
+   "kind": "person",
+   "name": "ミホ",
+   "reading": "ミホ",
+   "romaji": "Miho",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:sakai",
+   "kind": "person",
+   "name": "坂井",
+   "reading": "さかい",
+   "romaji": "Sakai",
+   "aliases": [
+    {
+     "text": "坂井さん",
+     "reading": "さかいさん"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:okuno",
+   "kind": "person",
+   "name": "奥野",
+   "reading": "おくの",
+   "romaji": "Okuno",
+   "aliases": [
+    {
+     "text": "奥野先生",
+     "reading": "おくのせんせい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kitamura",
+   "kind": "person",
+   "name": "北村",
+   "reading": "きたむら",
+   "romaji": "Kitamura",
+   "aliases": [
+    {
+     "text": "北村先生",
+     "reading": "きたむらせんせい"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:saita",
+   "kind": "person",
+   "name": "際田",
+   "romaji": "Saita",
+   "aliases": [
+    {
+     "text": "際田先生"
+    }
+   ],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "name",
+    "alias:際田先生"
+   ]
+  },
+  {
+   "id": "person:niikura",
+   "kind": "person",
+   "name": "新倉",
+   "romaji": "Niikura",
+   "aliases": [
+    {
+     "text": "新倉先生"
+    }
+   ],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading",
+    "alias:新倉先生"
+   ]
+  },
+  {
+   "id": "person:tamura",
+   "kind": "person",
+   "name": "田村",
+   "reading": "たむら",
+   "romaji": "Tamura",
+   "aliases": [
+    {
+     "text": "田村先生",
+     "reading": "たむらせんせい"
+    }
+   ],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:mf",
+   "kind": "person",
+   "name": "M.F",
+   "romaji": "M.F",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:fujita-mayumi",
+   "kind": "person",
+   "name": "フジタ マユミ",
+   "family": "フジタ",
+   "given": "マユミ",
+   "reading": "フジタ マユミ",
+   "family_reading": "フジタ",
+   "given_reading": "マユミ",
+   "romaji": "Fujita Mayumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": [
+    "name"
+   ]
+  },
+  {
+   "id": "person:sh",
+   "kind": "person",
+   "name": "S.H",
+   "romaji": "S.H",
+   "aliases": [],
+   "role": "appears",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:hinashiro-high",
+   "kind": "place",
+   "name": "雛城高校",
+   "reading": "ひなしろこうこう",
+   "romaji": "Hinashiro High School",
+   "aliases": [
+    {
+     "text": "雛城",
+     "reading": "ひなしろ"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:i-park",
+   "kind": "place",
+   "name": "I公園",
+   "reading": "アイこうえん",
+   "romaji": "I Park",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:koube-bridge",
+   "kind": "place",
+   "name": "こうべ橋",
+   "romaji": "Koube Bridge",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "place:murayamadai-station",
+   "kind": "place",
+   "name": "村山台駅",
+   "reading": "むらやまだいえき",
+   "romaji": "Murayamadai Station",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:yuuyamigaoka",
+   "kind": "place",
+   "name": "夕闇が丘",
+   "reading": "ゆうやみがおか",
+   "romaji": "Yuuyamigaoka",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:moonstone-ring",
+   "kind": "thing",
+   "name": "ムーンストーンのリング",
+   "reading": "ムーンストーンのリング",
+   "romaji": "moonstone ring",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:pager",
+   "kind": "thing",
+   "name": "ポケベル",
+   "reading": "ポケベル",
+   "romaji": "pager",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

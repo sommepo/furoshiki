@@ -73,7 +73,13 @@ QString Plain(QString text) {
 
 void ReaderControl::StartIfWanted(QMainWindow* main_window, QWidget* render_window,
                                   ReaderController* controller) {
-    const QString path = qEnvironmentVariable("READER_DESKTOP_CONTROL");
+    QString path = qEnvironmentVariable("READER_DESKTOP_CONTROL");
+    if (path.isEmpty()) {
+        // A companion's channel (Furoshiki's add-ons): the same commands, for a program that
+        // runs beside the game, without a test run's ways (the text server, the first start
+        // and the window's size go on as always: they look at READER_DESKTOP_CONTROL alone).
+        path = qEnvironmentVariable("READER_COMPANION_CONTROL");
+    }
     if (path.isEmpty()) {
         return;
     }
@@ -669,6 +675,26 @@ void ReaderControl::Run(const QString& command, const Reply& reply) {
             // closed, and this command is answered before that.
             QTimer::singleShot(0, controller, [this, rest] { controller->TriggerAction(rest); });
             ok();
+        } else if (name == QStringLiteral("lookup")) {
+            // lookup TEXT: what a lookup at the start of TEXT finds while the running game runs
+            // (its names dictionary used and first), as JSON: each headword, its reading, its
+            // dictionaries, and whether it is a name of this game.
+            auto& session = ReaderSession::Instance();
+            QJsonArray found;
+            for (const ReaderApp::LookupResult& result : session.Lookup().Lookup(rest, 8, session.GameKey())) {
+                QJsonArray dictionaries;
+                for (const ReaderApp::TermEntry& entry : result.entries) {
+                    dictionaries.append(entry.dictionary);
+                }
+                found.append(QJsonObject{{QStringLiteral("expression"), result.expression},
+                                         {QStringLiteral("reading"), result.reading},
+                                         {QStringLiteral("dictionaries"), dictionaries},
+                                         {QStringLiteral("name"), !result.entries.isEmpty() &&
+                                                                      result.entries.first().scoped}});
+            }
+            ok(QString::fromUtf8(QJsonDocument(QJsonObject{{QStringLiteral("game"), session.GameKey()},
+                                                           {QStringLiteral("results"), found}})
+                                     .toJson(QJsonDocument::Compact)));
         } else if (name == QStringLiteral("dialog")) {
             ok(DescribeDialog());
         } else if (name == QStringLiteral("dialog-grab")) {

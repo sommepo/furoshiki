@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- made by home/tools/icon.py from home/icon/icon.json -->
+<resources>
+    <color name="icon_ground_01">#EC008C</color>
+    <color name="icon_ground_02">#0095DA</color>
+    <color name="icon_ground_03">#E30613</color>
+    <color name="icon_ground_04">#00A551</color>
+    <color name="icon_ground_05">#5B2D9E</color>
+    <color name="icon_ground_06">#0A0A0A</color>
+    <color name="icon_ground_07">#FFD500</color>
+    <color name="icon_ground_08">#F7941D</color>
+    <color name="icon_ground_09">#00AEEF</color>
+    <color name="icon_ground_10">#EC008C</color>
+    <color name="icon_ground_11">#A8E000</color>
+    <color name="icon_ground_12">#FFFFFF</color>
+    <color name="icon_ground_13">#EC008C</color>
+    <color name="icon_ground_14">#FFD500</color>
+    <color name="icon_ground_15">#0057B8</color>
+    <color name="icon_ground_16">#FFD500</color>
+    <color name="icon_ground_17">#0A0A0A</color>
+    <color name="icon_ground_18">#0B1F4B</color>
+    <color name="icon_ground_19">#7480D8</color>
+    <color name="icon_ground_20">#CBD2DD</color>
+    <color name="icon_ground_21">#B6F2DC</color>
+    <color name="icon_ground_22">#FF9AD5</color>
+    <color name="icon_ground_23">#CDEBFA</color>
+    <color name="icon_ground_24">#E6DEF9</color>
+    <color name="icon_ground_25">#CDC9BE</color>
+    <color name="icon_ground_26">#2B2A33</color>
+    <color name="icon_ground_27">#0B0F13</color>
+    <color name="icon_ground_28">#929DE2</color>
+    <color name="icon_ground_29">#E9EDF3</color>
+    <color name="icon_ground_30">#002B36</color>
+    <color name="icon_ground_31">#1F3A6E</color>
+    <color name="icon_ground_32">#1B5A48</color>
+    <color name="icon_ground_33">#8E2F22</color>
+    <color name="icon_ground_34">#1C1A1A</color>
+    <color name="icon_ground_35">#EFE9D8</color>
+    <color name="icon_ground_36">#EFE9D8</color>
+    <color name="icon_ground_37">#101A3A</color>
+</resources>

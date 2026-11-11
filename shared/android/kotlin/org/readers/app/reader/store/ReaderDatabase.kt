@@ -139,6 +139,30 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
         )
     }
 
+    /**
+     * The words looked up here, for the record this install sends (its "lookups"): each
+     * {expression, reading, game, title, count, first, last}, the most looked up first, at most
+     * [limit]. Furochibi adds every device's up for its words looked up most (the desktop's
+     * ReaderDatabase::LookupsRecord).
+     */
+    fun lookupsRecord(limit: Int = RECORD_LOOKUPS): JSONArray {
+        val out = JSONArray()
+        readableDatabase.rawQuery(
+            "SELECT l.expression, l.reading, l.game, COALESCE(g.title, ''), l.count, l.first_ts, l.last_ts " +
+                "FROM lookups l LEFT JOIN games g ON g.game = l.game ORDER BY l.count DESC, l.last_ts DESC LIMIT ?",
+            arrayOf(limit.toString())
+        ).use { c ->
+            while (c.moveToNext()) {
+                out.put(
+                    JSONObject().put("expression", c.getString(0)).put("reading", c.getString(1))
+                        .put("game", c.getString(2)).put("title", c.getString(3)).put("count", c.getInt(4))
+                        .put("first", c.getLong(5)).put("last", c.getLong(6))
+                )
+            }
+        }
+        return out
+    }
+
     /** How often the word was looked up before, in every game together. */
     fun lookups(expression: String, reading: String): LookupHistory {
         val db = readableDatabase
@@ -630,6 +654,9 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
 
     companion object {
         const val DATABASE_NAME = "reader.db"
+
+        /** The most words a record carries (the keeper takes records up to 4 MB). */
+        const val RECORD_LOOKUPS = 20000
         private const val VERSION = 3
         private const val SUM_COLUMNS =
             "COALESCE(SUM(active_ms), 0), COALESCE(SUM(chars), 0), " +

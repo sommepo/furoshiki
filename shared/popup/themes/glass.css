@@ -1,0 +1,41 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Glass: a pane of smoked glass over the game, made for the opacity slider (two thirds solid
+   by itself). White type with a soft shadow so it reads on any scene, hairlines of light, and
+   no boxes inside it: labels are small tracked capitals, not chips. --ground, --text, --dim,
+   --accent and --rule are the whole palette. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: rgba(14, 16, 22, 0.66); --text: #ffffff; --dim: rgba(255, 255, 255, 0.68); --accent: #9ad4ff;
+  --rule: rgba(255, 255, 255, 0.18); --edge: var(--rule); --radius: 14px;
+  --box: transparent; --box-pressed: rgba(255, 255, 255, 0.22); --sign: #ffffff; --book: var(--accent);
+}
+.popup {
+  border: 1px solid var(--rule); border-top-color: rgba(255, 255, 255, 0.4);
+  padding: calc(11px * var(--scale)) calc(15px * var(--scale));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15);
+  font-feature-settings: "tnum" 1;
+}
+.entry { padding: 2px 0 8px; }
+.entry + .entry { border-top-color: var(--rule); padding-top: 8px; }
+.head { gap: 0 0.8em; }
+.headword { font-weight: 600; font-size: calc(22px * var(--scale)); letter-spacing: 0.02em; }
+.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.1em; }
+.reading { display: none; }
+.reasons, .pitch, .tag, .dictionary-name, .lookups, .romaji { font-size: calc(10.5px * var(--scale)); letter-spacing: 0.08em; color: var(--dim); }
+.tag, .dictionary-name { text-transform: uppercase; }
+.tags { gap: 0 0.9em; }
+.tag { background: none; border: none; padding: 0; }
+.tag.frequency .tag-value { color: var(--text); }
+.tag.name { border: none; padding: 0; color: var(--accent); }
+.tag.role { color: var(--accent); }
+.dictionary-name { margin-top: 6px; }
+.sense .tag[data-category="part-of-speech"] { color: var(--accent); }
+.glosses .gloss + .gloss::before { content: " / "; color: var(--dim); }
+.entry.unknown .headword { background: none; box-shadow: none; padding: 0; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
+.name-card .portrait { border: 1px solid rgba(255, 255, 255, 0.35); border-radius: calc(8px * var(--scale)); }
+.alias { background: none; border: none; padding: 0; font-size: calc(12px * var(--scale)); }
+.alias + .alias::before { content: "/ "; color: var(--dim); }
+.also { gap: 0 0.8em; }
+.card { border-radius: 999px; border-color: rgba(255, 255, 255, 0.4); text-shadow: none; }

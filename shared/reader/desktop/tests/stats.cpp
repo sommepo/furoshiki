@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Flycast Reader fork contributors (from the Flycast Reader fork)
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <QDateTime>
 #include <QJsonArray>
@@ -524,4 +525,132 @@ TEST_CASE("ReaderDatabase: words looked up are counted per game and added up", "
     // A game without a name has its key only.
     db.CountLookup(Q(u"猫"), Q(u"ねこ"), QStringLiteral("SLPM-66302"), 10);
     REQUIRE(db.Lookups(Q(u"猫"), Q(u"ねこ")).first_title.isEmpty());
+
+    // What the record sent to the keeper carries, as Furochibi reads it: one row a word and
+    // game, the most looked up first, as many as asked.
+    const QJsonArray record = db.LookupsRecord();
+    REQUIRE(record.size() == 4);
+    const QJsonObject top = record.at(0).toObject();
+    REQUIRE(top.value(QStringLiteral("expression")).toString() == Q(u"死ぬほど"));
+    REQUIRE(top.value(QStringLiteral("reading")).toString() == Q(u"しぬほど"));
+    REQUIRE(top.value(QStringLiteral("game")).toString() == QStringLiteral("SLPM-65550"));
+    REQUIRE(top.value(QStringLiteral("title")).toString() == Q(u"テスト"));
+    REQUIRE(top.value(QStringLiteral("count")).toInt() == 2);
+    REQUIRE(top.value(QStringLiteral("first")).toInteger() == 1000);
+    REQUIRE(top.value(QStringLiteral("last")).toInteger() == 3000);
+    REQUIRE(db.LookupsRecord(1).size() == 1);
+}
+
+namespace {
+
+/// Reads `count` lines of 10 to 40 characters at 1.5 s plus 100 ms a character, with the
+/// heartbeat every second, from `now`; returns the moment after the last line's reading.
+qint64 ReadLines(Fixture& f, qint64 now, int count, const QString& prefix) {
+    for (int i = 0; i < count; ++i) {
+        const int characters = 10 + (i * 7) % 31;
+        // As the session does: counted, then kept in the backlog with how it was counted.
+        QString text;
+        for (int k = 0; k < characters; ++k) {
+            // Kanji of their own in every line, so nothing stands in a line before.
+            text += QChar(static_cast<char16_t>(0x4E00 + prefix.at(0).unicode() * 1600 % 9000 + i * 50 + k));
+        }
+        TextLine line = Line(text, prefix + QString::number(i));
+        line.timestamp = now;
+        f.db.InsertLine(f.game, line, f.tracker.OnLine(line, now));
+        const qint64 next = now + 1500 + 100 * characters;
+        for (qint64 beat = now + 1000; beat < next; beat += 1000) {
+            f.tracker.OnHeartbeat(beat, true);
+        }
+        f.tracker.OnHeartbeat(next, true);
+        now = next;
+    }
+    return now;
+}
+
+/// Play without new text: heartbeats only, for `ms`.
+qint64 Play(Fixture& f, qint64 now, qint64 ms) {
+    for (qint64 beat = now + 1000; beat <= now + ms; beat += 1000) {
+        f.tracker.OnHeartbeat(beat, true);
+    }
+    return now + ms;
+}
+
+} // namespace
+
+TEST_CASE("ReadingTime: the reader's pace is taken from the gaps between lines", "[reader][stats]") {
+    QList<ReadingTime::Event> events;
+    qint64 now = 0;
+    for (int i = 0; i < 30; ++i) {
+        const int characters = 10 + (i * 7) % 31;
+        events.append({now, characters, true});
+        // Every fifth line was followed by a long pause, which is not reading.
+        now += 1500 + 100 * characters + (i % 5 == 4 ? 4 * Minute : 0);
+    }
+    const ReadingTime::Pace pace = ReadingTime::PaceOf(events, 30'000);
+    REQUIRE(pace.samples == 24);
+    REQUIRE(pace.ms_per_character == Catch::Approx(100).margin(1));
+    REQUIRE(pace.fixed_ms == Catch::Approx(1500).margin(20));
+    REQUIRE(pace.slow_factor == Catch::Approx(1.5));
+    // A line of 20 characters is read in 3.5 s at that pace, 5.25 s at the slow one.
+    REQUIRE(ReadingTime::Allowance(pace, 20, 30'000) == 5250);
+    // Never above the idle timeout, never under four seconds.
+    REQUIRE(ReadingTime::Allowance(pace, 2000, 30'000) == 30'000);
+    REQUIRE(ReadingTime::Allowance(pace, 0, 30'000) == 4000);
+    // Too few gaps: the fallback.
+    ReadingTime::Pace fallback;
+    fallback.ms_per_character = 321;
+    REQUIRE(ReadingTime::PaceOf(events.mid(0, 4), 30'000, fallback).ms_per_character == 321);
+
+    // Each line counts its gap up to its allowance; a word looked up in a long gap counts up to
+    // it, and the slow pace from it.
+    const QList<ReadingTime::Event> few{{0, 20, true}, {60'000, 0, false}, {200'000, 20, true}, {203'000, 20, true}};
+    const auto credit = ReadingTime::Credit(few, pace, 30'000);
+    REQUIRE(credit.size() == 3);
+    REQUIRE(credit[0].second == 30'000 + 5250);
+    REQUIRE(credit[1].second == 3000);
+    REQUIRE(credit[2].second == 5250); // the last line: the slow pace
+}
+
+TEST_CASE("ReaderDatabase: reading time tidied from when the lines came, and put back", "[reader][stats]") {
+    Fixture f;
+    const auto day_of = [](qint64 ms) { return QStringLiteral("day-%1").arg(ms / (24 * Hour)); };
+    qint64 now = 10 * Hour;
+    now = ReadLines(f, now, 20, QStringLiteral("a"));
+    const qint64 read_ms = now - 10 * Hour;
+    // Four minutes of play with no new text, then more reading.
+    now = Play(f, now, 4 * Minute);
+    now = ReadLines(f, now, 10, QStringLiteral("b"));
+    f.tracker.Flush();
+    const qint64 session = *f.tracker.CurrentSessionId();
+    const qint64 counted = f.db.Totals(f.game).active_ms;
+    REQUIRE(counted > read_ms + 4 * Minute - 10'000);
+
+    const TidyReport report = f.db.TidyReadingTime(30'000, session, std::nullopt, day_of);
+    REQUIRE(report.sessions == 1);
+    REQUIRE(report.changed == 1);
+    REQUIRE(report.before_ms == counted);
+    const qint64 tidied = f.db.Totals(f.game).active_ms;
+    REQUIRE(tidied == report.after_ms);
+    // What was read stays (the 20th line counts at most its slow pace instead of 4 minutes).
+    const qint64 all_read = now - 10 * Hour - 4 * Minute;
+    REQUIRE(tidied < all_read + 30'000);
+    REQUIRE(tidied > all_read - 10'000);
+
+    // Again, nothing more goes; time added later is kept as counted beside the tidied time.
+    REQUIRE(f.db.TidyReadingTime(30'000, session, std::nullopt, day_of).after_ms == tidied);
+    now = ReadLines(f, now, 2, QStringLiteral("c"));
+    f.tracker.Flush();
+    const qint64 more = f.db.Totals(f.game).active_ms - tidied;
+    REQUIRE(more > 0);
+    // Tidied again with the new lines: from the time as counted, which went on being added to;
+    // the play stays out whatever the timeout, as the pace says how long a line takes.
+    const TidyReport longer = f.db.TidyReadingTime(5 * Minute, session, std::nullopt, day_of);
+    REQUIRE(longer.before_ms == tidied + more);
+    REQUIRE(longer.after_ms < tidied + more + 30'000);
+    REQUIRE(longer.after_ms < counted);
+    // Put back: the time as counted.
+    REQUIRE(f.db.UntidyReadingTime() == 1);
+    REQUIRE(f.db.Totals(f.game).active_ms == counted + more);
+    // Every session but the open one: none here.
+    REQUIRE(f.db.TidyReadingTime(30'000, std::nullopt, session, day_of).sessions == 0);
 }

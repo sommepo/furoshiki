@@ -29,8 +29,8 @@ android {
         applicationId = "io.github.sommepo.furoshiki"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 6
+        versionName = "0.1.6"
         // False in a published build (-PreaderSaveSync=false): no save sync, and no statistics
         // sent to its service.
         buildConfigField("boolean", "READER_SAVE_SYNC",
@@ -132,6 +132,18 @@ val scriptFolders = listOf(
     "vita3k/reader/profiles",
 )
 
+// The games' names dictionaries (tools/titles.py: docs/titles.md), made from titles/, which the
+// reader installs as a game starts (NamesDictionaries, assets reader/names/). Bundled with the
+// scripts: a published build has none, its names come with each script from the list.
+val readerNames = tasks.register<Exec>("readerNames") {
+    val out = layout.buildDirectory.dir("generated/names").get().asFile
+    inputs.dir(File(repository, "titles"))
+    inputs.file(File(repository, "tools/titles.py"))
+    outputs.dir(out)
+    doFirst { out.deleteRecursively() }
+    commandLine("python3", File(repository, "tools/titles.py").path, "build", "--quiet", "--out", out.path)
+}
+
 // The page's themes and font, the desktop's (home/themes, home/fonts); the game scripts (above);
 // PPSSPP's assets, which its core reads from the system folder; the licence and notices, as the
 // Windows package has them (a release writes SOURCE.txt beside them, tools/publish).
@@ -146,8 +158,10 @@ val readerFront = tasks.register<Sync>("readerFront") {
                 exclude("index.json", "README.md")
             }
         }
+        from(readerNames) { into("reader/names") }
     }
-    from(File(repository, "home/themes")) { into("front/themes") }
+    // The looks of Furoshiki 3's shelf (Kon, Mono, Paper, Solarized): six colours each.
+    from(File(repository, "home/shelf")) { into("front/themes") }
     from(File(repository, "home/fonts")) {
         into("front/fonts")
         include("*.ttf")

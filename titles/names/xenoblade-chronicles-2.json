@@ -1,0 +1,883 @@
+{
+ "source": {
+  "vndb": null,
+  "drafted": "2026-11-08",
+  "from": [
+   "https://ja.wikipedia.org/wiki/ゼノブレイド2"
+  ]
+ },
+ "checked": false,
+ "entries": [
+  {
+   "id": "person:rex",
+   "kind": "person",
+   "name": "レックス",
+   "reading": "レックス",
+   "romaji": "Rex",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:homura",
+   "kind": "person",
+   "name": "ホムラ",
+   "reading": "ホムラ",
+   "romaji": "Homura",
+   "aliases": [
+    {
+     "text": "天の聖杯",
+     "reading": "てんのせいはい"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hikari",
+   "kind": "person",
+   "name": "ヒカリ",
+   "reading": "ヒカリ",
+   "romaji": "Hikari",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "person:pneuma",
+   "kind": "person",
+   "name": "プネウマ",
+   "reading": "プネウマ",
+   "romaji": "Pneuma",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "person:nia",
+   "kind": "person",
+   "name": "ニア",
+   "reading": "ニア",
+   "romaji": "Nia",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:byakko",
+   "kind": "person",
+   "name": "ビャッコ",
+   "reading": "ビャッコ",
+   "romaji": "Byakko",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tora",
+   "kind": "person",
+   "name": "トラ",
+   "reading": "トラ",
+   "romaji": "Tora",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:hana",
+   "kind": "person",
+   "name": "ハナ",
+   "reading": "ハナ",
+   "romaji": "Hana",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:melef-lahat",
+   "kind": "person",
+   "name": "メレフ・ラハット",
+   "family": "ラハット",
+   "given": "メレフ",
+   "reading": "メレフ・ラハット",
+   "family_reading": "ラハット",
+   "given_reading": "メレフ",
+   "romaji": "Melef Lahat",
+   "aliases": [
+    {
+     "text": "炎の輝公子",
+     "reading": "ほのおのきこうし"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kagutsuchi",
+   "kind": "person",
+   "name": "カグツチ",
+   "reading": "カグツチ",
+   "romaji": "Kagutsuchi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zeke-b-kiwami-genbu",
+   "kind": "person",
+   "name": "ジーク・B・極・玄武",
+   "romaji": "Zeke B. Kiwami Genbu",
+   "aliases": [
+    {
+     "text": "ジーク",
+     "reading": "ジーク"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "reading"
+   ]
+  },
+  {
+   "id": "person:saika",
+   "kind": "person",
+   "name": "サイカ",
+   "reading": "サイカ",
+   "romaji": "Saika",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:seiryuu",
+   "kind": "person",
+   "name": "セイリュウ",
+   "reading": "セイリュウ",
+   "romaji": "Seiryuu",
+   "aliases": [
+    {
+     "text": "じっちゃん",
+     "reading": "じっちゃん"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:vandham",
+   "kind": "person",
+   "name": "ヴァンダム",
+   "reading": "ヴァンダム",
+   "romaji": "Vandham",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:suzaku",
+   "kind": "person",
+   "name": "スザク",
+   "reading": "スザク",
+   "romaji": "Suzaku",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:korureru",
+   "kind": "person",
+   "name": "コルレル",
+   "reading": "コルレル",
+   "romaji": "Korureru",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:baan",
+   "kind": "person",
+   "name": "バーン",
+   "reading": "バーン",
+   "romaji": "Baan",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:muimui",
+   "kind": "person",
+   "name": "ムイムイ",
+   "reading": "ムイムイ",
+   "romaji": "Muimui",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:moofu",
+   "kind": "person",
+   "name": "モーフ",
+   "reading": "モーフ",
+   "romaji": "Moofu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:tatezou",
+   "kind": "person",
+   "name": "タテゾー",
+   "reading": "タテゾー",
+   "romaji": "Tatezou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:senzou",
+   "kind": "person",
+   "name": "センゾー",
+   "reading": "センゾー",
+   "romaji": "Senzou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:lagert",
+   "kind": "person",
+   "name": "ラゲルト",
+   "reading": "ラゲルト",
+   "romaji": "Lagert",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:cole",
+   "kind": "person",
+   "name": "コール",
+   "reading": "コール",
+   "romaji": "Cole",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:nefer",
+   "kind": "person",
+   "name": "ネフェル",
+   "reading": "ネフェル",
+   "romaji": "Nefer",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:wadatsumi",
+   "kind": "person",
+   "name": "ワダツミ",
+   "reading": "ワダツミ",
+   "romaji": "Wadatsumi",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:seelich",
+   "kind": "person",
+   "name": "ゼーリッヒ",
+   "reading": "ゼーリッヒ",
+   "romaji": "Seelich",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:malbeni",
+   "kind": "person",
+   "name": "マルベーニ",
+   "reading": "マルベーニ",
+   "romaji": "Malbeni",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:fan-le-norn",
+   "kind": "person",
+   "name": "ファン・レ・ノルン",
+   "reading": "ファン・レ・ノルン",
+   "romaji": "Fan le Norn",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:shin",
+   "kind": "person",
+   "name": "シン",
+   "reading": "シン",
+   "romaji": "Shin",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:metsu",
+   "kind": "person",
+   "name": "メツ",
+   "reading": "メツ",
+   "romaji": "Metsu",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:yoshitsune",
+   "kind": "person",
+   "name": "ヨシツネ",
+   "reading": "ヨシツネ",
+   "romaji": "Yoshitsune",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:kamui",
+   "kind": "person",
+   "name": "カムイ",
+   "reading": "カムイ",
+   "romaji": "Kamui",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:benkei",
+   "kind": "person",
+   "name": "ベンケイ",
+   "reading": "ベンケイ",
+   "romaji": "Benkei",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ragou",
+   "kind": "person",
+   "name": "ラゴウ",
+   "reading": "ラゴウ",
+   "romaji": "Ragou",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:satahiko",
+   "kind": "person",
+   "name": "サタヒコ",
+   "reading": "サタヒコ",
+   "romaji": "Satahiko",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:ootsuchi",
+   "kind": "person",
+   "name": "オオツチ",
+   "reading": "オオツチ",
+   "romaji": "Ootsuchi",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:zantetsu",
+   "kind": "person",
+   "name": "ザンテツ",
+   "reading": "ザンテツ",
+   "romaji": "Zantetsu",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "person:adel",
+   "kind": "person",
+   "name": "アデル",
+   "reading": "アデル",
+   "romaji": "Adel",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "place:alst",
+   "kind": "place",
+   "name": "アルスト",
+   "reading": "アルスト",
+   "romaji": "Alst",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:unkai",
+   "kind": "place",
+   "name": "雲海",
+   "reading": "うんかい",
+   "romaji": "Unkai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:sekaiju",
+   "kind": "place",
+   "name": "世界樹",
+   "reading": "せかいじゅ",
+   "romaji": "Sekaiju",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:rakuen",
+   "kind": "place",
+   "name": "楽園",
+   "reading": "らくえん",
+   "romaji": "Rakuen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:liberalitas-toushogun",
+   "kind": "place",
+   "name": "リベラリタス島嶼群",
+   "reading": "リベラリタスとうしょぐん",
+   "romaji": "Liberalitas Toushogun",
+   "aliases": [
+    {
+     "text": "リベラリタス",
+     "reading": "リベラリタス"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:iyasaki-mura",
+   "kind": "place",
+   "name": "イヤサキ村",
+   "reading": "イヤサキむら",
+   "romaji": "Iyasaki Mura",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:gula",
+   "kind": "place",
+   "name": "グーラ",
+   "reading": "グーラ",
+   "romaji": "Gula",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:torigo",
+   "kind": "place",
+   "name": "トリゴ",
+   "reading": "トリゴ",
+   "romaji": "Torigo",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:invidia-retsuoukoku",
+   "kind": "place",
+   "name": "インヴィディア烈王国",
+   "reading": "インヴィディアれつおうこく",
+   "romaji": "Invidia Retsuoukoku",
+   "aliases": [
+    {
+     "text": "インヴィディア",
+     "reading": "インヴィディア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:fons-maim",
+   "kind": "place",
+   "name": "フォンス・マイム",
+   "reading": "フォンス・マイム",
+   "romaji": "Fons Maim",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:superbia-teikoku",
+   "kind": "place",
+   "name": "スペルビア帝国",
+   "reading": "スペルビアていこく",
+   "romaji": "Superbia Teikoku",
+   "aliases": [
+    {
+     "text": "スペルビア",
+     "reading": "スペルビア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:arcadia-hououchou",
+   "kind": "place",
+   "name": "アーケディア法王庁",
+   "reading": "アーケディアほうおうちょう",
+   "romaji": "Arcadia Hououchou",
+   "aliases": [
+    {
+     "text": "アーケディア",
+     "reading": "アーケディア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:luxuria-oukoku",
+   "kind": "place",
+   "name": "ルクスリア王国",
+   "reading": "ルクスリアおうこく",
+   "romaji": "Luxuria Oukoku",
+   "aliases": [
+    {
+     "text": "ルクスリア",
+     "reading": "ルクスリア"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:temperantia",
+   "kind": "place",
+   "name": "テンペランティア",
+   "reading": "テンペランティア",
+   "romaji": "Temperantia",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:ira-oukoku",
+   "kind": "place",
+   "name": "イーラ王国",
+   "reading": "イーラおうこく",
+   "romaji": "Ira Oukoku",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:mors-no-chi",
+   "kind": "place",
+   "name": "モルスの地",
+   "reading": "モルスのち",
+   "romaji": "Mors no Chi",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:arusu",
+   "kind": "thing",
+   "name": "巨神獣",
+   "reading": "アルス",
+   "romaji": "Arusu",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:driver",
+   "kind": "thing",
+   "name": "ドライバー",
+   "reading": "ドライバー",
+   "romaji": "Driver",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:blade",
+   "kind": "thing",
+   "name": "ブレイド",
+   "reading": "ブレイド",
+   "romaji": "Blade",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:core-crystal",
+   "kind": "thing",
+   "name": "コアクリスタル",
+   "reading": "コアクリスタル",
+   "romaji": "Core Crystal",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ten-no-seihai",
+   "kind": "thing",
+   "name": "天の聖杯",
+   "reading": "てんのせいはい",
+   "romaji": "Ten no Seihai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:salvager",
+   "kind": "thing",
+   "name": "サルベージャー",
+   "reading": "サルベージャー",
+   "romaji": "Salvager",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:youheidan",
+   "kind": "thing",
+   "name": "傭兵団",
+   "reading": "ようへいだん",
+   "romaji": "Youheidan",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hraesvelgr",
+   "kind": "thing",
+   "name": "フレースヴェルグ",
+   "reading": "フレースヴェルグ",
+   "romaji": "Hraesvelgr",
+   "aliases": [
+    {
+     "text": "フレースヴェルグ傭兵団",
+     "reading": "フレースヴェルグようへいだん"
+    }
+   ],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:avaritia-shoukai",
+   "kind": "thing",
+   "name": "アヴァリティア商会",
+   "reading": "アヴァリティアしょうかい",
+   "romaji": "Avaritia Shoukai",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ira",
+   "kind": "thing",
+   "name": "イーラ",
+   "reading": "イーラ",
+   "romaji": "Ira",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:seihai-taisen",
+   "kind": "thing",
+   "name": "聖杯大戦",
+   "reading": "せいはいたいせん",
+   "romaji": "Seihai Taisen",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:man-eater",
+   "kind": "thing",
+   "name": "マンイーター",
+   "reading": "マンイーター",
+   "romaji": "Man Eater",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:blade-eater",
+   "kind": "thing",
+   "name": "ブレイドイーター",
+   "reading": "ブレイドイーター",
+   "romaji": "Blade Eater",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "thing:ether",
+   "kind": "thing",
+   "name": "エーテル",
+   "reading": "エーテル",
+   "romaji": "Ether",
+   "aliases": [],
+   "role": null,
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

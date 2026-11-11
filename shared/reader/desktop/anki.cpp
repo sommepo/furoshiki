@@ -326,6 +326,18 @@ void AnkiConnectClient::ShowNotes(const QList<qint64>& note_ids) {
     Invoke(QStringLiteral("guiBrowse"), &params);
 }
 
+void AnkiConnectClient::DeleteNotes(const QList<qint64>& note_ids) {
+    if (note_ids.isEmpty()) {
+        return;
+    }
+    QJsonArray notes;
+    for (const qint64 id : note_ids) {
+        notes.append(id);
+    }
+    const QJsonObject params{{QStringLiteral("notes"), notes}};
+    Invoke(QStringLiteral("deleteNotes"), &params);
+}
+
 int AnkiConnectClient::Version() {
     const QJsonValue result = Invoke(QStringLiteral("version"));
     if (!result.isDouble()) {

@@ -277,6 +277,49 @@ class DictionaryTest {
         assertEquals(listOf("Mono"), db.dictionaries().map { it.title })
     }
 
+    /** A names dictionary for two games (tools/titles.py makes them: docs/titles.md). */
+    private fun namesArchive() = archive(
+        "names.zip",
+        mapOf(
+            "index.json" to """{"title":"名前 · Test","revision":"t-1","format":3,
+                "furoshikiScope":["test-001","TEST-002"],"furoshikiTitle":"test"}""",
+            "term_bank_1.json" to """[["マリアさん","","名前","",25,["マリア"],1,""],
+                ["マリア","","名前","",27,["マリア","Also: 姫"],1,""],
+                ["名","めい","名前","",20,["名（めい）"],2,""]]"""
+        )
+    )
+
+    @Test
+    fun namesDictionaryIsUsedOnlyForItsGamesAndFirst() {
+        importer.import(mainArchive())
+        importer.import(namesArchive())
+        val all = db.dictionaries()
+        assertTrue(all[0].scope.isEmpty())
+        assertEquals(listOf("TEST-001", "TEST-002"), all[1].scope)
+
+        // No game, or another game: as if the names were not there.
+        for (game in listOf("", "OTHER-1", "TEST-00")) {
+            val none = lookup.lookup("マリアさん", game = game)
+            assertEquals(listOf("マリア"), none.map { it.expression })
+            assertEquals(listOf("Test Dict"), none[0].entries.map { it.dictionary })
+            assertFalse(none[0].entries[0].scoped)
+        }
+
+        // Its game (in any case): the names, before the dictionary above them in the order.
+        val named = lookup.lookup("マリアさん", game = "test-001")
+        assertEquals(listOf("マリアさん", "マリア"), named.map { it.expression })
+        assertTrue(named[0].entries[0].scoped)
+        assertEquals(listOf("名前 · Test", "Test Dict"), named[1].entries.map { it.dictionary })
+
+        // A name of the same length as another word comes first; a longer word still wins.
+        val same = lookup.lookup("名は", game = "TEST-002")
+        assertEquals(listOf("めい", "な"), same.map { it.reading })
+        assertEquals("名乗る", lookup.lookup("名乗る", game = "TEST-002").first().expression)
+
+        assertEquals("|A-1|B|", DictionaryDatabase.scopeText(listOf(" a-1 ", "A-1", "b")))
+        assertEquals("", DictionaryDatabase.scopeText(emptyList()))
+    }
+
     @Test
     fun rendersGlossariesForCardsAndForThePopup() {
         importer.import(mainArchive())

@@ -21,6 +21,10 @@ namespace ReaderApp::PopupModel {
  */
 [[nodiscard]] QJsonObject Entry(const LookupResult& result, const QString& history);
 
+/// The tag a names dictionary gives its entries (tools/titles.py), and the page's label for a
+/// name in the running game (`"name": true` on the entry and on its senses).
+inline const QString NameTag = QStringLiteral("名前");
+
 /// The senses of a result in the page's form: {heading?, dictionary, number, tags, glosses,
 /// notes}. A heading names the dictionary where several dictionaries have senses.
 [[nodiscard]] QJsonArray Senses(const LookupResult& result);
@@ -33,5 +37,9 @@ namespace ReaderApp::PopupModel {
 
 /// The box state's name in the page: "add", "working", "inDeck", "checking", "away".
 [[nodiscard]] QString StateName(int state);
+
+/// What a preview of the popup shows: a word not in Anki with a frequency and its lookups, one
+/// Anki has, inflected, and a name of a game as its names dictionary gives it (no picture).
+[[nodiscard]] QJsonArray Sample();
 
 } // namespace ReaderApp::PopupModel

@@ -96,6 +96,13 @@ class ReaderGamesActivity : ReaderScreen() {
         status.text = getString(R.string.reader_scripts_fetching)
         worker.execute {
             val result = runCatching { ScriptStore.parseIndex(ScriptStore.fetcher(ScriptStore.indexUrl)) }
+            // The names dictionaries of the scripts installed from the list, new or changed since
+            // (a script installed before its game's names were listed has none).
+            result.getOrNull()?.filter { it.names != null && folder.recorded(it.id).isNotEmpty() && folder.needsNames(it) }
+                ?.distinctBy { it.names!!.file }
+                ?.forEach { entry ->
+                    runCatching { folder.installNames(entry, ScriptStore.fetcher(ScriptStore.urlOf(entry.names!!.file))) }
+                }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 result.onSuccess {
@@ -217,6 +224,10 @@ class ReaderGamesActivity : ReaderScreen() {
             val result = runCatching {
                 val files = (listOf(entry.script) + entry.data).associate {
                     it.file to ScriptStore.fetcher(ScriptStore.urlOf(it.file))
+                }.toMutableMap()
+                // The game's names dictionary, if it can be had: the script goes in without it.
+                entry.names?.let { names ->
+                    runCatching { ScriptStore.fetcher(ScriptStore.urlOf(names.file)) }.getOrNull()?.let { files[names.file] = it }
                 }
                 folder.install(entry, files)
             }

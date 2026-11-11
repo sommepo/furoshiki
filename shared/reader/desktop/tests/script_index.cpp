@@ -171,6 +171,41 @@ TEST_CASE("Scripts: installing from the list, updating, removing", "[reader][scr
     REQUIRE_FALSE(folder.Remove(entry.id));
 }
 
+TEST_CASE("Scripts: a game's names dictionary comes with its script", "[reader][scripts]") {
+    QTemporaryDir dir;
+    Folder folder(dir.path());
+    const QByteArray names = "PK made-up names";
+    QJsonObject index = QJsonDocument::fromJson(IndexJson(MadeUp)).object();
+    QJsonArray scripts = index.value(QStringLiteral("scripts")).toArray();
+    QJsonObject script = scripts.at(0).toObject();
+    script.insert(QStringLiteral("names"), FileJson(QStringLiteral("names-made-up.zip"), names));
+    scripts[0] = script;
+    index.insert(QStringLiteral("scripts"), scripts);
+    const Entry entry = EntryOf(QJsonDocument(index).toJson());
+    REQUIRE(entry.names.has_value());
+    REQUIRE(entry.names->file == QStringLiteral("names-made-up.zip"));
+    REQUIRE(folder.NeedsNames(entry));
+
+    // Without the names fetched, the script goes in all the same.
+    QString error;
+    REQUIRE(folder.Install(entry, {{(TestScriptGame + QStringLiteral(".lua")), MadeUp}}, &error));
+    REQUIRE(folder.NeedsNames(entry));
+    // Names that are not the list's are refused; the list's are written.
+    REQUIRE_FALSE(folder.InstallNames(entry, "other", &error));
+    REQUIRE(folder.InstallNames(entry, names, &error));
+    REQUIRE_FALSE(folder.NeedsNames(entry));
+    REQUIRE(QFile::exists(dir.path() + QStringLiteral("/names-made-up.zip")));
+
+    // A names file that is not one is passed over; the script is still listed.
+    script.insert(QStringLiteral("names"), FileJson(QStringLiteral("../names.zip"), names));
+    scripts[0] = script;
+    index.insert(QStringLiteral("scripts"), scripts);
+    REQUIRE_FALSE(EntryOf(QJsonDocument(index).toJson()).names.has_value());
+    REQUIRE(IsNamesFile(QStringLiteral("names-steins-gate.zip")));
+    REQUIRE_FALSE(IsNamesFile(QStringLiteral("names-Steins.zip")));
+    REQUIRE_FALSE(IsNamesFile(QStringLiteral("ULJM05718.zip")));
+}
+
 TEST_CASE("Scripts: installing files the user chose", "[reader][scripts]") {
     QTemporaryDir source;
     QTemporaryDir dir;

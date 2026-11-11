@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <QDate>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -12,7 +13,10 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
+#include <QSet>
 #include <QStandardPaths>
+#include <QDate>
+#include <QSet>
 #include "library.h"
 
 namespace Home {
@@ -76,6 +80,38 @@ bool MoveOldFolder() {
     return !QFileInfo::exists(now) && QFileInfo::exists(old) && QDir().rename(old, now);
 }
 
+qint64 CharsOn(const QList<Day>& days, const QString& day) {
+    for (const Day& each : days) {
+        if (each.day == day) {
+            return each.chars;
+        }
+    }
+    return 0;
+}
+
+int Streak(const QList<Day>& days, const QString& today) {
+    QDate day = QDate::fromString(today, Qt::ISODate);
+    if (!day.isValid()) {
+        return 0;
+    }
+    QSet<QString> read;
+    for (const Day& each : days) {
+        if (each.chars > 0) {
+            read.insert(each.day);
+        }
+    }
+    // Today counts once something was read; until then yesterday's run still stands.
+    if (!read.contains(today)) {
+        day = day.addDays(-1);
+    }
+    int count = 0;
+    while (read.contains(day.toString(Qt::ISODate))) {
+        ++count;
+        day = day.addDays(-1);
+    }
+    return count;
+}
+
 Library Load(const QString& folder) {
     Library library;
     QMap<QString, Day> days;
@@ -90,11 +126,11 @@ Library Load(const QString& folder) {
         const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
         const QJsonObject root = document.object();
         if (error.error != QJsonParseError::NoError || root.value(QStringLiteral("app")).toString().isEmpty()) {
-            library.problems.append(QStringLiteral("%1: not a reader app's file").arg(info.fileName()));
+            library.problems.append(QStringLiteral("%1: not a library file").arg(info.fileName()));
             continue;
         }
         if (root.value(QStringLiteral("format")).toInt(1) > AppFileFormat) {
-            library.problems.append(QStringLiteral("%1: written by a newer reader app (format %2): update Furoshiki")
+            library.problems.append(QStringLiteral("%1: written by a newer version (format %2): update Furoshiki")
                                         .arg(info.fileName())
                                         .arg(root.value(QStringLiteral("format")).toInt()));
             continue;
@@ -149,7 +185,12 @@ Library Load(const QString& folder) {
             }
             Game game;
             game.app = app.app;
-            game.system = app.system;
+            // A game may stand on another console's shelf than its app's (a title read from a
+            // hook in an emulator: line_titles.cpp).
+            game.system = entry.value(QStringLiteral("system")).toString();
+            if (game.system.isEmpty()) {
+                game.system = app.system;
+            }
             game.id = entry.value(QStringLiteral("id")).toString();
             game.path = entry.value(QStringLiteral("path")).toString();
             game.title = entry.value(QStringLiteral("title")).toString();

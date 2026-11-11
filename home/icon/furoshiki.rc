@@ -1,0 +1,3 @@
+// The program's icon in Windows (the file's picture, its shortcuts): the default colour. The
+// window and the task bar take the colour chosen in Settings at run time (src/app_icon.cpp).
+IDI_ICON1 ICON "furoshiki.ico"

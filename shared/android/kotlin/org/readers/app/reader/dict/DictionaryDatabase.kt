@@ -21,7 +21,12 @@ data class DictionaryInfo(
     val priority: Int,
     val enabled: Boolean,
     val termCount: Long,
-    val metaCount: Long
+    val metaCount: Long,
+    /**
+     * The games it is for (Furoshiki's game IDs, from `furoshikiScope` in its index.json): a
+     * names dictionary is used only while one of them runs. Empty: every game.
+     */
+    val scope: List<String> = emptyList()
 )
 
 /** One dictionary row for a term. [glossaryJson] is the entry's glossary array as JSON. */
@@ -36,7 +41,9 @@ data class TermEntry(
     val score: Int,
     val glossaryJson: String,
     val sequence: Long,
-    val termTags: String
+    val termTags: String,
+    /** From a dictionary for the running game only (a names dictionary): ranked first. */
+    val scoped: Boolean = false
 )
 
 /** A frequency, pitch or other "meta" row for a term. [data] is its JSON value. */
@@ -68,7 +75,8 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
                 priority INTEGER NOT NULL,
                 enabled INTEGER NOT NULL DEFAULT 1,
                 terms INTEGER NOT NULL DEFAULT 0,
-                metas INTEGER NOT NULL DEFAULT 0
+                metas INTEGER NOT NULL DEFAULT 0,
+                scope TEXT NOT NULL DEFAULT ''
             )"""
         )
         db.execSQL(
@@ -100,14 +108,16 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Version 1 is the only schema so far.
+        // Version 2: the games a dictionary is for, "" for every game (the desktop's
+        // DictionaryDatabase makes the same change at the same version).
+        if (oldVersion < 2) db.execSQL("ALTER TABLE dictionaries ADD COLUMN scope TEXT NOT NULL DEFAULT ''")
     }
 
     fun dictionaries(): List<DictionaryInfo> {
         val out = ArrayList<DictionaryInfo>()
         readableDatabase.rawQuery(
             "SELECT id, title, revision, author, description, frequency_mode, priority, enabled, " +
-                "terms, metas FROM dictionaries ORDER BY priority, id",
+                "terms, metas, scope FROM dictionaries ORDER BY priority, id",
             emptyArray()
         ).use { c ->
             while (c.moveToNext()) {
@@ -115,7 +125,7 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
                     DictionaryInfo(
                         c.getLong(0), c.getString(1), c.getString(2), c.getString(3),
                         c.getString(4), c.getString(5), c.getInt(6), c.getInt(7) != 0,
-                        c.getLong(8), c.getLong(9)
+                        c.getLong(8), c.getLong(9), scopeList(c.getString(10))
                     )
                 )
             }
@@ -165,21 +175,27 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
         }
     }
 
-    /** Term rows of enabled dictionaries whose expression or reading is one of [terms]. */
-    fun findTerms(terms: Collection<String>): List<TermEntry> {
+    /**
+     * Term rows of enabled dictionaries whose expression or reading is one of [terms]: of the
+     * dictionaries for every game, and of those scoped to [game] (a game ID) when one is given.
+     */
+    fun findTerms(terms: Collection<String>, game: String = ""): List<TermEntry> {
         if (terms.isEmpty()) return emptyList()
         val out = ArrayList<TermEntry>()
         val seen = HashSet<Long>()
         val db = readableDatabase
         for (chunk in terms.chunked(MAX_PARAMETERS)) {
             val marks = chunk.joinToString(",") { "?" }
-            val args = chunk.toTypedArray()
+            // No game: "||", which no scope holds.
+            val args = (chunk + "|${game.trim().uppercase()}|").toTypedArray()
             for (column in arrayOf("expression", "reading")) {
                 db.rawQuery(
                     """SELECT t.id, t.dict, d.title, d.priority, t.expression, t.reading,
-                              t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags
+                              t.def_tags, t.rules, t.score, t.glossary, t.sequence, t.term_tags,
+                              d.scope != ''
                        FROM terms t JOIN dictionaries d ON d.id = t.dict
-                       WHERE t.$column IN ($marks) AND d.enabled = 1""",
+                       WHERE t.$column IN ($marks) AND d.enabled = 1
+                         AND (d.scope = '' OR instr(d.scope, ?) > 0)""",
                     args
                 ).use { c ->
                     while (c.moveToNext()) {
@@ -196,7 +212,8 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
                                 score = c.getInt(8),
                                 glossaryJson = unpack(c.getBlob(9)),
                                 sequence = c.getLong(10),
-                                termTags = c.getString(11)
+                                termTags = c.getString(11),
+                                scoped = c.getInt(12) != 0
                             )
                         )
                     }
@@ -235,11 +252,19 @@ class DictionaryDatabase(context: Context, name: String? = DATABASE_NAME) :
 
     companion object {
         const val DATABASE_NAME = "reader_dict.db"
-        private const val VERSION = 1
+        private const val VERSION = 2
         private const val MAX_PARAMETERS = 400
         private const val PACK_RAW: Byte = 0
         private const val PACK_DEFLATE: Byte = 1
         private const val PACK_THRESHOLD = 96
+
+        /** A dictionary's scope as stored: "|ID|ID|" (upper case), or "" for every game. */
+        fun scopeText(games: Collection<String>): String {
+            val ids = games.map { it.trim().uppercase() }.filter { it.isNotEmpty() && '|' !in it }.distinct()
+            return if (ids.isEmpty()) "" else ids.joinToString("|", "|", "|")
+        }
+
+        fun scopeList(text: String?): List<String> = text.orEmpty().split('|').filter { it.isNotEmpty() }
 
         /** Compresses a glossary for storage; short ones are stored as they are. */
         fun pack(json: String): ByteArray {

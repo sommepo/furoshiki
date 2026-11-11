@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds tests/parity.cpp against Station Reader's desktop library (its build-desktop must exist)
-# and runs it on a reader_dict.db: shared/reader/lookup/tests/parity.sh DICT_DB [TEXT_FILE]
+# and runs it on a reader_dict.db: shared/reader/lookup/tests/parity.sh DICT_DB [TEXT_FILE|- [GAME]]
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../../../.." && pwd)"

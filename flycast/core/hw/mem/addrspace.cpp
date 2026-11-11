@@ -7,6 +7,9 @@
 #include "oslib/oslib.h"
 #include "oslib/virtmem.h"
 #include <cassert>
+#ifdef READER_WATCH
+#include "reader/core/emulator.h" // Reader fork: the debug build's write watch
+#endif
 
 namespace addrspace
 {
@@ -105,6 +108,11 @@ template<typename T>
 T DYNACALL readt(u32 addr)
 {
 	constexpr u32 sz = sizeof(T);
+#ifdef READER_WATCH
+	// Reader fork: a debug build records reads of a watched range (reader/core/emulator.cpp).
+	if (unlikely(Reader::Watch::reading))
+		Reader::Watch::Read(addr, sz);
+#endif
 
 	u32 page = addr >> 24;	//1 op, shift/extract
 	uintptr_t iirf = (uintptr_t)memInfo_ptr[page]; //2 ops, insert + read [vmem table will be on reg ]
@@ -149,6 +157,11 @@ template<typename T>
 void DYNACALL writet(u32 addr, T data)
 {
 	constexpr u32 sz = sizeof(T);
+#ifdef READER_WATCH
+	// Reader fork: a debug build records writes to a watched range (reader/core/emulator.cpp).
+	if (unlikely(Reader::Watch::active))
+		Reader::Watch::Hit(addr, (u64)data, sz);
+#endif
 
 	u32 page = addr>>24;
 	uintptr_t iirf = (uintptr_t)memInfo_ptr[page];

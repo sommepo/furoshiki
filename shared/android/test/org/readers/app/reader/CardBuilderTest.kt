@@ -48,6 +48,22 @@ class CardBuilderTest {
         CardBuilder.build(mapOf("F" to template), c).getValue("F")
 
     @Test
+    fun theLinesBefore() {
+        assertEquals("|", fill("{context}|{previous-sentence}"))
+        val after = context.copy(before = listOf("一つ目", "二つ<目>\nの行"))
+        assertEquals("一つ目<br>二つ&lt;目&gt;<br>の行", fill("{context}", after))
+        assertEquals("二つ&lt;目&gt;<br>の行", fill("{previous-sentence}", after))
+    }
+
+    @Test
+    fun theLinesEnglishIsThereOnlyIfItHasOne() {
+        val subtitle = context.copy(line = line.copy(meta = mapOf("translation" to "Keep <watch>.")))
+        assertEquals("Keep &lt;watch&gt;.", fill("{translation}", subtitle))
+        assertEquals("", fill("{translation}"))
+        assertEquals("{translation}", CardBuilder.suggestMapping(listOf("englishSentence")).getValue("englishSentence"))
+    }
+
+    @Test
     fun wordMarkers() {
         assertEquals("見張る", fill("{expression}"))
         assertEquals("みはる", fill("{reading}"))

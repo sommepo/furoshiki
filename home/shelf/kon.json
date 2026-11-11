@@ -1,0 +1,13 @@
+{
+  "name": "Kon",
+  "order": 3,
+  "ground": "#101a3a",
+  "raised": "#18244d",
+  "ink": "#ece5d3",
+  "muted": "#8a93b5",
+  "accent": "#d9472b",
+  "rule": "rgba(236,229,211,0.24)",
+  "display": "Michroma-Regular.ttf",
+  "text": "ZenKakuGothicNew-Bold.ttf",
+  "mono": "IBMPlexMono-Medium.ttf"
+}

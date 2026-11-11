@@ -195,6 +195,41 @@ bool HostCommand(const QString& name, const QStringList& parts, const QString& r
             Reader::Emu::RestSticks();
             reply(QStringLiteral("OK"));
         });
+    } else if (name == QStringLiteral("analog2")) {
+        // analog2 X Y [MS]: the first controller's right stick, the same way (sent to the game
+        // as the pad's second stick).
+        const int hold = parts.size() > 3 ? parts.value(3).toInt() : 100;
+        Reader::Emu::MoveRightStick(parts.value(1).toInt(), parts.value(2).toInt());
+        QTimer::singleShot(hold, context, [reply] {
+            Reader::Emu::RestSticks();
+            reply(QStringLiteral("OK"));
+        });
+#ifdef READER_WATCH
+    } else if (name == QStringLiteral("watch")) {
+        // watch ADDR LEN [MAX]: records the processor's writes into ADDR..ADDR+LEN (hexadecimal
+        // address), up to MAX of them (a debug build, the recompiler off); LEN 0 stops.
+        Reader::Watch::Set(parts.value(1).toUInt(nullptr, 16), parts.value(2).toUInt(nullptr, 0),
+                                parts.size() > 3 ? parts.value(3).toUInt() : 64);
+        ok();
+    } else if (name == QStringLiteral("watch-read")) {
+        // watch-read ADDR LEN [MAX]: records the processor's reads of ADDR..ADDR+LEN; LEN 0 stops.
+        Reader::Watch::SetRead(parts.value(1).toUInt(nullptr, 16), parts.value(2).toUInt(nullptr, 0),
+                               parts.size() > 3 ? parts.value(3).toUInt() : 64);
+        ok();
+    } else if (name == QStringLiteral("watch-log")) {
+        // watch-log [clear]: what was recorded, "pc=... pr=... addr=... size=... value=...;" each.
+        ok(QString::fromStdString(Reader::Watch::Log(parts.value(1) == QStringLiteral("clear"))));
+#endif
+    } else if (name == QStringLiteral("trigger")) {
+        // trigger L|R [MS]: holds the first controller's left or right trigger fully, a moment
+        // (a game that runs on a trigger: Shenmue II).
+        const int trigger = parts.value(1).toUpper() == QStringLiteral("L") ? 0 : 1;
+        const int hold = parts.size() > 2 ? parts.value(2).toInt() : 100;
+        Reader::Emu::PressTrigger(trigger, true);
+        QTimer::singleShot(hold, context, [reply, trigger] {
+            Reader::Emu::PressTrigger(trigger, false);
+            reply(QStringLiteral("OK"));
+        });
     } else if (name == QStringLiteral("dump")) {
         // dump PATH: the console's main memory as it is now, for finding a game's text.
         if (Reader::Emu::DumpMemory(rest.toStdString())) {

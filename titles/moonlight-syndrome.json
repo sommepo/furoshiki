@@ -1,0 +1,16 @@
+{
+ "title": "ムーンライトシンドローム",
+ "english": "Moonlight Syndrome",
+ "ids": [
+  "SLPS-01001",
+  "SLPS-01002"
+ ],
+ "furochibi": [],
+ "jellyfin": [],
+ "vndb": null,
+ "anilist": null,
+ "guide": "moonlight-syndrome",
+ "screenscraper": {
+  "ps1": 132258
+ }
+}

@@ -10,7 +10,12 @@
       "api": 1,
       "file": "SLPM-65051.lua",
       "size": 5106,
-      "sha256": "93f38a1855a503c072fb5cc405514d4b4c870e4829c78ad9d6b49dd5cd2564d1"
+      "sha256": "93f38a1855a503c072fb5cc405514d4b4c870e4829c78ad9d6b49dd5cd2564d1",
+      "names": {
+        "file": "names-silent-hill-2.zip",
+        "size": 5085,
+        "sha256": "d5054c02bd328e4689f728a42e96c2cd61d9889af17c91ad9c729b23ceb7d0c8"
+      }
     },
     {
       "id": "SLPM-65320",
@@ -20,7 +25,12 @@
       "api": 1,
       "file": "SLPM-65320.lua",
       "size": 10508,
-      "sha256": "46489f82d181ea76e1f7388e3bb9b138dbfb0c4f8c089026e840a630f27b736b"
+      "sha256": "46489f82d181ea76e1f7388e3bb9b138dbfb0c4f8c089026e840a630f27b736b",
+      "names": {
+        "file": "names-eve-burst-error-plus.zip",
+        "size": 6771,
+        "sha256": "9cf4eed11b80afb80a5e2a248fe3ccfe32dffda86613dbfb861762a946f269e9"
+      }
     },
     {
       "id": "SLPM-65421",
@@ -30,7 +40,12 @@
       "api": 1,
       "file": "SLPM-65421.lua",
       "size": 10419,
-      "sha256": "5db468de6a8a52cd497ba7dd5073746cd7367e5ab2b909591594af2997d903ce"
+      "sha256": "5db468de6a8a52cd497ba7dd5073746cd7367e5ab2b909591594af2997d903ce",
+      "names": {
+        "file": "names-ever17.zip",
+        "size": 5585,
+        "sha256": "0801981e5c6ae21ed679bd56817252ad3b20d4e36f23d365e9506dc5ace3f254"
+      }
     },
     {
       "id": "SLPM-65550",
@@ -40,7 +55,12 @@
       "api": 1,
       "file": "SLPM-65550.lua",
       "size": 11595,
-      "sha256": "8e43e3272afe1185a11f5650ac1b623146c5d4d9cb910bb20bbfc5dc57b9eae5"
+      "sha256": "8e43e3272afe1185a11f5650ac1b623146c5d4d9cb910bb20bbfc5dc57b9eae5",
+      "names": {
+        "file": "names-remember-11.zip",
+        "size": 4040,
+        "sha256": "1d196053e88123bff17c44e2624d83c67b673a6fd4c0d5bc01e9ff40787ed2fc"
+      }
     },
     {
       "id": "SLPM-65555",
@@ -50,7 +70,12 @@
       "api": 1,
       "file": "SLPM-65555.lua",
       "size": 8279,
-      "sha256": "77c62895e14aad290e19319c38b0e5fd6f43b551d14e808a201eb7bc660dd9a3"
+      "sha256": "77c62895e14aad290e19319c38b0e5fd6f43b551d14e808a201eb7bc660dd9a3",
+      "names": {
+        "file": "names-dragon-quest-v.zip",
+        "size": 6130,
+        "sha256": "20e3e2af9397262bed30723326663ad14b6da8f70f5f8d5649daa2a095ac292e"
+      }
     },
     {
       "id": "SLPM-66302",
@@ -60,7 +85,12 @@
       "api": 2,
       "file": "SLPM-66302.lua",
       "size": 16117,
-      "sha256": "2591d4eb44d7b87c2fffcd2faa3e3543c09cfeea0e1c0f939c6435c4b06b2d4c"
+      "sha256": "2591d4eb44d7b87c2fffcd2faa3e3543c09cfeea0e1c0f939c6435c4b06b2d4c",
+      "names": {
+        "file": "names-clannad.zip",
+        "size": 7203,
+        "sha256": "5006b9ad05c9868aa891be44ff0be6c0fd747db926086bd1339f7bfac4a850c4"
+      }
     },
     {
       "id": "SLPM-66913",
@@ -70,7 +100,12 @@
       "api": 1,
       "file": "SLPM-66913.lua",
       "size": 11322,
-      "sha256": "af2d0b990619f18403cccebffbfa03544ade1be8b24566de48404fa0417a44ed"
+      "sha256": "af2d0b990619f18403cccebffbfa03544ade1be8b24566de48404fa0417a44ed",
+      "names": {
+        "file": "names-higurashi-matsuri-kakera-asobi.zip",
+        "size": 12251,
+        "sha256": "c36b3cfd63462fcba3adcc6a93320443f6e9a3f329e7e1e93e85489cf322d48a"
+      }
     },
     {
       "id": "SLPS-25041",
@@ -80,7 +115,12 @@
       "api": 1,
       "file": "SLPS-25041.lua",
       "size": 6316,
-      "sha256": "b65f85f696445ea608906086b65696bf65bd3b846018bb5bbf3f69f4094f542f"
+      "sha256": "b65f85f696445ea608906086b65696bf65bd3b846018bb5bbf3f69f4094f542f",
+      "names": {
+        "file": "names-shadow-hearts.zip",
+        "size": 9481,
+        "sha256": "d8819ae7adf484dca836ba18cf0d6b039fc036337ff4719076e3a9d6af2bf237"
+      }
     },
     {
       "id": "SLPS-25256",
@@ -90,7 +130,12 @@
       "api": 1,
       "file": "SLPS-25256.lua",
       "size": 14464,
-      "sha256": "4179053da0be8c3649fdc6eded81820391e172139abfa555edc9432b4e51ed98"
+      "sha256": "4179053da0be8c3649fdc6eded81820391e172139abfa555edc9432b4e51ed98",
+      "names": {
+        "file": "names-never7.zip",
+        "size": 3448,
+        "sha256": "21a134e2970dac5301fe0172fff216b340f931973976ee1a178c550df792ceca"
+      }
     },
     {
       "id": "SLPS-25679",
@@ -100,7 +145,12 @@
       "api": 1,
       "file": "SLPS-25679.lua",
       "size": 5740,
-      "sha256": "7d2c846fee5d0cd62b05ab91945d74c9ce9e1c821c061df08d8e5aafe0dab1e3"
+      "sha256": "7d2c846fee5d0cd62b05ab91945d74c9ce9e1c821c061df08d8e5aafe0dab1e3",
+      "names": {
+        "file": "names-utawarerumono.zip",
+        "size": 7263,
+        "sha256": "89ffa355ad86fac9362547e961f9dc72da999773fedc525aed76b75bf2908e04"
+      }
     },
     {
       "id": "SLPS-25918",
@@ -110,7 +160,12 @@
       "api": 1,
       "file": "SLPS-25918.lua",
       "size": 25416,
-      "sha256": "f6f285c9b1d94776775df9a05f4b3fd816367a74873d12092d96e5e1aa5bcf11"
+      "sha256": "f6f285c9b1d94776775df9a05f4b3fd816367a74873d12092d96e5e1aa5bcf11",
+      "names": {
+        "file": "names-amagami.zip",
+        "size": 6644,
+        "sha256": "bd3985f5780e55087294b3364f722eb3223577767ca954f1989bc9702fe9669e"
+      }
     }
   ]
 }

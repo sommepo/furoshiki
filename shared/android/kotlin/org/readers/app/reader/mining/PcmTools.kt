@@ -60,6 +60,54 @@ object PcmTools {
         return input.copyOf(keep * channels)
     }
 
+    /**
+     * The part of a clip in which something is said: from a little before the first sound that
+     * stands out of the clip's own quiet to a little after the last. Loudness is measured in
+     * windows of 20 ms against the clip's quietest tenth, so a hiss counts as quiet, and a click
+     * shorter than three windows is no beginning. A clip that is the same all through (music
+     * under the whole line) is kept whole; one with nothing above [threshold] is empty. The
+     * desktop's PcmTools::TrimToVoice, the same sums.
+     */
+    fun trimToVoice(input: ShortArray, channels: Int, rate: Int, threshold: Int, paddingMs: Int): ShortArray {
+        if (channels <= 0 || rate <= 0) return ShortArray(0)
+        val frames = input.size / channels
+        val window = maxOf(rate / 50, 1)
+        val windows = frames / window
+        if (windows < 4) return trimTrailingSilence(input, channels, threshold, rate * paddingMs / 1000)
+        val loud = DoubleArray(windows)
+        val count = window * channels
+        for (w in 0 until windows) {
+            var sum = 0.0
+            val from = w * count
+            for (i in 0 until count) {
+                val v = input[from + i].toDouble()
+                sum += v * v
+            }
+            loud[w] = kotlin.math.sqrt(sum / count)
+        }
+        val sorted = loud.sortedArray()
+        val quiet = sorted[sorted.size / 10]
+        val peak = sorted[sorted.size * 95 / 100]
+        if (peak <= threshold / 3.0) return ShortArray(0)
+        if (peak < quiet * 2.5) return input.copyOf(frames * channels)
+        val gate = maxOf(quiet * 2.5, peak * 0.06, threshold / 3.0)
+        var first = -1
+        var last = -1
+        var run = 0
+        for (w in 0 until windows) {
+            run = if (loud[w] > gate) run + 1 else 0
+            if (run >= 3) {
+                if (first < 0) first = w - 2
+                last = w
+            }
+        }
+        if (first < 0) return ShortArray(0)
+        val padding = (rate.toLong() * paddingMs / 1000).toInt()
+        val begin = maxOf(first * window - padding, 0)
+        val end = minOf((last + 1) * window + padding, frames)
+        return input.copyOfRange(begin * channels, end * channels)
+    }
+
     /** Fades the first and last [frames] frames to avoid clicks at the clip edges. */
     fun fadeEdges(samples: ShortArray, channels: Int, frames: Int) {
         val total = samples.size / channels

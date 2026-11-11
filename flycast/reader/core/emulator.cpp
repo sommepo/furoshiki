@@ -93,6 +93,26 @@ public:
         return {};
     }
 
+    /// Main memory only (and its mirrors), for what the player asked a profile to change
+    /// (Engine::WritesAllowed). The recompiler keeps code it already translated: a write over
+    /// the game's own code may not be seen until that code is translated again.
+    bool WriteMemory(u64 address, const std::string& bytes) override {
+        if (address > 0xFFFFFFFFULL || bytes.empty() || address >= 0xE0000000ULL ||
+            &mem_b[0] == nullptr) {
+            return false;
+        }
+        const u32 start = static_cast<u32>(address) & AreaMask;
+        if (start < MainBase || start >= MainEnd) {
+            return false;
+        }
+        const u32 offset = (start - MainBase) % RAM_SIZE;
+        if (offset + bytes.size() > RAM_SIZE) {
+            return false;
+        }
+        std::memcpy(&mem_b[offset], bytes.data(), bytes.size());
+        return true;
+    }
+
     void InvalidateCode() override {
         // Hooks in the game's code are not carried out by this emulator's recompiler yet: a
         // profile here reads memory once a frame.
@@ -405,6 +425,13 @@ void PressTrigger(int trigger, bool down) {
 void RestSticks() {
     joyx[0] = 0;
     joyy[0] = 0;
+    joyrx[0] = 0;
+    joyry[0] = 0;
+}
+
+void MoveRightStick(int x, int y) {
+    joyrx[0] = static_cast<s16>(std::clamp(x, -100, 100) * 327);
+    joyry[0] = static_cast<s16>(std::clamp(y, -100, 100) * 327);
 }
 
 void MoveStick(int x, int y) {
@@ -446,3 +473,82 @@ bool GoingToNextChoice() {
 void SetNextChoiceCallback(std::function<void(bool, int, std::uint64_t)>) {}
 
 } // namespace Reader::Emu
+
+#ifdef READER_WATCH
+#include "hw/sh4/sh4_if.h"
+namespace Reader::Watch {
+volatile bool active = false;
+volatile bool reading = false;
+namespace {
+std::mutex watch_mutex;
+u32 watch_lo = 0, watch_hi = 0, watch_max = 64;
+u32 read_lo = 0, read_hi = 0;
+std::vector<std::string> watch_hits;
+} // namespace
+
+void Set(std::uint32_t addr, std::uint32_t len, std::uint32_t max_hits) {
+    std::scoped_lock lock{watch_mutex};
+    watch_lo = addr & 0x1FFFFFFF;
+    watch_hi = watch_lo + len;
+    watch_max = max_hits ? max_hits : 64;
+    watch_hits.clear();
+    active = len > 0;
+}
+
+void Hit(std::uint32_t addr, std::uint64_t value, std::uint32_t size) {
+    const u32 a = addr & 0x1FFFFFFF;
+    if (a + size <= watch_lo || a >= watch_hi) {
+        return;
+    }
+    std::scoped_lock lock{watch_mutex};
+    if (watch_hits.size() >= watch_max) {
+        active = false;
+        return;
+    }
+    char line[160];
+    std::snprintf(line, sizeof line, "pc=%08x pr=%08x addr=%08x size=%u value=%llx", Sh4cntx.pc,
+                  Sh4cntx.pr, addr, size, static_cast<unsigned long long>(value));
+    watch_hits.emplace_back(line);
+}
+
+void SetRead(std::uint32_t addr, std::uint32_t len, std::uint32_t max_hits) {
+    std::scoped_lock lock{watch_mutex};
+    read_lo = addr & 0x1FFFFFFF;
+    read_hi = read_lo + len;
+    watch_max = max_hits ? max_hits : 64;
+    watch_hits.clear();
+    reading = len > 0;
+}
+
+void Read(std::uint32_t addr, std::uint32_t size) {
+    const u32 a = addr & 0x1FFFFFFF;
+    if (a + size <= read_lo || a >= read_hi) {
+        return;
+    }
+    std::scoped_lock lock{watch_mutex};
+    if (watch_hits.size() >= watch_max) {
+        reading = false;
+        return;
+    }
+    char line[160];
+    std::snprintf(line, sizeof line, "read pc=%08x pr=%08x addr=%08x size=%u", Sh4cntx.pc, Sh4cntx.pr,
+                  addr, size);
+    watch_hits.emplace_back(line);
+}
+
+std::string Log(bool clear) {
+    std::scoped_lock lock{watch_mutex};
+    std::string out;
+    for (const std::string& hit : watch_hits) {
+        out += hit;
+        out += ';';
+    }
+    if (clear) {
+        watch_hits.clear();
+        active = watch_hi > watch_lo;
+    }
+    return out;
+}
+} // namespace Reader::Watch
+#endif
+

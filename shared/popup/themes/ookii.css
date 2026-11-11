@@ -1,0 +1,38 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Ookii (大きい): for reading from the sofa. Large type on a generous scale, one sense to a
+   line with room between them, the reading always over the word; no chips or circles, only
+   size, weight and one accent. --ground, --text, --dim, --accent and --rule are the palette. */
+:root {
+  --font: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: rgba(22, 24, 30, 0.97); --text: #f4f3ee; --dim: #9c9fa8; --accent: #f2c14e; --rule: rgba(244, 243, 238, 0.14);
+  --edge: var(--rule); --radius: 10px;
+  --box: transparent; --box-pressed: rgba(244, 243, 238, 0.16); --sign: var(--text); --book: var(--accent);
+}
+.popup { border: 1px solid var(--rule); padding: calc(16px * var(--scale)) calc(20px * var(--scale)); font-size: calc(17px * var(--scale)); line-height: 1.55; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5); font-feature-settings: "tnum" 1, "palt" 1; }
+.entry { padding: 2px 0 10px; }
+.entry + .entry { border-top: 1px solid var(--rule); padding-top: 12px; }
+.head { gap: 0 1em; }
+.headword { font-size: calc(36px * var(--scale)); font-weight: 700; letter-spacing: 0.02em; line-height: 1.6; }
+.headword rt { display: ruby-text; font-size: 0.38em; color: var(--dim); font-weight: 400; letter-spacing: 0.12em; }
+.reading { display: none; }
+.reasons, .pitch, .lookups, .tag, .notes, .dictionary-name, .romaji, .more { font-size: calc(12px * var(--scale)); letter-spacing: 0.08em; color: var(--dim); }
+.tag, .dictionary-name { text-transform: uppercase; }
+.tags { gap: 0 1em; }
+.tag { background: none; border: none; padding: 0; }
+.tag.frequency .tag-value { color: var(--text); }
+.tag.name, .tag.role { border: none; padding: 0; color: var(--accent); }
+.sense { padding-left: 1.4em; margin: 6px 0; }
+.sense > .number { display: inline-block; width: 1.4em; margin: 0 0 0 -1.4em; font-size: 1em; color: var(--accent); font-weight: 700; }
+.glosses .gloss + .gloss::before { content: " / "; color: var(--dim); }
+.dictionary-name { margin-top: 10px; padding-bottom: 3px; border-bottom: 1px solid var(--rule); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -0.12em 0 var(--accent); padding: 0; border-radius: 0; }
+.name-card { gap: calc(16px * var(--scale)); }
+.name-card .portrait { width: calc(80px * var(--scale)); border-radius: calc(6px * var(--scale)); border: 1px solid var(--rule); }
+.popup[data-portrait="large"] .name-card .portrait { width: calc(116px * var(--scale)); }
+.who-name { font-size: calc(26px * var(--scale)); font-weight: 700; }
+.alias { background: none; border: none; padding: 0; font-size: calc(14px * var(--scale)); }
+.alias + .alias::before { content: "/ "; color: var(--dim); }
+.also { gap: 0 0.8em; }
+.about { font-size: calc(15px * var(--scale)); line-height: 1.6; margin-top: 8px; }
+.card { width: calc(36px * var(--scale)); height: calc(36px * var(--scale)); border-radius: var(--radius); border: 1px solid var(--rule); }

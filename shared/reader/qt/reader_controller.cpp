@@ -93,6 +93,9 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
         RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
     };
 
+    // The core's text engine is the source every app has; an app's own are added with Use.
+    Use(&CoreSource::Instance());
+
     connect(&session, &ReaderSession::ScreenTextsWanted, this, &ReaderController::PublishPlaced);
     connect(&session, &ReaderSession::ScreenTextChanged, this, [this] {
         RefreshPlaced();
@@ -254,6 +257,20 @@ void ReaderController::BuildMenu() {
     action_backlog = add(tr("&Backlog…"), QStringLiteral("reader_backlog"), [this] {
         RunDialog([](QWidget* parent) { RunBacklogDialog(parent); });
     });
+    action_word_card = add(tr("Make a card of the &word looked up"), QStringLiteral("reader_word_card"), [this] {
+        if (!lookups->MineShown()) {
+            Notify(tr("Look a word up first"));
+        }
+    });
+    action_undo_card = add(tr("Take the last card &back"), QStringLiteral("reader_undo_card"),
+                           [this] { lookups->UndoLast(); });
+    action_explain = add(tr("&Explain this line…"), QStringLiteral("reader_explain"), [this] {
+        if (!ReaderSession::Instance().Current()) {
+            Notify(tr("No line has been read yet"));
+            return;
+        }
+        RunDialog([](QWidget* parent) { RunExplainDialog(parent); });
+    });
     menu->addSeparator();
     add(tr("&Dictionaries…"), QStringLiteral("reader_dictionaries"), [this] {
         RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
@@ -291,6 +308,10 @@ void ReaderController::BuildMenu() {
     menu_game_actions = menu->addMenu(tr("In &this game"));
     menu_game_actions->setObjectName(QStringLiteral("reader_game_actions"));
     add(tr("Reader s&ettings…"), QStringLiteral("reader_settings"), [this] {
+        if (SettingsPages()) {
+            SettingsPages()();
+            return;
+        }
         RunDialog([](QWidget* parent) { RunSettingsDialog(parent); });
         OnSettingsChanged();
     });
@@ -329,8 +350,7 @@ void ReaderController::BuildMenu() {
                 host.resume();
             }
         }
-        ReaderSession::Instance().SetReading((running || user_paused) && application_active &&
-                                             dialogs_open == 0);
+        UpdateReading();
     });
     // For someone who read this far on another copy of the game: the game is run at full
     // speed with ○ pressed over and over until its next choice, and what it shows on the way
@@ -385,8 +405,11 @@ void ReaderController::BuildMenu() {
     action_pause_stats->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
     action_pause_game->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_G));
     action_next_choice->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
+    action_explain->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_E));
+    action_word_card->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_W));
+    action_undo_card->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
     for (QAction* action : {action_sentence_card, action_backlog, action_pause_stats, action_pause_game,
-                            action_next_choice}) {
+                            action_next_choice, action_explain, action_word_card, action_undo_card}) {
         action->setShortcutContext(Qt::WindowShortcut);
         render_window->addAction(action);
     }
@@ -511,8 +534,35 @@ void ReaderController::TriggerAction(const QString& name) {
 // ---- From the main window ----
 
 void ReaderController::OnGameBooted(const QString& title_id, const QString& title) {
+    CoreSource::Instance().Begin(title_id, title);
+}
+
+void ReaderController::OnGameStopped() {
+    CoreSource::Instance().End();
+}
+
+void ReaderController::Use(ReadingSource* from) {
+    ReaderSession::Instance().Use(from);
+    connect(from, &ReadingSource::Began, this, [this, from](const QString& game_id, const QString& title) {
+        SourceBegan(from, game_id, title);
+    });
+    connect(from, &ReadingSource::Ended, this, [this, from] { SourceEnded(from); });
+}
+
+void ReaderController::UpdateReading() {
+    ReaderSession::Instance().SetReading((running || user_paused || !source_has_game) && application_active &&
+                                         dialogs_open == 0);
+}
+
+void ReaderController::SourceBegan(ReadingSource* from, const QString& title_id, const QString& title) {
     auto& session = ReaderSession::Instance();
-    session.Start(title_id, title);
+    if (source && source != from) {
+        // One source at a time: the one being read ends first.
+        SourceEnded(source);
+    }
+    source = from;
+    source_has_game = from->Describe().game;
+    session.Start(title_id, title, from);
     if (MediaCapture* media = session.Media()) {
         media->frame_source = [this](int max_width, std::function<void(const QImage&)> callback) {
             CaptureFrame(max_width, std::move(callback));
@@ -524,14 +574,24 @@ void ReaderController::OnGameBooted(const QString& title_id, const QString& titl
     placed_lines.clear();
     ApplyCursorSettings();
     cursor->SetArmed(session.Profile().loaded);
-    cursor->Attach();
+    if (source_has_game) {
+        cursor->Attach();
+    } else {
+        // Nothing stands still or goes on under such a source: it is read from now on.
+        UpdateReading();
+    }
     RefreshPlaced();
     UpdateSessionLine();
     UpdateMenu();
     sync_timer.start();
 }
 
-void ReaderController::OnGameStopped() {
+void ReaderController::SourceEnded(ReadingSource* from) {
+    if (source && source != from) {
+        return; // another source is being read: this one's end is not its end
+    }
+    source.clear();
+    source_has_game = true;
     lookups->CancelQuestions();
     lookups->Close();
     cursor->SetArmed(false);
@@ -556,15 +616,13 @@ void ReaderController::OnEmulationRunning(bool running_) {
         GamePauseEnded();
     }
     // Reading goes on while the game stands still at the user's word.
-    ReaderSession::Instance().SetReading((running || user_paused) && application_active &&
-                                         dialogs_open == 0);
+    UpdateReading();
     sync_timer.start();
 }
 
 void ReaderController::OnApplicationActive(bool active) {
     application_active = active;
-    ReaderSession::Instance().SetReading((running || user_paused) && application_active &&
-                                         dialogs_open == 0);
+    UpdateReading();
 }
 
 void ReaderController::OnSettingsChanged() {
@@ -628,19 +686,43 @@ void ReaderController::FirstStart() {
     if (!settings.SetupAsked(Settings::KeySetupDictionariesAsked)) {
         if (!session.Dictionaries().Dictionaries().isEmpty()) {
             settings.SetValue(Settings::KeySetupDictionariesAsked, true);
-        } else if (wants(Settings::KeySetupDictionariesAsked, tr("Dictionaries"),
-                         tr("Install a dictionary?"),
-                         tr("A word you click in a game's text is looked up in the dictionaries "
-                            "you install: dictionaries made for Yomitan (zip files), such as "
-                            "Jitendex. Without one nothing can be looked up.\n\nAt any time: "
-                            "Reader > Dictionaries…"),
-                         tr("Install dictionaries…"))) {
-            RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
+        } else {
+            // One answer and words can be looked up: Jitendex fetched and installed; or the
+            // user's own dictionaries, or none yet.
+            settings.SetValue(Settings::KeySetupDictionariesAsked, true);
+            settings.Sync();
+            QMessageBox box{main_window};
+            box.setIcon(QMessageBox::Question);
+            box.setWindowTitle(tr("Dictionaries"));
+            box.setText(tr("Get a dictionary?"));
+            box.setInformativeText(tr("Words are looked up in the dictionaries you install. Jitendex "
+                                      "(free, 39 MB) is fetched and installed for you; or choose "
+                                      "Yomitan dictionaries of your own."));
+            QPushButton* get = box.addButton(tr("Get Jitendex"), QMessageBox::AcceptRole);
+            QPushButton* own = box.addButton(tr("Choose my own…"), QMessageBox::ActionRole);
+            box.addButton(tr("Later"), QMessageBox::RejectRole);
+            box.setDefaultButton(get);
+            box.exec();
+            if (box.clickedButton() == get) {
+                QString problem;
+                if (FetchStarterDictionary(main_window, &problem)) {
+                    Notify(tr("Jitendex is installed"));
+                } else if (!problem.isEmpty()) {
+                    Notify(tr("No dictionary yet: %1").arg(problem));
+                    RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
+                }
+            } else if (box.clickedButton() == own) {
+                RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
+            }
         }
     }
     if (!settings.SetupAsked(Settings::KeySetupAnkiAsked)) {
         if (!settings.AnkiDeck().isEmpty() && !settings.AnkiModel().isEmpty()) {
             settings.SetValue(Settings::KeySetupAnkiAsked, true);
+        } else if (const QString chosen = SetUpAnkiByItself(); !chosen.isEmpty()) {
+            // Anki was open: its mining deck and note type are taken, and said.
+            settings.SetValue(Settings::KeySetupAnkiAsked, true);
+            Notify(tr("Cards go to %1 (Reader > Anki setup changes it)").arg(chosen));
         } else if (wants(Settings::KeySetupAnkiAsked, tr("Anki"),
                          tr("Make Anki cards from what you read?"),
                          tr("A word you looked up becomes a card in Anki, with its line, a "
@@ -687,8 +769,7 @@ void ReaderController::RunDialog(const std::function<void(QWidget* parent)>& run
     if (was_running && host.resume) {
         host.resume();
     }
-    ReaderSession::Instance().SetReading((running || user_paused) && application_active &&
-                                         dialogs_open == 0);
+    UpdateReading();
 }
 
 // ---- The reader's windows, with a controller ----
