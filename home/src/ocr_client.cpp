@@ -164,11 +164,21 @@ void OcrClient::AskSource() {
     });
 }
 
-QJsonObject OcrClient::WithGame(const QJsonObject& games, const QString& game, const QRectF& area, const QString& source) {
+QJsonObject OcrClient::WithGame(const QJsonObject& games, const QString& game, const QRectF& area, const QString& source,
+                                const QList<Lines::Box>& more) {
     const QString area_id = QStringLiteral("furoshiki");
     const QJsonObject mine{{QStringLiteral("id"), area_id},
                            {QStringLiteral("name"), QStringLiteral("Furoshiki")},
                            {QStringLiteral("rect"), QJsonArray{area.x(), area.y(), area.width(), area.height()}}};
+    // Its other boxes, each read with the first or only when asked for (the helper's "read").
+    QJsonArray others;
+    for (int i = 0; i < more.size(); ++i) {
+        const QRectF& box = more[i].rect;
+        others.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("%1-%2").arg(area_id).arg(i + 1)},
+                                  {QStringLiteral("name"), more[i].ask ? QStringLiteral("Furoshiki, on request") : QStringLiteral("Furoshiki, also")},
+                                  {QStringLiteral("rect"), QJsonArray{box.x(), box.y(), box.width(), box.height()}},
+                                  {QStringLiteral("read"), more[i].ask ? QStringLiteral("ask") : QStringLiteral("always")}});
+    }
     QJsonArray list = games.value(QStringLiteral("games")).toArray();
     QString id;
     QStringList ids;
@@ -181,11 +191,15 @@ QJsonObject OcrClient::WithGame(const QJsonObject& games, const QString& game, c
         id = ids.last();
         QJsonArray areas;
         for (const QJsonValue& other : known.value(QStringLiteral("areas")).toArray()) {
-            if (other.toObject().value(QStringLiteral("id")).toString() != area_id) {
+            if (const QString known_id = other.toObject().value(QStringLiteral("id")).toString();
+                known_id != area_id && !known_id.startsWith(area_id + QLatin1Char('-'))) {
                 areas.append(other);
             }
         }
         areas.append(mine);
+        for (const QJsonValue& other : others) {
+            areas.append(other);
+        }
         known.insert(QStringLiteral("areas"), areas);
         known.insert(QStringLiteral("active_area"), area_id);
         known.insert(QStringLiteral("source"), source);
@@ -197,27 +211,46 @@ QJsonObject OcrClient::WithGame(const QJsonObject& games, const QString& game, c
         while (ids.contains(id)) {
             id += QLatin1Char('x');
         }
+        QJsonArray areas{mine};
+        for (const QJsonValue& other : others) {
+            areas.append(other);
+        }
         list.append(QJsonObject{{QStringLiteral("id"), id}, {QStringLiteral("name"), game}, {QStringLiteral("page"), QString()},
-                                {QStringLiteral("source"), source}, {QStringLiteral("areas"), QJsonArray{mine}},
+                                {QStringLiteral("source"), source}, {QStringLiteral("areas"), areas},
                                 {QStringLiteral("active_area"), area_id}});
     }
     return QJsonObject{{QStringLiteral("active"), id}, {QStringLiteral("games"), list}};
 }
 
-void OcrClient::Choose(const QString& game, const QRectF& area) {
-    Wake([this, game, area](bool awake, const QString& why) {
+void OcrClient::ReadAsked(std::function<void(bool ok, const QString& what)> then) {
+    Json(QStringLiteral("POST"), QStringLiteral("/api/ocr/now"), QJsonObject{{QStringLiteral("ask"), true}}, 20000,
+         [then](bool ok, const QJsonObject& answer, const QString& error) {
+             if (then) {
+                 const bool added = ok && answer.value(QStringLiteral("added")).toBool();
+                 then(added, !ok ? error : added ? QString() : answer.value(QStringLiteral("reason")).toString());
+             }
+         });
+}
+
+void OcrClient::Choose(const QString& game, const QRectF& area, const QList<Lines::Box>& more) {
+    Wake([this, game, area, more](bool awake, const QString& why) {
         if (!awake) {
             Say(QStringLiteral("no answer"), why);
             emit Chosen(false, why);
             return;
         }
-        ChooseNow(game, area);
+        ChooseNow(game, area, more);
     });
 }
 
-void OcrClient::ChooseNow(const QString& game, const QRectF& area) {
+void OcrClient::ChooseNow(const QString& game, const QRectF& area, const QList<Lines::Box>& more) {
+    // The engine this device chose reads there (none chosen: the helper's own stays).
+    if (!helper.engine.isEmpty()) {
+        Json(QStringLiteral("PUT"), QStringLiteral("/api/settings"), QJsonObject{{QStringLiteral("engine"), helper.engine}}, 8000,
+             [](bool, const QJsonObject&, const QString&) {});
+    }
     Json(QStringLiteral("PUT"), QStringLiteral("/api/source"), QJsonObject{{QStringLiteral("source"), helper.source}}, 8000,
-         [this, game, area](bool ok, const QJsonObject&, const QString& error) {
+         [this, game, area, more](bool ok, const QJsonObject&, const QString& error) {
              if (!ok) {
                  Say(QStringLiteral("no answer"), error);
                  emit Chosen(false, error);
@@ -229,13 +262,13 @@ void OcrClient::ChooseNow(const QString& game, const QRectF& area) {
                  return;
              }
              Json(QStringLiteral("GET"), QStringLiteral("/api/regions"), {}, 8000,
-                  [this, game, area](bool got, const QJsonObject& games, const QString& why) {
+                  [this, game, area, more](bool got, const QJsonObject& games, const QString& why) {
                       if (!got) {
                           Say(QStringLiteral("no answer"), why);
                           emit Chosen(false, why);
                           return;
                       }
-                      Json(QStringLiteral("PUT"), QStringLiteral("/api/regions"), WithGame(games, game, area, helper.source), 8000,
+                      Json(QStringLiteral("PUT"), QStringLiteral("/api/regions"), WithGame(games, game, area, helper.source, more), 8000,
                            [this](bool put, const QJsonObject&, const QString& problem) {
                                Say(put ? QStringLiteral("reading") : QStringLiteral("no answer"), problem);
                                emit Chosen(put, problem);
@@ -290,7 +323,10 @@ bool OcrClient::Push(const QImage& picture) {
 
 void OcrClient::Test(const QRectF& area) {
     Json(QStringLiteral("POST"), QStringLiteral("/api/ocr/test"),
-         QJsonObject{{QStringLiteral("rect"), QJsonArray{area.x(), area.y(), area.width(), area.height()}}, {QStringLiteral("source"), helper.source}},
+         helper.engine.isEmpty()
+             ? QJsonObject{{QStringLiteral("rect"), QJsonArray{area.x(), area.y(), area.width(), area.height()}}, {QStringLiteral("source"), helper.source}}
+             : QJsonObject{{QStringLiteral("rect"), QJsonArray{area.x(), area.y(), area.width(), area.height()}}, {QStringLiteral("source"), helper.source},
+                           {QStringLiteral("engine"), helper.engine}},
          20000, [this](bool ok, const QJsonObject& answer, const QString& error) {
              emit Tested(ok, ok ? answer.value(QStringLiteral("text")).toString() : error);
              QList<QRectF> layout;

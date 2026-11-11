@@ -209,7 +209,8 @@ public:
     QString AddLinesTitle(const QString& by, const QString& title);
     /// Adds a window of this computer read by OCR (ocr_source.h): its title, the window's own
     /// title, where the text is in its picture (0-1). Its game ID, or nothing with a word said.
-    QString AddWindowTitle(const QString& title, const QString& window, const QRectF& area, const QImage& picture = QImage());
+    QString AddWindowTitle(const QString& title, const QString& window, const QRectF& area, const QImage& picture = QImage(),
+                           const QList<Lines::Box>& more = {});
     /// Whether the wizard that adds a title is open (it may be running a hook of its own).
     [[nodiscard]] bool Adding() const {
         return wizard_on;

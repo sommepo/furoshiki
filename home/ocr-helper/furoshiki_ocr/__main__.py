@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: Furoshiki contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+from .app import main
+
+main()

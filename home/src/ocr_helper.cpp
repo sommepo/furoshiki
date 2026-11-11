@@ -82,8 +82,12 @@ QStringList LocalHelperFolders(const QString& program_folder) {
         folders.append(QDir(named).absolutePath());
     }
     if (!program_folder.isEmpty()) {
-        folders.append(QDir::cleanPath(QDir(program_folder).absoluteFilePath(QStringLiteral("../FurochibiHelper"))));
-        folders.append(QDir(program_folder).absoluteFilePath(QStringLiteral("FurochibiHelper")));
+        // Furoshiki's own helper (ocr-helper/, the published one) where its installer puts it, in
+        // the program's folder or beside it; then Furochibi's, which answers the same.
+        for (const char* name : {"FuroshikiOcrHelper", "FurochibiHelper"}) {
+            folders.append(QDir(program_folder).absoluteFilePath(QString::fromLatin1(name)));
+            folders.append(QDir::cleanPath(QDir(program_folder).absoluteFilePath(QStringLiteral("../") + QString::fromLatin1(name))));
+        }
     }
     return folders;
 }
@@ -111,7 +115,12 @@ Lines::Helper Refreshed(const Lines::Helper& helper) {
         return helper;
     }
     const LocalHelper local = ReadLocalHelper(helper.program);
-    return local.Valid() ? SettingOf(local) : helper;
+    if (!local.Valid()) {
+        return helper;
+    }
+    Lines::Helper now = SettingOf(local);
+    now.engine = helper.engine; // the device's own choice, which the helper's folder does not say
+    return now;
 }
 
 OcrHelper& OcrHelper::Instance() {

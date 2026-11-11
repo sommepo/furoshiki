@@ -88,7 +88,7 @@ bool OcrSource::Start(const Lines::Title& title_, const Lines::Helper& helper, Q
     emit Began(title.id, title.title);
     // This device's pictures are the ones read there, the title the game played, its area the
     // one in use; then its lines are followed (Chosen).
-    client.Choose(title.title, title.area);
+    client.Choose(title.title, title.area, title.more);
     tick.start();
     emit StatusChanged();
     return true;

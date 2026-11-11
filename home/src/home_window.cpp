@@ -195,6 +195,7 @@ constexpr SettingRow SettingRows[] = {
     {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Add a title", "A disc or file of a console, a game's window on this computer read by OCR, or a text hook's lines: Enter, and it asks what it needs", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"OCR helper", "Furochibi's service, which reads a game window's pictures: its address, this device's picture source there and its token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR engine", "Which engine reads a game window's text at the OCR helper: meikiocr, OneOCR (Windows' own), Chrome's Screen AI, or Google Lens, which sends the text area to Google", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"Lines address", "The WebSocket a title read from lines listens to: a texthooker's, such as ws://localhost:6677; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
@@ -243,6 +244,7 @@ constexpr SettingRow SettingRows[] = {
     {"Pause the game", "Ctrl+G", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Read the on-request boxes (OCR)", "Ctrl+Shift+R, or R on the strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Reader menu", "F1, or the right button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Menu over the game", "Escape, or Guide", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Settings", "F2", nullptr, 0, 0, 0, 0, "Keys", 0, false},
@@ -1122,6 +1124,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 value = save_sync_state ? save_sync_state() : QStringLiteral("NONE");
             } else if (name == QStringLiteral("Lines address")) {
                 value = Lines::Load(SharedFolder()).address;
+            } else if (name == QStringLiteral("OCR engine")) {
+                value = Lines::OcrEngineName(Lines::Load(SharedFolder()).ocr.engine).toUpper();
             } else if (name == QStringLiteral("OCR helper")) {
                 const QString address = Lines::Load(SharedFolder()).ocr.address;
                 value = address.isEmpty() ? QStringLiteral("NOT SET") : address;
@@ -1142,7 +1146,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             rows.append({name, meta, value, {}, i, false, yours});
             rows.last().steps = setting.host == 1 || setting.host == 3 || (setting.key != nullptr && setting.step != 0) ||
                                 name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
-                                name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture");
+                                name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture") ||
+                                name == QStringLiteral("OCR engine");
         }
         break;
     }
@@ -1623,6 +1628,20 @@ void HomeWindow::Key(int key) {
             }
             return;
         }
+        if (IsSetting(srow, "OCR engine")) {
+            // As the helper has it, then each engine; a title read by OCR takes it at its next start.
+            Lines::Sources sources = Lines::Load(SharedFolder());
+            const QStringList choices = QStringList{QString()} + Lines::OcrEngines;
+            const int count = static_cast<int>(choices.size());
+            sources.ocr.engine = choices[((choices.indexOf(sources.ocr.engine) + (key == Qt::Key_Left ? -1 : 1)) % count + count) % count];
+            Lines::Save(SharedFolder(), sources);
+            sounds.Play(Sound::Move);
+            if (sources.ocr.engine == QStringLiteral("glens")) {
+                Say(QStringLiteral("Google Lens sends each text area it reads to Google"));
+            }
+            Changed();
+            return;
+        }
         if (IsSetting(srow, "Wide picture")) {
             WideStep(key == Qt::Key_Left ? -1 : 1);
             return;
@@ -1829,6 +1848,9 @@ void HomeWindow::Accept() {
             }
         } else if (name == QStringLiteral("Wide picture")) {
             WideStep(1);
+            return;
+        } else if (name == QStringLiteral("OCR engine")) {
+            Key(Qt::Key_Right);
             return;
         } else if (name == QStringLiteral("Rename labels")) {
             renaming = !renaming;

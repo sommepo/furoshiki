@@ -2,45 +2,33 @@
 
 <h1 align="center">Furoshiki</h1>
 
-<p align="center"><b>Read Japanese games with a dictionary under your pointer.</b><br>
+<p align="center"><b>A game launcher with sentence mining built in, for Japanese games.</b><br>
 Hover a word in the game's own text and its entry opens beside it. One key makes the Anki card.</p>
 
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
 
-Furoshiki is one program for Windows and Android that plays the game, reads its text and looks
-it up. There is no second window to keep beside the game and nothing to copy and paste: the words
-on the screen are the ones you point at.
+Furoshiki is a game launcher for Windows and Android: one library for your Japanese games, with
+the emulators built in, and the tools for reading them (a dictionary popup, Anki cards, a
+backlog) in the same program. There is no second window to keep beside the game and nothing to
+copy and paste.
+
+**It is designed around the games it supports.** Each [supported game](#supported-games) has a
+script written for it that reads its text straight from the game's memory, along with where
+every character sits on the screen. That is what makes the picture above possible: the words you
+point at are the game's own, the lookup is instant, and nothing is guessed from a screenshot.
+
+**Anything else can still be played and read**, by more general means: a text hook or OCR for PC
+games, or lines sent from another tool. These work with far more games and are less exact. They
+are described [further down](#games-without-a-script).
 
 - **Lookups are instant.** A Yomitan-style popup opens next to the word, with deinflection, your
   own Yomitan dictionaries and each game's character names.
 - **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki, with the
   lines before it as context if you want them.
-- **Everything in one place.** Six consoles are built in as cores, as in RetroArch, and on
-  Windows a PC game is read through a text hook or OCR. One library, one set of settings.
+- **One launcher for all of it.** Six consoles are built in as cores, as in RetroArch: one
+  library, one set of settings, the same reading tools everywhere.
 
 <p align="center"><img src="home/publish/media/lookup-remember11-2.gif" width="760" alt="Remember11: ポケット, 手, 差し入れて and 取り出す looked up one after another"></p>
-
-## How a game is read
-
-| The game is | Read by | Where |
-| --- | --- | --- |
-| A console game with a **game script** | Its text straight from the emulated memory, with the place of every character on the screen | Windows, Android |
-| A PC game | A **text hook** started by Furoshiki: an Agent script, LunaHook or Textractor | Windows |
-| A PC game no hook reads | **OCR** of the game's window, four times a second | Windows |
-| Anything else that produces text | Lines from a texthooker's WebSocket, or the clipboard | Windows |
-
-A game script is the precise way: because Furoshiki knows where each character is drawn, you
-point at the game's own text, as in the pictures above. A hook or OCR gives the lines, shown in a
-strip you look words up in, and over the game's window itself where its place is known.
-
-*Add a title* asks which of these it is and sets it up:
-
-<p align="center"><img src="home/publish/media/add-a-title.png" width="760" alt="Add a title: A, a disc or file; B, a game window; C, lines I send"></p>
-
-Hooks are fetched the first time you use one (Agent's scripts, LunaHook and Textractor are their
-authors' own projects and are not part of this repository). OCR is done by a separate helper
-service, on your computer or another on your network, whose address you give once; the helper is
-not included in this release yet.
 
 | Console | Core | Windows | Android |
 | --- | --- | --- | --- |
@@ -50,6 +38,35 @@ not included in this release yet.
 | Dreamcast | Flycast | ✓ | ✓ |
 | Nintendo 3DS | Azahar | ✓ | ✓ |
 | PS Vita | Vita3K | ✓ | ✓ |
+
+A console game without a script still plays in Furoshiki, just without the reading tools.
+
+## Games without a script
+
+For what the scripts do not cover, on Windows:
+
+| The game is | Read by |
+| --- | --- |
+| A PC game | A **text hook** started by Furoshiki: an Agent script, LunaHook or Textractor |
+| A PC game no hook reads | **OCR** of the game's window, four times a second |
+| Anything else that produces text | Lines from a texthooker's WebSocket, or the clipboard |
+
+These give the lines of text, shown in a strip you look words up in, and over the game's window
+itself where its place is known. Cards, the backlog and the reading figures work the same.
+
+*Add a title* asks which of these it is and sets it up:
+
+<p align="center"><img src="home/publish/media/add-a-title.png" width="760" alt="Add a title: A, a disc or file; B, a game window; C, lines I send"></p>
+
+Hooks are fetched the first time you use one (Agent's scripts, LunaHook and Textractor are their
+authors' own projects and are not part of this repository).
+
+OCR is done by **Furoshiki's OCR helper**, a small service on your own computer that Furoshiki
+starts and stops by itself. It is a separate download (below), because it brings a Python and an
+OCR model of about 1 GB with it. You choose the engine: meikiocr (the default), OneOCR or Chrome
+Screen AI, which all read on your computer, or Google Lens, which sends each text area to Google.
+A game can have several text boxes, read together as one line, and boxes that are read only when
+you press Ctrl+Shift+R (a menu, a status screen).
 
 ## The shelf
 
@@ -221,12 +238,21 @@ them in `Games/Dictionaries` and they're imported at first start.
 
 From the [latest release](../../releases/latest):
 
+> Furoshiki 3 (the shelf, hooks, OCR and its helper) is in the source now and comes as release
+> 0.2.0. Until that is out, the latest release is 0.1.2, which has the consoles and their scripts
+> in the earlier look.
+
 - **Windows** (`Furoshiki-<version>-windows.zip`): unzip it anywhere and run `Furoshiki.exe`. The
   PS2 and Vita cores need the
   [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe), as
   PCSX2 does.
 - **Android** (`Furoshiki-<version>-android.apk`): Android 10 or later, 64-bit ARM. Install it by
   hand, and allow it to see all files when it asks, so it can read your games where they are.
+
+- **OCR helper, optional** (`Furoshiki-ocr-helper.zip`, Windows): only for PC games read by OCR.
+  Unzip it into Furoshiki's folder and run `install.cmd`; it fetches what it needs (about 1 GB)
+  into a folder of its own there, without an administrator. `home/ocr-helper/README.md` has
+  more.
 
 Then install a console's game scripts from *Game scripts*, and the games they read appear in your
 library.
@@ -238,6 +264,7 @@ library.
 | `home/` | Furoshiki for Windows and Linux |
 | `android/` | Furoshiki for Android |
 | `shared/` | The lookup and mining layer, used everywhere |
+| `home/ocr-helper/` | The OCR helper (Python): `package.sh` makes its zip |
 | `cores/` | The interface between Furoshiki and the cores |
 | `station/`, `pcsx2/`, `armsx2/`, `ppsspp/`, `flycast/`, `azahar/`, `vita3k/` | Each emulator, with its core and its game scripts |
 

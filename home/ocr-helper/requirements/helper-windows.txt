@@ -1,0 +1,7 @@
+# What the OCR helper on Windows (windows/helper/install.ps1) needs besides runtime.txt: the
+# packages loguru, click and tqdm ask for on Windows only. Installed with --no-deps, as
+# runtime.txt is.
+colorama==0.4.6
+# OneOCR (Windows 11's own engine, the Snipping Tool's): owocr reads with it through this.
+oneocr==1.0.12
+win32-setctime==1.2.1

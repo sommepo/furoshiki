@@ -62,7 +62,10 @@ public:
     void Ask();
     /// Makes this device's source the one in use there: Chosen. With a game's name, that game is
     /// the one played there and `area` its text area.
-    void Choose(const QString& game = QString(), const QRectF& area = QRectF());
+    void Choose(const QString& game = QString(), const QRectF& area = QRectF(), const QList<Lines::Box>& more = {});
+    /// Asks the helper to read the game's boxes that are read only on request, now: what it
+    /// reads comes as a line does. `then` hears whether something was read, else why not.
+    void ReadAsked(std::function<void(bool ok, const QString& what)> then = nullptr);
     /// A picture of the window. False when the one before is still on its way: that one counts.
     bool Push(const QImage& picture);
     /// Reads `area` of the picture sent last, keeping nothing: Tested.
@@ -85,7 +88,8 @@ public:
     [[nodiscard]] static Read ReadOf(const QJsonObject& line);
     /// The games document with `game` in it as the game played, `area` its text area in use,
     /// played from `source`; every other game and area as it was.
-    [[nodiscard]] static QJsonObject WithGame(const QJsonObject& games, const QString& game, const QRectF& area, const QString& source);
+    [[nodiscard]] static QJsonObject WithGame(const QJsonObject& games, const QString& game, const QRectF& area, const QString& source,
+                                              const QList<Lines::Box>& more = {});
 
 signals:
     void Answered(bool ok, const QString& what);
@@ -108,7 +112,7 @@ private:
     /// A helper installed on this computer is started first when nothing answers (ocr_helper.h).
     void Wake(std::function<void(bool ok, const QString& what)> then);
     void AskSource();
-    void ChooseNow(const QString& game, const QRectF& area);
+    void ChooseNow(const QString& game, const QRectF& area, const QList<Lines::Box>& more);
     void AskLines();
     void AskScreen();
     void Say(const QString& state, const QString& error);

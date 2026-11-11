@@ -26,7 +26,11 @@ root="$(cd "$here/.." && pwd)"
 furochibi="$(cd "$root/../furochibi" && pwd)"
 built="${FUROCHIBI_BUILT:-$furochibi}"
 local_helper=0
+slim=0
 if [ "${1:-}" = "--local-helper" ]; then local_helper=1; shift; fi
+# --slim: against Furoshiki's own helper (ocr-helper/, the one that is published) in place of
+# Furochibi's service; the engine's model is still the built Furochibi checkout's.
+if [ "${1:-}" = "--slim" ]; then slim=1; shift; fi
 port="${1:-$([ "$local_helper" = 1 ] && echo 18435 || echo 18433)}"
 case "$port" in 6677|8642|8788|8794|8789|8100) echo "test-ocr: $port is a deployed service's port" >&2; exit 1 ;; esac
 if [ -x /opt/homelab/scripts/verify/check-port.sh ]; then
@@ -37,7 +41,7 @@ for needed in "$py" "$built/dist/reader-bridge/reader-bridge" "$built/build/stat
   [ -e "$needed" ] || { echo "test-ocr: $needed is missing (FUROCHIBI_BUILT: a Furochibi checkout that was built)" >&2; exit 1; }
 done
 theme="${READER_OCR_THEME:-}"
-home="$root/private/ocr-test$([ "$local_helper" = 1 ] && echo -helper || true)${theme:+-$theme}"
+home="$root/private/ocr-test$([ "$local_helper" = 1 ] && echo -helper || true)$([ "$slim" = 1 ] && echo -slim || true)${theme:+-$theme}"
 rm -rf "$home"
 mkdir -p "$home/data/program" "$home/config" "$home/state"
 if [ -n "${READER_OCR_DICT:-}" ]; then
@@ -78,7 +82,10 @@ JSON
 pids=()
 trap 'kill "${pids[@]}" 2>/dev/null || true; rm -rf "$sockets"' EXIT
 export PYTHONPATH="$furochibi/server" HF_HOME="$built/build/state/hf" LOGURU_COLORIZE=False
-if [ "$local_helper" != 1 ]; then
+if [ "$slim" = 1 ]; then
+printf '{"listen_port": %s, "source": "furoshiki", "token": "%s", "state_dir": "%s/slim-state"}\n' "$port" "$token" "$home" > "$home/slim.json"
+PYTHONPATH="$root/ocr-helper" "$furochibi/tools/limit.sh" -m 3G -t 600 "$py" -m furoshiki_ocr --config "$home/slim.json" > "$home/service.log" 2>&1 & pids+=($!)
+elif [ "$local_helper" != 1 ]; then
 "$furochibi/tools/limit.sh" -m 3G -t 600 "$py" -m console_ocr engine --socket "$sockets/engine.sock" > "$home/engine.log" 2>&1 & pids+=($!)
 "$furochibi/tools/limit.sh" -m 2G -t 600 "$py" -m console_ocr serve --config "$home/config.json" > "$home/service.log" 2>&1 & pids+=($!)
 fi
@@ -92,9 +99,10 @@ for _ in $(seq 240); do
     if "$py" -I -c 'import socket, sys; s = socket.socket(); sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) else 1)' "$port"; then
       [ -s "$home/window.jpg" ] && { ready=1; break; }
     else echo "test-ocr: something answers at port $port already" >&2; exit 1; fi
-  elif "$py" -I - "$port" <<'PY' 2>/dev/null
+  elif "$py" -I - "$port" "$token" <<'PY' 2>/dev/null
 import json, sys, urllib.request
-engines = json.load(urllib.request.urlopen(f"http://127.0.0.1:{sys.argv[1]}/api/engines", timeout=2))
+ask = urllib.request.Request(f"http://127.0.0.1:{sys.argv[1]}/api/engines", headers={"Authorization": "Bearer " + sys.argv[2]})
+engines = json.load(urllib.request.urlopen(ask, timeout=2))
 sys.exit(0 if any(engine["loaded"] for engine in engines) else 1)
 PY
   then ready=1; break; fi
@@ -190,9 +198,10 @@ if [ "$local_helper" = 1 ]; then
     "$here/run-desktop.sh" reader-home --window --dry-run --lines "$id" --script "$home/again.script" > "$home/program-again.log" 2>&1 || {
       echo "test-ocr: the program failed the second time; see $home/program-again.log" >&2; exit 1; }
 fi
-"$py" -I - "$home" "$port" "$token" "$local_helper" <<'PY'
+"$py" -I - "$home" "$port" "$token" "$local_helper" "$slim" <<'PY'
 import difflib, json, pathlib, socket, sqlite3, sys, urllib.request
 home, port, token, local_helper = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4] == "1"
+slim = sys.argv[5] == "1"
 problems = []
 sources = json.loads((home / "data/program/sources.json").read_text(encoding="utf-8"))
 titles = [t for t in sources["titles"] if t["by"] == "ocr"]
@@ -247,6 +256,16 @@ if local_helper:
     if not any("ocr: reading" in line and "taken 0" not in line for line in said_again):
         problems.append(f"started again with the title, the program did not read: {said_again}")
     print("the helper was found, started and stopped by the program, twice;", *said_again)
+elif slim:
+    # Furoshiki's own helper: its lines say the source; without the token nothing is told.
+    said = lambda path, headers: urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{port}{path}", headers=headers), timeout=5)
+    helper = [{**line, "not_counted": True} for line in json.load(said("/api/lines?since=0&limit=100", {"Authorization": "Bearer " + token}))["lines"]]
+    try:
+        said("/api/regions", {})
+        problems.append("the helper answers without its token")
+    except urllib.error.HTTPError as refused:
+        if refused.code != 403:
+            problems.append(f"without its token the helper says {refused.code}")
 else:
     # The helper: every line of this run says its source, none was counted there, the token is told nowhere.
     helper = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/lines?since=0&limit=100", timeout=5))["lines"]

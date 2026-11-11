@@ -58,6 +58,9 @@ Sources Load(const QString& folder) {
     sources.ocr.address = CleanHelperAddress(helper.value(QStringLiteral("address")).toString());
     sources.ocr.token = helper.value(QStringLiteral("token")).toString();
     sources.ocr.program = helper.value(QStringLiteral("program")).toString();
+    if (const QString engine = helper.value(QStringLiteral("engine")).toString(); OcrEngines.contains(engine)) {
+        sources.ocr.engine = engine;
+    }
     if (const QString source = helper.value(QStringLiteral("source")).toString().trimmed(); !source.isEmpty()) {
         sources.ocr.source = source;
     }
@@ -71,6 +74,13 @@ Sources Load(const QString& folder) {
         }
         if (title.by == QStringLiteral("ocr") && !title.area.isValid()) {
             continue; // a window read by OCR is nothing without its area
+        }
+        for (const QJsonValue& other : entry.value(QStringLiteral("areas")).toArray()) {
+            const QJsonArray rect = other.toObject().value(QStringLiteral("rect")).toArray();
+            const QRectF box = rect.size() == 4 ? CleanArea(QRectF(rect[0].toDouble(), rect[1].toDouble(), rect[2].toDouble(), rect[3].toDouble())) : QRectF();
+            if (box.isValid()) {
+                title.more.append({box, other.toObject().value(QStringLiteral("read")).toString() == QStringLiteral("ask")});
+            }
         }
         if (title.by == QStringLiteral("hook")) {
             title.engine = entry.value(QStringLiteral("engine")).toString();
@@ -99,6 +109,14 @@ bool Save(const QString& folder, const Sources& sources) {
         if (title.by == QStringLiteral("ocr")) {
             entry.insert(QStringLiteral("window"), title.window);
             entry.insert(QStringLiteral("area"), QJsonArray{title.area.x(), title.area.y(), title.area.width(), title.area.height()});
+            QJsonArray areas;
+            for (const Box& box : title.more) {
+                areas.append(QJsonObject{{QStringLiteral("rect"), QJsonArray{box.rect.x(), box.rect.y(), box.rect.width(), box.rect.height()}},
+                                         {QStringLiteral("read"), box.ask ? QStringLiteral("ask") : QStringLiteral("always")}});
+            }
+            if (!areas.isEmpty()) {
+                entry.insert(QStringLiteral("areas"), areas);
+            }
         }
         if (title.by == QStringLiteral("hook")) {
             entry.insert(QStringLiteral("engine"), title.engine);
@@ -128,6 +146,9 @@ bool Save(const QString& folder, const Sources& sources) {
     if (!sources.ocr.program.isEmpty()) {
         helper.insert(QStringLiteral("program"), sources.ocr.program);
     }
+    if (!sources.ocr.engine.isEmpty()) {
+        helper.insert(QStringLiteral("engine"), sources.ocr.engine);
+    }
     return Write(folder + QStringLiteral("/program/sources.json"),
                  QJsonObject{{QStringLiteral("address"), sources.address},
                              {QStringLiteral("ocr"), helper},
@@ -152,7 +173,16 @@ QString CleanHelperAddress(const QString& said) {
     return url.isValid() && web && !url.host().isEmpty() ? address : QString();
 }
 
-QString AddWindow(Sources& sources, const QString& title, const QString& window, const QRectF& area, const QString& record_key) {
+QString OcrEngineName(const QString& engine) {
+    return engine == QStringLiteral("oneocr")     ? QStringLiteral("OneOCR")
+           : engine == QStringLiteral("screenai") ? QStringLiteral("Screen AI")
+           : engine == QStringLiteral("glens")    ? QStringLiteral("Google Lens")
+           : engine == QStringLiteral("meikiocr") ? QStringLiteral("meikiocr")
+                                                  : QStringLiteral("As the helper has it");
+}
+
+QString AddWindow(Sources& sources, const QString& title, const QString& window, const QRectF& area, const QString& record_key,
+                  const QList<Box>& more) {
     const QRectF in = CleanArea(area);
     if (!in.isValid()) {
         return {};
@@ -162,6 +192,12 @@ QString AddWindow(Sources& sources, const QString& title, const QString& window,
         if (known.id == id) {
             known.window = window;
             known.area = in;
+            known.more.clear();
+            for (const Box& box : more) {
+                if (const QRectF clean = CleanArea(box.rect); clean.isValid()) {
+                    known.more.append({clean, box.ask});
+                }
+            }
         }
     }
     return id;

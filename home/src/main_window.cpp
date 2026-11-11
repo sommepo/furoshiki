@@ -40,6 +40,8 @@
 #include "loopback_audio.h"
 #include "line_source.h"
 #include "ocr_overlay.h"
+#include <QShortcut>
+#include "global_key.h"
 #include "ocr_source.h"
 #include "line_titles.h"
 #include "text_strip.h"
@@ -1607,6 +1609,23 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
             }
         });
         connect(ocr, &OcrSource::ScreenChanged, this, [this] { PlaceOverlay(); });
+        // The boxes read only on request (a menu, a status screen): R on the strip, and
+        // Ctrl+Shift+R from anywhere, the game's own window too, where the system gives a key.
+        const auto read_asked = [this] {
+            if (ocr == nullptr || !ocr->Running()) {
+                return;
+            }
+            ocr->ReadAsked([this](bool ok, const QString& what) {
+                if (!ok && ocr != nullptr && ocr->Running()) {
+                    strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), what.isEmpty() ? QStringLiteral("nothing read on request") : what);
+                }
+            });
+        };
+        connect(new QShortcut(QKeySequence(Qt::Key_R), strip), &QShortcut::activated, this, read_asked);
+        auto* anywhere = new GlobalKey(ocr);
+        connect(anywhere, &GlobalKey::Pressed, this, read_asked);
+        connect(ocr, &ReaderUi::ReadingSource::Began, anywhere, [anywhere] { anywhere->Set('R'); });
+        connect(ocr, &ReaderUi::ReadingSource::Ended, anywhere, [anywhere] { anywhere->Clear(); });
     }
     // The popup is the reader's own, in a look no console gave it.
     ReaderUi::Style::SetConsoleLook("lines");

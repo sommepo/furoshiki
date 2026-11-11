@@ -44,12 +44,20 @@ inline const QString AppKey = QStringLiteral("reader-home-lines");
 inline const QString System = QStringLiteral("PC");
 inline const QString DefaultAddress = QStringLiteral("ws://localhost:6677");
 
+/// Another box of a window read by OCR, besides its first: read with it as one line, or only
+/// when asked for (a menu, a status screen: the key that reads on request).
+struct Box {
+    QRectF rect;
+    bool ask{};
+};
+
 struct Title {
     QString id;    ///< Its game ID in the reader (line_feed.h, GameId)
     QString title;
     QString by;    ///< "websocket", "clipboard", "ocr" or "hook"
     QString window; ///< Read by OCR: the window's title
     QRectF area;    ///< Read by OCR: where the text is, 0-1 of the window's picture
+    QList<Box> more; ///< Read by OCR: its other boxes ("areas" in the file, each with "read")
     // Read by a hook (hook_source.h):
     QString engine;      ///< "agent", "luna" or "textractor"
     QString script;      ///< An Agent script's file
@@ -75,7 +83,14 @@ struct Helper {
     /// A helper installed on this computer: its folder (ocr_helper.h), which Furoshiki starts
     /// it from when nothing answers at the address. Empty: a helper someone else runs.
     QString program;
+    /// Which engine reads there: "meikiocr", "oneocr", "screenai" or "glens" (Google Lens, which
+    /// sends the text area to Google). Empty: as the helper has it.
+    QString engine;
 };
+
+/// The engines a helper may read with, in the settings' order, and what each is called.
+inline const QStringList OcrEngines{QStringLiteral("meikiocr"), QStringLiteral("oneocr"), QStringLiteral("screenai"), QStringLiteral("glens")};
+[[nodiscard]] QString OcrEngineName(const QString& engine);
 
 struct Sources {
     QString address{DefaultAddress};
@@ -89,7 +104,8 @@ bool Save(const QString& folder, const Sources& sources);
 /// when the title is empty or `by` is no way lines are read.
 QString Add(Sources& sources, const QString& title, const QString& by, const QString& record_key);
 /// The same for a window read by OCR: which window, and the text's area in its picture.
-QString AddWindow(Sources& sources, const QString& title, const QString& window, const QRectF& area, const QString& record_key);
+QString AddWindow(Sources& sources, const QString& title, const QString& window, const QRectF& area, const QString& record_key,
+                  const QList<Box>& more = {});
 /// The same for a title read by a hook: `hook` has its engine, script, process, codes and threads.
 QString AddHook(Sources& sources, const QString& title, const Title& hook, const QString& record_key);
 /// The titles a program seen running is read by itself: those read by a hook in `process` with

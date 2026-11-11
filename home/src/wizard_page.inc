@@ -36,7 +36,13 @@ struct HomeWindow::Wizard {
     // The chosen window's picture and the text's area in it.
     QImage picture;
     qint64 pictured_at{-100000};
-    QRectF area{0.08, 0.66, 0.84, 0.28};
+    /// The boxes of it that are read: the first the text's own, others read with it as one
+    /// line or only when asked for; `box` is the one in hand.
+    QList<Lines::Box> boxes{{QRectF(0.08, 0.66, 0.84, 0.28), false}};
+    int box{};
+    QRectF& Rect() {
+        return boxes[std::clamp(box, 0, static_cast<int>(boxes.size()) - 1)].rect;
+    }
     bool sizing{};
     QRectF picture_box; ///< Where the picture was drawn on the sheet
     bool drawing{};
@@ -303,7 +309,7 @@ void HomeWindow::WizardStep() {
             w.read_stale = false;
             w.read_waiting = true;
             w.read_at = now;
-            w.client.Test(w.area);
+            w.client.Test(w.Rect());
             update();
         }
     }
@@ -459,7 +465,7 @@ void HomeWindow::WizardAccept() {
             Say(QStringLiteral("A title wants a name"));
             return;
         }
-        const QString id = w.door == 1 && w.by_ocr ? AddWindowTitle(name, w.window.title, w.area, w.picture)
+        const QString id = w.door == 1 && w.by_ocr ? AddWindowTitle(name, w.window.title, w.boxes[0].rect, w.picture, w.boxes.mid(1))
                                                    : HookTitle(name);
         if (!id.isEmpty()) {
             shelf_want = id;
@@ -549,10 +555,10 @@ void HomeWindow::WizardOcr() {
 void HomeWindow::WizardArea(const QRectF& area) {
     Wizard& w = *wizard;
     const QRectF clean = Lines::CleanArea(area);
-    if (!clean.isValid() || clean == w.area) {
+    if (!clean.isValid() || clean == w.Rect()) {
         return;
     }
-    w.area = clean;
+    w.Rect() = clean;
     w.area_at = clock.elapsed();
     w.read_stale = true;
     w.read_ok = false;
@@ -618,19 +624,47 @@ bool HomeWindow::WizardKey(int key) {
         if (across || along) {
             // A hundredth of the picture a press: its place, or (L and R change which) its size.
             const double dx = across ? by * 0.01 : 0, dy = along ? by * 0.01 : 0;
-            QRectF area = w.area;
+            QRectF area = w.Rect();
             if (w.sizing) {
                 area.setWidth(std::clamp(area.width() + dx, 0.02, 1 - area.x()));
                 area.setHeight(std::clamp(area.height() + dy, 0.02, 1 - area.y()));
             } else {
                 area.moveTo(std::clamp(area.x() + dx, 0.0, 1 - area.width()), std::clamp(area.y() + dy, 0.0, 1 - area.height()));
             }
-            if (area != w.area) {
+            if (area != w.Rect()) {
                 sounds.Play(Sound::Move);
                 WizardArea(area);
             }
-        } else if (key == Qt::Key_Q || key == Qt::Key_E || key == Qt::Key_Tab || key == Qt::Key_PageUp || key == Qt::Key_PageDown) {
+        } else if (key == Qt::Key_Q || key == Qt::Key_E || key == Qt::Key_PageUp || key == Qt::Key_PageDown) {
             w.sizing = !w.sizing;
+            sounds.Play(Sound::Tab);
+            update();
+        } else if (key == Qt::Key_N || key == Qt::Key_M || key == Qt::Key_Tab || key == Qt::Key_Delete || key == Qt::Key_X) {
+            // Another box (N: read with the text; M: read only when asked for), the next one in
+            // hand (Tab), the one in hand taken away (X; never the text's own).
+            const int count = static_cast<int>(w.boxes.size());
+            if (key == Qt::Key_Tab) {
+                w.box = (w.box + 1) % count;
+            } else if (key == Qt::Key_N || key == Qt::Key_M) {
+                if (count >= 8) {
+                    sounds.Play(Sound::Refuse);
+                    return true;
+                }
+                w.boxes.append({QRectF(0.08, 0.06 + 0.16 * ((count - 1) % 4), 0.4, 0.12), key == Qt::Key_M});
+                w.box = count;
+            } else if (w.box > 0) {
+                w.boxes.removeAt(w.box);
+                w.box = std::min(w.box, static_cast<int>(w.boxes.size()) - 1);
+            } else {
+                sounds.Play(Sound::Refuse);
+                Say(QStringLiteral("The first box is the text's own: it stays"));
+                return true;
+            }
+            w.sizing = false;
+            w.read_stale = true;
+            w.read_ok = false;
+            w.read.clear();
+            w.area_at = clock.elapsed() - 600;
             sounds.Play(Sound::Tab);
             update();
         } else if (key == Qt::Key_Space || key == Qt::Key_F5) {
@@ -695,6 +729,8 @@ bool HomeWindow::WizardPress(const QPointF& at) {
         } else if (hit.kind == 24) {
             w.sizing = !w.sizing;
             update();
+        } else if (hit.kind == 26) {
+            WizardKey(hit.index);
         }
         return true;
     }
@@ -722,10 +758,11 @@ void HomeWindow::WizardDrag(const QPointF& at, bool done) {
     }
 }
 
-QString HomeWindow::AddWindowTitle(const QString& title, const QString& window, const QRectF& area, const QImage& picture) {
+QString HomeWindow::AddWindowTitle(const QString& title, const QString& window, const QRectF& area, const QImage& picture,
+                                   const QList<Lines::Box>& more) {
     const QString folder = SharedFolder();
     Lines::Sources sources = Lines::Load(folder);
-    const QString id = Lines::AddWindow(sources, title, window, area, RecordNamed(title.trimmed()));
+    const QString id = Lines::AddWindow(sources, title, window, area, RecordNamed(title.trimmed()), more);
     if (id.isEmpty() || !Lines::Save(folder, sources)) {
         sounds.Play(Sound::Refuse);
         Say(id.isEmpty() ? QStringLiteral("A window read by OCR wants a name and an area of its picture")
@@ -820,7 +857,7 @@ void HomeWindow::PaintWizard(QPainter& p) {
         break;
     case Wizard::Area:
         question = QStringLiteral("WHERE IS ITS TEXT?");
-        keys = QStringLiteral("DRAG   ← ↑ ↓ → %1   Q E PLACE / SIZE   SPACE READ AGAIN   ENTER   ESC").arg(w.sizing ? QStringLiteral("SIZE") : QStringLiteral("PLACE"));
+        keys = QStringLiteral("DRAG   ← ↑ ↓ → %1   Q E PLACE / SIZE   N M TAB X BOXES   SPACE READ AGAIN   ENTER   ESC").arg(w.sizing ? QStringLiteral("SIZE") : QStringLiteral("PLACE"));
         key_label = QStringLiteral("USE THIS AREA");
         break;
     case Wizard::Name:
@@ -1029,28 +1066,62 @@ void HomeWindow::PaintWizard(QPainter& p) {
             Put(p, tiny, box.center().x(), box.center().y(), QStringLiteral("THE WINDOW GIVES NO PICTURE"), l.muted, 2);
         }
         w.picture_box = box;
-        const QRectF area(box.left() + w.area.x() * box.width(), box.top() + w.area.y() * box.height(), w.area.width() * box.width(), w.area.height() * box.height());
+        const auto on_sheet = [&](const QRectF& share) {
+            return QRectF(box.left() + share.x() * box.width(), box.top() + share.y() * box.height(), share.width() * box.width(), share.height() * box.height());
+        };
+        const QRectF area = on_sheet(w.Rect());
+        QPainterPath boxes_path;
+        for (const Lines::Box& each : w.boxes) {
+            boxes_path.addRect(on_sheet(each.rect));
+        }
         QPainterPath outside;
         outside.addRect(box);
-        outside.addRect(area);
+        outside = outside.subtracted(boxes_path);
         p.fillPath(outside, Faded(l.ground, 0.62));
         p.setPen(QPen(l.rule, 1));
         p.setBrush(Qt::NoBrush);
         p.drawRect(box.adjusted(0.5, 0.5, -0.5, -0.5));
-        p.setPen(QPen(l.accent, 1.5));
-        p.drawRect(area);
+        // Every box, each with what it is; the one in hand in the accent with its grip, one read
+        // only on request with a broken edge.
+        const auto kind_of = [&](int i) {
+            return i == 0 ? QStringLiteral("TEXT") : w.boxes[i].ask ? QStringLiteral("ON REQUEST") : QStringLiteral("ALSO");
+        };
+        for (int i = 0; i < w.boxes.size(); ++i) {
+            const bool on = i == w.box;
+            const QRectF each = on_sheet(w.boxes[i].rect);
+            QPen edge(on ? l.accent : l.ink, on ? 1.5 : 1);
+            if (w.boxes[i].ask) {
+                edge.setStyle(Qt::DashLine);
+            }
+            p.setPen(edge);
+            p.drawRect(each);
+            Put(p, tiny, each.left(), each.top() - 8 < box.top() + 10 ? each.bottom() + 16 : each.top() - 8,
+                w.boxes.size() > 1 ? QStringLiteral("%1  %2").arg(i + 1).arg(kind_of(i)) : kind_of(i), on ? l.accent : l.ink);
+        }
         p.fillRect(QRectF(w.sizing ? area.right() - 4 : area.left() - 4, w.sizing ? area.bottom() - 4 : area.top() - 4, 8, 8), l.accent);
-        Put(p, tiny, area.left(), area.top() - 8 < box.top() + 10 ? area.bottom() + 16 : area.top() - 8, QStringLiteral("TEXT"), l.accent);
 
         const auto percent = [](double v) { return QStringLiteral("%1").arg(static_cast<int>(std::lround(v * 100)), 2, 10, QLatin1Char('0')); };
         const double after = facts(WizardTop + 27, {{QStringLiteral("WINDOW"), w.window.title.toUpper()},
+                                                    {QStringLiteral("BOX"), QStringLiteral("%1 OF %2  ·  %3").arg(w.box + 1).arg(w.boxes.size()).arg(kind_of(w.box))},
                                                     {QStringLiteral("PICTURE"), w.picture.isNull() ? QStringLiteral("NONE") : QStringLiteral("%1 × %2").arg(w.picture.width()).arg(w.picture.height())},
-                                                    {QStringLiteral("AREA"), QStringLiteral("X %1  Y %2  W %3  H %4").arg(percent(w.area.x()), percent(w.area.y()), percent(w.area.width()), percent(w.area.height()))},
+                                                    {QStringLiteral("AREA"), QStringLiteral("X %1  Y %2  W %3  H %4").arg(percent(w.Rect().x()), percent(w.Rect().y()), percent(w.Rect().width()), percent(w.Rect().height()))},
                                                     {QStringLiteral("ARROWS"), w.sizing ? QStringLiteral("CHANGE ITS SIZE") : QStringLiteral("MOVE IT")}});
         shelf_hits.append({QRectF(WizardSide, after - 49, ShelfRight - WizardSide, 30), 24, 0});
+        // The boxes' own keys, for the pointer too.
+        {
+            double at = WizardSide;
+            const QPair<QString, int> words[] = {{QStringLiteral("N  BOX"), Qt::Key_N}, {QStringLiteral("M  ON REQUEST"), Qt::Key_M},
+                                                 {QStringLiteral("TAB  NEXT"), Qt::Key_Tab}, {QStringLiteral("X  REMOVE"), Qt::Key_X}};
+            for (const auto& word : words) {
+                const bool can = word.second == Qt::Key_X ? w.box > 0 : word.second == Qt::Key_Tab ? w.boxes.size() > 1 : w.boxes.size() < 8;
+                const double wide = Put(p, tiny, at, after + 4, word.first, can ? Mix(l.muted, l.ink, Ease(26, word.second & 0xffff, ShelfHovered(26, word.second))) : Faded(l.muted, 0.45));
+                shelf_hits.append({QRectF(at - 4, after - 12, wide + 8, 24), 26, word.second});
+                at += wide + 16;
+            }
+        }
         // What the helper reads there.
-        Put(p, tiny, WizardSide, after + 12, QStringLiteral("READ"), l.muted);
-        const QRectF said(WizardSide, after + 26, ShelfRight - WizardSide, key.top() - after - 44);
+        Put(p, tiny, WizardSide, after + 36, QStringLiteral("READ"), l.muted);
+        const QRectF said(WizardSide, after + 50, ShelfRight - WizardSide, key.top() - after - 68);
         if (w.read_ok && !w.read.isEmpty()) {
             Wrapped(p, ShelfFont(QStringLiteral("ZenKakuGothicNew-Medium.ttf"), 19), said, w.read, l.ink);
         } else {

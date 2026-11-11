@@ -59,6 +59,12 @@ public:
     [[nodiscard]] QRect Place() const {
         return place;
     }
+    /// Reads the title's boxes that are read only on request, now (the key for it).
+    void ReadAsked(std::function<void(bool ok, const QString& what)> then = nullptr) {
+        if (running) {
+            client.ReadAsked(std::move(then));
+        }
+    }
     [[nodiscard]] OcrClient& Client() {
         return client;
     }
