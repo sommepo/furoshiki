@@ -335,6 +335,9 @@ void LookupFlow::Position() {
                         : std::min(anchor.keep_clear.bottom() + Margin,
                                    std::max(bounds.top() + Margin,
                                             bounds.bottom() - Margin - size.height()));
+    // Where it was put, for the development channel's pictures: a stand-in screen places a
+    // window where it likes.
+    popup->setProperty("placed_at", anchor.owner->mapTo(anchor.owner->window(), QPoint(left, top)));
     popup->setGeometry(QRect(anchor.owner->mapToGlobal(QPoint(left, top)), size));
 }
 

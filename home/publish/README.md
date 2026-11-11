@@ -1,20 +1,46 @@
-<p align="center"><img src="home/publish/media/logo.svg" width="160" alt="Furoshiki's logo: ふ in blue on white"></p>
+<p align="center"><img src="home/publish/media/logo.svg" width="128" alt="Furoshiki's logo: ふ in blue on white"></p>
 
 <h1 align="center">Furoshiki</h1>
 
-Furoshiki is an emulator frontend with lookup and sentence mining built in, for Japanese games on
-Windows and Android.
+<p align="center"><b>Read Japanese games with a dictionary under your pointer.</b><br>
+Hover a word in the game's own text and its entry opens beside it. One key makes the Anki card.</p>
 
-Each console's emulator is built into Furoshiki as a *core*, as in RetroArch, so one program, one
-library and one set of settings covers every console. The reading tools are the same across all
-of them.
+<p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
 
-Each supported game has a script, written with AI, that reads its text straight from memory, along
-with where every character sits on the screen. So there's no OCR and no texthooker window. You
-hover a word in the game itself, a Yomitan-style popup opens on it, and one button makes an Anki
-card with the sentence, a screenshot and the audio.
+Furoshiki is one program for Windows and Android that plays the game, reads its text and looks
+it up. There is no second window to keep beside the game and nothing to copy and paste: the words
+on the screen are the ones you point at.
 
-<p align="center"><img src="home/publish/media/kamaitachi-ps1.gif" width="720" alt="Kamaitachi no Yoru: the pointer moves along the line and each word's entry opens beside it"></p>
+- **Lookups are instant.** A Yomitan-style popup opens next to the word, with deinflection, your
+  own Yomitan dictionaries and each game's character names.
+- **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki, with the
+  lines before it as context if you want them.
+- **Everything in one place.** Six consoles are built in as cores, as in RetroArch, and on
+  Windows a PC game is read through a text hook or OCR. One library, one set of settings.
+
+<p align="center"><img src="home/publish/media/lookup-remember11-2.gif" width="760" alt="Remember11: ポケット, 手, 差し入れて and 取り出す looked up one after another"></p>
+
+## How a game is read
+
+| The game is | Read by | Where |
+| --- | --- | --- |
+| A console game with a **game script** | Its text straight from the emulated memory, with the place of every character on the screen | Windows, Android |
+| A PC game | A **text hook** started by Furoshiki: an Agent script, LunaHook or Textractor | Windows |
+| A PC game no hook reads | **OCR** of the game's window, four times a second | Windows |
+| Anything else that produces text | Lines from a texthooker's WebSocket, or the clipboard | Windows |
+
+A game script is the precise way: because Furoshiki knows where each character is drawn, you
+point at the game's own text, as in the pictures above. A hook or OCR gives the lines, shown in a
+strip you look words up in, and over the game's window itself where its place is known.
+
+*Add a title* asks which of these it is and sets it up:
+
+<p align="center"><img src="home/publish/media/add-a-title.png" width="760" alt="Add a title: A, a disc or file; B, a game window; C, lines I send"></p>
+
+Hooks are fetched the first time you use one (Agent's scripts, LunaHook and Textractor are their
+authors' own projects and are not part of this repository). OCR is done by a separate helper
+service, on your computer or another on your network, whose address you give once; the helper is
+not included in this release yet.
 
 | Console | Core | Windows | Android |
 | --- | --- | --- | --- |
@@ -25,75 +51,59 @@ card with the sentence, a screenshot and the audio.
 | Nintendo 3DS | Azahar | ✓ | ✓ |
 | PS Vita | Vita3K | ✓ | ✓ |
 
-**A CRT picture** for every console but the Vita, with sliders and ready-made looks (*Settings,
-Furoshiki, CRT effect*): scan lines, the phosphor's pattern, the curved glass, and a glow that
-spreads off what is bright into the dark beside it, as a tube's glass spreads light. On Windows
-with an HDR screen, its HDR row lets the lit phosphor shine brighter than white (the Dreamcast,
-PSP and PS2 cores).
+## The shelf
 
-## New in Furoshiki 3
+Every title stands as a spine with its box art. The one in hand opens to its cover, what you have
+read of it and the one key that plays it.
 
-- **The shelf.** Every title stands as a spine with its box art; the one in hand opens to its
-  cover, what you have read of it and one key that plays it. Type and hairlines, in four themes
-  (Kon, Mono, Paper, Solarized). Android has the same look, laid out for folding phones and for
-  handhelds with two displays.
-- **Settings as pages**, by what they are for: Reading, Popup, Cards, Sources, Consoles,
-  Controller, Keys. Each page shows the few rows most people change, with the rest behind *More*.
-  `/` finds a setting by name, a small square marks what you changed and Backspace puts it back.
-  Everything works by keyboard, controller or mouse alone.
-- **Cards**: the lines before as context, the audio trimmed to the voice, one card from several
-  lines of the backlog, a card of just the word (Ctrl+W), and the last card taken back (Ctrl+Z).
-  *Explain* (Ctrl+E) gives a line's translation and grammar from Claude Code on your own computer,
-  if you have it.
+<p align="center"><img src="home/publish/media/shelf.gif" width="760" alt="The shelf: moving along the spines, each title opening to its cover and its reading figures"></p>
+
+Type and hairlines, in four themes: Kon, Paper, Mono and Solarized. Android has the same look,
+laid out for phones, folding phones and handhelds with two displays.
+
+<p align="center"><img src="home/publish/media/themes.jpg" width="760" alt="The same shelf in Kon, Paper, Mono and Solarized"></p>
+
+## Reading and mining
+
+- **Cards**: the sentence, a screenshot and the audio, trimmed to the voice. A card of several
+  lines from the backlog, a card of just the word (Ctrl+W), and the last card taken back (Ctrl+Z).
+  Cards go to Anki through AnkiConnect on Windows and to AnkiDroid on Android.
+- **Backlog** of everything read, with each line's speaker where the game names one.
+- **Names**: each supported game comes with its characters' names and readings, looked up before
+  the general dictionaries.
+- **Explain** (Ctrl+E): a line's translation and grammar from Claude Code on your own computer,
+  if you have it installed. Nothing is sent anywhere otherwise.
 - **The popup** has a design page with a live preview, and an opacity slider so the game shows
   through it.
-- **Other sources** (*Add a title*): besides a console's disc or file, a PC game read by a text
-  hook, or lines from a texthooker's WebSocket or the clipboard.
+- **Reading figures** for each title: characters read, time, and characters an hour.
+- **A controller is enough**: a button turns the sticks into the pointer, and on a Steam
+  Controller the trackpad always points.
+
+## The picture
+
+- **A CRT effect** for every console but the Vita, with sliders and ready-made looks: scan lines,
+  the phosphor's pattern, curved glass and a glow that spreads off what is bright. On Windows with
+  an HDR screen the lit phosphor can shine brighter than white (Dreamcast, PSP and PS2).
 - **Widescreen** (16:9, 21:9, 32:9) for the PS2 games that have a checked recipe: the 3D is drawn
-  wide and the 2D keeps its shape, never stretched.
-- **Android**: on-screen buttons and a stick, and a menu over the game with savestate slots, disc
-  change, fast forward, skip to the next choice, patches and cheat codes; a game pinned to the
-  home screen.
+  wide and the 2D keeps its shape. Nothing is ever stretched.
+- Upscaling and each core's own picture settings, for all consoles, one console or one game.
 
-## What it looks like
+## Settings
 
-The pictures below were taken before Furoshiki 3: the games look the same, the menus do not.
+By what they are for: Reading, Popup, Cards, Sources, Consoles, Controller, Keys. Each page shows
+the few rows most people change, with the rest behind *More*. `/` finds a setting by name, a
+small square marks what you changed, and Backspace puts it back. Keyboard, controller or mouse
+alone is enough for all of it.
 
-All pictures are of Furoshiki for Android on an AYN Thor, the games' own text read as it comes up.
+<p align="center"><img src="home/publish/media/settings.png" width="760" alt="The Reading page of the settings"></p>
 
-**Higurashi no Naku Koro ni Matsuri** (PS2), each part of the story as it comes up:
+## On Android
 
-<p align="center"><img src="home/publish/media/higurashi-ps2.gif" width="720" alt="Higurashi: 自動販売機 looked up"></p>
-
-**Segagaga** (Dreamcast), the president's speech in its message window:
-
-<p align="center"><img src="home/publish/media/segagaga-dc.gif" width="720" alt="Segagaga: 全体的, ユーザー and the rest of the window looked up"></p>
-
-**Shin Megami Tensei IV** (3DS), on a device with two displays: the lower screen goes to the second one.
-
-<p align="center"><img src="home/publish/media/smt4-3ds.gif" width="640" alt="SMT IV: words of the first line looked up"><br>
-<img src="home/publish/media/smt4-3ds-two-displays.jpg" width="720" alt="SMT IV on the Thor's two displays"></p>
-
-**The Legend of Heroes: Trails in the Sky FC Evolution** (Vita), the speaker's name with each line:
-
-<p align="center"><img src="home/publish/media/sora-vita.gif" width="720" alt="Trails in the Sky: ただいま, エステル and 待たせちまった looked up"></p>
-
-<table>
-<tr><td><img src="home/publish/media/ever17-ps2.jpg" alt="Ever17: 太陽 looked up"><br><b>Ever17</b> (PS2)</td>
-<td><img src="home/publish/media/tokimeki-psp.jpg" alt="Tokimeki Memorial: 彼女 looked up"><br><b>Tokimeki Memorial Forever with You</b> (PSP)</td></tr>
-</table>
-
-**The menus.** The library, one page a console, each game with its box art and what you have
-read of it; the consoles' settings, in layers (all consoles, one console, one game); the menu of a
-game in play, the reading menu, and the backlog of what was read.
-
-<table>
-<tr><td><img src="home/publish/media/page-library.jpg" alt="The library"></td>
-<td><img src="home/publish/media/page-consoles.jpg" alt="The consoles' settings"></td></tr>
-<tr><td><img src="home/publish/media/menu-game.jpg" alt="A game's menu"></td>
-<td><img src="home/publish/media/menu-reading.jpg" alt="The reading menu"></td></tr>
-<tr><td colspan="2" align="center"><img src="home/publish/media/menu-backlog.jpg" width="50%" alt="The backlog"></td></tr>
-</table>
+The same shelf, cores, scripts and lookups, by touch or with a controller. Tap a word in the
+game's text to look it up. On-screen buttons and a stick where the device has none, and a menu
+over the game with savestate slots, disc change, fast forward, skip to the next choice, patches
+and cheat codes. A game can be pinned to the home screen. On a handheld with two displays the
+second one is a trackpad, or a 3DS game's lower screen.
 
 ## Supported games
 

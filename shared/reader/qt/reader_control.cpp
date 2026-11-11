@@ -380,7 +380,10 @@ QImage ReaderControl::Compose(const QImage& frame, bool pointer) const {
     }
     LookupPopup* popup = controller->Lookups().Popup();
     if (popup->isVisible()) {
-        painter.drawPixmap(popup->mapToGlobal(QPoint(0, 0)) - render_window->mapToGlobal(QPoint(0, 0)),
+        // Where the reader placed it (a stand-in screen may show it elsewhere).
+        const QVariant placed = popup->property("placed_at");
+        painter.drawPixmap(placed.isValid() ? placed.toPoint()
+                                            : popup->mapToGlobal(QPoint(0, 0)) - render_window->mapToGlobal(QPoint(0, 0)),
                            popup->grab());
     }
     AudioPrompt* prompt = controller->Lookups().Prompt();
