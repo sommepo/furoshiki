@@ -62,7 +62,9 @@
 #include "reader/qt/reader_dialogs.h"
 #include "reader_rows.h"
 #include "services.h"
+#ifndef READER_NO_SAVE_SYNC // the guides come with save sync's pairing: the dev line's
 #include "guide_window.h"
+#endif
 #include "updater.h"
 #include "reader/qt/reader_session.h"
 #include "reader/qt/lookup_popup.h"
@@ -487,7 +489,7 @@ void GameScreen::mouseReleaseEvent(QMouseEvent* event) {
 
 MainWindow::MainWindow() {
     setWindowTitle(QStringLiteral("Furoshiki"));
-    MakeGuideKeys(); // Ctrl+Shift+G and N over the game (guide_window.h)
+    MakeGuideKeys(); // Ctrl+Shift+G and N over the game (guide_window.h), on the dev line
     pages = new QStackedWidget(this);
     home = new HomeWindow(pages);
     screen = new GameScreen(pages);
@@ -2333,6 +2335,7 @@ void MainWindow::OpenControllerMap() {
 }
 
 void MainWindow::MakeGuideKeys() {
+#ifndef READER_NO_SAVE_SYNC
     // The keys work over the game too, where the menu is not open.
     auto* toggle_key = new QAction(this);
     toggle_key->setObjectName(QStringLiteral("furoshiki_guide"));
@@ -2346,6 +2349,7 @@ void MainWindow::MakeGuideKeys() {
     done_key->setShortcutContext(Qt::ApplicationShortcut);
     connect(done_key, &QAction::triggered, this, [this] { GuideDone(); });
     addAction(done_key);
+#endif
     // What a controller's back button may do besides the reader's own (reader_rows.cpp): the
     // keys of the program, found by these names (ReaderController::OnBackButton).
     auto* menu_key = new QAction(this);
@@ -2360,6 +2364,7 @@ void MainWindow::MakeGuideKeys() {
 }
 
 void MainWindow::ToggleGuide() {
+#ifndef READER_NO_SAVE_SYNC
     if (current == nullptr || pages->currentWidget() != screen) {
         return;
     }
@@ -2368,18 +2373,23 @@ void MainWindow::ToggleGuide() {
         connect(this, &QObject::destroyed, guide_overlay, &QObject::deleteLater);
     }
     guide_overlay->Toggle(screen, Home::Services::Of(QStringLiteral("furochibi")), playing_id);
+#endif
 }
 
 void MainWindow::GuideDone() {
+#ifndef READER_NO_SAVE_SYNC
     if (guide_overlay != nullptr) {
         guide_overlay->Done();
     }
+#endif
 }
 
 void MainWindow::EndGame() {
+#ifndef READER_NO_SAVE_SYNC
     if (guide_overlay != nullptr) {
         guide_overlay->Close();
     }
+#endif
     StopCoreOcr();
     if (current != nullptr) {
         current->session->Stop();
@@ -2918,7 +2928,9 @@ void MainWindow::PollPads() {
         both_used = true;
         OpenMenu();
     }
-    // The guide's next step: Select and L1 show or hide it, Select and R1 tick it.
+    // The guide's next step: Select and L1 show or hide it, Select and R1 tick it. A published
+    // build has no guide, and those buttons are the game's.
+#ifndef READER_NO_SAVE_SYNC
     static bool guide_toggle_held = false, guide_done_held = false;
     const bool select_held = game_shown && button(SDL_CONTROLLER_BUTTON_BACK) && !button(SDL_CONTROLLER_BUTTON_START);
     const bool guide_toggle = select_held && button(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
@@ -2932,6 +2944,9 @@ void MainWindow::PollPads() {
     guide_toggle_held = guide_toggle;
     guide_done_held = guide_done;
     const bool guide_combo = guide_toggle || guide_done;
+#else
+    const bool guide_combo = false;
+#endif
     // While the menu is open the controller works it, and the game gets nothing.
     if (menu != nullptr && menu->isVisible()) {
         static uint32_t menu_held = 0;
@@ -3209,6 +3224,7 @@ void MainWindow::OpenMenu() {
             box->open();
         });
 #endif
+#ifndef READER_NO_SAVE_SYNC
         // The game's playthrough guide where it stands, ticked here (guide_window.h): where the
         // device knows Furochibi's service.
         QAction* guide = menu->addAction(QStringLiteral("Guide…"));
@@ -3227,6 +3243,7 @@ void MainWindow::OpenMenu() {
         QAction* guide_over = menu->addAction(QStringLiteral("Guide's next step over the game"));
         guide_over->setObjectName(QStringLiteral("guide-over"));
         connect(guide_over, &QAction::triggered, this, [this] { ToggleGuide(); });
+#endif
         // A game no script reads: read by OCR from the core's own picture (core_ocr.h), the
         // game's own switch, and where its text is.
         QAction* by_ocr = menu->addAction(QStringLiteral("Read this game by OCR"));

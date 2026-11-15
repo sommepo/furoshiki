@@ -142,23 +142,24 @@ class SecondScreen(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
             )
-            val root = FrameLayout(context)
+            // The trackpad and the reader's line above, the app's keys (if any) below them: the
+            // keys take their own strip, so that nothing of the line is drawn under them.
+            val root = android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.VERTICAL }
             root.setBackgroundColor(Color.BLACK)
+            val stage = FrameLayout(context)
             under?.let {
-                root.addView(
+                stage.addView(
                     it(context),
                     FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 )
             }
-            root.addView(
+            stage.addView(
                 ReaderOverlay(context, host, secondary = true),
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             )
+            root.addView(stage, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             over?.invoke(context)?.let {
-                root.addView(
-                    it,
-                    FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM)
-                )
+                root.addView(it, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
             setContentView(root)
         }

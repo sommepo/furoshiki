@@ -303,7 +303,7 @@ private:
     std::map<QString, QList<OwnGame>> unscripted; ///< By console: found, but no script reads them
     QString playing;                ///< The file of the game being played
     QStringList playing_discs;      ///< Its discs (Discs): the one started first, then the others in order
-    class GuideOverlay* guide_overlay{}; ///< The guide's next step over the game (guide_window.h)
+    class GuideOverlay* guide_overlay{}; ///< (dev line) The guide's next step over the game (guide_window.h)
     /// The controller map over the window while it is open (controller_screen.h), and the
     /// actions buttons are given in game (reader_button_action_<number>, the console's first).
     QPointer<ControllerScreen> controller_screen;

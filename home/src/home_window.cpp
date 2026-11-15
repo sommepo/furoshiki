@@ -165,7 +165,9 @@ constexpr SettingRow SettingRows[] = {
     {"Look up by pointing", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
     {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
     {"Dictionaries", "", nullptr, 0, 0, 0, 0, "Reading", 2, false},
+#ifndef READER_NO_EXPLAIN
     {"Explain with", "Ctrl+E on a line: its English and its grammar, by Claude Code on this computer", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+#endif
     {"More", "", nullptr, 0, 0, 0, 0, "Reading", 0, false},
     {"Play by touch", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
     {"Outline what can be clicked", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
@@ -236,14 +238,18 @@ constexpr SettingRow SettingRows[] = {
     {"A card of the sentence", "Ctrl+D", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"A card of the word looked up", "Ctrl+W", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Take the last card back", "Ctrl+Z", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+#ifndef READER_NO_EXPLAIN
     {"Explain the line", "Ctrl+E", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+#endif
     {"Backlog", "Ctrl+H", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Pause the game", "Ctrl+G", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Read the on-request boxes (OCR)", "Ctrl+Shift+R, or R on the strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+#ifndef READER_NO_SAVE_SYNC
     {"Guide's next step over the game", "Ctrl+Shift+G, or Select and L1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Tick the guide's step shown", "Ctrl+Shift+N, or Select and R1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+#endif
     {"Reader menu", "F1, or the right button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Menu over the game", "Escape, or Guide", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Settings", "F2", nullptr, 0, 0, 0, 0, "Keys", 0, false},

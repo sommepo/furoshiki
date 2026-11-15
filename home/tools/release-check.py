@@ -45,9 +45,9 @@ PAIRING = re.compile(rb"readersync:", re.I)
 BUILD_PATH = re.compile(rb"(?:/srv/[a-z][a-z0-9_-]*/|/home/[a-z][a-z0-9_-]*/)")
 PRIVATE_SOUNDS = {b"move.wav", b"select.wav", b"back.wav"}
 NEEDED = ("COPYING.txt", "NOTICES.txt", "SOURCE.txt")
-# The text server answers a WebSocket handshake with this key's hash (RFC 6455): nothing else
-# of the program's or the app's own does.
-WEBSOCKET = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+# The text server answers a WebSocket handshake with this (RFC 6455). Its key's GUID is no mark:
+# the program's own client of a texthooker (src/ws_client.cpp, public) hashes the same one.
+WEBSOCKET = b"101 Switching Protocols"
 # What only Eden's core loads on Android (its driver, through adrenotools).
 EDEN_HOOKS = ("libhook_impl.so", "libmain_hook.so", "libfile_redirect_hook.so", "libgsl_alloc_hook.so")
 

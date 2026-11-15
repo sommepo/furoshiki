@@ -126,7 +126,8 @@ qt_add_resources(reader-home "shelf" PREFIX "/shelf" BASE "${CMAKE_CURRENT_SOURC
 # The controller map's pads, inputs and actions: the Android app's too (controller_map.h).
 qt_add_resources(reader-home "controllers" PREFIX "/controllers" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../shared/controllers" FILES ../shared/controllers/controllers.json)
 if(HOME_PUBLIC)
-	target_compile_definitions(home_core PUBLIC HOME_PUBLIC READER_NO_SAVE_SYNC)
+	# Explain (a line by Claude Code or Furochibi's service) is the dev line's too: READER_NO_EXPLAIN.
+	target_compile_definitions(home_core PUBLIC HOME_PUBLIC READER_NO_SAVE_SYNC READER_NO_EXPLAIN)
 endif()
 if(WIN32)
 	enable_language(RC)
@@ -382,7 +383,7 @@ if(HOME_CORES)
 
 	target_sources(reader-home PRIVATE src/main_window.cpp src/main_window.h src/crt_layers.cpp src/crt_layers.h
 		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp src/settings_crt.cpp
-		src/reader_rows.cpp src/reader_rows.h src/guide_window.cpp src/guide_window.h
+		src/reader_rows.cpp src/reader_rows.h
 		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h
 		src/ocr_source.cpp src/ocr_source.h src/core_ocr.cpp src/core_ocr.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h src/choice_picker.cpp src/choice_picker.h src/controller_map.cpp src/controller_map.h src/controller_screen.cpp src/controller_screen.h
 		src/hook_source.cpp src/hook_source.h
@@ -390,9 +391,10 @@ if(HOME_CORES)
 		src/loopback_audio.cpp src/loopback_audio.h)
 	target_link_libraries(reader-home PRIVATE home_reader)
 	target_compile_definitions(reader-home PRIVATE HOME_CORES)
-	# Send feedback, one of the maintainer's own links: never in a published build.
+	# Send feedback, one of the maintainer's own links, and the playthrough guides, which come with
+	# save sync's pairing: never in a published build.
 	if(NOT HOME_PUBLIC)
-		target_sources(reader-home PRIVATE src/feedback_dialog.cpp src/feedback_dialog.h)
+		target_sources(reader-home PRIVATE src/feedback_dialog.cpp src/feedback_dialog.h src/guide_window.cpp src/guide_window.h)
 		set_source_files_properties(src/feedback_dialog.cpp PROPERTIES COMPILE_DEFINITIONS HOME_BUILD="${PROJECT_VERSION}")
 	endif()
 

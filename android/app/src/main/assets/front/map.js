@@ -88,7 +88,9 @@ function buttonName(code, pad) {
 }
 
 function actions() {
-  return mapData().actions.filter(one => !one.desktop && !NOT_HERE.has(one.id));
+  // The guide's come with the home server's services (host.services), which a published app has not.
+  const guides = !!host.services;
+  return mapData().actions.filter(one => !one.desktop && !NOT_HERE.has(one.id) && (guides || !one.id.startsWith('furoshiki_guide')));
 }
 
 /** The console's buttons a tab lists: those its controller has, each once. */

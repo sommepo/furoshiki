@@ -193,8 +193,6 @@ class OcrPartsTest {
         assertEquals(OcrEngine.SERVICE, choose("device", false, true, false))
         assertEquals(OcrEngine.SERVICE, choose("", false, true, false))
         assertNull(choose("", true, false, false))
-        // This test is of the maintainer's line, which has the mark.
-        assertTrue(OcrSettings.dev)
     }
 
     @Test

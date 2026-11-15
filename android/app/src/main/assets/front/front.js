@@ -783,7 +783,7 @@ function settingsPage() {
     ...(host.pickActionKeys ? [{
       title: 'Buttons in a game', id: 'action-keys', go: 'Choose',
       side: actionKeysText(), value: String(actionKeysCount() || 'None'),
-      about: 'A button of the controller for pause, the reading timer, a card, the backlog, Explain, the guide and the menus: the keys of the second screen, without looking down.',
+      about: 'A button of the controller for pause, the reading timer, a card, the backlog' + (host.services ? ', Explain, the guide' : '') + ' and the menus: the keys of the second screen, without looking down.',
       act() { host.pickActionKeys(); },
     }] : []),
     ...wideRow(),
@@ -1115,7 +1115,8 @@ function drawStage() {
   }
   const other = state.elsewhere?.[game.id];
   if (other && other.day > (game.last || '')) facts.append(fact('Elsewhere', `${other.device}  ·  ${dayText(other.day)}`));
-  if (record?.guide) facts.append(fact('Guide', record.guide.replace(/-/g, ' ')));
+  // The guides are the dev line's: they come with the home server's services (host.services).
+  if (record?.guide && host.services) facts.append(fact('Guide', record.guide.replace(/-/g, ' ')));
   let reading = {days: [], lines: 0};
   try { reading = JSON.parse(host.reading?.(game.id) || '{}'); } catch (error) { console.error(error); }
   if (reading.days?.length) {

@@ -139,14 +139,18 @@ const QList<Entry>& Entries() {
                               {QStringLiteral("Word card"), QStringLiteral("reader_word_card")},
                               {QStringLiteral("Take the card back"), QStringLiteral("reader_undo_card")},
                               {QStringLiteral("Backlog"), QStringLiteral("reader_backlog")},
+#ifndef READER_NO_EXPLAIN
                               {QStringLiteral("Explain"), QStringLiteral("reader_explain")},
+#endif
                               {QStringLiteral("Close the popup"), QStringLiteral("reader_close_popup")},
                               {QStringLiteral("Reader menu"), QStringLiteral("reader_menu")},
                               {QStringLiteral("Menu over the game"), QStringLiteral("furoshiki_game_menu")},
                               {QStringLiteral("Full screen"), QStringLiteral("furoshiki_full_screen")},
                               {QStringLiteral("Settings"), QStringLiteral("furoshiki_settings")},
+#ifndef READER_NO_SAVE_SYNC
                               {QStringLiteral("Show or hide the guide's step"), QStringLiteral("furoshiki_guide")},
                               {QStringLiteral("Tick the guide's step"), QStringLiteral("furoshiki_guide_done")},
+#endif
                               {QStringLiteral("Read the on-request boxes (OCR)"), QStringLiteral("furoshiki_ocr_read")}};
         if (Reader::ConsoleTraits::HasNextChoice) {
             actions.insert(3, {QStringLiteral("Next choice"), QStringLiteral("reader_next_choice")});

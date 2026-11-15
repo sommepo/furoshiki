@@ -394,6 +394,9 @@ void Backlog(QWidget* parent) {
     buttons->addWidget(older);
     buttons->addStretch(1);
     buttons->addWidget(explain);
+#ifdef READER_NO_EXPLAIN // a published Furoshiki has no Explain
+    explain->hide();
+#endif
     buttons->addWidget(card);
     buttons->addWidget(close);
     layout->addLayout(buttons);

@@ -660,7 +660,10 @@ class ReaderOverlay(
         if (height == 0) return
         // The cap is for the whole panel: take off the button row and the panel's padding.
         val chrome = dp(40f) + panel.paddingTop + panel.paddingBottom
-        textScroll.maxHeight = (height * settings.panelHeightPercent / 100 - chrome).coerceAtLeast(dp(40f))
+        // On the second display, the trackpad's, the line is the thing to read there and the app's
+        // keys have a strip of their own below: it may take more than over a game.
+        val percent = if (secondary) maxOf(settings.panelHeightPercent, SECOND_PANEL_PERCENT) else settings.panelHeightPercent
+        textScroll.maxHeight = (height * percent / 100 - chrome).coerceAtLeast(dp(40f))
     }
 
     private fun updateVisibility() {
@@ -1172,6 +1175,9 @@ class ReaderOverlay(
     private companion object {
         /** How much larger a line read from the picture is drawn on a second display. */
         private const val FROM_PICTURE_SCALE = 1.4f
+
+        /** At least this much of the second display may be the line's panel (applySizes). */
+        private const val SECOND_PANEL_PERCENT = 55
 
         /** How long a line may take to be placed in the game's picture before the panel shows
          * it instead. The game reports the place within a frame or two of the text. */

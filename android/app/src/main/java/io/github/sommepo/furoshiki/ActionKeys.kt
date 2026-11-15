@@ -27,13 +27,10 @@ object ActionKeys {
         Action("stats", R.string.action_stats),
         Action("card", R.string.action_card),
         Action("log", R.string.action_log),
-        Action("explain", R.string.action_explain),
         Action("ocr_now", R.string.action_ocr_now),
         Action("panel", R.string.action_panel),
         Action("next_choice", R.string.action_next_choice),
         Action("fast", R.string.action_fast),
-        Action("guide", R.string.action_guide),
-        Action("guide_done", R.string.action_guide_done),
         Action("quick_menu", R.string.action_quick_menu),
         Action("menu", R.string.action_menu),
     )

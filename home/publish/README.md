@@ -100,8 +100,6 @@ laid out for phones, folding phones and handhelds with two displays.
 - **Backlog** of everything read, with each line's speaker where the game names one.
 - **Names**: each supported game comes with its characters' names and readings, looked up before
   the general dictionaries.
-- **Explain** (Ctrl+E): a line's translation and grammar from Claude Code on your own computer,
-  if you have it installed. Nothing is sent anywhere otherwise.
 - **The popup** has a design page with a live preview, and an opacity slider so the game shows
   through it.
 - **Reading figures** for each title: characters read, time, and characters an hour.
@@ -139,10 +137,11 @@ it the title in hand with the buttons to play it and the consoles' pages.
 
 <p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="The AYN Thor's two displays: the shelf with Wish Room's cover above, and below it Wish Room's figures, Continue, and the consoles' pages as buttons"></p>
 
-In a game, tap a word in its text and the popup opens beside it; the lower display holds the
-line, the backlog and the keys for cards, the pause and the menu.
+In a game, tap a word in its text and the popup opens beside it. The lower display is a
+trackpad for the pointer, with the line shown large above a row of keys: pause the game, pause
+the reading figures, a card, the backlog and the menu.
 
-<p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: 黙れ tapped in the message window opens 黙る, だまる, imperative, to be silent"></p>
+<p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: 完璧 looked up in the message window (かんぺき, perfect; complete; flawless); below, the lower display's trackpad, the line, and the keys Pause, Pause stats, Card, Log and Menu"></p>
 
 ## Supported games
 

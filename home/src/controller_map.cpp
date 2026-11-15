@@ -137,6 +137,17 @@ const Data& Load() {
         }
         for (const QJsonValue& value : root.value(QStringLiteral("actions")).toArray()) {
             const QJsonObject o = value.toObject();
+#ifdef READER_NO_SAVE_SYNC
+            // The playthrough guides come with save sync's pairing: a published build has none.
+            if (o.value(QStringLiteral("id")).toString().startsWith(QStringLiteral("furoshiki_guide"))) {
+                continue;
+            }
+#endif
+#ifdef READER_NO_EXPLAIN
+            if (o.value(QStringLiteral("id")).toString() == QStringLiteral("reader_explain")) {
+                continue;
+            }
+#endif
             out.actions.append({o.value(QStringLiteral("id")).toString(), o.value(QStringLiteral("label")).toString(),
                                 o.value(QStringLiteral("setting")).toString(), o.value(QStringLiteral("held")).toBool(),
                                 o.value(QStringLiteral("desktop")).toBool()});

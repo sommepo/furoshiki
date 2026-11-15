@@ -264,6 +264,7 @@ void ReaderController::BuildMenu() {
     });
     action_undo_card = add(tr("Take the last card &back"), QStringLiteral("reader_undo_card"),
                            [this] { lookups->UndoLast(); });
+#ifndef READER_NO_EXPLAIN // a published Furoshiki has no Explain
     action_explain = add(tr("&Explain this line…"), QStringLiteral("reader_explain"), [this] {
         if (!ReaderSession::Instance().Current()) {
             Notify(tr("No line has been read yet"));
@@ -271,6 +272,10 @@ void ReaderController::BuildMenu() {
         }
         RunDialog([](QWidget* parent) { RunExplainDialog(parent); });
     });
+    action_explain->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_E));
+    action_explain->setShortcutContext(Qt::WindowShortcut);
+    render_window->addAction(action_explain);
+#endif
     menu->addSeparator();
     add(tr("&Dictionaries…"), QStringLiteral("reader_dictionaries"), [this] {
         RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
@@ -405,11 +410,10 @@ void ReaderController::BuildMenu() {
     action_pause_stats->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
     action_pause_game->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_G));
     action_next_choice->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
-    action_explain->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_E));
     action_word_card->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_W));
     action_undo_card->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
     for (QAction* action : {action_sentence_card, action_backlog, action_pause_stats, action_pause_game,
-                            action_next_choice, action_explain, action_word_card, action_undo_card}) {
+                            action_next_choice, action_word_card, action_undo_card}) {
         action->setShortcutContext(Qt::WindowShortcut);
         render_window->addAction(action);
     }

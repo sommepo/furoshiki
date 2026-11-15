@@ -2162,9 +2162,11 @@ void HomeWindow::PaintStage(QPainter& p) {
         // Read on another device since it was read here: its save is fetched as the game starts.
         facts.append({QStringLiteral("ELSEWHERE"), QStringLiteral("%1  ·  %2").arg(other->first.toUpper(), DayText(other->second, true).toUpper())});
     }
+#ifndef READER_NO_SAVE_SYNC // the guides are the dev line's
     if (!record.guide.isEmpty()) {
         facts.append({QStringLiteral("GUIDE"), record.guide.toUpper().replace(QLatin1Char('-'), QLatin1Char(' '))});
     }
+#endif
     const bool art_missing = ArtMissing(game);
     if (art_missing || art_said_of == game.id) {
         const bool looking = art_finder != nullptr && art_finder->Busy() && art_finder->GameId() == game.id;

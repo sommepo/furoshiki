@@ -33,7 +33,8 @@ object Explain {
     private fun file(context: Context) = File(context.filesDir, "explanations.json")
 
     /** Whether there is anyone to ask. */
-    fun offered(context: Context): Boolean = Services.of(context, "furochibi").isNotEmpty()
+    fun offered(context: Context): Boolean =
+        false
 
     fun keyOf(line: String): String =
         MessageDigest.getInstance("SHA-1").digest(line.trim().toByteArray()).joinToString("") { "%02x".format(it) }
