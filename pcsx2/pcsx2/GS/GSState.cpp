@@ -2543,6 +2543,29 @@ namespace
 	std::mutex s_reader_rule_mutex;
 	Reader2DRule s_reader_rule;
 	std::atomic<int> s_reader_rule_generation{0};
+
+	// Reader fork: the wide picture's frames without 3D (a film, a still, a menu of pictures: nothing
+	// in them fills the width). Such a frame is drawn as the game draws it, nothing squeezed, and
+	// shown whole in the picture's middle with soft sides (GSDevice::ReaderWideFill). A frame is one
+	// span between two vertical syncs with draws in it; "flat" begins after two of them without a
+	// draw of the game's world and ends at the first such draw, so the 2D drawn after it in the same
+	// frame is squeezed as before. Each buffer keeps how it was drawn last, for the frame shown.
+	// Only the GS thread touches these. Needs proper testing on a real wide screen.
+	bool s_reader_flat = false;
+	int s_reader_flat_run = 0;
+	bool s_reader_span_draws = false;
+	std::array<u8, 512> s_reader_buffer_flat{};
+	const bool s_reader_sides = !(std::getenv("READER_WIDE_SIDES") && std::atoi(std::getenv("READER_WIDE_SIDES")) == 0);
+	const bool s_reader_sides_log = std::getenv("READER_WIDE_LOG") != nullptr;
+
+	void ReaderFlatSet(bool flat, const char* why)
+	{
+		if (flat != s_reader_flat && s_reader_sides_log)
+			Console.WriteLn(fmt::format("wide: frames without 3D {} ({})", flat ? "begin" : "end", why));
+		s_reader_flat = flat;
+		if (!flat)
+			s_reader_flat_run = 0;
+	}
 } // namespace
 
 void GSSetReader2DSqueeze(float squeeze)
@@ -2614,6 +2637,62 @@ void GSState::ReaderSqueeze2D()
 	const float squeeze = s_reader_squeeze.load(std::memory_order_relaxed);
 	if (squeeze >= 0.999f || m_index->tail == 0)
 		return;
+	const u32 buffer = m_context->FRAME.FBP & 0x1FF;
+	const bool world = ReaderSqueezeDraw(squeeze, !(s_reader_flat && s_reader_sides));
+	s_reader_span_draws = true;
+	if (world)
+		ReaderFlatSet(false, "a draw of the world");
+	s_reader_buffer_flat[buffer] = s_reader_flat;
+}
+
+// Whether the frame shown at this vertical sync is one without 3D, to be shown whole in the
+// picture's middle: `squeeze` then, 1 otherwise. Called once a sync (GSRenderer::Merge).
+float GSState::ReaderWideFrame()
+{
+	const float squeeze = s_reader_squeeze.load(std::memory_order_relaxed);
+	if (squeeze >= 0.999f || !s_reader_sides)
+	{
+		s_reader_flat = false;
+		s_reader_flat_run = 0;
+		s_reader_span_draws = false;
+		return 1.0f;
+	}
+	if (s_reader_span_draws)
+	{
+		// A draw of the world has ended the run already (ReaderSqueeze2D).
+		if (!s_reader_flat && ++s_reader_flat_run > 2)
+			ReaderFlatSet(true, "two frames without one");
+		s_reader_span_draws = false;
+	}
+	bool flat = false;
+	for (int i = 0; i < 2; i++)
+	{
+		if (PCRTCDisplays.PCRTCDisplays[i].enabled)
+			flat = s_reader_buffer_flat[m_regs->DISP[i].DISPFB.FBP & 0x1FF] != 0;
+	}
+	return flat ? squeeze : 1.0f;
+}
+
+// A picture sent straight into the shown buffer (a film without draws) counts as a frame's draw.
+void GSState::ReaderWideTransfer(u32 block)
+{
+	if (s_reader_squeeze.load(std::memory_order_relaxed) >= 0.999f || (block & 31) != 0)
+		return;
+	for (int i = 0; i < 2; i++)
+	{
+		if (PCRTCDisplays.PCRTCDisplays[i].enabled && m_regs->DISP[i].DISPFB.Block() == block)
+		{
+			s_reader_span_draws = true;
+			s_reader_buffer_flat[(block >> 5) & 0x1FF] = s_reader_flat;
+		}
+	}
+}
+
+// Squeezes the draw if it is the game's 2D (`apply`: not in a frame without 3D, which is shown
+// whole instead). Returns whether the draw is one of the game's world: not 2D by the rule, not a
+// copy of a drawn picture or a fill, and with depth in it (no sprite, no picture at one depth).
+bool GSState::ReaderSqueezeDraw(float squeeze, bool apply)
+{
 	static Reader2DRule rule;
 	static int rule_generation = -1;
 	if (rule_generation != s_reader_rule_generation.load())
@@ -2651,15 +2730,33 @@ void GSState::ReaderSqueeze2D()
 			(low - (int)m_context->XYOFFSET.OFX) / 16, (high - (int)m_context->XYOFFSET.OFX) / 16,
 			m_context->scissor.in.x, m_context->scissor.in.z));
 	}
+	// A draw the rule does not look at (another buffer, another offset) is the world's when it
+	// looks like 3D: triangles with perspective texture coordinates or a depth test.
+	const GS_PRIM_CLASS prim_class = GSUtil::GetPrimClass(PRIM->PRIM);
+	const bool depth_tested = m_context->TEST.ZTE && m_context->TEST.ZTST > ZTST_ALWAYS;
+	// The world has depth: a draw whose points all lie at one depth is a picture, whatever it is
+	// drawn with (a title's background of depth-tested triangles), and so is every sprite.
+	const auto has_depth = [this, prim_class]() {
+		if (prim_class == GS_SPRITE_CLASS || m_index->tail == 0)
+			return false;
+		const u32 z = m_vertex->buff[m_index->buff[0]].XYZ.Z;
+		for (u32 i = 1; i < m_index->tail; i++)
+		{
+			if (m_vertex->buff[m_index->buff[i]].XYZ.Z != z)
+				return true;
+		}
+		return false;
+	};
+	const bool like_3d = prim_class == GS_TRIANGLE_CLASS && ((PRIM->TME && !PRIM->FST) || depth_tested) && has_depth();
 	if (display < 0 || static_cast<int>(m_context->FRAME.FBW) * 64 < rule.min_width)
-		return;
+		return like_3d;
 
 	if (!rule.frames.empty() && std::find(rule.frames.begin(), rule.frames.end(), frame) == rule.frames.end())
-		return;
+		return like_3d;
 	const u32 ofx = m_context->XYOFFSET.OFX;
 	if ((!rule.ofx.empty() && std::find(rule.ofx.begin(), rule.ofx.end(), ofx) == rule.ofx.end()) ||
 		std::find(rule.not_ofx.begin(), rule.not_ofx.end(), ofx) != rule.not_ofx.end())
-		return;
+		return like_3d;
 	// Pieces with a frame of their own, by its offset: moved whole (3D in a box, which the game's own
 	// width scale has narrowed already), or 2D whatever it is drawn with.
 	if (std::find(rule.move_ofx.begin(), rule.move_ofx.end(), ofx) != rule.move_ofx.end() ||
@@ -2672,30 +2769,30 @@ void GSState::ReaderSqueeze2D()
 		// The frame's middle on the screen, and how far the squeeze takes it.
 		const float frame_px = (32768.0f - static_cast<float>(ofx)) / 16.0f;
 		const float shift = (frame_px - middle_px) * (squeeze - 1.0f) * 16.0f;
-		for (u32 i = 0; i < m_vertex->tail; i++)
+		// A moved piece is 3D in a box: the world's, and moved in any case.
+		for (u32 i = 0; (apply || move) && i < m_vertex->tail; i++)
 		{
 			GSVertex& v = m_vertex->buff[i];
 			const float x = move ? static_cast<float>(v.XYZ.X) + shift : middle + (static_cast<float>(v.XYZ.X) - middle) * squeeze;
 			v.XYZ.X = static_cast<u16>(std::clamp(x, 0.0f, 65535.0f));
 		}
-		ReaderSqueezeScissor(squeeze, middle_px, std::max(rect.z - rect.x, 1));
-		return;
+		if (apply || move)
+			ReaderSqueezeScissor(squeeze, middle_px, std::max(rect.z - rect.x, 1));
+		return move;
 	}
-	const GS_PRIM_CLASS prim_class = GSUtil::GetPrimClass(PRIM->PRIM);
 	const bool flat = rule.prim_types.empty()
 		? (prim_class == GS_SPRITE_CLASS || (prim_class == GS_TRIANGLE_CLASS && PRIM->TME && PRIM->FST) ||
 			  (rule.fst && PRIM->FST))
 		: std::find(rule.prim_types.begin(), rule.prim_types.end(), static_cast<u32>(PRIM->PRIM)) != rule.prim_types.end(); // the draw's own, as the log prints it
 	if (!rule.prim_types.empty() && !flat)
-		return;
-	const bool depth_tested = m_context->TEST.ZTE && m_context->TEST.ZTST > ZTST_ALWAYS;
+		return has_depth();
 	if (!(flat || rule.any_prim) || (depth_tested && !rule.depth && !(rule.depth_flat && flat)))
-		return;
+		return has_depth();
 	// A copy of a picture drawn before: its texture is where a buffer drawn into lately begins.
 	if (PRIM->TME && !rule.nocopy && (rule.frames.empty()
 						 ? std::find(drawn.begin(), drawn.end(), m_context->TEX0.TBP0 + 1) != drawn.end()
 						 : std::find(rule.frames.begin(), rule.frames.end(), m_context->TEX0.TBP0) != rule.frames.end()))
-		return;
+		return false;
 
 	GSVertexBuff& vtx_buff = *m_vertex;
 	GSIndexBuff& idx_buff = *m_index;
@@ -2713,8 +2810,10 @@ void GSState::ReaderSqueeze2D()
 		}
 		const int oy = static_cast<int>(m_context->XYOFFSET.OFY);
 		if ((static_cast<int>(top) - oy) / 16 >= shown_rect.w || (static_cast<int>(bottom) - oy) / 16 <= shown_rect.y)
-			return;
+			return false;
 	}
+	if (!apply)
+		return false; // a frame without 3D: its 2D as the game draws it
 	// As wide as the picture, nearly (a fade, a bar, a picture copied in strips, a film): left,
 	// unless the rule says the game's are 2D too. By the whole draw (a full-screen overlay drawn in
 	// tiles is a fill); with "each", sprites one by one (a batch of letters spread over the screen is
@@ -2740,7 +2839,7 @@ void GSState::ReaderSqueeze2D()
 		}
 		if (any)
 			ReaderSqueezeScissor(squeeze, middle_px, width);
-		return;
+		return false;
 	}
 	if (keep_wide)
 	{
@@ -2758,10 +2857,10 @@ void GSState::ReaderSqueeze2D()
 			const int right = static_cast<int>(ofx) + shown_rect.z * 16;
 			const int slack = width * 16 / 50;
 			if (static_cast<int>(low) <= left + slack && static_cast<int>(high) >= right - slack)
-				return;
+				return false;
 		}
 		else if ((high - low) >= width * 16 * rule.full / 100)
-			return;
+			return false;
 	}
 	// The picture's middle, on the screen (pixels) and in the draw's units (1/16 pixel, offset).
 	const float middle_px = (shown_rect.x + shown_rect.z) * 0.5f;
@@ -2773,6 +2872,7 @@ void GSState::ReaderSqueeze2D()
 		v.XYZ.X = static_cast<u16>(std::clamp(x, 0.0f, 65535.0f));
 	}
 	ReaderSqueezeScissor(squeeze, middle_px, width);
+	return false;
 }
 
 // A scissor narrower than the picture (a piece's own frame) goes with the 2D in it.
@@ -3205,6 +3305,7 @@ void GSState::Write(const u8* mem, int len)
 
 		r = m_tr.rect;
 
+		ReaderWideTransfer(blit.DBP); // Reader fork: a film sent straight into the shown buffer
 		s_last_transfer_draw_n = s_n;
 		// Store the transfer for preloading new RT's.
 		if ((m_draw_transfers.size() > 0 && blit.DBP == m_draw_transfers.back().blit.DBP && m_draw_transfers.back().transfer_type == EEGS_TransferType::EE_to_GS))

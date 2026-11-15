@@ -1409,7 +1409,7 @@ class ScreenTextOverlayTest {
         var dialog = open()
         val offered = (0 until dialog.listView.adapter.count).map { dialog.listView.adapter.getItem(it).toString() }
         assertEquals(
-            listOf("As in Reader settings (Ask for each card)", "Always add it", "Ask for each card", "Never add it"),
+            listOf("As in the settings (Ask for each card)", "Always add it", "Ask for each card", "Never add it"),
             offered
         )
         assertEquals("the game has no choice of its own yet", 0, dialog.listView.checkedItemPosition)

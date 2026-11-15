@@ -17,6 +17,7 @@
 
 // The reader has a Lua of its own, built as C++ (see reader/CMakeLists.txt), so no extern "C". Lua errors
 // are therefore C++ exceptions and unwind through the bindings below safely.
+#include <tuple>
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
@@ -789,6 +790,8 @@ function reader.forget(slot)
 end
 )lua";
 
+#include "reader/core/hook_description.inc"
+
 /// lua_CFunction: sets up the state at index 1 (the engine, as light userdata).
 int Install(lua_State* L) {
     Engine& engine = *static_cast<Engine*>(lua_touserdata(L, 1));
@@ -849,6 +852,15 @@ int Install(lua_State* L) {
     }
     lua_pushcfunction(L, BudgetExhausted);
     lua_call(L, 1, 0);
+    // A game read by a hook description: text.resub and reader.hooks (hook_description.inc).
+    for (const auto& [chunk, size, name] :
+         {std::tuple{HookRegexPrelude, sizeof(HookRegexPrelude) - 1, "=reader regex"},
+          std::tuple{HookRunnerPrelude, sizeof(HookRunnerPrelude) - 1, "=reader hooks"}}) {
+        if (luaL_loadbufferx(L, chunk, size, name, "t") != LUA_OK) {
+            return lua_error(L);
+        }
+        lua_call(L, 0, 0);
+    }
     return 0;
 }
 

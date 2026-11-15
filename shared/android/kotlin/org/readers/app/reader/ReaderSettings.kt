@@ -5,12 +5,10 @@ package org.readers.app.reader
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 
 /** Typed access to the reader's preferences. Keys match the pages res/xml/reader_prefs_*.xml. */
 class ReaderSettings(context: Context) {
-    val preferences: SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
+    val preferences: SharedPreferences = fresh(context)
 
     init {
         // An advance button kept by the old numbers is turned into the new one before the
@@ -46,8 +44,11 @@ class ReaderSettings(context: Context) {
     /** The popup goes away by itself after this long without being touched; 0: it stays. */
     val popupAutoHideSeconds get() = preferences.getInt(KEY_POPUP_AUTOHIDE, 15).coerceIn(0, 120)
 
-    /** With the cursor: the popup goes away when the cursor leaves its word and the popup. */
-    val popupHideOnCursorExit get() = preferences.getBoolean(KEY_POPUP_HIDE_ON_EXIT, false)
+    /**
+     * With the cursor: the popup goes away when the cursor leaves its word and the popup. On by
+     * default since 2026-11-15 (the maintainer's choice on the Thor, made the published default).
+     */
+    val popupHideOnCursorExit get() = preferences.getBoolean(KEY_POPUP_HIDE_ON_EXIT, true)
 
     /**
      * The popup's look: "console" (the first value: the popup page in the console's colours),
@@ -56,8 +57,8 @@ class ReaderSettings(context: Context) {
     val popupTheme: String get() = preferences.getString(KEY_POPUP_THEME, "console")
         .let { value -> if (value == "classic" || value in POPUP_THEMES) value!! else "console" }
 
-    /** How solid the popup's ground is, 20 to 100 %; 0: as its look has it. */
-    val popupOpacity: Int get() = preferences.getInt(KEY_POPUP_OPACITY, 0).coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
+    /** How solid the popup's ground is, 20 to 100 %; 0: as its look has it. 90 by default (2026-11-15). */
+    val popupOpacity: Int get() = preferences.getInt(KEY_POPUP_OPACITY, POPUP_OPACITY_DEFAULT).coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
 
     /** The popup's corners, 0 to 28 px; -1: as its look has them. */
     val popupRadius: Int get() = preferences.getInt(KEY_POPUP_RADIUS, -1).coerceIn(-1, 28)
@@ -83,6 +84,43 @@ class ReaderSettings(context: Context) {
     val popupMarkUnknown get() = preferences.getBoolean(KEY_POPUP_MARK_UNKNOWN, true)
 
     /**
+     * The words of a line underlined by how well Anki has them (an app that shows lines, such as
+     * Furochibi, draws them): words well known are left as they are, weak ones and new ones
+     * (not in Anki, or never reviewed) each get an underline in their own colour. Off where an
+     * app does not say otherwise ([wordMarksDefault]).
+     */
+    fun wordMarks(wordMarksDefault: Boolean = false) = preferences.getBoolean(KEY_WORD_MARKS, wordMarksDefault)
+
+    /** Where weak stops and well known starts (anki.WordMarkRule; its defaults suit a 75 % retention). */
+    val wordMarkRule: org.readers.app.reader.anki.WordMarkRule get() = org.readers.app.reader.anki.WordMarkRule(
+        minRetrievability = preferences.getInt(KEY_WORD_MARKS_MIN_R, 75).coerceIn(0, 99),
+        minInterval = preferences.getInt(KEY_WORD_MARKS_MIN_INTERVAL, 21).coerceIn(0, 3650),
+        minReviews = preferences.getInt(KEY_WORD_MARKS_MIN_REVIEWS, 0).coerceIn(0, 1000),
+        maxLapses = preferences.getInt(KEY_WORD_MARKS_MAX_LAPSES, -1).coerceIn(-1, 1000),
+        unreviewed = preferences.getString(KEY_WORD_MARKS_UNREVIEWED, null)
+            .takeIf { it == org.readers.app.reader.anki.WordMarkRule.UNREVIEWED_WEAK }
+            ?: org.readers.app.reader.anki.WordMarkRule.UNREVIEWED_NEW,
+        suspended = when (val value = preferences.getString(KEY_WORD_MARKS_SUSPENDED, null)) {
+            org.readers.app.reader.anki.WordMarkRule.SUSPENDED_KNOWN, org.readers.app.reader.anki.WordMarkRule.SUSPENDED_NEW -> value
+            else -> org.readers.app.reader.anki.WordMarkRule.SUSPENDED_RULE
+        },
+        search = preferences.getString(KEY_WORD_MARKS_SEARCH, "")!!,
+    )
+
+    /**
+     * A word not in Anki that is among the commonest this many (by the frequency dictionaries'
+     * ranks) counts as well known; 0 for none. 2000 by default: of the user's mined words, under
+     * 1 % rank higher than that (measured 2026-11-13).
+     */
+    val wordMarkCommonRank get() = preferences.getInt(KEY_WORD_MARKS_COMMON, 2000).coerceIn(0, 100_000)
+
+    /** The colour of a weak word's underline (Jiten Reader's "young": #d08700). */
+    val wordMarkWeakColor get() = preferences.getInt(KEY_WORD_MARKS_WEAK_COLOR, WORD_MARK_WEAK_DEFAULT)
+
+    /** The colour of a new word's underline (Jiten Reader's "new": #a566ef). */
+    val wordMarkNewColor get() = preferences.getInt(KEY_WORD_MARKS_NEW_COLOR, WORD_MARK_NEW_DEFAULT)
+
+    /**
      * What the popup says of how often a word was looked up: "off", "count" (the first value)
      * or "where" (with when and in which game first).
      */
@@ -99,7 +137,20 @@ class ReaderSettings(context: Context) {
      * trackpad for a cursor on the game's picture (by the numbers the app hears its buttons by:
      * [Console.CURSOR_BUTTON_DEFAULT]). -1 for none.
      */
-    val cursorButton get() = preferences.getString(KEY_CURSOR_BUTTON, null)?.toIntOrNull() ?: Console.CURSOR_BUTTON_DEFAULT
+    val cursorButton get() = preferences.getString(layered(KEY_CURSOR_BUTTON), null)?.toIntOrNull() ?: Console.CURSOR_BUTTON_DEFAULT
+
+    /**
+     * A button's setting as the console in play has it (the controller mapping screen's layer
+     * `<key>@<console>`, [ButtonMap]), else all consoles' plain key.
+     */
+    private fun layered(key: String): String =
+        console?.takeIf { it.isNotEmpty() }?.let { "$key@$it" }?.takeIf { preferences.contains(it) } ?: key
+
+    /** The button that opens the lookup menu (the reader's menu over the game); -1 for none. */
+    val menuButton get() = preferences.getString(layered(KEY_MENU_BUTTON), "-1")!!.toIntOrNull() ?: -1
+
+    /** The action put on [button] (an action id of shared/controllers/controllers.json), or null. */
+    fun buttonAction(button: Int): String? = ButtonMap.action(preferences, button, console)
 
     /**
      * On a device with two displays: the one the game is not on is the cursor's trackpad (and
@@ -115,15 +166,15 @@ class ReaderSettings(context: Context) {
 
     /**
      * On a character of the game's text the cursor is a frame around that character. Off: it
-     * stays a ring that moves freely over the text.
+     * stays a ring that moves freely over the text. Off by default since 2026-11-15.
      */
-    val cursorFrame get() = preferences.getBoolean(KEY_CURSOR_FRAME, true)
+    val cursorFrame get() = preferences.getBoolean(KEY_CURSOR_FRAME, false)
 
     /**
      * With a new line the cursor is put just before its first character. Off: it stays where
-     * it was left.
+     * it was left. Off by default since 2026-11-15.
      */
-    val cursorHome get() = preferences.getBoolean(KEY_CURSOR_HOME, true)
+    val cursorHome get() = preferences.getBoolean(KEY_CURSOR_HOME, false)
 
     // ---- Panel ----
     val panelEnabled get() = preferences.getBoolean(KEY_PANEL_ENABLED, true)
@@ -141,17 +192,19 @@ class ReaderSettings(context: Context) {
 
     /**
      * The game's button pressed by the panel's advance control and by touch play, as the
-     * console numbers it ([Console.advanceButton]). A value kept by an older numbering is turned
-     * into the button it meant, and kept so.
+     * console numbers it ([Console.advanceButton]); kept as it was chosen, by place.
+     *
+     * Until 2026-11-14 reading it also wrote back the console's number, which the next read took
+     * for a place again: the button wandered with every read (in Furoshiki, from one console to
+     * the next too), and a tap pressed whatever it had come to (Kanon's SELECT, its menu's text).
+     * The value kept then is taken out once ([KEY_ADVANCE_BUTTON_FIXED]): each console's yes.
      */
     val advanceButton: Int
         get() {
-            val kept = preferences.getString(KEY_ADVANCE_BUTTON, null)
-            val now = Console.advanceButton(kept)
-            if (kept != null && kept != now.toString()) {
-                preferences.edit().putString(KEY_ADVANCE_BUTTON, now.toString()).apply()
+            if (!preferences.getBoolean(KEY_ADVANCE_BUTTON_FIXED, false)) {
+                preferences.edit().remove(KEY_ADVANCE_BUTTON).putBoolean(KEY_ADVANCE_BUTTON_FIXED, true).apply()
             }
-            return now
+            return Console.advanceButton(preferences.getString(KEY_ADVANCE_BUTTON, null))
         }
 
     /**
@@ -211,10 +264,10 @@ class ReaderSettings(context: Context) {
 
     // ---- Mining ----
     /** The controller button that pauses and resumes the statistics; -1 for none. */
-    val statsButton get() = preferences.getString(KEY_STATS_BUTTON, "-1")!!.toIntOrNull() ?: -1
+    val statsButton get() = preferences.getString(layered(KEY_STATS_BUTTON), "-1")!!.toIntOrNull() ?: -1
 
     /** The controller button that goes on to the next choice (and stops it); -1 for none. */
-    val nextChoiceButton get() = preferences.getString(KEY_NEXT_CHOICE_BUTTON, "-1")!!.toIntOrNull() ?: -1
+    val nextChoiceButton get() = preferences.getString(layered(KEY_NEXT_CHOICE_BUTTON), "-1")!!.toIntOrNull() ?: -1
 
     val captureAudio get() = preferences.getBoolean(KEY_CAPTURE_AUDIO, true)
     val audioHistorySeconds get() = 90
@@ -359,9 +412,23 @@ class ReaderSettings(context: Context) {
         const val KEY_POPUP_AUTOHIDE = "reader_popup_autohide"
         const val KEY_POPUP_HIDE_ON_EXIT = "reader_popup_hide_on_exit"
         const val KEY_POPUP_MARK_UNKNOWN = "reader_popup_mark_unknown"
+        const val KEY_WORD_MARKS = "reader_word_marks"
+        const val KEY_WORD_MARKS_MIN_R = "reader_word_marks_min_r"
+        const val KEY_WORD_MARKS_MIN_INTERVAL = "reader_word_marks_min_interval"
+        const val KEY_WORD_MARKS_MIN_REVIEWS = "reader_word_marks_min_reviews"
+        const val KEY_WORD_MARKS_MAX_LAPSES = "reader_word_marks_max_lapses"
+        const val KEY_WORD_MARKS_UNREVIEWED = "reader_word_marks_unreviewed"
+        const val KEY_WORD_MARKS_SUSPENDED = "reader_word_marks_suspended"
+        const val KEY_WORD_MARKS_COMMON = "reader_word_marks_common"
+        const val KEY_WORD_MARKS_SEARCH = "reader_word_marks_search"
+        const val KEY_WORD_MARKS_WEAK_COLOR = "reader_word_marks_weak_color"
+        const val KEY_WORD_MARKS_NEW_COLOR = "reader_word_marks_new_color"
+        const val WORD_MARK_WEAK_DEFAULT = 0xFFD08700.toInt()
+        const val WORD_MARK_NEW_DEFAULT = 0xFFA566EF.toInt()
         const val KEY_POPUP_THEME = "reader_popup_theme"
         const val KEY_POPUP_CSS = "reader_popup_css"
         const val KEY_POPUP_OPACITY = "reader_popup_opacity"
+        const val POPUP_OPACITY_DEFAULT = 90
         const val KEY_POPUP_RADIUS = "reader_popup_radius"
         const val KEY_POPUP_COMPACT = "reader_popup_compact"
         const val KEY_POPUP_HIDE_TAGS = "reader_popup_hide_tags"
@@ -387,10 +454,29 @@ class ReaderSettings(context: Context) {
         const val KEY_SHOW_CHOICES = "reader_show_choices"
         const val KEY_REREAD_COLOUR = "reader_reread_colour"
         const val KEY_ADVANCE_BUTTON = "reader_advance_button"
+        const val KEY_ADVANCE_BUTTON_FIXED = "reader_advance_button_fixed"
         const val KEY_TOUCH_PLAY = "reader_touch_play"
         const val KEY_STATS_PAUSED = "reader_stats_paused"
         const val KEY_STATS_BUTTON = "reader_stats_button"
         const val KEY_NEXT_CHOICE_BUTTON = "reader_next_choice_button"
+        const val KEY_MENU_BUTTON = "reader_menu_button"
+
+        /**
+         * The console of the game in play (its key: psp, ps2, switch...), set as a game starts:
+         * the buttons' settings of that console's layer win ([ButtonMap]). Null: all consoles'.
+         */
+        @Volatile
+        var console: String? = null
+
+        /**
+         * The preferences, read again where another process wrote them since (the app's page
+         * writes the controller's buttons from its own process; the reader's screens and games
+         * run in another, which would otherwise keep, and write back, what it read first).
+         */
+        @Suppress("DEPRECATION")
+        fun fresh(context: Context): SharedPreferences = context.applicationContext.getSharedPreferences(
+            context.applicationContext.packageName + "_preferences", Context.MODE_MULTI_PROCESS
+        )
         const val KEY_IDLE_MINUTES = "reader_idle_minutes"
         const val KEY_SESSION_HUD = "reader_session_hud"
         const val KEY_STATS_STYLE = "reader_stats_style"

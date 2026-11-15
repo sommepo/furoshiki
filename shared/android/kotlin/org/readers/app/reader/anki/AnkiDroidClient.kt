@@ -80,6 +80,8 @@ class AnkiDroidClient(private val context: Context) : AnkiClient {
         val target = NOTES_URI.buildUpon().appendQueryParameter("deckId", deckId.toString()).build()
         val created = guard { resolver.insert(target, values) }
             ?: throw AnkiException("AnkiDroid did not create the note")
+        unsynced = true
+        afterAdd?.invoke(context)
         return created.lastPathSegment?.toLongOrNull() ?: 0L
     }
 
@@ -189,5 +191,53 @@ class AnkiDroidClient(private val context: Context) : AnkiClient {
 
         fun hasPermission(context: Context): Boolean =
             ContextCompat.checkSelfPermission(context, PERMISSION) == PackageManager.PERMISSION_GRANTED
+
+        /**
+         * Cards added here since AnkiDroid was last asked to sync. AnkiDroid syncs by itself only
+         * when it is opened or closed, so a card made in a game would wait on the device; the
+         * user's (2026-11-13) is a sync server of their own, and new cards are to reach it.
+         */
+        @Volatile
+        var unsynced = false
+            private set
+
+        /** What an app does after each card added: Furochibi asks for a sync a little later. */
+        @Volatile
+        var afterAdd: ((Context) -> Unit)? = null
+
+        private val main by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
+        private val syncNow = Runnable { pendingContext?.let { requestSync(it) } }
+        @Volatile
+        private var pendingContext: Context? = null
+
+        /**
+         * Asks AnkiDroid to sync (its DO_SYNC, which it runs in the background without a screen of
+         * its own, and spaces out by itself), [delayMs] from now; cards added meanwhile go along.
+         */
+        fun syncSoon(context: Context, delayMs: Long = 20_000L) {
+            pendingContext = context.applicationContext
+            main.removeCallbacks(syncNow)
+            main.postDelayed(syncNow, delayMs)
+        }
+
+        /** Asks AnkiDroid to sync now when cards were added since the last time; false if none were. */
+        fun requestSyncIfUnsynced(context: Context): Boolean {
+            if (!unsynced) return false
+            requestSync(context)
+            return true
+        }
+
+        private fun requestSync(context: Context) {
+            try {
+                context.startActivity(
+                    Intent("com.ichi2.anki.DO_SYNC").setPackage(ANKIDROID_PACKAGE)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                unsynced = false
+            } catch (_: Exception) {
+                // An AnkiDroid without it, or an app in the background that may not start it:
+                // the cards stay for AnkiDroid's own sync when it is opened.
+            }
+        }
     }
 }

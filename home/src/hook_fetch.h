@@ -9,6 +9,8 @@
 //   frida-<version>/    frida-inject, where it did not come with the program (hooks/ beside it)
 //   textractor-<v>/     x86/ and x64/ of Textractor's release (GPL-3.0), fetched at first use
 //   luna-<version>/     LunaTranslator's LunaHook files (GPL-3.0), fetched at first use
+//   luna-tables/        LunaHook's tables of games on emulators (four of its source files, GPL-3.0),
+//                       fetched when asked, for games of our cores read by hook (core_hooks.h)
 // Fetched with the system's curl and tar (Windows 10 and later have both), so that no TLS of
 // the program's own is needed.
 
@@ -40,7 +42,7 @@ inline const QString LunaVersion = QStringLiteral("12.1.3.9");
 
 /// What a kit is fetched from and how large the download is, for the page to say.
 struct Kit {
-    QString key;   ///< "scripts", "frida", "textractor", "luna"
+    QString key;   ///< "scripts", "frida", "textractor", "luna", "luna-tables"
     QString name;
     QString from;  ///< Its address
     QString size;  ///< "1.5 MB"

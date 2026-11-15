@@ -38,6 +38,9 @@ object ReaderGlue : ReaderNative.Frontend {
     private var resumed = false
     private var inFront = false
 
+    /** The app's keys for the second display, when it wants them there (GameActivity sets it before attach). */
+    var lowerKeys: ((Context) -> View?)? = null
+
     /** The game ended, or never started, by itself. GameActivity goes back to the page. */
     var stoppedByItself: (() -> Unit)? = null
 
@@ -62,6 +65,8 @@ object ReaderGlue : ReaderNative.Frontend {
         val secondScreen = SecondScreen(activity) { overlay?.refresh() }
         val readerHost = ReaderHost(activity, secondaryActive = { secondScreen.active })
         secondScreen.host = readerHost
+        // The app's keys along the foot of the second display (LowerKeys), where a game leaves it free.
+        if (!Console.TWO_SCREENS) secondScreen.over = { context -> lowerKeys?.invoke(context) }
         if (Console.TWO_SCREENS) {
             secondScreen.under = { context -> lowerScreen(context) }
             ScreenTextLayer.geometryOf = { secondary, width, height -> twoScreens(secondary, width, height) }

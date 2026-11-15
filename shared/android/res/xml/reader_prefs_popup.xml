@@ -47,7 +47,7 @@
         app:iconSpaceReserved="false" />
     <SwitchPreferenceCompat
         app:key="reader_popup_hide_on_exit"
-        app:defaultValue="false"
+        app:defaultValue="true"
         app:title="@string/reader_pref_popup_hide_on_exit"
         app:summary="@string/reader_pref_popup_hide_on_exit_summary"
         app:iconSpaceReserved="false" />
@@ -61,7 +61,7 @@
         app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_opacity"
-        app:defaultValue="0"
+        app:defaultValue="90"
         app:min="0"
         android:max="100"
         app:seekBarIncrement="5"

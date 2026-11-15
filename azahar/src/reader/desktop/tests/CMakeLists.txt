@@ -25,6 +25,8 @@ add_executable(reader_desktop_tests
     # player's actions (reader.action), the screens of a layout. It is the reader layer every
     # reader fork shares and needs nothing of the emulator but its Lua.
     ${READER_SHARED}/reader/desktop/tests/progress_test.cpp
+    # A game read by a hook description (reader.hooks), likewise.
+    ${READER_SHARED}/reader/desktop/tests/hook_description_test.cpp
     ${READER_SHARED}/reader/core/audio_tap.cpp
     ${READER_SHARED}/reader/core/engine.cpp
     ${READER_SHARED}/reader/core/lua_api.cpp

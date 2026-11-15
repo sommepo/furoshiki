@@ -64,6 +64,14 @@ inline constexpr int LocalHelperFormat = 1;
 /// installed again may answer elsewhere); as it is when it names no folder or the file is gone.
 [[nodiscard]] Lines::Helper Refreshed(const Lines::Helper& helper);
 
+/// The OCR service the device knows by itself: Furochibi's, where a pairing named it
+/// (services.h). The dev line's; a published build knows none until one is typed.
+[[nodiscard]] QString KnownOcrService();
+/// Where OCR runs with these settings (Lines::OcrWhere), and the helper a client asks then
+/// (Lines::InUse): this computer's, or the OCR service with its own source and token.
+[[nodiscard]] QString OcrWhere(const Lines::Helper& helper);
+[[nodiscard]] Lines::Helper OcrInUse(const Lines::Helper& helper);
+
 /// The helper this program started, if any. One for the program.
 class OcrHelper : public QObject {
     Q_OBJECT

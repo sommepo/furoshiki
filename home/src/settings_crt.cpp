@@ -87,7 +87,7 @@ QWidget* SettingsWindow::CrtTab() {
         crt_looks->addItem(QString::fromUtf8(preset.name), QString::fromLatin1(preset.key));
     }
     crt_looks->addItem(QStringLiteral("Your own"), QString());
-    head->addRow(QStringLiteral("Look"), crt_looks);
+    head->addRow(QStringLiteral("Preset"), crt_looks);
     layout->addLayout(head);
     auto* state = new QHBoxLayout;
     crt_note = new QLabel(page);

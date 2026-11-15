@@ -112,7 +112,9 @@ object ReaderInput {
     }
 
     private fun trigger(index: Int, code: Int, value: Float) {
-        val down = value > 0.5f
+        // Down past half-way, up only under a quarter: a long trigger held near the middle
+        // wavers there, and each crossing was a press.
+        val down = if (triggerDown[index]) value > 0.25f else value > 0.5f
         if (down == triggerDown[index]) return
         triggerDown[index] = down
         if (code != HoverCursor.button) return

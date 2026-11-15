@@ -51,6 +51,8 @@ object HoverCursor {
     const val SOURCE_AXIS = 1
     const val SOURCE_TOUCH = 2
     const val SOURCE_HOTKEY = 3
+    /** A trackpad of the controller (the Steam Controller's right pad): the pointer, the sticks left to the game. */
+    const val SOURCE_PAD = 4
 
     /** Whether there is anything to point at: a game is running and its text is being read. */
     var armed: () -> Boolean = { ReaderSession.isActive && ReaderSession.profileStatus.loaded }
@@ -114,8 +116,14 @@ object HoverCursor {
     /** True while the cursor is in use: its button is held, or has switched it on, or [always]. */
     val active: Boolean get() = always || if (toggles) switchedOn else holders.isNotEmpty()
 
-    /** True while the sticks steer the cursor and are kept from the game. */
-    val takesSticks: Boolean get() = active && !always
+    /**
+     * True while the sticks steer the cursor and are kept from the game: not for a controller's
+     * trackpad alone ([SOURCE_PAD]), which points by itself.
+     */
+    val takesSticks: Boolean get() = active && !always && (if (toggles) switchedOn else holders.any { it != SOURCE_PAD })
+
+    /** Whether the sticks are taken from the game now (what [holdSticks] was last told). */
+    private var sticksTaken = false
 
     /**
      * Looks again at whether a second display is the trackpad and whether there is anything
@@ -259,13 +267,23 @@ object HoverCursor {
         val was = active
         // A press counts once: a held key repeats, and a trigger's axis reports its state
         // with every movement of a stick.
+        // A switch flips once a pull: a trigger that reports itself both as a key and as an axis
+        // (the Legion G9's L2) is pressed from two places at once, which flipped it on and off.
+        val heldBefore = holders.any { it != SOURCE_PAD }
         val firstPress = pressed && holders.add(source)
         if (!pressed) holders.remove(source)
-        if (toggles && firstPress) switchedOn = !switchedOn
+        if (toggles && firstPress && source != SOURCE_PAD && !heldBefore) switchedOn = !switchedOn
+        if (active && takesSticks != sticksTaken) {
+            sticksTaken = takesSticks
+            sticks.clear()
+            if (!sticksTaken) {
+                stepping = false
+                main.removeCallbacks(step)
+            }
+            holdSticks(sticksTaken)
+        }
         if (active == was) return
         if (active) {
-            sticks.clear()
-            holdSticks(true)
             everywhere = surfaces.none { it.hasTrackpad() }
             changed()
         } else {
@@ -273,8 +291,41 @@ object HoverCursor {
         }
     }
 
+    /**
+     * A controller's trackpad touched or let go: the cursor shows while it is touched and for a
+     * moment after ([PAD_LINGER_MS]), so that the word it rests on and its popup can be read.
+     */
+    fun padTouch(touching: Boolean) {
+        main.removeCallbacks(padLetGo)
+        if (always) return
+        if (touching) {
+            if (!armed()) return
+            hold(SOURCE_PAD, true)
+        } else if (SOURCE_PAD in holders) {
+            main.postDelayed(padLetGo, PAD_LINGER_MS)
+        }
+    }
+
+    /** The trackpad moved the pointer by ([dx], [dy]) pixels of the main screen's overlay. */
+    fun padMove(dx: Float, dy: Float) {
+        if (!always && SOURCE_PAD !in holders) {
+            if (!armed()) return
+            hold(SOURCE_PAD, true)
+            main.removeCallbacks(padLetGo)
+            main.postDelayed(padLetGo, PAD_LINGER_MS) // rolling on after the finger left
+        }
+        moveBy(dx, dy)
+    }
+
+    private val padLetGo = Runnable { hold(SOURCE_PAD, false) }
+
+    private const val PAD_LINGER_MS = 4000L
+
     private fun released() {
-        holdSticks(false)
+        if (sticksTaken) {
+            sticksTaken = false
+            holdSticks(false)
+        }
         sticks.clear()
         stepping = false
         main.removeCallbacks(step)
@@ -335,6 +386,8 @@ object HoverCursor {
     /** Back to the state before anything was pressed, for tests. */
     fun reset() {
         holders.clear()
+        main.removeCallbacks(padLetGo)
+        sticksTaken = false
         switchedOn = false
         always = false
         toggles = false

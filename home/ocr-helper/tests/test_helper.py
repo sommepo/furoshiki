@@ -92,6 +92,37 @@ class HelperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.get("/api/regions", headers=AUTH)).status, 200)
         self.assertEqual((await self.client.post("/api/feed/another", data=b"x", headers=AUTH)).status, 404)
 
+    async def test_a_picture_sent_to_be_read(self) -> None:
+        # Furoshiki for Android: the text area as a picture, its text and characters' places back.
+        self.told.texts = ["おはよう。"]
+        answer = await self.client.post("/api/ocr/read", data=picture(2), headers=AUTH)
+        self.assertEqual(answer.status, 200)
+        read = await answer.json()
+        self.assertEqual((read["text"], read["engine"]), ("おはよう。", "meikiocr"))
+        self.assertEqual([line["text"] for line in read["lines"]], ["おはよう。"])
+        self.assertEqual(len(read["lines"][0]["boxes"]), 5)
+        self.assertEqual(read["lines"][0]["boxes"][1], [0.2, 0.2, 0.2, 0.6])
+        # Nothing is kept of it, and it made no line.
+        self.assertEqual(len(self.helper.lines), 0)
+        self.assertIsNone(self.helper.frame)
+        self.assertEqual((await self.client.post("/api/ocr/read", data=picture(2))).status, 403)
+        self.assertEqual((await self.client.post("/api/ocr/read", data=b"not a picture", headers=AUTH)).status, 400)
+        self.assertEqual((await self.client.post("/api/ocr/read?engine=another", data=picture(2), headers=AUTH)).status, 400)
+
+    async def test_other_devices_only_where_the_config_says_so(self) -> None:
+        # A request that came through another address: refused, unless "devices" is on, and then
+        # only a picture to read, with the token.
+        far = {**AUTH, "X-Forwarded-For": "192.168.1.20"}
+        self.assertEqual((await self.client.post("/api/ocr/read", data=picture(2), headers=far)).status, 403)
+        self.helper.devices = True
+        self.told.texts = ["こんにちは"]
+        self.assertEqual((await self.client.post("/api/ocr/read", data=picture(2), headers=far)).status, 200)
+        self.assertEqual((await self.client.get("/api/health", headers=far)).status, 200)
+        self.assertEqual((await self.client.get("/api/health", headers={"X-Forwarded-For": "192.168.1.20"})).status, 403)
+        self.assertEqual((await self.client.post("/api/ocr/read", data=picture(2), headers={"X-Forwarded-For": "192.168.1.20"})).status, 403)
+        self.assertEqual((await self.client.get("/api/regions", headers=far)).status, 403)
+        self.assertEqual((await self.client.get("/api/lines?since=0", headers=far)).status, 403)
+
     async def test_lines_from_pictures(self) -> None:
         await self.client.put("/api/regions", json=GAMES, headers=AUTH)
         first = await (await self.client.get("/api/lines?since=0&limit=1&source=furoshiki", headers=AUTH)).json()

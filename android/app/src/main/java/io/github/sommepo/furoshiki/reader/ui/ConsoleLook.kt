@@ -25,7 +25,7 @@ object ConsoleLook {
 
     private val look: Look get() = when (Console.KEY) {
         "dc" -> DreamcastLook
-        "3ds" -> ThreeDsLook
+        "3ds", "nds" -> ThreeDsLook // melonDS Reader's look is Azahar Reader's
         "ps1", "psvita" -> PlayStationLook // Vita3K Reader's look is Station Reader's
         "ps2" -> Ps2Look
         else -> PspLook

@@ -237,7 +237,7 @@ int ReaderSettings::PopupAutoHideSeconds() const {
     return Int(KeyPopupAutoHide, 15, 0, 120);
 }
 bool ReaderSettings::PopupHideOnExit() const {
-    return Bool(KeyPopupHideOnExit, false);
+    return Bool(KeyPopupHideOnExit, true); // on by default since 2026-11-15
 }
 bool ReaderSettings::PopupMarkUnknown() const {
     return Bool(KeyPopupMarkUnknown, true);
@@ -250,7 +250,7 @@ QString ReaderSettings::PopupTheme() const {
     return value == QStringLiteral("classic") || PopupThemes().contains(value) ? value : QStringLiteral("console");
 }
 int ReaderSettings::PopupOpacity() const {
-    const int value = Int(KeyPopupOpacity, 0, 0, 100);
+    const int value = Int(KeyPopupOpacity, 90, 0, 100); // 90 by default since 2026-11-15
     return value == 0 ? 0 : std::max(20, value);
 }
 int ReaderSettings::PopupRadius() const {
@@ -323,10 +323,10 @@ int ReaderSettings::CursorSpeed() const {
     return Int(KeyCursorSpeed, 100, 25, 300);
 }
 bool ReaderSettings::CursorFrame() const {
-    return Bool(KeyCursorFrame, true);
+    return Bool(KeyCursorFrame, false); // off by default since 2026-11-15
 }
 bool ReaderSettings::CursorHome() const {
-    return Bool(KeyCursorHome, true);
+    return Bool(KeyCursorHome, false); // off by default since 2026-11-15
 }
 
 bool ReaderSettings::StatsPaused() const {

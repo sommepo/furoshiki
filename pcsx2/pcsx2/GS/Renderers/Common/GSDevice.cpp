@@ -142,6 +142,120 @@ void GSDevice::ReaderMakeGlow(GSTexture* sTex, const GSVector4& sRect, const GSV
 	}
 }
 
+// Reader fork: a wide picture's frame without 3D, whole in the middle between soft sides.
+// Needs proper testing: seen with Vulkan on Linux only.
+void GSDevice::ReaderWideFill(float middle)
+{
+	GSTexture* const frame = m_current;
+	if (!frame || middle <= 0.05f || middle >= 0.999f)
+		return;
+	// As tall as the frame, and so much wider that the frame is `middle` of it; smaller where
+	// that would be more than a texture may be.
+	const float limit = 8192.0f;
+	float width = static_cast<float>(frame->GetWidth()) / middle;
+	float height = static_cast<float>(frame->GetHeight());
+	if (width > limit)
+	{
+		height *= limit / width;
+		width = limit;
+	}
+	const int w = std::max(static_cast<int>(std::lround(width)), 8);
+	const int h = std::max(static_cast<int>(std::lround(height)), 8);
+	if (!m_reader_wide || m_reader_wide->GetWidth() != w || m_reader_wide->GetHeight() != h)
+	{
+		delete m_reader_wide;
+		m_reader_wide = CreateRenderTarget(w, h, GSTexture::Format::Color, true, false);
+		if (!m_reader_wide)
+			return;
+	}
+	const int picture = std::clamp(static_cast<int>(std::lround(w * middle)) & ~1, 2, w);
+	const int side = (w - picture) / 2;
+	const GSVector4 whole(0.0f, 0.0f, 1.0f, 1.0f);
+
+	// The sides: the frame halved until it is some 24 pixels wide (each step a small blur), made
+	// larger again twice, dimmed, and drawn from each edge outwards, mirrored.
+	GSTexture* soft = nullptr;
+	if (side > 0)
+	{
+		int sw = frame->GetWidth(), sh = frame->GetHeight();
+		int last = -1;
+		GSTexture* from = frame;
+		bool failed = false;
+		for (int n = 0; n < READER_WIDE_COPIES && sw > 24; n++)
+		{
+			sw = std::max(sw / 2, 4);
+			sh = std::max(sh / 2, 4);
+			GSTexture*& copy = m_reader_wide_small[n];
+			if (!copy || copy->GetWidth() != sw || copy->GetHeight() != sh)
+			{
+				delete copy;
+				copy = CreateRenderTarget(sw, sh, GSTexture::Format::Color, false, false);
+			}
+			if (!copy)
+			{
+				failed = true;
+				break;
+			}
+			StretchRect(from, whole, copy, GSVector4(0.0f, 0.0f, static_cast<float>(sw), static_cast<float>(sh)), ShaderConvert::COPY, Biln);
+			from = copy;
+			last = n;
+		}
+		for (int n = last - 1; !failed && n >= 0 && n >= last - 2; n--)
+		{
+			GSTexture* const copy = m_reader_wide_small[n];
+			StretchRect(from, whole, copy, GSVector4(copy->GetRect()), ShaderConvert::COPY, Biln);
+			from = copy;
+		}
+		if (!failed && last >= 0)
+		{
+			if (!m_reader_wide_dim || m_reader_wide_dim->GetWidth() != from->GetWidth() ||
+				m_reader_wide_dim->GetHeight() != from->GetHeight())
+			{
+				delete m_reader_wide_dim;
+				m_reader_wide_dim = CreateRenderTarget(from->GetWidth(), from->GetHeight(), GSTexture::Format::Color, false, false);
+			}
+			if (m_reader_wide_dim)
+			{
+				// Brightness, contrast, saturation, gamma (shadeboost's own numbers: 1 is as it is).
+				static constexpr float dim[4] = {0.36f, 1.0f, 0.85f, 1.0f};
+				DoShadeBoost(from, m_reader_wide_dim, dim);
+				soft = m_reader_wide_dim;
+			}
+		}
+	}
+	if (soft)
+	{
+		// How much of the frame a side shows: as wide as itself, the whole frame at most.
+		const float part = std::min(static_cast<float>(side) / static_cast<float>(picture), 1.0f);
+		StretchRect(soft, GSVector4(part, 0.0f, 0.0f, 1.0f), m_reader_wide,
+			GSVector4(0.0f, 0.0f, static_cast<float>(side), static_cast<float>(h)), ShaderConvert::COPY, Biln);
+		StretchRect(soft, GSVector4(1.0f, 0.0f, 1.0f - part, 1.0f), m_reader_wide,
+			GSVector4(static_cast<float>(side + picture), 0.0f, static_cast<float>(w), static_cast<float>(h)), ShaderConvert::COPY, Biln);
+	}
+	else
+	{
+		ClearRenderTarget(m_reader_wide, 0); // black sides, where the soft ones cannot be made
+	}
+	StretchRect(frame, whole, m_reader_wide,
+		GSVector4(static_cast<float>(side), 0.0f, static_cast<float>(side + picture), static_cast<float>(h)), ShaderConvert::COPY, Biln);
+	m_current = m_reader_wide;
+}
+
+void GSDevice::ReaderDestroyWide()
+{
+	if (m_current == m_reader_wide)
+		m_current = nullptr;
+	delete m_reader_wide;
+	m_reader_wide = nullptr;
+	delete m_reader_wide_dim;
+	m_reader_wide_dim = nullptr;
+	for (GSTexture*& copy : m_reader_wide_small)
+	{
+		delete copy;
+		copy = nullptr;
+	}
+}
+
 void GSDevice::ReaderDestroyGlow()
 {
 	for (GSTexture*& tex : m_reader_glow)
@@ -500,6 +614,7 @@ bool GSDevice::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 void GSDevice::Destroy()
 {
 	ReaderDestroyGlow(); // Reader fork
+	ReaderDestroyWide(); // Reader fork
 	ClearCurrent();
 	PurgePool();
 }

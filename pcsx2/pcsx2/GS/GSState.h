@@ -499,6 +499,9 @@ public:
 	void FlushPrim();
 	// Reader fork: the wide picture's 2D drawn to its own shape (GSSetReader2DSqueeze).
 	void ReaderSqueeze2D();
+	bool ReaderSqueezeDraw(float squeeze, bool apply);
+	float ReaderWideFrame();
+	void ReaderWideTransfer(u32 block);
 	void ReaderSqueezeScissor(float squeeze, float middle_px, int width);
 	bool TestDrawChanged();
 	void FlushWrite();

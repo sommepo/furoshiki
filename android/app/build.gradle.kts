@@ -2,6 +2,9 @@
 // The reader's Kotlin, tests and resources are the shared ones (../../shared/android), the
 // page is home/themes and home/fonts with assets of its own, and the emulators are cores built
 // by each fork (tools/reader/build-core-android.sh), which come into the APK as native libraries.
+import java.net.URI
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
 }
@@ -18,6 +21,7 @@ val coreBuilds = mapOf(
     "reader_core_station" to "station/build-core-android/%s/bin/libreader_core_station.so",
     "reader_core_armsx2" to "armsx2/build-core-android/%s/bin/libreader_core_armsx2.so",
     "reader_core_vita3k" to "vita3k/build-core-android/%s/bin/libreader_core_vita3k.so",
+    "reader_core_melonds" to "melonds/build-core-android/%s/bin/libreader_core_melonds.so",
 )
 
 android {
@@ -29,8 +33,8 @@ android {
         applicationId = "io.github.sommepo.furoshiki"
         minSdk = 29
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.1.6"
+        versionCode = 16
+        versionName = "0.4.5"
         // False in a published build (-PreaderSaveSync=false): no save sync, and no statistics
         // sent to its service.
         buildConfigField("boolean", "READER_SAVE_SYNC",
@@ -74,6 +78,8 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // The OCR models, for the test that reads a real picture with them (skipped without them).
+            all { it.systemProperty("ocr.models", File(rootDir, ".gradle/ocr-models").path) }
         }
     }
 
@@ -81,6 +87,7 @@ android {
         getByName("main") {
             jniLibs.directories.add(layout.buildDirectory.dir("generated/cores").get().asFile.path)
             assets.directories.add(layout.buildDirectory.dir("generated/front").get().asFile.path)
+            assets.directories.add(layout.buildDirectory.dir("generated/ocr").get().asFile.path)
         }
     }
 
@@ -91,6 +98,8 @@ android {
     }
 }
 
+val onnxRuntime = "1.22.0"
+
 dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.documentfile:documentfile:1.1.0")
@@ -98,6 +107,10 @@ dependencies {
     implementation("androidx.preference:preference:1.2.1")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.core:core:1.13.1")
+    // OCR on the device (ocr/MeikiOcr.kt): ONNX Runtime (MIT) runs meikiocr's models. The tests run
+    // the same code on this machine's processor with the runtime's desktop build.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:$onnxRuntime")
+    testImplementation("com.microsoft.onnxruntime:onnxruntime:$onnxRuntime")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     testImplementation("org.robolectric:robolectric:4.14.1")
@@ -129,7 +142,7 @@ val bundleScripts = providers.gradleProperty("readerBundleScripts").orNull != "f
 val scriptFolders = listOf(
     "ppsspp/assets/reader/profiles", "flycast/reader/profiles", "station/reader/profiles",
     "azahar/src/android/app/src/main/assets/reader/profiles", "armsx2/ARMSX2/app/src/main/assets/reader/profiles",
-    "vita3k/reader/profiles",
+    "vita3k/reader/profiles", "melonds/reader/profiles",
 )
 
 // The games' names dictionaries (tools/titles.py: docs/titles.md), made from titles/, which the
@@ -142,6 +155,20 @@ val readerNames = tasks.register<Exec>("readerNames") {
     outputs.dir(out)
     doFirst { out.deleteRecursively() }
     commandLine("python3", File(repository, "tools/titles.py").path, "build", "--quiet", "--out", out.path)
+}
+
+// The title records as the page reads them (tools/titles-index.py, docs/titles.md): a title's
+// English name for its spine, its people for its stage, its deck on Jiten for the study tracker's
+// figures, and its box's spine and front where this checkout has them (titles/build, not in Git).
+val readerTitles = tasks.register<Exec>("readerTitles") {
+    val out = layout.buildDirectory.dir("generated/titles").get().asFile
+    inputs.dir(File(repository, "titles"))
+    inputs.file(File(repository, "android/tools/titles-index.py"))
+    // Not in a published checkout: the box pictures are then left out (titles-index.py).
+    File(repository, "tools/titles.py").takeIf { it.isFile }?.let { inputs.file(it) }
+    outputs.dir(out)
+    doFirst { out.deleteRecursively() }
+    commandLine("python3", File(repository, "android/tools/titles-index.py").path, out.path)
 }
 
 // The page's themes and font, the desktop's (home/themes, home/fonts); the game scripts (above);
@@ -159,6 +186,12 @@ val readerFront = tasks.register<Sync>("readerFront") {
             }
         }
         from(readerNames) { into("reader/names") }
+    }
+    from(readerTitles)
+    // The controllers drawn and the actions a button can be given (the mapping screen, map.js), the desktop's alike.
+    from(File(repository, "shared/controllers")) {
+        into("front")
+        include("controllers.json")
     }
     // The looks of Furoshiki 3's shelf (Kon, Mono, Paper, Solarized): six colours each.
     from(File(repository, "home/shelf")) { into("front/themes") }
@@ -187,6 +220,71 @@ val readerFront = tasks.register<Sync>("readerFront") {
     }
 }
 
-tasks.named("preBuild") { dependsOn(readerCores, readerFront) }
+// meikiocr's models for OCR on the device (ocr/MeikiOcr.kt; rtr46's, LGPL-3.0, from Hugging Face
+// at the commits named, each checked against its SHA-256): text lines found, then read, lying and
+// upright. Not in Git: fetched once into .gradle/ocr-models, or copied from READER_OCR_MODELS (a
+// folder that has the three files). -PreaderOcrModels=false builds without them: the app then
+// has only the OCR service.
+val ocrModels = listOf(
+    Triple("detect.onnx", "rtr46/meiki.text.detect.v0/resolve/a9cffa4f60cbf72ddb87edf19c6f98a01cd042e6/meiki.text.detect.v0.1.960x544.onnx",
+        "40b6a016667745cae7d3055929ae3b8b1e7716aac795f5904cd3c2c7c3b8404b"),
+    Triple("read.onnx", "rtr46/meiki.txt.recognition.v0/resolve/a28cf5874dc2438ebb1c86336be26bcec51e3375/meiki.text.rec.v0.960x32.onnx",
+        "3e96bc772fbee9717e536a6353032bb944c3382dd2f6960ef4890decda43b000"),
+    Triple("read-upright.onnx", "rtr46/meiki.txt.recognition.v0/resolve/a28cf5874dc2438ebb1c86336be26bcec51e3375/meiki.text.rec.v0.vertical.32x480.onnx",
+        "2c2a83a23bc3b7e6c63962175f507ecc6c5e85cc174f17bdec37d9bbd0bf895a"),
+)
+val bundleOcrModels = providers.gradleProperty("readerOcrModels").orNull != "false"
+val ocrModelsKept = File(rootDir, ".gradle/ocr-models")
+val readerOcrModels = tasks.register("readerOcrModels") {
+    val out = layout.buildDirectory.dir("generated/ocr").get().asFile
+    val bundle = bundleOcrModels
+    val kept = ocrModelsKept
+    val models = ocrModels
+    val given = providers.environmentVariable("READER_OCR_MODELS").orNull
+    inputs.property("models", models.map { it.third } + bundle)
+    outputs.dir(out)
+    doLast {
+        fun sha(file: File): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val block = ByteArray(1 shl 16)
+                while (true) {
+                    val read = input.read(block)
+                    if (read < 0) break
+                    digest.update(block, 0, read)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it) }
+        }
+        out.deleteRecursively()
+        File(out, "ocr").mkdirs()
+        if (bundle) {
+            kept.mkdirs()
+            for ((name, address, sum) in models) {
+                val file = File(kept, name)
+                if (!file.isFile || sha(file) != sum) {
+                    val own = given?.let { File(it, address.substringAfterLast('/')) }?.takeIf { it.isFile }
+                    if (own != null) {
+                        own.copyTo(file, overwrite = true)
+                    } else {
+                        logger.lifecycle("Fetching $name (meikiocr, from Hugging Face)")
+                        val part = File(kept, "$name.part")
+                        URI("https://huggingface.co/$address").toURL().openStream().use { input ->
+                            part.outputStream().use { input.copyTo(it) }
+                        }
+                        part.renameTo(file)
+                    }
+                    if (sha(file) != sum) {
+                        file.delete()
+                        throw GradleException("$name is not the file expected (its SHA-256 differs)")
+                    }
+                }
+                file.copyTo(File(out, "ocr/$name"))
+            }
+        }
+    }
+}
+
+tasks.named("preBuild") { dependsOn(readerCores, readerFront, readerOcrModels) }
 
 apply(from = "../../shared/android/reader.gradle")

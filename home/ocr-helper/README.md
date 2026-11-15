@@ -42,6 +42,15 @@ screen), with Ctrl+Shift+R, or R on Furoshiki's text strip.
 Only this computer (it listens on 127.0.0.1 and refuses anything passed on by a proxy), and
 only who says the token its installer made. `furoshiki_ocr/app.py` lists its requests.
 
+## A phone or handheld that reads its own game
+
+Furoshiki for Android can read a game that has no script by OCR. It has an engine of its own; to
+use this helper's engines instead, add `"devices": true` to the helper's `config.json` and start
+it again, then type this computer's address (`http://<its address>:8794`) and the token from
+`config.json` into Furoshiki's Settings on the device, *OCR service*. The helper then listens on
+your network, and answers another device only a picture to read (`POST /api/ocr/read`) and only
+with the token; everything else stays this computer's alone.
+
 ## From source
 
 `python -m furoshiki_ocr --config config.json` with the packages of `requirements/`;

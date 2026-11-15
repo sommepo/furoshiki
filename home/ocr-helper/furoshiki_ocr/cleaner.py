@@ -117,17 +117,36 @@ def join(lines: list[OcrLine]) -> str:
 Box = tuple[float, float, float, float]
 
 
+def reading_order(lines: list[OcrLine]) -> list[OcrLine]:
+    """The lines as they are read: columns from the right when all stand upright, else rows
+    from the top, each from its left."""
+    if lines and all(line.vertical for line in lines):
+        return sorted(lines, key=lambda line: -line.right)
+    return sorted(lines, key=lambda line: (round(line.top / max(line.height, 1e-3)), line.left))
+
+
+def read_lines(lines: list[OcrLine]) -> tuple[str, list[dict]]:
+    """A whole picture's text for who sent the picture (POST /api/ocr/read): the furigana
+    dropped, each line cleaned as `join_with_boxes` cleans, in reading order. Each line is
+    `{"text", "boxes", "vertical"}`, its boxes [x, y, w, h] (0-1 of the picture), one per
+    character (code point) of its text; the text returned is the lines' texts as one."""
+    out = []
+    for line in reading_order(drop_furigana(lines)):
+        text, boxes = join_with_boxes([line])
+        if text:
+            out.append({"text": text, "vertical": line.vertical,
+                        "boxes": [[round(left, 4), round(top, 4), round(right - left, 4), round(bottom - top, 4)]
+                                  for left, top, right, bottom in boxes]})
+    return "".join(line["text"] for line in out), out
+
+
 def join_with_boxes(lines: list[OcrLine]) -> tuple[str, list[Box]]:
     """`join`, and where each character of the result is: (left, top, right, bottom) in the
     same 0-1 coordinates as the lines, one per character (code point) of the text."""
     if not lines:
         return "", []
-    if all(line.vertical for line in lines):
-        ordered = sorted(lines, key=lambda line: -line.right)
-    else:
-        ordered = sorted(lines, key=lambda line: (round(line.top / max(line.height, 1e-3)), line.left))
     pairs: list[tuple[str, Box]] = []
-    for line in ordered:
+    for line in reading_order(lines):
         text = normalise(line.text)
         if JAPANESE.search(text):
             pairs += _normalised_pairs(line, text)

@@ -25,6 +25,7 @@ object Covers {
     private const val TIMEOUT_MS = 10_000
     private val SYSTEMS = mapOf(
         "psp" to "Sony - PlayStation Portable", "dc" to "Sega - Dreamcast", "3ds" to "Nintendo - Nintendo 3DS",
+        "nds" to "Nintendo - Nintendo DS",
         "ps1" to "Sony - PlayStation", "ps2" to "Sony - PlayStation 2", "psvita" to "Sony - PlayStation Vita",
     )
     private val BY_SERIAL = mapOf(

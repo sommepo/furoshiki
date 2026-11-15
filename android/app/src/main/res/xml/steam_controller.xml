@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Valve's Steam Controller (2026): wired, its puck, the Steam Machine's receiver (0x28DE: 10462). -->
+<resources>
+    <usb-device vendor-id="10462" product-id="4866" />
+    <usb-device vendor-id="10462" product-id="4868" />
+    <usb-device vendor-id="10462" product-id="4869" />
+</resources>

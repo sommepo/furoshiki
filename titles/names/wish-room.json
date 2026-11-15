@@ -1,0 +1,177 @@
+{
+ "source": {
+  "vndb": "v697",
+  "fetched": "2026-11-14"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c19742",
+   "kind": "person",
+   "name": "カイル・ハイド",
+   "reading": "カイル・ハイド",
+   "romaji": "Kyle Hyde",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c142666",
+   "kind": "person",
+   "name": "ミラ・エバンズ",
+   "reading": "ミラ・エバンズ",
+   "romaji": "Mila Evans",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149561",
+   "kind": "person",
+   "name": "レイチェル",
+   "reading": "レイチェル",
+   "romaji": "Rachel",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149562",
+   "kind": "person",
+   "name": "ダニング・スミス",
+   "reading": "ダニング・スミス",
+   "romaji": "Dunning Smith",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149563",
+   "kind": "person",
+   "name": "ブライアン・ブラッドリー",
+   "reading": "ブライアン・ブラッドリー",
+   "romaji": "Brian Bradley",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149560",
+   "kind": "person",
+   "name": "エド・ヴィンセント",
+   "reading": "エド・ヴィンセント",
+   "romaji": "Ed Vincent",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149564",
+   "kind": "person",
+   "name": "ヘレン・パーカー",
+   "reading": "ヘレン・パーカー",
+   "romaji": "Helen Parker",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149565",
+   "kind": "person",
+   "name": "ジェフ・エンゼル",
+   "reading": "ジェフ・エンゼル",
+   "romaji": "Jeff Angel",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149566",
+   "kind": "person",
+   "name": "アイリス",
+   "reading": "アイリス",
+   "romaji": "Iris",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149567",
+   "kind": "person",
+   "name": "ケビン・ウッドワード",
+   "reading": "ケビン・ウッドワード",
+   "romaji": "Kevin Woodward",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149568",
+   "kind": "person",
+   "name": "マーティン・サマー",
+   "reading": "マーティン・サマー",
+   "romaji": "Martin Summer",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149569",
+   "kind": "person",
+   "name": "メリッサ・ウッドワード",
+   "reading": "メリッサ・ウッドワード",
+   "romaji": "Melissa Woodward",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149570",
+   "kind": "person",
+   "name": "ローザ・フォックス",
+   "reading": "ローザ・フォックス",
+   "romaji": "Rosa Fox",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c149571",
+   "kind": "person",
+   "name": "ルイス・フランコ",
+   "reading": "ルイス・フランコ",
+   "romaji": "Louis Franco",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

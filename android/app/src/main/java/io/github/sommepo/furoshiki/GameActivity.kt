@@ -21,6 +21,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import io.github.sommepo.furoshiki.reader.ButtonMap
 import io.github.sommepo.furoshiki.reader.Console
 import io.github.sommepo.furoshiki.reader.NextChoice
 import io.github.sommepo.furoshiki.reader.ReaderGlue
@@ -48,16 +49,32 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
     // The controller as the game sees it.
     private var buttons = 0L
-    private var hat = 0L
     private val sticks = IntArray(4)
     private val triggers = IntArray(2)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // On a device with two displays the game never turns with the sensor: the second display
+        // cannot, and a game held like a book (Wish Room) turns its own picture (nds.rotation).
+        if (getSystemService(DisplayManager::class.java)
+                .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION).isNotEmpty()) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         path = intent.getStringExtra(EXTRA_PATH).orEmpty()
+        // A game on several discs (Discs): started on the disc it was left on, the others given to it.
+        discPaths = Discs.of(path)
+        if (discPaths.size > 1) {
+            getSharedPreferences("home", MODE_PRIVATE).getString(KEY_DISC + Discs.groupKey(path), null)
+                ?.takeIf { it in discPaths && File(it).isFile }?.let { path = it }
+            discPaths = listOf(path) + discPaths.filter { it != path }
+        }
         gameId = intent.getStringExtra(EXTRA_GAME).orEmpty()
         val key = intent.getStringExtra(EXTRA_CONSOLE).orEmpty()
+        HomeScreen.setPlaying(this, path, key, gameId)
         Console.use(key)
+        // The controller's buttons as this console has them (the mapping screen's layer, ButtonMap).
+        ReaderSettings.console = key
+        migratePadMap(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         surface = SurfaceView(this)
         val frame = FrameLayout(this)
@@ -85,63 +102,25 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             marginEnd = (10 * density).toInt()
         })
         this.menuButton = menuButton
-        // The left stick for a thumb, with the on-screen buttons: a ring at the lower left,
-        // beside the d-pad's column; where the thumb is from its middle is how far it is pushed.
-        val stick = object : android.view.View(this) {
-            private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-            private var dx = 0f
-            private var dy = 0f
-
-            override fun onDraw(canvas: android.graphics.Canvas) {
-                val radius = width / 2f
-                paint.style = android.graphics.Paint.Style.FILL
-                paint.color = 0x33000000
-                canvas.drawCircle(radius, radius, radius - 2 * density, paint)
-                paint.style = android.graphics.Paint.Style.STROKE
-                paint.strokeWidth = 1.5f * density
-                paint.color = 0x99FFFFFF.toInt()
-                canvas.drawCircle(radius, radius, radius - 2 * density, paint)
-                paint.style = android.graphics.Paint.Style.FILL
-                paint.color = 0x88FFFFFF.toInt()
-                canvas.drawCircle(radius + dx * radius * .55f, radius + dy * radius * .55f, radius * .36f, paint)
-            }
-
-            @android.annotation.SuppressLint("ClickableViewAccessibility")
-            override fun onTouchEvent(event: MotionEvent): Boolean {
-                val radius = width / 2f
-                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
-                    dx = 0f
-                    dy = 0f
-                } else {
-                    dx = ((event.x - radius) / (radius * .7f)).coerceIn(-1f, 1f)
-                    dy = ((event.y - radius) / (radius * .7f)).coerceIn(-1f, 1f)
-                }
-                sticks[0] = (dx * 32767).toInt()
-                sticks[1] = (dy * 32767).toInt()
-                sendPad()
-                invalidate()
-                return true
-            }
-        }
-        stick.alpha = .55f
-        stick.visibility = android.view.View.GONE
-        val across = (104 * density).toInt()
-        frame.addView(stick, FrameLayout.LayoutParams(across, across, android.view.Gravity.BOTTOM or android.view.Gravity.START).apply {
-            leftMargin = (150 * density).toInt()
-            bottomMargin = (18 * density).toInt()
-        })
-        this.stickView = stick
+        // The guide's next step over the game (GuideCard), when it is asked for.
+        guide = GuideCard(this, gameId).also { it.addTo(frame) }
+        addDrawer(frame)
         setContentView(frame)
         hideBars()
         surface.holder.addCallback(this)
+        actionKeys = ActionKeys.byKey(this)
+        // The services this device's home server names (Explain's), where none is known yet.
+        if (!Explain.offered(this)) thread(name = "Services") { runCatching { Services.ask(applicationContext) } }
+        ReaderGlue.lowerKeys = { context -> lowerKeys(context) }
         ReaderGlue.attach(this, surface)
         ReaderGlue.setAppControls { x, y ->
             (menuButton.visibility == android.view.View.VISIBLE &&
                 x >= menuButton.left - 8 * density && x <= menuButton.right + 8 * density &&
                 y >= menuButton.top - 8 * density && y <= menuButton.bottom + 8 * density) ||
-                (stick.visibility == android.view.View.VISIBLE &&
-                    x >= stick.left && x <= stick.right && y >= stick.top && y <= stick.bottom)
+                (guide?.shown == true && guide!!.view.let { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }) ||
+                within(drawerHandle, x, y, 10 * density) || within(drawer, x, y, 0f)
         }
+        ocr = io.github.sommepo.furoshiki.ocr.OcrSource(this, surface, gameId) { resumedNow && !inMenu && !leaving && started }
         ReaderGlue.stoppedByItself = { if (!leaving) fail(GameNative.lastError()?.removePrefix("core: ") ?: getString(R.string.game_ended)) }
         thread(name = "GameStart") {
             val error = prepare(key)
@@ -165,6 +144,15 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         }
         // A core's own files. The Dreamcast has none: Flycast plays without a BIOS, on its stand-in.
         CoreAssets.forConsole(this, key)
+        // This game's add-ons (Games/Addons): their scripts and settings, before the game's script is read.
+        runCatching {
+            val found = Addons.find(Places.gameFolders(this))
+            if (found.isNotEmpty() && gameId.isNotEmpty()) {
+                val scripts = File(getExternalFilesDir(null), io.github.sommepo.furoshiki.reader.ReaderNative.PROFILE_USER_DIR)
+                val used = Addons(File(filesDir, "addons.json"), scripts, Places.playSettings(this)).apply(found, key, gameId)
+                if (used.isNotEmpty()) Log.i("Furoshiki", "add-ons: " + used.joinToString())
+            }
+        }.onFailure { Log.w("Furoshiki", "add-ons: ${it.message}") }
         return GameNative.open(
             Places.corePath(this, file), Places.console(this, key, "data"), Places.console(this, key, "saves"),
             Places.console(this, key, "states"), system
@@ -188,7 +176,22 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             }
         }
         if (Console.TWO_SCREENS) chooseScreens(settings.map { it.first })
-        GameNative.load(path)?.let { fail(it) }
+        GameNative.load(path)?.let { fail(it) } ?: run {
+            // The game's other discs, for the menu's "Change disc".
+            for (other in discPaths.drop(1)) GameNative.addDisc(other)
+            ocr?.start()
+        }
+    }
+
+    /** The game's discs: the one started first, then the others in their order (Discs). */
+    private var discPaths: List<String> = emptyList()
+
+    /** The disc in now, kept for the next time the game starts. */
+    private fun keepDisc() {
+        if (!started || discPaths.size < 2) return
+        val now = GameNative.discCurrent()
+        val disc = discPaths.getOrNull(now) ?: return
+        getSharedPreferences("home", MODE_PRIVATE).edit().putString(KEY_DISC + Discs.groupKey(disc), disc).apply()
     }
 
     /**
@@ -234,25 +237,191 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     override fun onResume() {
         super.onResume()
         resumedNow = true
+        AudioFocus.take(this, game = true)
         hideBars()
         ReaderGlue.onResume()
+        // The buttons read again: the page may have changed them while the game stood behind it.
+        keySettings = ReaderSettings(this)
+        loadPad()
+        steam.start()
+        if (started) ReaderSession.onSettingsChanged()
+        ocr?.reload()
         // The menu's button with the on-screen buttons, as they are set now.
         menuButton?.visibility = if (ReaderGlue.wantsTouchButtons()) android.view.View.VISIBLE else android.view.View.GONE
-        // The stick where the console has one (a PlayStation's first pad and a Dreamcast VN need none, and have it all the same).
-        stickView?.visibility = if (ReaderGlue.wantsTouchButtons()) android.view.View.VISIBLE else android.view.View.GONE
         applyPause()
     }
 
     override fun onPause() {
         resumedNow = false
+        AudioFocus.give(this)
         ReaderGlue.onPause()
         applyPause()
+        steamInput.releaseAll()
+        steam.stop()
+        keepDisc()
+        // Cards made in the game go to AnkiDroid, which syncs only when opened: asked to now, as
+        // the game is left (never while it plays: AnkiDroid's request would pause it a moment).
+        io.github.sommepo.furoshiki.reader.anki.AnkiDroidClient.requestSyncIfUnsynced(this)
         super.onPause()
     }
 
-    /** The game stands still behind a menu and while the app is not in front. */
+    /** The game stands still behind a menu, while the app is not in front, and while it is held for reading. */
     private fun applyPause() {
-        if (coreReady) GameNative.pause(!resumedNow || inMenu)
+        if (coreReady) GameNative.pause(!resumedNow || inMenu || held)
+    }
+
+    /** Held still by the second display's key, with the reader going on: for looking words up at leisure. */
+    private var held = false
+
+    /** The Steam Controller, read by Furoshiki itself (steam/): its right pad is the pointer here. */
+    private val steamInput by lazy { io.github.sommepo.furoshiki.steam.SteamInput(this, inGame = true) { runAction(it) } }
+    private val steam by lazy {
+        io.github.sommepo.furoshiki.steam.SteamUsb(this, steamInput) {
+            // One swipe across the pad crosses some two thirds of the game's screen.
+            io.github.sommepo.furoshiki.steam.SteamPad.Tuning(
+                swipePixels = maxOf(600.0, io.github.sommepo.furoshiki.reader.cursor.HoverCursor.width * 0.66)
+            )
+        }
+    }
+
+    /**
+     * The keys along the foot of the second display (LowerKeys): what a computer's controller has
+     * on its back buttons. Null when they are switched off (the game's menu).
+     */
+    private fun lowerKeys(context: android.content.Context): android.view.View? {
+        if (!LowerKeys.wanted(this)) return null
+        return LowerKeys.view(context, keyList())
+    }
+
+    /** The keys, as the second display has them along its foot and one display in its drawer. */
+    private fun keyList(): List<LowerKeys.Key> {
+        val settings = ReaderSettings(this)
+        return (
+            listOfNotNull(
+                LowerKeys.Key(getString(R.string.lower_key_pause), { held }) { act("pause") },
+                LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }) { act("stats") },
+                LowerKeys.Key(getString(R.string.lower_key_card)) { act("card") },
+                LowerKeys.Key(getString(R.string.lower_key_log)) { act("log") },
+                LowerKeys.Key(getString(R.string.lower_key_explain)) { act("explain") }.takeIf { Explain.offered(this) },
+                LowerKeys.Key(getString(R.string.lower_key_read)) { act("ocr_now") }.takeIf { ocr?.active == true },
+                LowerKeys.Key(getString(R.string.lower_key_guide), { guide?.shown == true }) { act("guide") }.takeIf { guide?.offered() == true },
+                LowerKeys.Key(getString(R.string.lower_key_done)) { act("guide_done") }.takeIf { guide?.offered() == true },
+                LowerKeys.Key(getString(R.string.lower_key_menu)) { act("menu") },
+            )
+        )
+    }
+
+    // ---- One display (a Fold, a tablet): the same keys in a drawer along the foot of the game ----
+
+    private var drawerHandle: android.view.View? = null
+    private var drawer: android.view.View? = null
+
+    /**
+     * Where there is no second display the keys lie over the game's foot, out of sight until the
+     * small handle at the middle of the foot is tapped; HIDE puts them away again. Not built
+     * where the keys are switched off (the game's menu).
+     */
+    private fun addDrawer(frame: FrameLayout) {
+        val second = getSystemService(DisplayManager::class.java).getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION).isNotEmpty()
+        if (second || !LowerKeys.wanted(this)) return
+        val density = resources.displayMetrics.density
+        val handle = android.widget.TextView(this).apply {
+            text = "⋯"
+            textSize = 18f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(android.graphics.Color.WHITE)
+            alpha = .4f
+            contentDescription = getString(R.string.drawer_show)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 12 * density
+                setColor(0x66000000)
+            }
+        }
+        val keys = LowerKeys.view(this, keyList() + LowerKeys.Key(getString(R.string.drawer_hide)) { showDrawer(false) })
+        keys.visibility = android.view.View.GONE
+        handle.setOnClickListener { showDrawer(true) }
+        frame.addView(keys, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM))
+        frame.addView(handle, FrameLayout.LayoutParams((64 * density).toInt(), (26 * density).toInt(), android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL).apply {
+            bottomMargin = (6 * density).toInt()
+        })
+        drawer = keys
+        drawerHandle = handle
+    }
+
+    private fun showDrawer(open: Boolean) {
+        val keys = drawer ?: return
+        val handle = drawerHandle ?: return
+        val away = keys.height.takeIf { it > 0 }?.toFloat() ?: (80 * resources.displayMetrics.density)
+        if (open) {
+            keys.visibility = android.view.View.VISIBLE
+            keys.translationY = away
+            keys.animate().translationY(0f).setDuration(180).start()
+            handle.visibility = android.view.View.GONE
+        } else {
+            keys.animate().translationY(away).setDuration(160).withEndAction { keys.visibility = android.view.View.GONE }.start()
+            handle.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    private fun within(view: android.view.View?, x: Float, y: Float, slop: Float): Boolean =
+        view != null && view.visibility == android.view.View.VISIBLE &&
+            x >= view.left - slop && x <= view.right + slop && y >= view.top - slop && y <= view.bottom + slop
+
+    /** The controller's buttons given to an action ([ActionKeys]): each key and what it does. */
+    private var actionKeys: Map<Int, String> = emptyMap()
+
+    /**
+     * One of the things done over a game without its menu ([ActionKeys.ALL]): from a key on the
+     * second display, or from the button of the controller given to it.
+     */
+    private fun act(action: String) {
+        if (leaving) return
+        when (action) {
+            "pause" -> {
+                held = !held
+                applyPause()
+            }
+            "stats" -> ReaderSession.toggleStatsPaused()
+            "card" -> ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD)
+            "log" -> ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
+            "panel" -> ReaderSession.dispatch(ReaderSession.Command.TOGGLE_PANEL)
+            "explain" -> explain()
+            "ocr_now" -> ocr?.readNow()
+            "next_choice" -> if (Console.HAS_NEXT_CHOICE) NextChoice.toggle()
+            "fast" -> setFast(!fast)
+            "guide" -> if (guide?.offered() == true) guide?.toggle()
+            "guide_done" -> guide?.done()
+            "quick_menu" -> ReaderGlue.showMenu()
+            "menu" -> showMenu()
+        }
+    }
+
+    private fun setFast(on: Boolean) {
+        fast = on
+        GameNative.applySetting("emulation.speed", if (fast) "0" else "100")
+    }
+
+    /** Explain, of the line being read: the game stands still while its answer is read. */
+    private fun explain() {
+        if (inMenu) return
+        val line = ReaderSession.current?.line?.text?.trim().orEmpty()
+        if (line.isEmpty()) {
+            Toast.makeText(this, R.string.explain_no_line, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!Explain.offered(this)) {
+            Toast.makeText(this, R.string.explain_no_service, Toast.LENGTH_LONG).show()
+            return
+        }
+        val before = runCatching {
+            ReaderSession.database(this).recentLines(gameId, 4).map { it.line.text }.filter { it.trim() != line }.reversed()
+        }.getOrDefault(emptyList())
+        inMenu = true
+        applyPause()
+        Explain.show(this, line, before, ReaderSession.gameTitle, gameId) {
+            inMenu = false
+            applyPause()
+        }
     }
 
     private fun hideBars() {
@@ -264,13 +433,16 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideBars()
+        if (hasFocus) {
+            hideBars()
+            AudioFocus.take(this, game = true, again = true)
+        }
     }
 
     // ---- The menu over the game: back, or the controller's Select and Start held together ----
 
     private var menuButton: android.view.View? = null
-    private var stickView: android.view.View? = null
+    private var guide: GuideCard? = null
 
     private fun showMenu() {
         if (inMenu || leaving) return
@@ -282,30 +454,92 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         val items = listOfNotNull(
             getString(R.string.game_menu_resume) to {},
             getString(R.string.game_menu_reader) to { ReaderGlue.showMenu() },
+            (getString(R.string.game_menu_explain) to { explain() }).takeIf { Explain.offered(this) },
+            (getString(R.string.game_menu_ocr_now) to { ocr?.readNow() }).takeIf { ocr?.active == true },
+            getString(R.string.game_menu_ocr_setup) to { setUpOcr() },
             (getString(R.string.game_menu_save) to { pickState(save = true) }).takeIf { states },
             (getString(R.string.game_menu_load) to { pickState(save = false) }).takeIf { states },
             (getString(R.string.game_menu_disc) to { pickDisc(discs) }).takeIf { discs > 1 },
-            getString(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) to {
-                fast = !fast
-                GameNative.applySetting("emulation.speed", if (fast) "0" else "100")
-            },
+            getString(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) to { setFast(!fast) },
             (getString(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice) to {
                 NextChoice.toggle()
             }).takeIf { Console.HAS_NEXT_CHOICE },
             (getString(R.string.game_menu_routes) to { Routes.show(this) }).takeIf { Routes.offer() != null },
             (getString(R.string.game_menu_patches) to { pickPatches() }).takeIf { GameNative.features() and 32 != 0 },
             (getString(R.string.game_menu_codes) to { typeCodes() }).takeIf { GameNative.features() and 64 != 0 },
-            getString(R.string.game_menu_buttons) to { pickButtons() },
+            (getString(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide) to {
+                guide?.toggle()
+            }).takeIf { guide?.offered() == true },
+            getString(R.string.action_keys_title) to {
+                inMenu = true
+                ActionKeys.pick(this) {
+                    actionKeys = ActionKeys.byKey(this)
+                    inMenu = false
+                    applyPause()
+                }
+            },
+            getString(if (LowerKeys.wanted(this)) R.string.game_menu_lower_keys_off else R.string.game_menu_lower_keys_on) to {
+                LowerKeys.want(this, !LowerKeys.wanted(this))
+                Toast.makeText(this, R.string.game_menu_lower_keys_next, Toast.LENGTH_SHORT).show()
+            },
             getString(R.string.game_menu_home) to { leave() },
         )
         AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setItems(items.map { it.first }.toTypedArray()) { _, which -> items[which].second() }
+            .setItems(items.map { it.first }.toTypedArray()) { _, which -> chosen = { items[which].second() } }
             .setOnDismissListener {
                 inMenu = false
+                // What was chosen, once the menu is gone: a box it opens holds the game still itself.
+                val then = chosen
+                chosen = null
+                then?.invoke()
                 applyPause()
             }
             .show()
     }
+
+    /** The game read by OCR, where no script reads it or the user said so (ocr/OcrSource). */
+    private var ocr: io.github.sommepo.furoshiki.ocr.OcrSource? = null
+
+    /**
+     * The game's text areas set up over its picture, held still (ocr/OcrSetup): from the menu,
+     * so a controller reaches it as a finger does.
+     */
+    private fun setUpOcr() {
+        val source = ocr ?: return
+        if (!started || leaving) return
+        inMenu = true
+        applyPause()
+        // The picture as it stands, whole, and where the game's own picture is in it.
+        val rect = runCatching {
+            if (Console.TWO_SCREENS) {
+                GameNative.screenRects()?.let { android.graphics.Rect(it[0], it[1], it[0] + it[2], it[1] + it[3]) }
+            } else {
+                io.github.sommepo.furoshiki.reader.ReaderNative.pictureRect(surface.width, surface.height)
+                    ?.takeIf { it.size >= 6 && it[4] > it[2] && it[5] > it[3] }
+                    ?.let { android.graphics.Rect(it[2], it[3], it[4], it[5]) }
+            }
+        }.getOrNull() ?: android.graphics.Rect(0, 0, surface.width, surface.height)
+        io.github.sommepo.furoshiki.reader.ui.ReaderHost.copyFrame(surface, surface.width) { bitmap ->
+            if (bitmap == null || leaving) {
+                inMenu = false
+                applyPause()
+                return@copyFrame
+            }
+            io.github.sommepo.furoshiki.ocr.OcrSetup(
+                this, bitmap, rect, source.game,
+                read = { areas -> source.read(bitmap, rect, areas) },
+                onSave = { source.setGame(it) },
+                onClosed = {
+                    inMenu = false
+                    applyPause()
+                    hideBars()
+                },
+            ).show()
+        }
+    }
+
+    /** The menu's row that was tapped, done as the menu shuts. */
+    private var chosen: (() -> Unit)? = null
 
     /** As fast as it goes, until switched back (the menu's row): through what was read before. */
     private var fast = false
@@ -425,17 +659,84 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() = showMenu()
 
+    // A tap of two fingers anywhere over the game: the menu (the user, 2026-11-14: on the Y700 in
+    // its controller the edge's back swipe is hard to reach). As the second finger comes, what
+    // the first began is cancelled, and nothing of the gesture reaches the game.
+    private var twoFingers = false
+    private var twoFingersAt = 0L
+    private var twoFingersMoved = false
+    private val twoFingersStart = HashMap<Int, android.graphics.PointF>()
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                twoFingers = false
+                twoFingersStart.clear()
+                twoFingersStart[event.getPointerId(0)] = android.graphics.PointF(event.x, event.y)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                val index = event.actionIndex
+                twoFingersStart[event.getPointerId(index)] = android.graphics.PointF(event.getX(index), event.getY(index))
+                if (!twoFingers && event.pointerCount == 2) {
+                    twoFingers = true
+                    twoFingersMoved = false
+                    twoFingersAt = event.eventTime
+                    val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                    super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
+                    return true
+                }
+                if (event.pointerCount > 2) twoFingersMoved = true
+            }
+        }
+        if (!twoFingers) return super.dispatchTouchEvent(event)
+        val slop = 24 * resources.displayMetrics.density
+        for (i in 0 until event.pointerCount) {
+            val start = twoFingersStart[event.getPointerId(i)] ?: continue
+            if (abs(event.getX(i) - start.x) > slop || abs(event.getY(i) - start.y) > slop) twoFingersMoved = true
+        }
+        if (event.actionMasked == MotionEvent.ACTION_UP) {
+            twoFingers = false
+            if (!twoFingersMoved && event.eventTime - twoFingersAt < 500) showMenu()
+        } else if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            twoFingers = false
+        }
+        return true
+    }
+
+    /**
+     * Another game chosen on the shelf while this one is in play (Furoshiki as the home screen,
+     * where the page is a task of its own): this one ends, and the page starts the other in a
+     * new process.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val other = intent.getStringExtra(EXTRA_PATH).orEmpty()
+        if (other.isEmpty() || other == path) return
+        HomeScreen.setNext(this, other, intent.getStringExtra(EXTRA_CONSOLE).orEmpty(), intent.getStringExtra(EXTRA_GAME).orEmpty())
+        leave()
+    }
+
     /** The session saved, then this process gone: a core is never unloaded. */
     private fun leave() {
         if (leaving) return
         leaving = true
+        guide?.hide()
+        ocr?.stop()
         thread(name = "GameEnd") {
             if (started) GameNative.stop()
             runOnUiThread { ReaderSession.stop() }
             ReaderSession.awaitStopped(3000)
             runOnUiThread {
-                startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
-                finish()
+                HomeScreen.setPlaying(this, null)
+                if (HomeScreen.chosen(this)) {
+                    // The page is the home screen, in a task of its own: this one goes whole.
+                    startActivity(HomeScreen.home())
+                    finishAndRemoveTask()
+                } else {
+                    startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+                    finish()
+                }
                 Process.killProcess(Process.myPid())
             }
         }
@@ -445,6 +746,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     override fun onDestroy() {
         super.onDestroy()
         if (!leaving && isFinishing) {
+            HomeScreen.setPlaying(this, null)
             if (started) GameNative.stop()
             ReaderSession.stop()
             ReaderSession.awaitStopped(1000)
@@ -454,86 +756,102 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
     // ---- The controller ----
 
-    /** The controller's keys and the place each presses, as it comes or as the user gave them. */
-    private val padKeys: MutableMap<Int, Int> by lazy { loadPadKeys() }
+    // The game's own buttons (the controller mapping screen's "<Console>'s buttons", ButtonMap's
+    // pad_button_<id>): which button of the controller presses each, for this console.
 
-    /** While a place waits for its button: what the next key pressed is handed to. */
-    private var remapping: ((Int) -> Unit)? = null
+    /** A key of the controller and the places (libretro's, [ButtonMap.PAD_PLACES]) it presses. */
+    private var padPlaces: Map<Int, List<Int>> = emptyMap()
 
-    private fun loadPadKeys(): MutableMap<Int, Int> {
-        val keys = HashMap(PAD_KEYS)
-        runCatching {
-            val given = org.json.JSONObject(getSharedPreferences("home", MODE_PRIVATE).getString(KEY_PAD_MAP, "{}") ?: "{}")
-            for (place in given.keys()) {
-                val key = given.getInt(place)
-                // A key given a place leaves the place it had; the place leaves the key it had.
-                keys.remove(key)
-                keys.entries.removeAll { it.value == place.toInt() }
-                keys[key] = place.toInt()
-            }
-        }
-        return keys
+    /** The keys that press the console's L2 and R2, for the triggers as the core hears how far they are pulled. */
+    private val triggerKeys = intArrayOf(KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2)
+
+    /** The controller's buttons held now: by their key events, and by its axes (the d-pad as a hat, the triggers). */
+    private val heldKeys = HashSet<Int>()
+    private val heldAxes = HashSet<Int>()
+    private val pulled = IntArray(2)
+
+    /** Read as the game comes to the front: the page may have changed them behind it. */
+    private fun loadPad() {
+        val values = ReaderSettings.fresh(this).all
+        padPlaces = ButtonMap.padKeys(values, Console.KEY).mapValues { (_, ids) -> ids.map { ButtonMap.PAD_PLACES.indexOf(it) } }
+        triggerKeys[0] = ButtonMap.PAD_INPUTS[ButtonMap.padSource(values, "l2", Console.KEY)] ?: -1
+        triggerKeys[1] = ButtonMap.PAD_INPUTS[ButtonMap.padSource(values, "r2", Console.KEY)] ?: -1
+        pressPad()
     }
 
-    /** The buttons, each with the key that presses it: a tap, then the key to give it. */
-    private fun pickButtons() {
-        val places = PLACES.indices.toList()
-        val labels = places.map { place ->
-            val key = padKeys.entries.firstOrNull { it.value == place }?.key
-            PLACES[place] + "  ·  " + (key?.let { KeyEvent.keyCodeToString(it).removePrefix("KEYCODE_").removePrefix("BUTTON_") } ?: "—")
-        } + getString(R.string.game_buttons_reset)
-        inMenu = true
-        applyPause()
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setTitle(R.string.game_menu_buttons)
-            .setItems(labels.toTypedArray()) { _, which ->
-                val kept = getSharedPreferences("home", MODE_PRIVATE)
-                if (which >= places.size) {
-                    kept.edit().remove(KEY_PAD_MAP).apply()
-                    padKeys.clear()
-                    padKeys.putAll(PAD_KEYS)
-                    return@setItems
-                }
-                val waiting = AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-                    .setTitle(PLACES[which])
-                    .setMessage(R.string.game_buttons_press)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setOnDismissListener {
-                        remapping = null
-                        inMenu = false
-                        applyPause()
-                    }
-                    .create()
-                inMenu = true
-                remapping = { key ->
-                    val given = runCatching { org.json.JSONObject(kept.getString(KEY_PAD_MAP, "{}") ?: "{}") }.getOrDefault(org.json.JSONObject())
-                    // One place a key: what this key had before is no longer its.
-                    for (place in given.keys().asSequence().toList()) if (given.optInt(place, -1) == key) given.remove(place)
-                    given.put(which.toString(), key)
-                    kept.edit().putString(KEY_PAD_MAP, given.toString()).apply()
-                    padKeys.clear()
-                    padKeys.putAll(loadPadKeys())
-                    waiting.dismiss()
-                }
-                // The dialog's own window takes the keys: they are handed on from there.
-                waiting.setOnKeyListener { _, code, event ->
-                    if (code == KeyEvent.KEYCODE_BACK) return@setOnKeyListener false
-                    if (event.action == KeyEvent.ACTION_DOWN) remapping?.invoke(code)
-                    true
-                }
-                waiting.show()
+    /** The console's buttons as the held buttons of the controller press them. */
+    private fun pressPad() {
+        var bits = 0L
+        for (held in arrayOf(heldKeys, heldAxes)) {
+            for (key in held) padPlaces[key]?.forEach { bits = bits or (1L shl Console.padBit(it)) }
+        }
+        buttons = bits
+        // How far L2 and R2 are pulled: the trigger's own pull where a trigger presses it, else all or nothing.
+        for (side in 0..1) {
+            triggers[side] = when (val key = triggerKeys[side]) {
+                KeyEvent.KEYCODE_BUTTON_L2 -> pulled[0]
+                KeyEvent.KEYCODE_BUTTON_R2 -> pulled[1]
+                else -> if (key in heldKeys || key in heldAxes) 255 else 0
             }
-            .setOnDismissListener {
-                if (remapping == null) {
-                    inMenu = false
-                    applyPause()
-                }
+        }
+    }
+
+    /** A button the reader or a shortcut has: an axis of it is not the game's either. */
+    private fun isShortcut(code: Int): Boolean {
+        val settings = keySettings ?: ReaderSettings(this).also { keySettings = it }
+        return code == settings.cursorButton || code == settings.statsButton || code == settings.nextChoiceButton ||
+            code == settings.menuButton || settings.buttonAction(code) != null
+    }
+
+    // ---- What a button was given on the controller mapping screen (ButtonMap) ----
+
+    /** The settings the buttons are read from: made again as the game comes back to the front. */
+    private var keySettings: ReaderSettings? = null
+
+    /** Buttons whose press ran an action: their repeats and release are kept from the game too. */
+    private val mappedKeys = HashSet<Int>()
+
+    /**
+     * A button with an action of its own (the console's layer first): the action runs as it is
+     * pressed, and the game hears nothing of it. The pointer's, the statistics' and the next
+     * choice's buttons are the reader's (ReaderInput), before this.
+     */
+    private fun buttonAction(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        if (event.action == KeyEvent.ACTION_UP) return mappedKeys.remove(code)
+        if (event.action != KeyEvent.ACTION_DOWN) return false
+        if (code in mappedKeys) return true
+        val settings = keySettings ?: ReaderSettings(this).also { keySettings = it }
+        val action = if (settings.menuButton == code) "reader_menu" else settings.buttonAction(code) ?: return false
+        if (!runAction(action)) return false
+        mappedKeys.add(code)
+        return true
+    }
+
+    /** What each action of shared/controllers/controllers.json does here; false for one this app has not. */
+    private fun runAction(action: String): Boolean {
+        when (action) {
+            "reader_menu" -> ReaderGlue.showMenu()
+            "reader_pause_game" -> {
+                held = !held
+                applyPause()
             }
-            .show()
+            "reader_pause_stats" -> ReaderSession.toggleStatsPaused()
+            "reader_sentence_card" -> ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD)
+            "reader_word_card" -> ReaderSession.dispatch(ReaderSession.Command.WORD_CARD)
+            "reader_backlog" -> ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
+            "reader_close_popup" -> ReaderSession.dispatch(ReaderSession.Command.CLOSE_POPUP)
+            "reader_next_choice" -> NextChoice.toggle()
+            "furoshiki_game_menu" -> showMenu()
+            "furoshiki_guide" -> if (guide?.offered() == true) guide?.toggle()
+            "furoshiki_guide_done" -> if (guide?.offered() == true) guide?.done()
+            else -> return false
+        }
+        return true
     }
 
     private fun sendPad() {
-        GameNative.setPad(buttons or hat, sticks[0], sticks[1], sticks[2], sticks[3], triggers[0], triggers[1])
+        GameNative.setPad(buttons, sticks[0], sticks[1], sticks[2], sticks[3], triggers[0], triggers[1])
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -542,22 +860,42 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         ) {
             return super.dispatchKeyEvent(event)
         }
-        // A button being given another place (the menu's Buttons): this press is its answer.
-        remapping?.let { asked ->
-            if (event.action == KeyEvent.ACTION_DOWN) asked(event.keyCode)
+        // A button given to an action is the action's, not the game's.
+        actionKeys[event.keyCode]?.let { action ->
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) act(action)
             return true
         }
         if (ReaderGlue.onKey(event)) return true
-        val bit = padKeys[event.keyCode] ?: return super.dispatchKeyEvent(event)
-        val mask = 1L shl Console.padBit(bit)
-        buttons = if (event.action == KeyEvent.ACTION_DOWN) buttons or mask else buttons and mask.inv()
-        val together = (1L shl Console.padBit(RETRO_SELECT)) or (1L shl Console.padBit(RETRO_START))
-        if (buttons and together == together) {
-            buttons = 0
+        // A button given a shortcut does the shortcut, and the game hears nothing of it.
+        if (buttonAction(event)) return true
+        val code = event.keyCode
+        if (code !in ButtonMap.PAD_INPUTS.values) return super.dispatchKeyEvent(event)
+        val down = event.action == KeyEvent.ACTION_DOWN
+        if (down) heldKeys.add(code) else if (event.action == KeyEvent.ACTION_UP) heldKeys.remove(code)
+        // These two are of the controller in the hand, whatever its buttons press in the game.
+        // The guide's next step: Select and L1 show or hide it, Select and R1 tick it.
+        val shoulder = when (code) {
+            KeyEvent.KEYCODE_BUTTON_L1 -> 1
+            KeyEvent.KEYCODE_BUTTON_R1 -> 2
+            else -> 0
+        }
+        if (shoulder != 0 && down && KeyEvent.KEYCODE_BUTTON_SELECT in heldKeys && guide?.offered() == true) {
+            heldKeys.remove(KeyEvent.KEYCODE_BUTTON_SELECT)
+            heldKeys.remove(code)
+            pressPad()
+            sendPad()
+            if (shoulder == 1) guide?.toggle() else guide?.done()
+            return true
+        }
+        // Select and Start held together: the menu over the game.
+        if (KeyEvent.KEYCODE_BUTTON_SELECT in heldKeys && KeyEvent.KEYCODE_BUTTON_START in heldKeys) {
+            heldKeys.clear()
+            pressPad()
             sendPad()
             showMenu()
             return true
         }
+        pressPad()
         sendPad()
         return true
     }
@@ -573,14 +911,25 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         sticks[1] = axis(MotionEvent.AXIS_Y)
         sticks[2] = axis(MotionEvent.AXIS_Z)
         sticks[3] = axis(MotionEvent.AXIS_RZ)
-        triggers[0] = (maxOf(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_BRAKE)) * 255).toInt()
-        triggers[1] = (maxOf(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS)) * 255).toInt()
+        pulled[0] = (maxOf(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_BRAKE)) * 255).toInt()
+        pulled[1] = (maxOf(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS)) * 255).toInt()
+        // The d-pad as a hat and the triggers as axes are buttons of the controller like the
+        // rest: they press what the map gives them. A trigger moved elsewhere counts as held
+        // from half way (one on its own place is the core's by its pull alone, as it was).
         val hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
         val hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
-        hat = (if (hatX < -0.5f) 1L shl Console.padBit(RETRO_LEFT) else 0L) or
-            (if (hatX > 0.5f) 1L shl Console.padBit(RETRO_RIGHT) else 0L) or
-            (if (hatY < -0.5f) 1L shl Console.padBit(RETRO_UP) else 0L) or
-            (if (hatY > 0.5f) 1L shl Console.padBit(RETRO_DOWN) else 0L)
+        heldAxes.clear()
+        if (hatX < -0.5f) heldAxes.add(KeyEvent.KEYCODE_DPAD_LEFT)
+        if (hatX > 0.5f) heldAxes.add(KeyEvent.KEYCODE_DPAD_RIGHT)
+        if (hatY < -0.5f) heldAxes.add(KeyEvent.KEYCODE_DPAD_UP)
+        if (hatY > 0.5f) heldAxes.add(KeyEvent.KEYCODE_DPAD_DOWN)
+        val sides = intArrayOf(KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2)
+        for (side in 0..1) {
+            val code = sides[side]
+            val own = padPlaces[code]?.singleOrNull() == ButtonMap.PAD_PLACES.indexOf(if (side == 0) "l2" else "r2")
+            if (pulled[side] > 127 && !own && !isShortcut(code)) heldAxes.add(code)
+        }
+        pressPad()
         sendPad()
         return true
     }
@@ -591,29 +940,25 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         const val EXTRA_GAME = "game"
         private const val DEAD_ZONE = 0.12f
 
-        // A core's buttons are libretro's joypad bits, by where they lie on a controller.
-        private const val RETRO_SELECT = 2
-        private const val RETRO_START = 3
-        private const val RETRO_UP = 4
-        private const val RETRO_DOWN = 5
-        private const val RETRO_LEFT = 6
-        private const val RETRO_RIGHT = 7
         private const val KEY_PAD_MAP = "pad_map"
+        private const val KEY_DISC = "disc:"
 
-        /** The places of a controller's buttons, as libretro numbers them. */
-        private val PLACES = listOf(
-            "South (×, B)", "West (□, Y)", "Select", "Start", "Up", "Down", "Left", "Right",
-            "East (○, A)", "North (△, X)", "L1", "R1", "L2", "R2", "L3", "R3",
-        )
-        private val PAD_KEYS = mapOf(
-            KeyEvent.KEYCODE_BUTTON_A to 0, KeyEvent.KEYCODE_BUTTON_X to 1,
-            KeyEvent.KEYCODE_BUTTON_SELECT to RETRO_SELECT, KeyEvent.KEYCODE_BUTTON_START to RETRO_START,
-            KeyEvent.KEYCODE_DPAD_UP to RETRO_UP, KeyEvent.KEYCODE_DPAD_DOWN to RETRO_DOWN,
-            KeyEvent.KEYCODE_DPAD_LEFT to RETRO_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT to RETRO_RIGHT,
-            KeyEvent.KEYCODE_BUTTON_B to 8, KeyEvent.KEYCODE_BUTTON_Y to 9,
-            KeyEvent.KEYCODE_BUTTON_L1 to 10, KeyEvent.KEYCODE_BUTTON_R1 to 11,
-            KeyEvent.KEYCODE_BUTTON_L2 to 12, KeyEvent.KEYCODE_BUTTON_R2 to 13,
-            KeyEvent.KEYCODE_BUTTON_THUMBL to 14, KeyEvent.KEYCODE_BUTTON_THUMBR to 15,
-        )
+        /**
+         * The old "Buttons" dialog of the game's menu kept one map for every console ("home",
+         * `pad_map`: a place to the key given to it). The controller mapping screen has the
+         * game's buttons now: what the dialog was given becomes all consoles' buttons there,
+         * once, and the old map is gone. Called by the page too, before it shows the buttons.
+         */
+        fun migratePadMap(context: android.content.Context) {
+            val kept = context.getSharedPreferences("home", android.content.Context.MODE_PRIVATE)
+            val text = kept.getString(KEY_PAD_MAP, null) ?: return
+            runCatching {
+                val given = org.json.JSONObject(text)
+                val places = HashMap<Int, Int>()
+                for (place in given.keys()) place.toIntOrNull()?.let { places[it] = given.getInt(place) }
+                ButtonMap.migratePlaces(ReaderSettings.fresh(context), places)
+            }
+            kept.edit().remove(KEY_PAD_MAP).commit()
+        }
     }
 }

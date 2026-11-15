@@ -5,6 +5,8 @@
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <!-- The Steam Controller read over USB by Furoshiki itself (steam/). -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -14,8 +16,18 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="com.ichi2.anki.permission.READ_WRITE_DATABASE" />
+    <!-- As the device's home screen (HomeScreen.kt, Device.kt): the brightness from the System
+         page once the user has allowed it, and the system's notifications pulled down from there. -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
     <queries>
+        <!-- The other apps, listed on the Apps page while Furoshiki is the home screen. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <package android:name="com.ichi2.anki" />
         <provider android:authorities="com.ichi2.anki.flashcards" />
     </queries>
@@ -28,6 +40,7 @@
         android:appCategory="game"
         android:isGame="true"
         android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Furoshiki">
 
         <!-- The page: nothing of an emulator or of the reader runs in this process. -->
@@ -37,6 +50,37 @@
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
             android:resizeableActivity="true" />
+
+        <!-- Furoshiki as the device's home screen (HomeScreen.kt): off until switched on in
+             Settings, so a phone is never asked whether this is its launcher. The first display's
+             home is the page; a second display's is its own page (LowerActivity), which Android
+             starts there by itself as the home app's SECONDARY_HOME. -->
+        <activity-alias
+            android:name=".ConsoleHome"
+            android:targetActivity=".HomeActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter android:priority="1">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+        <activity
+            android:name=".LowerActivity"
+            android:launchMode="singleTop"
+            android:enabled="false"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity="${applicationId}.lower"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:resizeableActivity="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.SECONDARY_HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <!-- The launcher's way in, one alias a colour of the icon, one enabled (AppIcon.kt).
              home/tools/icon.py writes them from home/icon/icon.json. -->
@@ -488,10 +532,13 @@
         <!-- icons] -->
 
         <!-- Everything of the reader is in the process of the game, which ends with the game:
-             one core a process, as emulators were never made to share one. -->
+             one core a process, as emulators were never made to share one. Their task's name
+             (.play) only tells where Furoshiki is the home screen: the page then starts them in
+             a task of their own, so that the Home key shows the shelf (HomeScreen.apart). -->
         <activity
             android:name=".GameActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
@@ -504,6 +551,7 @@
         <activity
             android:name=".reader.ui.ReaderSettingsActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -511,6 +559,7 @@
         <activity
             android:name=".reader.ui.ReaderStatsActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -518,11 +567,13 @@
         <activity
             android:name=".ScriptsActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:theme="@android:style/Theme.NoDisplay" />
         <activity
             android:name=".reader.ui.ReaderGamesActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -530,6 +581,7 @@
         <activity
             android:name=".reader.ui.CrtSettingsActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -537,6 +589,7 @@
         <activity
             android:name=".reader.ui.DictionaryManagerActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -544,6 +597,7 @@
         <activity
             android:name=".reader.ui.AnkiSetupActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
@@ -552,6 +606,7 @@
         <activity
             android:name=".reader.ui.ReaderStartActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
@@ -559,6 +614,7 @@
         <activity
             android:name=".reader.ui.ReaderBacklogActivity"
             android:process=":game"
+            android:taskAffinity="${applicationId}.play"
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
@@ -575,5 +631,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/reader_file_paths" />
         </provider>
+        <!-- A Steam Controller plugged in: the system asks once whether Furoshiki opens it ("Always"
+             lets Furoshiki read it from then on); nothing is shown (steam/SteamAttachActivity). -->
+        <activity
+            android:name=".steam.SteamAttachActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/steam_controller" />
+        </activity>
     </application>
 </manifest>

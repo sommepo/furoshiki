@@ -403,7 +403,7 @@ void ShowColour(QPushButton* button, const QString& value) {
     button->setProperty("value", value);
     if (value.isEmpty()) {
         button->setText(QString::fromUtf8(LooksOwn));
-        button->setToolTip(QStringLiteral("The look's own; click to choose a colour"));
+        button->setToolTip(QStringLiteral("Default; click to choose a colour"));
         button->setStyleSheet({});
         return;
     }
@@ -642,7 +642,7 @@ void SettingsWindow::FillInspector() {
         form->removeRow(0);
     }
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    const QString look_own = QStringLiteral("As the look has it");
+    const QString look_own = QStringLiteral("Default");
     if (picked_element == QStringLiteral("order")) {
         // The order of an entry's blocks and of its headline's parts: dragged here, or in the preview.
         const auto list = [&](const QList<QPair<QString, QString>>& all, QStringList order, bool head) {
@@ -690,7 +690,7 @@ void SettingsWindow::FillInspector() {
             auto* row = new QHBoxLayout;
             auto* reset = new QToolButton(inspector);
             reset->setText(QStringLiteral("↺"));
-            reset->setToolTip(QStringLiteral("Back to the look's own"));
+            reset->setToolTip(QStringLiteral("Back to default"));
             const auto set = [this, key](const QJsonValue& value) {
                 PopupDesign::Design& edited = EditedDesign();
                 if (value.isNull() || value.isUndefined()) {
@@ -717,7 +717,7 @@ void SettingsWindow::FillInspector() {
                     const bool own = value.isUndefined();
                     const QSignalBlocker quiet(slider);
                     slider->setValue(static_cast<int>(std::lround((own ? property.start : value.toDouble()) / step)));
-                    shown->setText(own ? QStringLiteral("look's") : QStringLiteral("%1 %2").arg(value.toDouble()).arg(property.unit).trimmed());
+                    shown->setText(own ? QStringLiteral("default") : QStringLiteral("%1 %2").arg(value.toDouble()).arg(property.unit).trimmed());
                     shown->setEnabled(!own);
                     reset->setEnabled(!own);
                 };
@@ -995,7 +995,7 @@ QWidget* SettingsWindow::LookTab() {
     theme->addItems(home->ThemeNames());
     theme->setCurrentIndex(home->ThemeIndex());
     connect(theme, &QComboBox::currentIndexChanged, this, [this](int index) { home->ChooseTheme(index); });
-    form->addRow(QStringLiteral("Look"), theme);
+    form->addRow(QStringLiteral("Theme"), theme);
     auto* icon = new QComboBox(page);
     icon->setIconSize(QSize(24, 24));
     for (const IconColours& colours : IconChoices()) {
@@ -1005,7 +1005,7 @@ QWidget* SettingsWindow::LookTab() {
     connect(icon, &QComboBox::currentIndexChanged, this, [icon](int) { ChooseIcon(icon->currentData().toString()); });
     form->addRow(QStringLiteral("Icon"), icon);
     auto* fuzz = new QComboBox(page);
-    fuzz->addItem(QStringLiteral("As the look has it"), QString());
+    fuzz->addItem(QStringLiteral("Default"), QString());
     fuzz->addItem(QStringLiteral("Off"), QStringLiteral("off"));
     fuzz->addItem(QStringLiteral("Light"), QStringLiteral("light"));
     fuzz->addItem(QStringLiteral("Heavy"), QStringLiteral("heavy"));

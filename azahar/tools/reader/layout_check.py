@@ -37,6 +37,7 @@ def main() -> int:
         if layout.get("closed"):
             current.pop(layout["window"], None)
         else:
+            layout.setdefault("screen", 0)  # the engine leaves it out for the upper screen
             current[layout["window"]] = layout
 
     scale = args.scale

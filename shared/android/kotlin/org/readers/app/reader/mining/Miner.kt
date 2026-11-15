@@ -24,6 +24,7 @@ import org.readers.app.reader.anki.CardBuilder
 import org.readers.app.reader.anki.CardContext
 import org.readers.app.reader.anki.Duplicates
 import org.readers.app.reader.anki.SourceAddress
+import org.readers.app.reader.anki.WordMarkRule
 import org.readers.app.reader.dict.LookupResult
 import org.readers.app.reader.ReaderLog as Log
 
@@ -290,6 +291,25 @@ class Miner(context: Context) {
     }
 
     /**
+     * How well Anki has [word] at once, from this device's copy of the deck and of how well its
+     * notes are known (the word marks: [AnkiIndex.Level], by [ReaderSettings.wordMarkRule]).
+     * NOT_READY when that cannot be told yet, or no card can be made. Brings both up to date in
+     * the background when due; [onIndexChanged] says when they were. Main thread.
+     */
+    fun levelNow(presented: PresentedLine, word: LookupResult, wordRange: IntRange?): AnkiIndex.Level {
+        val (client, _) = client(quick = true)
+        val model = settings.ankiModel
+        val templates = CardBuilder.parseMapping(settings.ankiFieldMap).filterValues { it.isNotBlank() }
+        if (client == null || settings.ankiDeck.isBlank() || model.isBlank() || templates.isEmpty()) return AnkiIndex.Level.NOT_READY
+        val field = fieldOf(model) ?: return AnkiIndex.Level.NOT_READY
+        val source = sourceOf(field, scopeDeck())
+        val grading = WordMarkRule.gradingOf(settings.wordMarkRule)
+        keepIndex(client, source, grading)
+        val value = keyIn(field, templates, cardOf(presented, word, wordRange))?.second ?: return AnkiIndex.Level.NOT_READY
+        return index.levelOf(source, grading, value)
+    }
+
+    /**
      * What Anki says about each of [words] (all found at [offset] in the line), asked in one
      * request: [notes] has one entry per word, its notes (empty when there are none) or null
      * when that cannot be told for it; [reached] is false when Anki did not answer.
@@ -338,11 +358,12 @@ class Miner(context: Context) {
     }
 
     /** Reads the deck into this device's copy when that is due, without holding anything up. */
-    private fun keepIndex(client: AnkiClient, source: AnkiIndex.Source) {
+    private fun keepIndex(client: AnkiClient, source: AnkiIndex.Source, grading: AnkiIndex.Grading? = null) {
         val load = !indexLoaded
         indexLoaded = true
-        if (!load && (System.currentTimeMillis() < quietUntil ||
-                index.whatIsDue(source, System.currentTimeMillis()) == AnkiIndex.Due.NOTHING)
+        val now = System.currentTimeMillis()
+        if (!load && (now < quietUntil ||
+                index.whatIsDue(source, now) == AnkiIndex.Due.NOTHING && (grading == null || !index.gradingIsDue(source, grading, now)))
         ) {
             return
         }
@@ -360,6 +381,18 @@ class Miner(context: Context) {
                     if (due == AnkiIndex.Due.FILL) index.fill(reader, source, now) else index.refresh(reader, source, now)
                     index.save(file)
                 }
+                if (grading != null && index.gradingIsDue(source, grading, now) && System.currentTimeMillis() >= quietUntil) {
+                    try {
+                        index.grade(client(quick = false).first ?: client, source, grading, System.currentTimeMillis())
+                        gradingProblem = null
+                    } catch (e: Exception) {
+                        // A search Anki does not take (prop:r without FSRS) is said in the settings.
+                        gradingProblem = e.message ?: e.javaClass.simpleName
+                        throw e
+                    }
+                    index.save(file)
+                }
+                onIndexChanged?.let { told -> main.post { told() } }
             } catch (e: Exception) {
                 quietUntil = System.currentTimeMillis() + QUIET_AFTER_FAILURE_MS
                 Log.warning("[Reader] Could not read the deck from Anki: ${e.message}")
@@ -477,6 +510,27 @@ class Miner(context: Context) {
          */
         @Volatile
         var onAdded: ((presented: PresentedLine, word: LookupResult?, noteId: Long) -> Unit)? = null
+
+        /**
+         * Told on the main thread when the copy of the deck, or how well its notes are known, was
+         * read again from Anki or its file: an app that marks words redraws them.
+         */
+        @Volatile
+        var onIndexChanged: (() -> Unit)? = null
+
+        /** What Anki said of the word marks' searches the last time, or null when it took them. */
+        @Volatile
+        var gradingProblem: String? = null
+            private set
+
+        /** How many notes are well known, weak and new by the word marks' rule (null before it was asked). */
+        fun indexCounts(): IntArray? = index.counts()
+
+        /** Reads the deck and how well its notes are known again at the next word asked about. */
+        fun refreshSoon() {
+            quietUntil = 0L
+            index.regradeSoon()
+        }
 
         /** Stands in for the running game's pictures and audio, where there is no emulator. */
         @Volatile

@@ -599,6 +599,8 @@ retro_system_av_info g_av{};
 GLuint g_fbo = 0, g_fbo_texture = 0, g_fbo_depth = 0;
 int g_fbo_width = 0, g_fbo_height = 0;
 GLuint g_soft_texture = 0;
+/// A framebuffer to read the soft texture through (one screen's part of it, BlitPart).
+GLuint g_soft_read = 0, g_soft_read_texture = 0;
 int g_frame_width = 0, g_frame_height = 0; ///< Of the last frame, in the framebuffer or the texture
 bool g_frame_in_fbo = false;
 bool g_have_frame = false;
@@ -1751,9 +1753,22 @@ void TellScreens(const Rect& picture) {
 /// unless the core says otherwise.
 void BlitPart(const float* part, const Rect& to, int window_height) {
     const float top = part[1] * g_frame_height, end = (part[1] + part[3]) * g_frame_height;
-    const bool bottom_first = g_hw.bottom_left_origin;
+    // A picture the core drew itself (melonDS's) is read from its texture, through a framebuffer
+    // of its own; its first row is at the top.
+    const bool bottom_first = g_frame_in_fbo && g_hw.bottom_left_origin;
     const int bottom = window_height - to.y - to.height;
-    gl.BindFramebuffer(GL_READ_FRAMEBUFFER, g_fbo);
+    if (g_frame_in_fbo) {
+        gl.BindFramebuffer(GL_READ_FRAMEBUFFER, g_fbo);
+    } else {
+        if (g_soft_read == 0) {
+            gl.GenFramebuffers(1, &g_soft_read);
+        }
+        gl.BindFramebuffer(GL_READ_FRAMEBUFFER, g_soft_read);
+        if (g_soft_read_texture != g_soft_texture) {
+            gl.FramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_soft_texture, 0);
+            g_soft_read_texture = g_soft_texture;
+        }
+    }
     gl.BlitFramebuffer(static_cast<int>(part[0] * g_frame_width),
                        static_cast<int>(bottom_first ? g_frame_height - end : end),
                        static_cast<int>((part[0] + part[2]) * g_frame_width),
@@ -1765,7 +1780,7 @@ void BlitPart(const float* part, const Rect& to, int window_height) {
 #if defined(READER_LIBRETRO_ANDROID)
 /// The upper and lower screens' parts of the picture, when each has a display of its own.
 bool ScreensApart(float parts[2][4]) {
-    return g_second_surface != EGL_NO_SURFACE && g_have_frame && g_frame_in_fbo && g_glue->screen_rects != nullptr &&
+    return g_second_surface != EGL_NO_SURFACE && g_have_frame && g_glue->screen_rects != nullptr &&
            g_glue->screen_rects(parts) && parts[0][2] > 0.0f && parts[0][3] > 0.0f && parts[1][2] > 0.0f &&
            parts[1][3] > 0.0f;
 }
@@ -2354,7 +2369,7 @@ void GameThread(std::string path) {
             grab.done(grab.context, nullptr, 0, 0, 0);
         }
     }
-    g_fbo = g_fbo_texture = g_fbo_depth = g_soft_texture = 0;
+    g_fbo = g_fbo_texture = g_fbo_depth = g_soft_texture = g_soft_read = g_soft_read_texture = 0;
     g_crt_program = g_crt_plain_program = 0;
     g_crt_failed = false;
     g_vao = 0;

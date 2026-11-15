@@ -267,6 +267,11 @@ bool g_frame_limit = true; ///< On the CPU thread
 /// running game's patches were made.
 std::atomic<uint32_t> g_wide{0};
 std::atomic<bool> g_wide_changed{false};
+// The running game's main camera, put right each frame while its picture is wide (a recipe's
+// `camera`): where its pointer is, where its view window is in it, and the shape.
+std::atomic<uint32_t> g_wide_camera{0};
+std::atomic<uint32_t> g_wide_camera_window{104};
+std::atomic<float> g_wide_aspect{0.0f};
 /// False when the picture's place is to be told again (the 2D's squeeze changed).
 std::atomic<bool> g_picture_told{true};
 float g_speed = 100.0f;
@@ -353,6 +358,7 @@ std::string WidePatchesFor(const std::string& serial, u32 crc) {
     const uint32_t shape = Value(READER_CORE_SETTING_ASPECT, "auto") == "auto" ? g_wide.load() : 0;
     if (shape == 0) {
         GSSetReader2DSqueeze(1.0f);
+        g_wide_camera = 0;
         g_picture_told = false;
         return {};
     }
@@ -371,8 +377,57 @@ std::string WidePatchesFor(const std::string& serial, u32 crc) {
     const char* two_d = std::getenv("READER_WIDE_2D");
     GSSetReader2DRule(two_d != nullptr ? std::string(two_d) : WidePatches::TwoD(serial, crc));
     GSSetReader2DSqueeze(squeeze);
+    const WidePatches::Recipe* recipe = text.empty() ? nullptr : WidePatches::Find(serial, crc);
+    g_wide_aspect = static_cast<float>(shape >> 16) / static_cast<float>(shape & 0xFFFFu);
+    g_wide_camera_window = recipe != nullptr ? recipe->camera_window : 104;
+    g_wide_camera = recipe != nullptr ? recipe->camera : 0;
     g_picture_told = false;
     return text;
+}
+
+/// A camera that keeps the width it was given (a room's, in the Personas) is put right: a
+/// savestate made at another shape, or a shape changed in the middle of a room, would show the
+/// room stretched until the next one. Only a window whose shape is one of the picture's own
+/// shapes is touched (never a camera the game has given some shape of its own). Each frame, on
+/// the CPU thread. Needs proper testing: seen with Persona 4 on Linux.
+void MendWideCamera() {
+    const uint32_t global = g_wide_camera.load(std::memory_order_relaxed);
+    if (global == 0 || !eeMem) {
+        return;
+    }
+    const float aspect = g_wide_aspect.load(std::memory_order_relaxed);
+    const uint32_t ram = Ps2MemSize::ExposedRam;
+    if (aspect < 1.0f || global > ram - 4) {
+        return;
+    }
+    uint32_t camera = 0;
+    std::memcpy(&camera, eeMem->Main + global, 4);
+    camera &= 0x1FFFFFFFu;
+    const uint32_t at = camera + g_wide_camera_window.load(std::memory_order_relaxed);
+    if (camera < 0x00100000u || at > ram - 16) {
+        return;
+    }
+    float window[4];
+    std::memcpy(window, eeMem->Main + at, sizeof(window));
+    if (!(window[0] > 1e-4f) || !(window[1] > 1e-4f) || !(window[0] < 1e4f) || !(window[1] < 1e4f)) {
+        return;
+    }
+    const float has = window[0] / window[1];
+    if (std::fabs(has - aspect) <= aspect * 0.002f) {
+        return;
+    }
+    bool known = false;
+    for (const float shape : {4.0f / 3.0f, 16.0f / 9.0f, 64.0f / 27.0f, 32.0f / 9.0f}) {
+        known = known || std::fabs(has - shape) <= shape * 0.005f;
+    }
+    if (!known) {
+        return;
+    }
+    window[0] = window[1] * aspect;
+    window[2] = 1.0f / window[0];
+    std::memcpy(eeMem->Main + at, &window[0], 4);
+    std::memcpy(eeMem->Main + at + 8, &window[2], 4);
+    Console.WriteLn(fmt::format("Furoshiki: the main camera's view was {:.3f} wide for its height, now {:.3f}", has, aspect));
 }
 
 std::vector<std::string> CoreFolders();
@@ -908,6 +963,7 @@ void OnStateLoaded() {
 }
 
 void OnFrame() {
+    MendWideCamera();
     DoGrabs();
     TellPictureRect();
     if (!g_loaded || g_host->frame == nullptr) {

@@ -141,7 +141,13 @@ const QList<Entry>& Entries() {
                               {QStringLiteral("Backlog"), QStringLiteral("reader_backlog")},
                               {QStringLiteral("Explain"), QStringLiteral("reader_explain")},
                               {QStringLiteral("Close the popup"), QStringLiteral("reader_close_popup")},
-                              {QStringLiteral("Reader menu"), QStringLiteral("reader_menu")}};
+                              {QStringLiteral("Reader menu"), QStringLiteral("reader_menu")},
+                              {QStringLiteral("Menu over the game"), QStringLiteral("furoshiki_game_menu")},
+                              {QStringLiteral("Full screen"), QStringLiteral("furoshiki_full_screen")},
+                              {QStringLiteral("Settings"), QStringLiteral("furoshiki_settings")},
+                              {QStringLiteral("Show or hide the guide's step"), QStringLiteral("furoshiki_guide")},
+                              {QStringLiteral("Tick the guide's step"), QStringLiteral("furoshiki_guide_done")},
+                              {QStringLiteral("Read the on-request boxes (OCR)"), QStringLiteral("furoshiki_ocr_read")}};
         if (Reader::ConsoleTraits::HasNextChoice) {
             actions.insert(3, {QStringLiteral("Next choice"), QStringLiteral("reader_next_choice")});
         }
@@ -233,6 +239,23 @@ bool Step(Settings& settings, const QString& name, int step) {
     }
     settings.Sync();
     return true;
+}
+
+QStringList Choices(const Settings& settings, const QString& name, int* in_use) {
+    *in_use = -1;
+    const Entry* entry = Find(name);
+    if (entry == nullptr || entry->kind != Entry::Chosen) {
+        return {};
+    }
+    const QString now = entry->now(settings);
+    QStringList said;
+    for (int i = 0; i < entry->choices.size(); ++i) {
+        said.append(entry->choices[i].said);
+        if (entry->choices[i].value == now) {
+            *in_use = i;
+        }
+    }
+    return said;
 }
 
 bool IsSet(const Settings& settings, const QString& name) {

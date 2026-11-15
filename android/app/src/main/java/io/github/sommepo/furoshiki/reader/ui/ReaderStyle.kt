@@ -18,7 +18,7 @@ object ReaderStyle {
         switch: Long = psp,
     ) = when (Console.KEY) {
         "dc" -> dreamcast
-        "3ds" -> threeDs
+        "3ds", "nds" -> threeDs
         "ps1", "psvita" -> playStation
         "ps2" -> ps2
         "switch" -> switch

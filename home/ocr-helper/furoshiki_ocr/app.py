@@ -8,6 +8,9 @@ config.json: {"listen_port": 8794, "source": "furoshiki", "token": "…16 charac
 "state_dir": "state", "engine": "meikiocr"}. It listens on 127.0.0.1 only and answers only this
 computer, and only who says the token (Authorization: Bearer). Nothing is sent anywhere unless
 the engine chosen is Google Lens, which sends each text area it reads to Google.
+With "devices": true in the config it listens on every address, and another device that says the
+token may ask /api/health and /api/ocr/read and nothing else (Furoshiki for Android, reading the
+game it plays: its Settings, OCR service, take this computer's address and the token).
 
     GET  /api/health                      {"status": "ok", "role": "helper"}
     GET  /api/engines                     the engines, and which are loaded
@@ -17,6 +20,9 @@ the engine chosen is Google Lens, which sends each text area it reads to Google.
     POST /api/feed/<source>               a JPEG of the game's window, four times a second
     POST /api/ocr/test {"rect"}           what stands in an area now; nothing is kept
     POST /api/ocr/now  {"ask": true}      reads the areas that are read only on request
+    POST /api/ocr/read[?engine=]          the picture in the body (a JPEG or PNG) read whole, once:
+                                          {"text", "engine", "ms", "lines": [{"text", "boxes", "vertical"}]},
+                                          boxes [x, y, w, h] (0-1 of the picture), one per character
     GET  /api/lines?since=N&wait=S        the lines read after N (waits up to S seconds for one)
     GET  /api/overlay?after=N&wait=S      the line on the screen now, with each character's place
 
@@ -29,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hmac
 import io
 import json
 import logging
@@ -122,6 +129,8 @@ class Helper:
     def __init__(self, config: dict[str, Any]) -> None:
         self.source = str(config.get("source") or "furoshiki")
         self.token = str(config.get("token") or "")
+        # Whether other devices of the user's may send a picture to read (the config's "devices").
+        self.devices = config.get("devices") is True
         if len(self.token) < 16:
             raise ValueError("the token wants 16 characters or more")
         self.state = Path(config.get("state_dir") or "state")
@@ -239,6 +248,18 @@ class Helper:
         self.last = {"engine": name, "ms": ms, "text": text}
         return {"text": text, "engine": name, "ms": ms, "raw": raw, "layout": layout}
 
+    async def read_picture(self, image: bytes, engine: str | None = None) -> dict[str, Any]:
+        """A picture sent to be read whole and once (POST /api/ocr/read): no line is made of it
+        and nothing is kept. The text, and each line with its characters' places."""
+        name = engine or self.settings["engine"]
+        if name not in self.engines:
+            raise ValueError(f"no engine is called {name}")
+        result = await self.engines[name].read(image)
+        text, lines = cleaner.read_lines([
+            cleaner.OcrLine(item["text"], *item["box"], vertical=item.get("vertical", False), chars=item.get("chars"))
+            for item in result["lines"]])
+        return {"text": text, "engine": name, "ms": result.get("ms") or 0, "lines": lines}
+
     def _show(self, line: dict[str, Any] | None) -> None:
         if (line or {}).get("id") != (self.on_screen or {}).get("id"):
             self.on_screen = line
@@ -327,12 +348,15 @@ def from_this_machine(request: web.Request) -> bool:
 def make_app(helper: Helper) -> web.Application:
     @web.middleware
     async def guard(request: web.Request, handler):
-        if not from_this_machine(request):
+        # Another device (Furoshiki for Android reading its own game) is answered only where the
+        # config says so ("devices": true), only for a picture to read, and only with the token.
+        near = from_this_machine(request)
+        if not near and not (helper.devices and request.path in ("/api/health", "/api/ocr/read")):
             raise web.HTTPForbidden(text="the helper answers this computer only")
-        if request.path != "/api/health":
+        if request.path != "/api/health" or not near:
             said = request.headers.get("Authorization", "")
             said = said[7:].strip() if said.startswith("Bearer ") else request.headers.get("X-Feed-Token", "")
-            if said != helper.token:
+            if not hmac.compare_digest(said.encode(), helper.token.encode()):
                 raise web.HTTPForbidden(text="that is not this helper's token")
         try:
             return await handler(request)
@@ -397,6 +421,20 @@ def make_app(helper: Helper) -> web.Application:
         except RuntimeError as error:
             return web.json_response({"error": str(error)}, status=502)
 
+    async def read(request: web.Request) -> web.Response:
+        # The picture in the body (a JPEG or PNG) read whole, once: Furoshiki for Android's text area.
+        image = await request.read()
+        if not image:
+            raise ValueError("no picture")
+        if len(image) > 8 * 1024 * 1024:
+            raise ValueError("the picture is larger than 8 MB")
+        if not (image[:3] == b"\xff\xd8\xff" or image[:8] == b"\x89PNG\r\n\x1a\n"):
+            raise ValueError("the picture is neither a JPEG nor a PNG")
+        try:
+            return web.json_response(await helper.read_picture(image, request.query.get("engine") or None))
+        except RuntimeError as error:
+            return web.json_response({"error": str(error)}, status=502)
+
     async def now(request: web.Request) -> web.Response:
         data = await body(request)
         return web.json_response(await helper.now(bool(data.get("ask")), str(data.get("area") or "") or None))
@@ -450,6 +488,7 @@ def make_app(helper: Helper) -> web.Application:
     r.add_put("/api/regions", put_regions)
     r.add_post("/api/feed/{source}", feed)
     r.add_post("/api/ocr/test", test)
+    r.add_post("/api/ocr/read", read)
     r.add_post("/api/ocr/now", now)
     r.add_get("/api/lines", lines)
     r.add_get("/api/overlay", overlay)
@@ -484,8 +523,11 @@ def main(argv: list[str] | None = None) -> None:
     async def build() -> web.Application:
         return make_app(Helper(config))
 
-    log.info("Furoshiki OCR helper %s on 127.0.0.1:%s", __version__, port)
-    web.run_app(build(), host="127.0.0.1", port=port, print=None, access_log=None)
+    # "devices": true in the config: other devices on the network may send a picture to read
+    # (POST /api/ocr/read, with the token). Everything else stays this computer's alone.
+    host = "0.0.0.0" if config.get("devices") is True else "127.0.0.1"
+    log.info("Furoshiki OCR helper %s on %s:%s", __version__, host, port)
+    web.run_app(build(), host=host, port=port, print=None, access_log=None)
 
 
 if __name__ == "__main__":

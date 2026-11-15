@@ -41,6 +41,11 @@ QString Address(const QString& key) {
     if (key == QStringLiteral("luna")) {
         return QStringLiteral("https://github.com/HIllya51/LunaTranslator/releases/download/v%1/LunaTranslator_x64.zip").arg(LunaVersion);
     }
+    if (key == QStringLiteral("luna-tables")) {
+        // LunaHook's tables of games on emulators, its source as it is now (core_hooks.h).
+        return qEnvironmentVariable("READER_HOME_LUNA_TABLES_URL",
+                                    QStringLiteral("https://raw.githubusercontent.com/HIllya51/LunaTranslator/main/src/NativeImpl/LunaHook/LunaHook/emulators"));
+    }
     return {};
 }
 
@@ -178,11 +183,14 @@ Kit KitOf(const QString& key) {
     if (key == QStringLiteral("luna")) {
         return {key, QStringLiteral("LunaHook (LunaTranslator %1)").arg(LunaVersion), Address(key), QStringLiteral("67 MB"), QStringLiteral("HIllya51, GPL-3.0")};
     }
+    if (key == QStringLiteral("luna-tables")) {
+        return {key, QStringLiteral("LunaHook's games on emulators"), Address(key), QStringLiteral("0.5 MB"), QStringLiteral("HIllya51 and contributors, GPL-3.0")};
+    }
     return {};
 }
 
 bool CanFetch(const QString& key) {
-    if (key == QStringLiteral("scripts")) {
+    if (key == QStringLiteral("scripts") || key == QStringLiteral("luna-tables")) {
         return true;
     }
     if (key == QStringLiteral("frida")) {
@@ -232,6 +240,20 @@ bool Fetch::Start(const QString& key_, const QString& shared_) {
     QDir(work).removeRecursively();
     QDir().mkpath(work);
     const QString got = work + QStringLiteral("/download");
+    if (key == QStringLiteral("luna-tables")) {
+        // Four files of LunaHook's source and its licence, each fetched as it is.
+        QDir().mkpath(work + QStringLiteral("/files"));
+        for (const QString& name : {QStringLiteral("ppsspp_1.cpp"), QStringLiteral("PCSX2_1.cpp"), QStringLiteral("vita3k_1.cpp"), QStringLiteral("yuzu_1.cpp")}) {
+            steps.append({QStringLiteral("Fetching LunaHook's %1").arg(name), QStringLiteral("curl"),
+                          {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
+                           work + QStringLiteral("/files/") + name, kit.from + u'/' + name}});
+        }
+        steps.append({QStringLiteral("Fetching LunaTranslator's licence"), QStringLiteral("curl"),
+                      {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
+                       work + QStringLiteral("/files/LICENSE"), kit.from.section(QStringLiteral("/src/"), 0, 0) + QStringLiteral("/LICENSE")}});
+        Next();
+        return true;
+    }
     steps.append({QStringLiteral("Fetching %1").arg(kit.name), QStringLiteral("curl"),
                   {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"), got, kit.from}});
     if (key == QStringLiteral("scripts")) {
@@ -299,6 +321,18 @@ bool Fetch::Finish(QString& why) {
         }
         const int count = static_cast<int>(QDir(ScriptsFolder(shared)).entryList({QStringLiteral("*.js")}, QDir::Files).size());
         why = QStringLiteral("%1 script files fetched").arg(count);
+        return true;
+    }
+    if (key == QStringLiteral("luna-tables")) {
+        if (!QFileInfo(work + QStringLiteral("/files/ppsspp_1.cpp")).isFile()) {
+            why = QStringLiteral("What was fetched is not LunaHook's tables");
+            return false;
+        }
+        if (!swap(work + QStringLiteral("/files"), hooks + QStringLiteral("/luna-tables"))) {
+            why = QStringLiteral("LunaHook's tables could not be put in %1").arg(hooks);
+            return false;
+        }
+        why = QStringLiteral("LunaHook's tables fetched");
         return true;
     }
     if (key == QStringLiteral("frida")) {

@@ -582,6 +582,9 @@ class ReaderOverlay(
             // These work with or without a panel; one overlay answers, the main screen's.
             ReaderSession.Command.SENTENCE_CARD -> if (!secondary) mineSentence(panel)
             ReaderSession.Command.BACKLOG -> if (!secondary) host.openBacklog()
+            // Whichever overlay has the popup open answers (a button put on these).
+            ReaderSession.Command.WORD_CARD -> lookups.mineWord()
+            ReaderSession.Command.CLOSE_POPUP -> lookups.close()
         }
     }
 
@@ -603,6 +606,9 @@ class ReaderOverlay(
      */
     private fun panelNeeded(): Boolean {
         val line = shown ?: return false
+        // A line read from the picture (an app's OCR) stays on a second display, where it is read
+        // and looked up: the picture's own text is the game's, not as clear as a typed line.
+        if (secondary && line.line.isFromPicture) return true
         if (!settings.panelAutoHide || !settings.screenText) return true
         if (line.line.window.isEmpty()) return true // this game does not say where text is
         if (shownPlaced) return false
@@ -686,6 +692,9 @@ class ReaderOverlay(
         textView.setTextColor(
             if (settings.rereadColour && presented.accounting.reread) ReaderStyle.TEXT_REREAD else ReaderStyle.TEXT
         )
+        // Large on a second display that has nothing else to show: the line is read there.
+        val size = if (secondary && line.isFromPicture) settings.fontSizeSp * FROM_PICTURE_SCALE else settings.fontSizeSp.toFloat()
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
         textView.setLine(line.text, line.ruby, settings.showFurigana)
         textScroll.scrollTo(0, 0)
         updateVisibility()
@@ -1161,6 +1170,9 @@ class ReaderOverlay(
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics).toInt()
 
     private companion object {
+        /** How much larger a line read from the picture is drawn on a second display. */
+        private const val FROM_PICTURE_SCALE = 1.4f
+
         /** How long a line may take to be placed in the game's picture before the panel shows
          * it instead. The game reports the place within a frame or two of the text. */
         const val PLACEMENT_GRACE_MS = 400L

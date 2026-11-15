@@ -22,6 +22,8 @@ add_executable(reader_desktop_tests
     ${READER_SHARED}/reader/core/next_choice.cpp
     # Progress set by hand (reader.progress), through the engine with made-up memory.
     ${READER_SHARED}/reader/desktop/tests/progress_test.cpp
+    # A game read by a hook description (reader.hooks), likewise.
+    ${READER_SHARED}/reader/desktop/tests/hook_description_test.cpp
     # Touch play: reader.cursor, and each visual novel's profile against made-up memory.
     touch_play_test.cpp
     ${READER_SHARED}/reader/desktop/tests/deinflector.cpp

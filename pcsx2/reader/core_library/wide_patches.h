@@ -53,6 +53,13 @@ struct Recipe {
     /// Which draws are the game's 2D, kept to their shape (GSSetReader2DRule's spec): "" the default.
     const char* two_d;
     std::vector<Entry> entries;
+    /// Where the game keeps a pointer to its main camera, if a camera keeps the width it was
+    /// given until its view is set again (a room's camera: a savestate made at another shape
+    /// would show that room stretched). The core then puts the camera right itself, each frame:
+    /// its view window is two floats at `camera_window` (x = aspect * y, then y) and their
+    /// reciprocals after them. 0: the game has no such camera.
+    uint32_t camera = 0;
+    uint32_t camera_window = 104;
 };
 
 /// Every recipe there is.

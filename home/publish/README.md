@@ -25,7 +25,7 @@ are described [further down](#games-without-a-script).
   own Yomitan dictionaries and each game's character names.
 - **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki, with the
   lines before it as context if you want them.
-- **One launcher for all of it.** Six consoles are built in as cores, as in RetroArch: one
+- **One launcher for all of it.** Seven consoles are built in as cores, as in RetroArch: one
   library, one set of settings, the same reading tools everywhere.
 
 <p align="center"><img src="home/publish/media/lookup-remember11-2.gif" width="760" alt="Remember11: ポケット, 手, 差し入れて and 取り出す looked up one after another"></p>
@@ -38,12 +38,24 @@ are described [further down](#games-without-a-script).
 | Dreamcast | Flycast | ✓ | ✓ |
 | Nintendo 3DS | Azahar | ✓ | ✓ |
 | PS Vita | Vita3K | ✓ | ✓ |
+| Nintendo DS | melonDS | (to come) | ✓ |
 
-A console game without a script still plays in Furoshiki, just without the reading tools.
+A console game without a script still plays in Furoshiki, and can be read by OCR (below).
 
 ## Games without a script
 
-For what the scripts do not cover, on Windows:
+**A console game without a script is read by OCR** of the game's own picture, on Windows and on
+Android. When no script loads, Furoshiki watches the game's text area (the lower third, or boxes
+you draw over the text) and reads it once it has changed and stood still. The line it reads is
+placed over the game's own text, so you point at or tap a word there as you would with a script.
+On Android the OCR runs on the device itself (meikiocr); nothing is sent anywhere.
+
+<p align="center"><img src="home/publish/media/thor-ocr.jpg" width="760" alt="Persona 4 (Japan), a game with no script, on the AYN Thor: its text box read by OCR, and 難易度 tapped in the game's own text opens なんいど, degree of difficulty"></p>
+
+OCR is less exact than a script (it can misread a character, and it has no speakers or furigana),
+but it works with any game.
+
+For PC games and other sources, on Windows:
 
 | The game is | Read by |
 | --- | --- |
@@ -61,7 +73,7 @@ itself where its place is known. Cards, the backlog and the reading figures work
 Hooks are fetched the first time you use one (Agent's scripts, LunaHook and Textractor are their
 authors' own projects and are not part of this repository).
 
-OCR is done by **Furoshiki's OCR helper**, a small service on your own computer that Furoshiki
+On Windows, OCR is done by **Furoshiki's OCR helper**, a small service on your own computer that Furoshiki
 starts and stops by itself. It is a separate download (below), because it brings a Python and an
 OCR model of about 1 GB with it. You choose the engine: meikiocr (the default), OneOCR or Chrome
 Screen AI, which all read on your computer, or Google Lens, which sends each text area to Google.
@@ -121,6 +133,16 @@ game's text to look it up. On-screen buttons and a stick where the device has no
 over the game with savestate slots, disc change, fast forward, skip to the next choice, patches
 and cheat codes. A game can be pinned to the home screen. On a handheld with two displays the
 second one is a trackpad, or a 3DS game's lower screen.
+
+On the **AYN Thor**, Furoshiki can be the home screen of both displays: the shelf above, and below
+it the title in hand with the buttons to play it and the consoles' pages.
+
+<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="The AYN Thor's two displays: the shelf with Wish Room's cover above, and below it Wish Room's figures, Continue, and the consoles' pages as buttons"></p>
+
+In a game, tap a word in its text and the popup opens beside it; the lower display holds the
+line, the backlog and the keys for cards, the pause and the menu.
+
+<p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: 黙れ tapped in the message window opens 黙る, だまる, imperative, to be silent"></p>
 
 ## Supported games
 
@@ -198,6 +220,15 @@ reading tools. Scripts are for the Japanese release of each game.
 
 </details>
 
+<details><summary><b>Nintendo DS</b> (2 games, Android)</summary>
+
+| Game | Title | What is read |
+| --- | --- | --- |
+| Wish Room | ウィッシュルーム 天使の記憶 | Message windows with speakers, the choices; the game held like a book |
+| 999: Nine Hours, Nine Persons, Nine Doors | 極限脱出 9時間9人9の扉 | Novel text and talk windows with speakers, escape rooms, choices, file pages |
+
+</details>
+
 <details><summary><b>PS Vita</b> (1 game)</summary>
 
 | Game | Title | What is read |
@@ -222,6 +253,7 @@ cartridges you own, plus:
 | Dreamcast | Nothing (a BIOS of your own is optional) | `program\consoles\dc\system\dc\dc_boot.bin` | |
 | Nintendo 3DS | Decrypted games; keys only where a game asks for them | `program\consoles\3ds\system` | |
 | PS Vita | The firmware (`PSVUPDAT.PUP`, plus `PSP2UPDAT.PUP` if you have it) | `program\consoles\psvita\system` | `Games/BIOS/Vita` |
+| Nintendo DS | Nothing (melonDS's own free BIOS is built in) | | |
 
 **Windows:** the folders above are in `%LOCALAPPDATA%\Furoshiki`. Add your game folders in the
 program.
@@ -237,10 +269,6 @@ them in `Games/Dictionaries` and they're imported at first start.
 ## Download
 
 From the [latest release](../../releases/latest):
-
-> Furoshiki 3 (the shelf, hooks, OCR and its helper) is in the source now and comes as release
-> 0.2.0. Until that is out, the latest release is 0.1.2, which has the consoles and their scripts
-> in the earlier look.
 
 - **Windows** (`Furoshiki-<version>-windows.zip`): unzip it anywhere and run `Furoshiki.exe`. The
   PS2 and Vita cores need the
@@ -266,7 +294,7 @@ library.
 | `shared/` | The lookup and mining layer, used everywhere |
 | `home/ocr-helper/` | The OCR helper (Python): `package.sh` makes its zip |
 | `cores/` | The interface between Furoshiki and the cores |
-| `station/`, `pcsx2/`, `armsx2/`, `ppsspp/`, `flycast/`, `azahar/`, `vita3k/` | Each emulator, with its core and its game scripts |
+| `station/`, `pcsx2/`, `armsx2/`, `ppsspp/`, `flycast/`, `azahar/`, `vita3k/`, `melonds/` | Each emulator, with its core and its game scripts |
 
 Fetch an emulator's third-party code with `git submodule update --init --recursive -- <folder>`.
 Then:

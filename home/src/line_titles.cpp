@@ -40,6 +40,33 @@ QJsonObject Read(const QString& file) {
     return in.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(in.readAll()).object() : QJsonObject();
 }
 
+QJsonArray RectJson(const QRectF& r) {
+    return QJsonArray{r.x(), r.y(), r.width(), r.height()};
+}
+
+QRectF RectOf(const QJsonValue& value) {
+    const QJsonArray r = value.toArray();
+    return r.size() == 4 ? CleanArea(QRectF(r[0].toDouble(), r[1].toDouble(), r[2].toDouble(), r[3].toDouble())) : QRectF();
+}
+
+QList<Box> BoxesOf(const QJsonValue& value) {
+    QList<Box> boxes;
+    for (const QJsonValue& other : value.toArray()) {
+        if (const QRectF box = RectOf(other.toObject().value(QStringLiteral("rect"))); box.isValid()) {
+            boxes.append({box, other.toObject().value(QStringLiteral("read")).toString() == QStringLiteral("ask")});
+        }
+    }
+    return boxes;
+}
+
+QJsonArray BoxesJson(const QList<Box>& boxes) {
+    QJsonArray areas;
+    for (const Box& box : boxes) {
+        areas.append(QJsonObject{{QStringLiteral("rect"), RectJson(box.rect)}, {QStringLiteral("read"), box.ask ? QStringLiteral("ask") : QStringLiteral("always")}});
+    }
+    return areas;
+}
+
 bool Write(const QString& file, const QJsonObject& root) {
     QDir().mkpath(QFileInfo(file).path());
     QSaveFile out(file);
@@ -63,6 +90,25 @@ Sources Load(const QString& folder) {
     }
     if (const QString source = helper.value(QStringLiteral("source")).toString().trimmed(); !source.isEmpty()) {
         sources.ocr.source = source;
+    }
+    if (const QString where = helper.value(QStringLiteral("where")).toString(); where == OcrOnComputer || where == OcrOnService) {
+        sources.ocr.where = where;
+    }
+    const QJsonObject service = helper.value(QStringLiteral("service")).toObject();
+    sources.ocr.service_address = CleanHelperAddress(service.value(QStringLiteral("address")).toString());
+    sources.ocr.service_token = service.value(QStringLiteral("token")).toString();
+    if (const QString source = service.value(QStringLiteral("source")).toString().trimmed(); !source.isEmpty()) {
+        sources.ocr.service_source = source;
+    }
+    for (const QJsonValue& value : root.value(QStringLiteral("games")).toArray()) {
+        const QJsonObject entry = value.toObject();
+        CoreGame game{entry.value(QStringLiteral("id")).toString(), entry.value(QStringLiteral("console")).toString(),
+                      entry.value(QStringLiteral("title")).toString(), entry.value(QStringLiteral("path")).toString(),
+                      RectOf(entry.value(QStringLiteral("area"))), BoxesOf(entry.value(QStringLiteral("areas"))),
+                      entry.value(QStringLiteral("on")).toBool(true)};
+        if (!game.id.isEmpty() && GameOf(sources, game.id) == nullptr) {
+            sources.games.append(game);
+        }
     }
     for (const QJsonValue& value : root.value(QStringLiteral("titles")).toArray()) {
         const QJsonObject entry = value.toObject();
@@ -149,10 +195,85 @@ bool Save(const QString& folder, const Sources& sources) {
     if (!sources.ocr.engine.isEmpty()) {
         helper.insert(QStringLiteral("engine"), sources.ocr.engine);
     }
-    return Write(folder + QStringLiteral("/program/sources.json"),
-                 QJsonObject{{QStringLiteral("address"), sources.address},
-                             {QStringLiteral("ocr"), helper},
-                             {QStringLiteral("titles"), titles}});
+    if (!sources.ocr.where.isEmpty()) {
+        helper.insert(QStringLiteral("where"), sources.ocr.where);
+    }
+    if (!sources.ocr.service_address.isEmpty() || !sources.ocr.service_token.isEmpty() || sources.ocr.service_source != QStringLiteral("furoshiki")) {
+        helper.insert(QStringLiteral("service"), QJsonObject{{QStringLiteral("address"), sources.ocr.service_address},
+                                                             {QStringLiteral("source"), sources.ocr.service_source},
+                                                             {QStringLiteral("token"), sources.ocr.service_token}});
+    }
+    QJsonObject root{{QStringLiteral("address"), sources.address}, {QStringLiteral("ocr"), helper}, {QStringLiteral("titles"), titles}};
+    if (!sources.games.isEmpty()) {
+        QJsonArray games;
+        for (const CoreGame& game : sources.games) {
+            QJsonObject entry{{QStringLiteral("id"), game.id}, {QStringLiteral("console"), game.console}, {QStringLiteral("title"), game.title},
+                              {QStringLiteral("path"), game.path}, {QStringLiteral("on"), game.on}};
+            if (game.area.isValid()) {
+                entry.insert(QStringLiteral("area"), RectJson(game.area));
+            }
+            if (!game.more.isEmpty()) {
+                entry.insert(QStringLiteral("areas"), BoxesJson(game.more));
+            }
+            games.append(entry);
+        }
+        root.insert(QStringLiteral("games"), games);
+    }
+    return Write(folder + QStringLiteral("/program/sources.json"), root);
+}
+
+QString OcrWhere(const Helper& helper, const QString& known_service) {
+    if (helper.where == OcrOnComputer || helper.where == OcrOnService) {
+        return helper.where;
+    }
+    return !CleanHelperAddress(known_service).isEmpty() && helper.address.isEmpty() ? OcrOnService : OcrOnComputer;
+}
+
+Helper InUse(const Helper& helper, const QString& known_service) {
+    Helper use = helper;
+    if (OcrWhere(helper, known_service) != OcrOnService) {
+        return use;
+    }
+    use.address = helper.service_address.isEmpty() ? CleanHelperAddress(known_service) : helper.service_address;
+    use.source = helper.service_source.trimmed().isEmpty() ? QStringLiteral("furoshiki") : helper.service_source.trimmed();
+    use.token = helper.service_token;
+    use.program.clear(); // someone else's to run
+    return use;
+}
+
+const CoreGame* GameOf(const Sources& sources, const QString& id) {
+    for (const CoreGame& game : sources.games) {
+        if (game.id == id && !id.isEmpty()) {
+            return &game;
+        }
+    }
+    return nullptr;
+}
+
+bool SetGame(Sources& sources, const CoreGame& game) {
+    if (game.id.isEmpty()) {
+        return false;
+    }
+    CoreGame clean = game;
+    clean.area = CleanArea(game.area);
+    clean.more.clear();
+    for (const Box& box : game.more) {
+        if (const QRectF rect = CleanArea(box.rect); rect.isValid()) {
+            clean.more.append({rect, box.ask});
+        }
+    }
+    for (CoreGame& known : sources.games) {
+        if (known.id == game.id) {
+            known = clean;
+            return true;
+        }
+    }
+    sources.games.append(clean);
+    return true;
+}
+
+bool RemoveGame(Sources& sources, const QString& id) {
+    return sources.games.removeIf([&](const CoreGame& game) { return game.id == id; }) > 0;
 }
 
 QRectF CleanArea(const QRectF& area) {

@@ -260,6 +260,11 @@ bool GSRenderer::Merge(int field)
 	if (GSConfig.FXAA)
 		g_gs_device->FXAA();
 
+	// Reader fork: a wide picture's frame without 3D (GSState.cpp, ReaderWideFrame) is shown whole
+	// in the picture's middle, with soft sides in place of what the game left there.
+	if (const float middle = ReaderWideFrame(); middle < 0.999f)
+		g_gs_device->ReaderWideFill(middle);
+
 	// Sharpens biinear at lower resolutions, almost nearest but with more uniform pixels.
 	if (GSConfig.LinearPresent == GSPostBilinearMode::BilinearSharp && (g_gs_device->GetWindowWidth() > fs.x || g_gs_device->GetWindowHeight() > fs.y))
 	{

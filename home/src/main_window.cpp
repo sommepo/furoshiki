@@ -34,6 +34,7 @@
 #include <QStackedWidget>
 #include <SDL.h>
 #include <QClipboard>
+#include "discs.h"
 #include "home_window.h"
 #include "hook_processes.h"
 #include "hook_source.h"
@@ -43,6 +44,8 @@
 #include <QShortcut>
 #include "global_key.h"
 #include "ocr_source.h"
+#include "core_ocr.h"
+#include "ocr_helper.h"
 #include "line_titles.h"
 #include "text_strip.h"
 #include "reader/qt/lookup_flow.h"
@@ -50,6 +53,7 @@
 #include "addons.h"
 #include "app_folders.h"
 #include "main_window.h"
+#include "controller_screen.h"
 #include "old_settings.h"
 #include "reader/core/input_filter.h"
 #include "reader/qt/host.h"
@@ -401,6 +405,10 @@ void GameScreen::resizeEvent(QResizeEvent* event) {
 }
 
 void GameScreen::keyPressEvent(QKeyEvent* event) {
+    if ((event->modifiers() & Qt::ControlModifier) != 0 && (event->modifiers() & Qt::ShiftModifier) != 0 && event->key() == Qt::Key_R) {
+        emit ReadAskedWanted(); // the boxes read only on request, of a game read by OCR
+        return;
+    }
     if ((event->modifiers() & Qt::ControlModifier) != 0 && event->key() >= Qt::Key_A && event->key() <= Qt::Key_Z &&
         ReaderUi::Shortcut('a' + (event->key() - Qt::Key_A))) {
         return;
@@ -479,6 +487,7 @@ void GameScreen::mouseReleaseEvent(QMouseEvent* event) {
 
 MainWindow::MainWindow() {
     setWindowTitle(QStringLiteral("Furoshiki"));
+    MakeGuideKeys(); // Ctrl+Shift+G and N over the game (guide_window.h)
     pages = new QStackedWidget(this);
     home = new HomeWindow(pages);
     screen = new GameScreen(pages);
@@ -552,6 +561,16 @@ MainWindow::MainWindow() {
                                                        running ? QString::fromUtf8(current->core.info->key) : QString(),
                                                        running ? playing_id : QString()));
         }
+        // The controller map's (controller_map.h): the console playing's own bindings first.
+        if (key == ReaderApp::ReaderSettings::KeyCursorButton || key == ReaderApp::ReaderSettings::KeyMenuButton ||
+            key == ReaderApp::ReaderSettings::KeyStatsButton || key.startsWith(QStringLiteral("reader_back_button_")) ||
+            key.startsWith(QStringLiteral("reader_button_action_")) || key.startsWith(QStringLiteral("pad_button_"))) {
+            if (current == nullptr) {
+                return std::nullopt;
+            }
+            const QString own = play_settings.Raw(QStringLiteral("controller.") + key, QString::fromUtf8(current->core.info->key));
+            return own.isEmpty() ? std::nullopt : std::optional<QString>(own);
+        }
         if (!key.startsWith(QStringLiteral("reader_popup_"))) {
             return std::nullopt;
         }
@@ -615,14 +634,12 @@ MainWindow::MainWindow() {
             // The popup's own, in the layers (all consoles'): 0 is "as its look has it", then
             // 20 % to 100 % in fives. Shown at once in a game that plays.
             if (step != 0) {
-                const int now = play_settings.Raw(QStringLiteral("popup.opacity")).toInt();
+                // Nothing set is 90 % since 2026-11-15, so "as its look has it" is a 0 kept.
+                const QString raw = play_settings.Raw(QStringLiteral("popup.opacity"));
+                const int now = raw.isEmpty() ? 90 : raw.toInt();
                 int next = now == 0 ? (step > 0 ? 20 : 0) : now + step * 5;
                 next = next < 20 ? 0 : std::min(next, 100);
-                if (next == 0) {
-                    play_settings.Clear(QStringLiteral("popup.opacity"));
-                } else {
-                    play_settings.Set(QStringLiteral("popup.opacity"), QString::number(next));
-                }
+                play_settings.Set(QStringLiteral("popup.opacity"), QString::number(next));
                 play_settings.Save();
                 ApplyPlaySettings(playing_id);
             }
@@ -643,6 +660,8 @@ MainWindow::MainWindow() {
             settings.Sync();
         } else if (row == QStringLiteral("Customise the popup")) {
             OpenSettings(QStringLiteral("Popup"));
+        } else if (row == QStringLiteral("Map the controller")) {
+            OpenControllerMap();
         } else if (row == QStringLiteral("CRT picture")) {
             OpenSettings(QStringLiteral("CRT"));
         } else if (row == QStringLiteral("Tidy reading time")) {
@@ -687,6 +706,34 @@ MainWindow::MainWindow() {
                 home->SetTrackerUrl(url);
             }
         }
+    });
+    home->SetSettingChoices([this](const QString& row) -> std::pair<QStringList, int> {
+        const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
+        if (row == QStringLiteral("Pointer button")) {
+            QStringList said;
+            const QList<int> buttons = ReaderUi::PointerButtons();
+            for (const int button : buttons) {
+                said.append(ReaderUi::PointerButtonName(button));
+            }
+            return {said, static_cast<int>(buttons.indexOf(settings.CursorButton()))};
+        }
+        if (row == QStringLiteral("Explain with")) {
+            const QStringList models = ExplainModels();
+            QStringList said;
+            for (const QString& model : models) {
+                // "claude-sonnet-5-5" as Sonnet 5.5
+                QStringList words = model.mid(7).split(QLatin1Char('-'));
+                QString first = words.isEmpty() ? model : words.takeFirst();
+                if (!first.isEmpty()) {
+                    first[0] = first[0].toUpper();
+                }
+                said.append(first + QLatin1Char(' ') + words.join(QLatin1Char('.')));
+            }
+            return {said, static_cast<int>(models.indexOf(settings.ExplainModel()))};
+        }
+        int now = -1;
+        QStringList said = ReaderRows::Choices(settings, row, &now);
+        return {said, now};
     });
     home->SetSettingReset(
         [this](const QString& row) {
@@ -737,7 +784,7 @@ MainWindow::MainWindow() {
         }
         if (row == QStringLiteral("How solid")) {
             const int now = play_settings.Raw(QStringLiteral("popup.opacity")).toInt();
-            return now == 0 ? QStringLiteral("AS ITS LOOK") : QStringLiteral("%1%").arg(now);
+            return now == 0 ? QStringLiteral("DEFAULT") : QStringLiteral("%1%").arg(now);
         }
         if (row == QStringLiteral("Explain with")) {
             // "claude-sonnet-5-5" as SONNET 5.5
@@ -821,13 +868,31 @@ MainWindow::MainWindow() {
                           [this](const QString&) { FindGames(); });
     // The titles read from lines, listed as a console's games are; the page's own commands for them.
     home->SetLinesChanged([this] { WriteLinesFile(); });
+    // A console's games that no script reads, for the wizard's way of reading one by hook.
+    home->SetUnscriptedGames([this](const QString& key) {
+        QList<HomeWindow::UnscriptedGame> games;
+        for (const OwnGame& game : unscripted[key]) {
+            games.append({game.id, game.title, game.path});
+        }
+        return games;
+    });
     {
         auto* watch = new QTimer(this);
         watch->setInterval(3000);
         connect(watch, &QTimer::timeout, this, [this] { WatchHooks(); });
         watch->start();
     }
-    home->SetScriptCommands([this](const QString& word, const QString& rest) { return LinesCommand(word, rest); });
+    home->SetScriptCommands([this](const QString& word, const QString& rest) {
+        // map-press south: a controller's button pressed on the controller map, as a test has it.
+        if (word == QStringLiteral("map-press")) {
+            if (controller_screen != nullptr) {
+                controller_screen->Pressed(rest.trimmed(), true);
+                controller_screen->Pressed(rest.trimmed(), false);
+            }
+            return true;
+        }
+        return LinesCommand(word, rest);
+    });
     if (!Lines::Load(SharedFolder()).titles.isEmpty()) {
         WriteLinesFile();
     }
@@ -852,6 +917,8 @@ MainWindow::MainWindow() {
 
     connect(screen, &GameScreen::Resized, this, [this] { SendWindow(); });
     connect(screen, &GameScreen::MenuWanted, this, [this] { OpenMenu(); });
+    connect(screen, &GameScreen::ReadAskedWanted, this, [this] { ReadAskedBoxes(); });
+    home->SetCoreOcrAdder([this](const QString& console, const QString& path) { return AddCoreOcrGame(console, path); });
     connect(screen, &GameScreen::ReaderMenuWanted, this, [this] {
         if (QMenu* menu = ReaderUi::Menu()) {
             menu->popup(screen->mapToGlobal(screen->rect().center()));
@@ -1404,7 +1471,18 @@ bool MainWindow::Plays(const QString& app) {
     return CoreFor(app, QString(), error) != nullptr;
 }
 
-bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
+bool MainWindow::Play(const QString& chosen, const QString& app, QString& error) {
+    // A game on several discs starts on the disc it was left on (kept by the menu's "Change disc").
+    QString path = chosen;
+    QStringList discs = Discs::Of(chosen);
+    if (discs.size() > 1) {
+        const QString kept = QSettings().value(QStringLiteral("discs/") + Discs::GroupKey(chosen)).toString();
+        if (discs.contains(kept) && QFileInfo::exists(kept)) {
+            path = kept;
+        }
+        discs.removeAll(path);
+        discs.prepend(path);
+    }
     // A file that is not there (a link to a folder since moved) is said here, before a game
     // that plays is stopped, an add-on started or a core handed a file it can only log.
     if (const std::string missing = CoreSession::MissingGame(path.toStdString()); !missing.empty()) {
@@ -1424,8 +1502,10 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
     }
     // One thing is read at a time: a title read from lines ends as a game starts.
     EndLines();
+    StopCoreOcr();
     InstallReader();
     current = entry;
+    button_actions_known = false; // the console's own buttons, if it has any
     ApplyConsole(info); // the console's values are the reader's now
     ReaderUi::Style::SetConsoleLook(info.key);
     ReaderUi::LookupPopup::SetConsoleKey(QString::fromUtf8(info.key));
@@ -1458,7 +1538,19 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
                 }
                 ApplyPlaySettings(id);
             }
+            if (!ocr_pending.isEmpty() && ocr_pending == playing) {
+                // The wizard's game: it says which it is now, and goes on the shelf read by OCR.
+                ocr_pending.clear();
+                if (HasScript(id)) {
+                    ReaderUi::Notify(QStringLiteral("This game has a script: it is read by it"));
+                } else if (Lines::Sources sources = Lines::Load(SharedFolder()); Lines::GameOf(sources, id) == nullptr) {
+                    Lines::SetGame(sources, PlayingCoreGame());
+                    Lines::Save(SharedFolder(), sources);
+                    ShelveOcrGames();
+                }
+            }
             RememberGame(key, id, playing);
+            StartCoreOcr();
         });
     });
     ShowGame(true);
@@ -1468,6 +1560,11 @@ bool MainWindow::Play(const QString& path, const QString& app, QString& error) {
         error = QString::fromStdString(why);
         ShowGame(false);
         return false;
+    }
+    // Its other discs, for the menu's "Change disc".
+    playing_discs = discs;
+    for (qsizetype i = 1; i < discs.size(); ++i) {
+        current->session->AddDisc(discs[i].toStdString());
     }
     QTimer::singleShot(10000, this, [this] { SendStats(); }); // what earlier runs counted
     return true;
@@ -1535,6 +1632,7 @@ void MainWindow::InstallReader() {
     ReaderUi::SetGameStopped(
         [](void* context) {
             auto* window = static_cast<MainWindow*>(context);
+            window->StopCoreOcr();
             if (window->current != nullptr) {
                 window->WriteOwnFile(QString::fromUtf8(window->current->core.info->key), true);
             }
@@ -1622,6 +1720,9 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
             });
         };
         connect(new QShortcut(QKeySequence(Qt::Key_R), strip), &QShortcut::activated, this, read_asked);
+        auto* read_key = new QAction(this); // a back button's (MakeGuideKeys)
+        read_key->setObjectName(QStringLiteral("furoshiki_ocr_read"));
+        connect(read_key, &QAction::triggered, this, read_asked);
         auto* anywhere = new GlobalKey(ocr);
         connect(anywhere, &GlobalKey::Pressed, this, read_asked);
         connect(ocr, &ReaderUi::ReadingSource::Began, anywhere, [anywhere] { anywhere->Set('R'); });
@@ -1634,7 +1735,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
     if (by_ocr) {
         overlay->SetAccent(look.accent);
         overlay->SetLine({}, {});
-        if (!ocr->Start(*title, sources.ocr, error)) {
+        if (!ocr->Start(*title, OcrInUse(sources.ocr), error)) {
             return false;
         }
     } else if (!lines->Start(title->by, title->id, title->title, sources.address, error)) {
@@ -1682,7 +1783,7 @@ bool MainWindow::ReadHook(const Lines::Title& title, QString& error) {
     }
     // With an OCR helper, the hooked text is also laid over the game's own: invisibly, to be
     // pointed at there as in a game a core plays.
-    if (const Lines::Helper helper = Lines::Load(SharedFolder()).ocr; !helper.address.isEmpty()) {
+    if (const Lines::Helper helper = OcrInUse(Lines::Load(SharedFolder()).ocr); !helper.address.isEmpty()) {
         if (overlay == nullptr) {
             overlay = new OcrOverlay(this);
         }
@@ -1769,6 +1870,191 @@ void MainWindow::CardsFromWindow() {
     if (session.Settings().CaptureAudio()) {
         Loopback::Instance().Start();
     }
+}
+
+// ---- A core's game without a script, read by OCR (docs/furoshiki-3.md, "A core's game read by OCR") ----
+
+bool MainWindow::HasScript(const QString& id) {
+    return ReaderUi::ReaderBridge::HasBundledProfile(id) || ReaderUi::ReaderBridge::HasUserProfile(id);
+}
+
+bool MainWindow::AddCoreOcrGame(const QString& console, const QString& path) {
+    QString error;
+    ocr_pending = path;
+    // The game's listener (Play) adds it once the core has said which game the file is.
+    if (!Play(path, console.isEmpty() ? QString() : QStringLiteral("reader-home-") + console, error)) {
+        ocr_pending.clear();
+        home->Notify(error);
+        return false;
+    }
+    return true;
+}
+
+Lines::CoreGame MainWindow::PlayingCoreGame() const {
+    const Lines::Sources sources = Lines::Load(SharedFolder());
+    if (const Lines::CoreGame* known = Lines::GameOf(sources, playing_id)) {
+        return *known;
+    }
+    Lines::CoreGame game;
+    game.id = playing_id;
+    game.path = playing;
+    if (current != nullptr) {
+        game.console = QString::fromUtf8(current->core.info->key);
+        game.title = QString::fromStdString(current->session->Title());
+    }
+    if (game.title.isEmpty()) {
+        game.title = QFileInfo(playing).completeBaseName();
+    }
+    return game;
+}
+
+void MainWindow::ShelveOcrGames() {
+    const Lines::Sources sources = Lines::Load(SharedFolder());
+    QSet<QString> ids, changed;
+    for (const Lines::CoreGame& game : sources.games) {
+        ids.insert(game.id);
+        if (game.console.isEmpty() || HasScript(game.id)) {
+            continue;
+        }
+        QList<OwnGame>& games = own_games[game.console];
+        if (std::none_of(games.cbegin(), games.cend(), [&](const OwnGame& other) { return other.id == game.id; })) {
+            games.append({game.id, game.title, game.path});
+            changed.insert(game.console);
+        }
+    }
+    for (const QString& key : std::as_const(changed)) {
+        WriteOwnFile(key, false);
+        ShowConsoleGames(key);
+    }
+    home->SetOcrGames(ids);
+    if (!changed.isEmpty()) {
+        home->Refresh();
+    }
+}
+
+void MainWindow::StopCoreOcr() {
+    if (core_ocr != nullptr && core_ocr->Running()) {
+        core_ocr->Stop();
+    }
+    ocr_said.clear();
+}
+
+void MainWindow::StartCoreOcr() {
+    StopCoreOcr();
+    if (current == nullptr || playing_id.isEmpty() || HasScript(playing_id)) {
+        return;
+    }
+    const Lines::Sources sources = Lines::Load(SharedFolder());
+    const Lines::CoreGame* game = Lines::GameOf(sources, playing_id);
+    if (game == nullptr || !game->on) {
+        return;
+    }
+    if (!game->area.isValid()) {
+        ReaderUi::Notify(QStringLiteral("Read by OCR: once its text is on the screen, Esc and \"Where its text is…\""));
+        return;
+    }
+    if (core_ocr == nullptr) {
+        core_ocr = new CoreOcr(this);
+        connect(core_ocr, &CoreOcr::StatusChanged, this, [this] {
+            // What the helper says, over the game, each state once ("reading · http://…").
+            const QString status = core_ocr->Status();
+            const QString state = status.section(QStringLiteral(" · "), 0, 0);
+            if (core_ocr->Running() && !state.isEmpty() && state != ocr_said && state != QStringLiteral("not asked yet") && state != QStringLiteral("answers")) {
+                ocr_said = state;
+                ReaderUi::Notify(QStringLiteral("OCR: ") + status);
+            }
+        });
+    }
+    QString error;
+    if (!core_ocr->Start(*game, OcrInUse(sources.ocr), error)) {
+        ReaderUi::Notify(error);
+    }
+}
+
+void MainWindow::SetCoreOcrOn(bool on) {
+    if (current == nullptr || playing_id.isEmpty()) {
+        return;
+    }
+    Lines::Sources sources = Lines::Load(SharedFolder());
+    Lines::CoreGame game = PlayingCoreGame();
+    const bool known = Lines::GameOf(sources, playing_id) != nullptr;
+    game.on = on;
+    if (!known && !on) {
+        return;
+    }
+    Lines::SetGame(sources, game);
+    Lines::Save(SharedFolder(), sources);
+    ShelveOcrGames();
+    if (!on) {
+        StopCoreOcr();
+        ReaderUi::Notify(QStringLiteral("This game is no longer read by OCR"));
+    } else if (game.area.isValid()) {
+        StartCoreOcr();
+    } else {
+        // Its text's area first, over the picture as it stands (after the menu has closed).
+        QTimer::singleShot(0, this, [this] { AskCoreArea(); });
+    }
+}
+
+void MainWindow::AskCoreArea() {
+    if (current == nullptr || playing_id.isEmpty() || pages->currentWidget() != screen) {
+        return;
+    }
+    const QString id = playing_id;
+    ReaderUi::GrabPicture(1920, [this, id](const QImage& picture) {
+        if (current == nullptr || playing_id != id || pages->currentWidget() != screen) {
+            return;
+        }
+        if (picture.isNull()) {
+            ReaderUi::Notify(QStringLiteral("The core gives no picture of the game to draw the area on"));
+            return;
+        }
+        StopCoreOcr();
+        const Lines::CoreGame game = PlayingCoreGame();
+        QList<Lines::Box> boxes;
+        if (game.area.isValid()) {
+            boxes.append({game.area, false});
+            boxes.append(game.more);
+        }
+        // Furoshiki's page over the game, which stands still meanwhile (as its settings pages do).
+        ReaderUi::ProgramPaused(true);
+        ReaderUi::SetScreenShown(false);
+        pages->setCurrentWidget(home);
+        home->SetPlaying(false);
+        home->setFocus();
+        home->AskCoreArea(game.title, picture, boxes, [this, id](bool taken, const QList<Lines::Box>& drawn) {
+            if (current == nullptr || playing_id != id) {
+                return;
+            }
+            if (taken && !drawn.isEmpty()) {
+                Lines::Sources sources = Lines::Load(SharedFolder());
+                Lines::CoreGame game = PlayingCoreGame();
+                game.area = drawn.first().rect;
+                game.more = drawn.mid(1);
+                game.on = true;
+                Lines::SetGame(sources, game);
+                Lines::Save(SharedFolder(), sources);
+                ShelveOcrGames();
+            }
+            pages->setCurrentWidget(screen);
+            home->SetPlaying(true);
+            ReaderUi::SetScreenShown(true);
+            screen->setFocus();
+            ReaderUi::ProgramPaused(false);
+            StartCoreOcr();
+        });
+    });
+}
+
+void MainWindow::ReadAskedBoxes() {
+    if (core_ocr == nullptr || !core_ocr->Running()) {
+        return;
+    }
+    core_ocr->ReadAsked([](bool ok, const QString& what) {
+        if (!ok) {
+            ReaderUi::Notify(what.isEmpty() ? QStringLiteral("Nothing read on request") : what);
+        }
+    });
 }
 
 void MainWindow::MakeStrip() {
@@ -1960,6 +2246,9 @@ bool MainWindow::LinesCommand(const QString& word, const QString& rest) {
         if (overlay != nullptr && !overlay->LookUpAt(rest.toInt())) {
             qWarning("overlay-lookup: character %d has no place over the window", rest.toInt());
         }
+    } else if (word == QStringLiteral("core-ocr-add")) {
+        // core-ocr-add CONSOLE|- PATH: what the wizard's "one game, read by OCR" does.
+        AddCoreOcrGame(rest.section(QLatin1Char(' '), 0, 0) == QStringLiteral("-") ? QString() : rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1));
     } else if (word == QStringLiteral("strip-say")) {
         // What the strip and its lookup hold, for a test to read in the log.
         if (strip != nullptr) {
@@ -1972,7 +2261,126 @@ bool MainWindow::LinesCommand(const QString& word, const QString& rest) {
     return true;
 }
 
+Home::ControllerMap::Store MainWindow::ControllerStore() {
+    Home::ControllerMap::Store store;
+    store.get = [this](const QString& key, const QString& console) -> QString {
+        if (!console.isEmpty()) {
+            return play_settings.Raw(QStringLiteral("controller.") + key, console);
+        }
+        // All consoles': the reader's own settings, as they are kept (not a game's layer).
+        return ReaderUi::ReaderSession::Instance().Settings().FileValue(key).toString();
+    };
+    store.set = [this](const QString& key, const QString& value, const QString& console) {
+        if (!console.isEmpty()) {
+            play_settings.Set(QStringLiteral("controller.") + key, value, console);
+            return;
+        }
+        auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+        if (value.isEmpty()) {
+            settings.Remove(key);
+        } else {
+            bool number = false;
+            const int as_number = value.toInt(&number);
+            settings.SetValue(key, number ? QVariant(as_number) : QVariant(value));
+        }
+    };
+    store.save = [this] {
+        play_settings.Save();
+        auto& session = ReaderUi::ReaderSession::Instance();
+        session.Settings().Sync();
+        session.OnSettingsChanged();
+        button_actions_known = false;
+    };
+    return store;
+}
+
+void MainWindow::OpenControllerMap() {
+    if (controller_screen != nullptr) {
+        return;
+    }
+    const HomeWindow::ScreenLook look = home->LookOfScreen();
+    QList<ControllerScreen::Console> tabs{{QString(), QStringLiteral("All consoles")}};
+    for (const PlayConsole& console : consoles) {
+        tabs.append({console.key, console.name});
+    }
+    controller_screen = new ControllerScreen(home, {look.ground, look.raised, look.ink, look.muted, look.accent, look.rule, look.font},
+                                             ControllerStore(), tabs, [this] {
+                                                 // The Steam Controller's buttons work the page again, its grips their actions.
+                                                 home->Steam().SetGameMode(current != nullptr && pages->currentWidget() == screen);
+                                                 ReaderUi::CaptureBackButtons({});
+                                                 button_actions_known = false;
+                                                 home->setFocus();
+                                                 home->Refresh();
+                                             });
+    // While it is open every button comes to it as it is: the Steam Controller's too, and its back.
+    home->Steam().SetGameMode(true);
+    ReaderUi::CaptureBackButtons([this](int back) {
+        if (controller_screen == nullptr) {
+            return false;
+        }
+        for (const Home::ControllerMap::Input& input : Home::ControllerMap::Load().inputs) {
+            if (input.back == back) {
+                controller_screen->Pressed(input.id, true);
+                QTimer::singleShot(120, controller_screen, [this, id = input.id] {
+                    if (controller_screen != nullptr) {
+                        controller_screen->Pressed(id, false, false);
+                    }
+                });
+            }
+        }
+        return true;
+    });
+}
+
+void MainWindow::MakeGuideKeys() {
+    // The keys work over the game too, where the menu is not open.
+    auto* toggle_key = new QAction(this);
+    toggle_key->setObjectName(QStringLiteral("furoshiki_guide"));
+    toggle_key->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+G")));
+    toggle_key->setShortcutContext(Qt::ApplicationShortcut);
+    connect(toggle_key, &QAction::triggered, this, [this] { ToggleGuide(); });
+    addAction(toggle_key);
+    auto* done_key = new QAction(this);
+    done_key->setObjectName(QStringLiteral("furoshiki_guide_done"));
+    done_key->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+N")));
+    done_key->setShortcutContext(Qt::ApplicationShortcut);
+    connect(done_key, &QAction::triggered, this, [this] { GuideDone(); });
+    addAction(done_key);
+    // What a controller's back button may do besides the reader's own (reader_rows.cpp): the
+    // keys of the program, found by these names (ReaderController::OnBackButton).
+    auto* menu_key = new QAction(this);
+    menu_key->setObjectName(QStringLiteral("furoshiki_game_menu"));
+    connect(menu_key, &QAction::triggered, this, [this] { OpenMenu(); });
+    auto* full_key = new QAction(this);
+    full_key->setObjectName(QStringLiteral("furoshiki_full_screen"));
+    connect(full_key, &QAction::triggered, this, [this] { ToggleFullScreen(); });
+    auto* settings_key = new QAction(this);
+    settings_key->setObjectName(QStringLiteral("furoshiki_settings"));
+    connect(settings_key, &QAction::triggered, this, [this] { OpenSettings(); });
+}
+
+void MainWindow::ToggleGuide() {
+    if (current == nullptr || pages->currentWidget() != screen) {
+        return;
+    }
+    if (guide_overlay == nullptr) {
+        guide_overlay = new GuideOverlay;
+        connect(this, &QObject::destroyed, guide_overlay, &QObject::deleteLater);
+    }
+    guide_overlay->Toggle(screen, Home::Services::Of(QStringLiteral("furochibi")), playing_id);
+}
+
+void MainWindow::GuideDone() {
+    if (guide_overlay != nullptr) {
+        guide_overlay->Done();
+    }
+}
+
 void MainWindow::EndGame() {
+    if (guide_overlay != nullptr) {
+        guide_overlay->Close();
+    }
+    StopCoreOcr();
     if (current != nullptr) {
         current->session->Stop();
     }
@@ -2015,7 +2423,7 @@ void MainWindow::RememberGame(const QString& key, const QString& id, const QStri
     for (const OwnGame& game : std::as_const(games)) {
         known = known || game.id == id || same_file(game.path, path);
     }
-    if (!known && (ReaderUi::ReaderBridge::HasBundledProfile(id) || ReaderUi::ReaderBridge::HasUserProfile(id))) {
+    if (!known && HasScript(id)) {
         const QString title = ProfileTitle(id);
         games.append({id, title.isEmpty() ? QFileInfo(path).completeBaseName() : title, path});
         WriteOwnFile(key, false);
@@ -2133,29 +2541,66 @@ void MainWindow::FindGames() {
             }
         }
         QMetaObject::invokeMethod(this, [this, found = std::move(found)] {
+            // The games no script reads: what the wizard offers to read by OCR, and those
+            // already read that way, which stand on the shelf as the others do.
+            const Lines::Sources sources = Lines::Load(SharedFolder());
+            QList<HomeWindow::UnreadGame> unread;
             for (const auto& [key, games] : found) {
                 QList<OwnGame> readable;
+                QString console_name = key.toUpper();
+                for (const PlayConsole& console : std::as_const(consoles)) {
+                    console_name = console.key == key ? console.name : console_name;
+                }
+                unscripted[key].clear();
                 for (OwnGame game : games) {
-                    if (ReaderUi::ReaderBridge::HasBundledProfile(game.id) || ReaderUi::ReaderBridge::HasUserProfile(game.id)) {
+                    // Offered to be read by hook (wizard_core_hooks.inc), once a game.
+                    if (!HasScript(game.id) &&
+                        std::none_of(unscripted[key].cbegin(), unscripted[key].cend(), [&](const OwnGame& other) { return other.id == game.id; })) {
+                        unscripted[key].append(game);
+                    }
+                    if (HasScript(game.id)) {
                         // The game's own name, as its profile writes it, where the disc has none.
                         if (const QString title = ProfileTitle(game.id); !title.isEmpty()) {
                             game.title = title;
                         }
                         readable.append(game);
+                    } else if (const Lines::CoreGame* read = Lines::GameOf(sources, game.id)) {
+                        game.title = read->title.isEmpty() ? game.title : read->title;
+                        readable.append(game);
+                    } else if (std::none_of(unread.cbegin(), unread.cend(), [&](const HomeWindow::UnreadGame& other) { return other.id == game.id; })) {
+                        unread.append({key, console_name, game.id, game.title, game.path});
                     }
                 }
                 // One row a game: a game found under two spellings of its folder, or found and
-                // played, is listed once.
+                // played, is listed once; a game on several discs too (Discs), as its first disc,
+                // even where its discs have IDs of their own (Final Fantasy IX).
                 QList<OwnGame> once;
-                for (const OwnGame& game : std::as_const(readable)) {
-                    if (std::none_of(once.cbegin(), once.cend(), [&](const OwnGame& other) { return other.id == game.id; })) {
-                        once.append(game);
+                QStringList groups; // beside `once`: each row's disc group, or empty
+                for (OwnGame game : std::as_const(readable)) {
+                    const int disc = Discs::Number(QFileInfo(game.path).fileName());
+                    const QString group = disc > 0 ? Discs::GroupKey(game.path) : QString();
+                    if (disc > 0) {
+                        game.title = Discs::WithoutDisc(game.title);
+                        if (const qsizetype at = groups.indexOf(group); at >= 0) {
+                            // The game's row stands: it is its lowest disc's.
+                            if (disc < Discs::Number(QFileInfo(once[at].path).fileName())) {
+                                once[at] = game;
+                            }
+                            continue;
+                        }
                     }
+                    if (std::any_of(once.cbegin(), once.cend(), [&](const OwnGame& other) { return other.id == game.id; })) {
+                        continue;
+                    }
+                    once.append(game);
+                    groups.append(group);
                 }
                 own_games[key] = once;
                 WriteOwnFile(key, false);
                 ShowConsoleGames(key);
             }
+            home->SetUnreadGames(unread);
+            ShelveOcrGames(); // one read by OCR whose file is in no folder looked through
             home->Refresh();
         }, Qt::QueuedConnection);
     });
@@ -2413,6 +2858,43 @@ void MainWindow::PollPads() {
         return (pad != nullptr && SDL_GameControllerGetButton(pad, static_cast<SDL_GameControllerButton>(sdl)) != 0) ||
                (steam_buttons & (1U << sdl)) != 0;
     };
+    // The controller map (controller_screen.h) has every button as it is while it is open:
+    // learnt, lit on its drawing, or its own keys. What was held as it opened does nothing.
+    if (controller_screen != nullptr) {
+        static uint32_t map_held = 0;
+        static const ControllerScreen* map_seen = nullptr;
+        uint32_t now_held = 0;
+        for (std::size_t i = 0; i < std::size(Roles); ++i) {
+            const Role& role = Roles[i];
+            bool down = false;
+            if (role.sdl >= 0) {
+                down = button(role.sdl);
+            } else {
+                const bool left = role.filter == 104;
+                down = (pad != nullptr && SDL_GameControllerGetAxis(pad, left ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000) ||
+                       steam_axes[left ? ReaderApp::SteamBridge::LeftTrigger : ReaderApp::SteamBridge::RightTrigger] > 16000;
+            }
+            if (down) {
+                now_held |= 1U << i;
+            }
+        }
+        if (map_seen != controller_screen) {
+            map_seen = controller_screen;
+            map_held = now_held;
+        }
+        for (std::size_t i = 0; i < std::size(Roles); ++i) {
+            const uint32_t mask = 1U << i;
+            if ((now_held & mask) != (map_held & mask)) {
+                if (const Home::ControllerMap::Input* input = Home::ControllerMap::InputByNumber(Roles[i].filter)) {
+                    controller_screen->Pressed(input->id, (now_held & mask) != 0);
+                }
+            }
+        }
+        map_held = now_held;
+        std::scoped_lock lock{pads_mutex};
+        std::fill(std::begin(gamepads), std::end(gamepads), reader_core_pad{});
+        return;
+    }
     // The program's menu from the controller while a game plays (Resume, the Reader menu, a
     // savestate, back to Furoshiki): its Guide button (the Steam button), or Select and Start
     // held together a moment where the system keeps the Guide button; again, and it closes.
@@ -2436,6 +2918,20 @@ void MainWindow::PollPads() {
         both_used = true;
         OpenMenu();
     }
+    // The guide's next step: Select and L1 show or hide it, Select and R1 tick it.
+    static bool guide_toggle_held = false, guide_done_held = false;
+    const bool select_held = game_shown && button(SDL_CONTROLLER_BUTTON_BACK) && !button(SDL_CONTROLLER_BUTTON_START);
+    const bool guide_toggle = select_held && button(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    const bool guide_done = select_held && button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+    if (guide_toggle && !guide_toggle_held) {
+        ToggleGuide();
+    }
+    if (guide_done && !guide_done_held) {
+        GuideDone();
+    }
+    guide_toggle_held = guide_toggle;
+    guide_done_held = guide_done;
+    const bool guide_combo = guide_toggle || guide_done;
     // While the menu is open the controller works it, and the game gets nothing.
     if (menu != nullptr && menu->isVisible()) {
         static uint32_t menu_held = 0;
@@ -2521,12 +3017,46 @@ void MainWindow::PollPads() {
         static uint64_t taken = 0; // those of them the filter kept from the game
         bool trigger_taken[2]{};
         Reader::InputFilter& filter = Reader::InputFilter::Instance();
+        // The buttons the controller map gives an action (the console's own first): theirs, not the game's.
+        if (!button_actions_known) {
+            button_actions.clear();
+            const auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+            for (const Home::ControllerMap::Input& input : Home::ControllerMap::Load().inputs) {
+                if (input.number >= 0) {
+                    const QString action = settings.Value(QStringLiteral("reader_button_action_") + QString::number(input.number),
+                                                          QStringLiteral("none")).toString();
+                    if (!action.isEmpty() && action != QStringLiteral("none")) {
+                        button_actions.insert(input.number, action);
+                    }
+                }
+            }
+            // The console's buttons, each on the controller's button the map gave it.
+            for (std::size_t t = 0; t < std::size(Roles); ++t) {
+                game_source[t] = static_cast<int>(t);
+                const Home::ControllerMap::Input* own = Home::ControllerMap::InputByNumber(Roles[t].filter);
+                if (own == nullptr) {
+                    continue;
+                }
+                const QString source = settings.Value(QStringLiteral("pad_button_") + own->id, own->id).toString();
+                const Home::ControllerMap::Input* from = Home::ControllerMap::InputById(source);
+                game_source[t] = -1;
+                for (std::size_t r = 0; from != nullptr && r < std::size(Roles); ++r) {
+                    if (Roles[r].filter == from->number) {
+                        game_source[t] = static_cast<int>(r);
+                    }
+                }
+            }
+            button_actions_known = true;
+        }
+        uint64_t usable = 0; // the controller's buttons down that the game may have
         for (std::size_t i = 0; i < std::size(Roles); ++i) {
             const Role& role = Roles[i];
             bool down = false;
             if (role.sdl >= 0) {
                 // Select and Start held together are the menu's, not the game's.
-                down = button(role.sdl) && !(both && (role.sdl == SDL_CONTROLLER_BUTTON_BACK || role.sdl == SDL_CONTROLLER_BUTTON_START));
+                down = button(role.sdl) && !(both && (role.sdl == SDL_CONTROLLER_BUTTON_BACK || role.sdl == SDL_CONTROLLER_BUTTON_START)) &&
+                       !(guide_combo && (role.sdl == SDL_CONTROLLER_BUTTON_BACK || role.sdl == SDL_CONTROLLER_BUTTON_LEFTSHOULDER ||
+                                         role.sdl == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER));
             } else {
                 const bool left = role.filter == 104;
                 const auto axis = left ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
@@ -2536,17 +3066,37 @@ void MainWindow::PollPads() {
             const uint64_t mask = uint64_t{1} << i;
             if (down != ((held & mask) != 0)) {
                 held = down ? held | mask : held & ~mask;
-                // The reader's own buttons (its cursor's, its menu's) never reach the game,
-                // for as long as they are held.
-                const bool kept = role.filter >= 0 && filter.OnButton(device, static_cast<std::size_t>(role.filter), down);
-                taken = kept ? taken | mask : taken & ~mask;
+                const QString action = role.filter >= 0 ? button_actions.value(role.filter) : QString();
+                if (!action.isEmpty()) {
+                    // A button given an action does it as it goes down, and the game never has it.
+                    if (down) {
+                        ReaderUi::RunAction(action);
+                    }
+                    taken = down ? taken | mask : taken & ~mask;
+                } else {
+                    // The reader's own buttons (its cursor's, its menu's) never reach the game,
+                    // for as long as they are held.
+                    const bool kept = role.filter >= 0 && filter.OnButton(device, static_cast<std::size_t>(role.filter), down);
+                    taken = kept ? taken | mask : taken & ~mask;
+                }
             }
-            const int bit = BitOf(info, role);
-            if (down && (taken & mask) == 0 && bit >= 0) {
-                state.buttons |= uint64_t{1} << bit;
+            if (down && (taken & mask) == 0) {
+                usable |= mask;
             }
             if (role.sdl < 0 && down && (taken & mask) != 0) {
                 trigger_taken[role.filter == 104 ? 0 : 1] = true;
+            }
+        }
+        // Each button of the console, from the controller's button it is on.
+        int trigger_from[2]{-2, -2}; // -2: its own trigger, as far as it is pulled
+        for (std::size_t t = 0; t < std::size(Roles); ++t) {
+            const int source = game_source[t];
+            if (Roles[t].sdl < 0 && source != static_cast<int>(t)) {
+                trigger_from[Roles[t].filter == 104 ? 0 : 1] = source;
+            }
+            const int bit = BitOf(info, Roles[t]);
+            if (source >= 0 && (usable & (uint64_t{1} << source)) != 0 && bit >= 0) {
+                state.buttons |= uint64_t{1} << bit;
             }
         }
         // SDL's controller and the Steam Controller together: the one pushed further counts.
@@ -2562,11 +3112,15 @@ void MainWindow::PollPads() {
             state.sticks[2] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTX, Steam::RightX));
             state.sticks[3] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTY, Steam::RightY));
         }
-        if (!trigger_taken[0]) {
-            state.triggers[0] = static_cast<uint8_t>(std::max(0, axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, Steam::LeftTrigger) >> 7));
-        }
-        if (!trigger_taken[1]) {
-            state.triggers[1] = static_cast<uint8_t>(std::max(0, axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, Steam::RightTrigger) >> 7));
+        // A trigger put on another button is all or nothing; on its own, as far as it is pulled.
+        for (int side = 0; side < 2; ++side) {
+            if (trigger_from[side] != -2) {
+                state.triggers[side] = trigger_from[side] >= 0 && (usable & (uint64_t{1} << trigger_from[side])) != 0 ? 255 : 0;
+            } else if (!trigger_taken[side]) {
+                state.triggers[side] = static_cast<uint8_t>(std::max(
+                    0, axis(side == 0 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
+                            side == 0 ? Steam::LeftTrigger : Steam::RightTrigger) >> 7));
+            }
         }
     }
     // The other ports: SDL's next controllers, each as it is (the reader's buttons are the
@@ -2670,6 +3224,23 @@ void MainWindow::OpenMenu() {
             ReaderUi::ProgramPaused(false);
             screen->setFocus();
         });
+        QAction* guide_over = menu->addAction(QStringLiteral("Guide's next step over the game"));
+        guide_over->setObjectName(QStringLiteral("guide-over"));
+        connect(guide_over, &QAction::triggered, this, [this] { ToggleGuide(); });
+        // A game no script reads: read by OCR from the core's own picture (core_ocr.h), the
+        // game's own switch, and where its text is.
+        QAction* by_ocr = menu->addAction(QStringLiteral("Read this game by OCR"));
+        by_ocr->setObjectName(QStringLiteral("ocr-on"));
+        by_ocr->setCheckable(true);
+        connect(by_ocr, &QAction::triggered, this, [this](bool on) { SetCoreOcrOn(on); });
+        QAction* ocr_area = menu->addAction(QStringLiteral("Where its text is…"));
+        ocr_area->setObjectName(QStringLiteral("ocr-area"));
+        // Not before the menu has closed and let the game go on: the area step stops it itself.
+        connect(ocr_area, &QAction::triggered, this, [this] { QTimer::singleShot(0, this, [this] { AskCoreArea(); }); });
+        QAction* ocr_read = menu->addAction(QStringLiteral("Read the boxes read on request"));
+        ocr_read->setObjectName(QStringLiteral("ocr-read"));
+        ocr_read->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
+        connect(ocr_read, &QAction::triggered, this, [this] { ReadAskedBoxes(); });
         QAction* folder = menu->addAction(QStringLiteral("Open the save folder"));
         connect(folder, &QAction::triggered, this, [this] { OpenSaveFolder(); });
         // The page of the game's add-on's companion (addons.h), in the browser.
@@ -2697,6 +3268,20 @@ void MainWindow::OpenMenu() {
             patches->menuAction()->setVisible((features & (READER_CORE_HAS_PATCHES | READER_CORE_HAS_CODES)) != 0);
             if (auto* entry = menu->findChild<QAction*>(QStringLiteral("guide"))) {
                 entry->setVisible(!Home::Services::Of(QStringLiteral("furochibi")).isEmpty());
+            }
+            if (auto* entry = menu->findChild<QAction*>(QStringLiteral("guide-over"))) {
+                entry->setVisible(!Home::Services::Of(QStringLiteral("furochibi")).isEmpty());
+            }
+            {
+                const bool can = !playing_id.isEmpty() && !HasScript(playing_id);
+                const Lines::Sources sources = Lines::Load(SharedFolder());
+                const Lines::CoreGame* read = Lines::GameOf(sources, playing_id);
+                auto* on = menu->findChild<QAction*>(QStringLiteral("ocr-on"));
+                on->setVisible(can);
+                on->setChecked(read != nullptr && read->on);
+                menu->findChild<QAction*>(QStringLiteral("ocr-area"))->setVisible(can && read != nullptr && read->on);
+                menu->findChild<QAction*>(QStringLiteral("ocr-read"))->setVisible(
+                    can && read != nullptr && read->on && std::any_of(read->more.cbegin(), read->more.cend(), [](const Lines::Box& box) { return box.ask; }));
             }
             if (auto* page = menu->findChild<QAction*>(QStringLiteral("companion"))) {
                 const Addon* addon = PlayingCompanion();
@@ -2829,6 +3414,9 @@ void MainWindow::FillDiscMenu(QMenu* into) {
         connect(action, &QAction::triggered, this, [this, i] {
             if (current != nullptr && !current->session->InsertDisc(static_cast<int32_t>(i))) {
                 ReaderUi::Notify(QStringLiteral("The disc could not be changed"));
+            } else if (i < static_cast<uint32_t>(playing_discs.size())) {
+                // The game starts on this disc next time.
+                QSettings().setValue(QStringLiteral("discs/") + Discs::GroupKey(playing_discs[i]), playing_discs[i]);
             }
         });
     }
@@ -3080,6 +3668,49 @@ bool MainWindow::ProgramCommand(const QString& name, const QStringList& parts,
         return true;
     }
 #endif
+    if (name == QStringLiteral("ocr")) {
+        // The playing game read by OCR: ocr (what it does); ocr area X Y W H [X Y W H ask|always]...
+        // (its boxes, without the page that draws them); ocr on | off; ocr ask (that page);
+        // ocr read (the boxes read on request); ocr add CONSOLE|- PATH.
+        const QString what = parts.value(1);
+        if (what == QStringLiteral("area") && parts.size() >= 6 && current != nullptr && !playing_id.isEmpty()) {
+            Lines::Sources sources = Lines::Load(SharedFolder());
+            Lines::CoreGame game = PlayingCoreGame();
+            game.area = QRectF(parts[2].toDouble(), parts[3].toDouble(), parts[4].toDouble(), parts[5].toDouble());
+            game.more.clear();
+            for (int i = 6; i + 4 < parts.size(); i += 5) {
+                game.more.append({QRectF(parts[i].toDouble(), parts[i + 1].toDouble(), parts[i + 2].toDouble(), parts[i + 3].toDouble()), parts[i + 4] == QStringLiteral("ask")});
+            }
+            game.on = true;
+            Lines::SetGame(sources, game);
+            Lines::Save(SharedFolder(), sources);
+            ShelveOcrGames();
+            StartCoreOcr();
+        } else if (what == QStringLiteral("on") || what == QStringLiteral("off")) {
+            SetCoreOcrOn(what == QStringLiteral("on"));
+        } else if (what == QStringLiteral("ask")) {
+            AskCoreArea();
+        } else if (what == QStringLiteral("read")) {
+            ReadAskedBoxes();
+        } else if (what == QStringLiteral("add")) {
+            AddCoreOcrGame(parts.value(2) == QStringLiteral("-") ? QString() : parts.value(2), QStringList(parts.mid(3)).join(QLatin1Char(' ')));
+        }
+        const Lines::Sources sources = Lines::Load(SharedFolder());
+        const Lines::CoreGame* game = Lines::GameOf(sources, playing_id);
+        const auto& session = ReaderUi::ReaderSession::Instance();
+        reply(QStringLiteral("OK game %1 | %2 | %3 | pictures looked at %4, sent %5, taken %6 | lines %7, %8 | on screen %9 | session %10")
+                  .arg(playing_id.isEmpty() ? QStringLiteral("none") : playing_id,
+                       game == nullptr ? QStringLiteral("not read by OCR") : !game->on ? QStringLiteral("off") : game->area.isValid() ? QStringLiteral("on") : QStringLiteral("no area yet"),
+                       core_ocr != nullptr && core_ocr->Running() ? core_ocr->Status() : QStringLiteral("not running"))
+                  .arg(core_ocr != nullptr ? core_ocr->Gate().Seen() : 0)
+                  .arg(core_ocr != nullptr ? core_ocr->Client().Sent() : 0)
+                  .arg(core_ocr != nullptr ? core_ocr->Client().Taken() : 0)
+                  .arg(core_ocr != nullptr ? core_ocr->Handed() : 0)
+                  .arg(core_ocr != nullptr && core_ocr->Placed() ? QStringLiteral("placed") : QStringLiteral("not placed"))
+                  .arg(session.OnScreen().size())
+                  .arg(session.Current() ? session.Current()->line.text : QStringLiteral("-")));
+        return true;
+    }
     if (name == QStringLiteral("steam-axis")) {
         // steam-axis N VALUE: as if the Steam Controller had moved axis N (SteamBridge::Axis;
         // 4 is LT, 32767 pulled all the way), through what plays the game.
@@ -3091,6 +3722,15 @@ bool MainWindow::ProgramCommand(const QString& name, const QStringList& parts,
     if (name == QStringLiteral("settings-window")) {
         // settings-window [TAB]: the settings window, at a tab by its name.
         OpenSettings(parts.mid(1).join(QLatin1Char(' ')));
+        reply(QStringLiteral("OK"));
+        return true;
+    }
+    if (name == QStringLiteral("pad-hold")) {
+        // pad-hold N: the controller's button N (SDL's number) held, as the Steam Controller
+        // would say it; -1 lets all go. For checking what the console is then handed (pad-sent).
+        const int button = parts.value(1).toInt();
+        steam_buttons = button >= 0 && button < 32 ? 1U << button : 0;
+        steam_seen = true;
         reply(QStringLiteral("OK"));
         return true;
     }

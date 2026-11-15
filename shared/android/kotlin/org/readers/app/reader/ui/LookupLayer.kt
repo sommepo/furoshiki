@@ -592,6 +592,14 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         }
     }
 
+    /** A card of the open popup's word, as its first plus makes it (a button put on it). */
+    fun mineWord(): Boolean {
+        val pin = pinned ?: return false
+        if (!isOpen) return false
+        mine(pin.word)
+        return true
+    }
+
     private fun mine(result: LookupResult) {
         val pin = pinned ?: return
         val request = token

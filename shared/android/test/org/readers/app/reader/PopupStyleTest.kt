@@ -51,8 +51,12 @@ class PopupStyleTest {
     @Test
     fun theLooksSettingsTravelWithTheStyle() {
         val settings = ReaderSettings(context)
-        // As they are before anything was chosen: each look as it is.
-        assertEquals(0, settings.popupOpacity)
+        // As they are before anything was chosen: the ground fairly solid (90 %), the rest as each look has it.
+        assertEquals(90, settings.popupOpacity)
+        // The pointer's defaults since 2026-11-15: free over the text, left where it was, the popup gone when it leaves.
+        assertFalse(settings.cursorFrame)
+        assertFalse(settings.cursorHome)
+        assertTrue(settings.popupHideOnCursorExit)
         assertEquals(-1, settings.popupRadius)
         assertEquals("small", settings.popupPortrait)
         val style = JSONObject(

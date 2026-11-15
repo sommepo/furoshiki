@@ -46,6 +46,9 @@ class SecondScreen(
     /** What lies under the overlay there: a console's lower screen, in an app that shows it. */
     var under: ((Context) -> View)? = null
 
+    /** What lies over the overlay there, along its foot: an app's own keys. Null from it: nothing. */
+    var over: ((Context) -> View?)? = null
+
     /** True while the second display is the reader's. */
     val active: Boolean get() = pad != null
 
@@ -100,7 +103,7 @@ class SecondScreen(
         val host = host
         if (wanted != null && host != null) {
             try {
-                pad = Pad(activity, wanted, host, under).also { it.show() }
+                pad = Pad(activity, wanted, host, under, over).also { it.show() }
             } catch (e: WindowManager.InvalidDisplayException) {
                 // The display went away meanwhile; the listener hears of it.
                 Log.warning("[Reader] The second display could not be used: ${e.message}")
@@ -129,7 +132,8 @@ class SecondScreen(
         context: Context,
         display: Display,
         private val host: ReaderOverlay.Host,
-        private val under: ((Context) -> View)?
+        private val under: ((Context) -> View)?,
+        private val over: ((Context) -> View?)? = null
     ) : Presentation(context, display) {
 
         override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,6 +154,12 @@ class SecondScreen(
                 ReaderOverlay(context, host, secondary = true),
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             )
+            over?.invoke(context)?.let {
+                root.addView(
+                    it,
+                    FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM)
+                )
+            }
             setContentView(root)
         }
     }

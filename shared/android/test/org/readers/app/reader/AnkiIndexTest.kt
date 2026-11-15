@@ -7,6 +7,7 @@ import java.io.File
 import org.readers.app.reader.anki.AnkiConnectClient
 import org.readers.app.reader.anki.AnkiIndex
 import org.readers.app.reader.anki.AnkiSearch
+import org.readers.app.reader.anki.WordMarkRule
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -149,6 +150,86 @@ class AnkiIndexTest {
         assertEquals(1, stub.received("multi").size)
         assertEquals(emptyList<List<Long>>(), client.findNotesEach(DECK, FIELD, emptyList()))
         assertEquals("\"deck:Mining\" \"My\\:Word:_*\"", AnkiSearch.hasField(DECK, "My:Word"))
+    }
+
+    /**
+     * The word marks: how well each note is known, asked of Anki with its own search syntax (two
+     * searches, ids only), the best note of a word counting, kept in the file, asked again when due.
+     */
+    @Test
+    fun gradesTheNotesWithAnkisOwnSearches() {
+        set(1, DECK, "猫")
+        set(2, DECK, "犬")
+        set(3, DECK, "鳥")
+        set(4, DECK, "犬")
+        val grading = WordMarkRule.gradingOf(WordMarkRule())
+        val asked = ArrayList<String>()
+        stub.find = { query ->
+            when {
+                query.endsWith("(${grading.known})") -> { asked.add(query); listOf(1L) }
+                query.endsWith("(${grading.learnt})") -> { asked.add(query); listOf(1L, 2L) }
+                else -> find(query)
+            }
+        }
+        val client = AnkiConnectClient(stub.url, "")
+        val index = AnkiIndex()
+        index.fill(client, source, 1000)
+        // Before Anki was asked how well they are known, a word it has is not told; one it has not is.
+        assertEquals(AnkiIndex.Level.NOT_READY, index.levelOf(source, grading, "猫"))
+        assertEquals(AnkiIndex.Level.ABSENT, index.levelOf(source, grading, "馬"))
+        assertTrue(index.gradingIsDue(source, grading, 1000))
+        assertEquals(null, index.counts())
+
+        index.grade(client, source, grading, 1000)
+        assertEquals(listOf(
+            "\"deck:Mining\" \"Word:_*\" (-is:new prop:r>=0.75 prop:ivl>=21)",
+            "\"deck:Mining\" \"Word:_*\" (-is:new)"), asked)
+        assertEquals(AnkiIndex.Level.KNOWN, index.levelOf(source, grading, "猫"))
+        // 犬 has a weak note (2) and a new one (4): the better counts.
+        assertEquals(AnkiIndex.Level.WEAK, index.levelOf(source, grading, "犬"))
+        assertEquals(AnkiIndex.Level.NEW, index.levelOf(source, grading, "鳥"))
+        assertEquals(AnkiIndex.Level.ABSENT, index.levelOf(source, grading, "馬"))
+        assertEquals(listOf(1, 1, 2), index.counts()!!.toList())
+        // Another rule is not answered from this one's searches.
+        val other = WordMarkRule.gradingOf(WordMarkRule(minRetrievability = 90))
+        assertEquals(AnkiIndex.Level.NOT_READY, index.levelOf(source, other, "猫"))
+        assertTrue(index.gradingIsDue(source, other, 1000))
+        // R falls day by day: asked again after a while, or at once when told.
+        assertFalse(index.gradingIsDue(source, grading, 1000 + AnkiIndex.REFRESH_AFTER_MS - 1))
+        assertTrue(index.gradingIsDue(source, grading, 1000 + AnkiIndex.REFRESH_AFTER_MS))
+        index.regradeSoon()
+        assertTrue(index.gradingIsDue(source, grading, 1001))
+        // A card just made is a new word.
+        index.add(source, "馬", 5)
+        assertEquals(AnkiIndex.Level.NEW, index.levelOf(source, grading, "馬"))
+
+        val file = File(folder.root, "index.json")
+        assertTrue(index.save(file))
+        val again = AnkiIndex()
+        assertTrue(again.load(file))
+        assertEquals(AnkiIndex.Level.KNOWN, again.levelOf(source, grading, "猫"))
+        assertEquals(AnkiIndex.Level.WEAK, again.levelOf(source, grading, "犬"))
+        assertEquals(AnkiIndex.Level.NEW, again.levelOf(source, grading, "鳥"))
+    }
+
+    @Test
+    fun theRuleAsAnkiSearches() {
+        assertEquals(AnkiIndex.Grading("-is:new prop:r>=0.75 prop:ivl>=21", "-is:new"), WordMarkRule.gradingOf(WordMarkRule()))
+        assertEquals(AnkiIndex.Grading("-is:new prop:r>=0.90 prop:reps>=5 prop:lapses<=2", "-is:new"),
+            WordMarkRule.gradingOf(WordMarkRule(minRetrievability = 90, minInterval = 0, minReviews = 5, maxLapses = 2)))
+        // Nothing asked: every card reviewed is known.
+        assertEquals(AnkiIndex.Grading("-is:new", "-is:new"), WordMarkRule.gradingOf(WordMarkRule(0, 0, 0, -1)))
+        // A search of one's own takes the limits' place.
+        assertEquals(AnkiIndex.Grading("-is:new (prop:s>=30 OR tag:known)", "-is:new"),
+            WordMarkRule.gradingOf(WordMarkRule(search = " prop:s>=30 OR tag:known ")))
+        // Never reviewed counts as weak: every note is learnt at least.
+        assertEquals(null, WordMarkRule.gradingOf(WordMarkRule(unreviewed = WordMarkRule.UNREVIEWED_WEAK)).learnt)
+        assertEquals("(-is:new prop:r>=0.75 prop:ivl>=21) OR is:suspended",
+            WordMarkRule.gradingOf(WordMarkRule(suspended = WordMarkRule.SUSPENDED_KNOWN)).known)
+        assertEquals(AnkiIndex.Grading("-is:new -is:suspended prop:r>=0.75 prop:ivl>=21", "-is:new -is:suspended"),
+            WordMarkRule.gradingOf(WordMarkRule(suspended = WordMarkRule.SUSPENDED_NEW)))
+        assertEquals("-is:suspended",
+            WordMarkRule.gradingOf(WordMarkRule(unreviewed = WordMarkRule.UNREVIEWED_WEAK, suspended = WordMarkRule.SUSPENDED_NEW)).learnt)
     }
 
     private companion object {

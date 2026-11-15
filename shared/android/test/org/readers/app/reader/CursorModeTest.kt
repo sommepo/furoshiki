@@ -168,7 +168,13 @@ class CursorModeTest {
         activity = Robolectric.buildActivity(Activity::class.java).setup().get()
         // Of the reader's taps alone: touch play has tests of its own (ScreenTextOverlayTest).
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(activity).edit()
-            .putBoolean(ReaderSettings.KEY_TOUCH_PLAY, false).commit()
+            .putBoolean(ReaderSettings.KEY_TOUCH_PLAY, false)
+            // These tests are of the cursor framing its character, going home with a new line and a popup
+            // that stays: chosen here, as the defaults are the other way since 2026-11-15.
+            .putBoolean(ReaderSettings.KEY_CURSOR_FRAME, true)
+            .putBoolean(ReaderSettings.KEY_CURSOR_HOME, true)
+            .putBoolean(ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, false)
+            .commit()
         activity.setTheme(com.google.android.material.R.style.Theme_Material3_DayNight_NoActionBar)
         root = FrameLayout(activity)
         game = GamePicture(activity).apply {
@@ -307,6 +313,53 @@ class CursorModeTest {
         }
         layout()
         return popup()
+    }
+
+    @Test
+    fun aControllersTrackpadPointsAndLeavesTheSticksToTheGame() {
+        showInGame()
+        // The Steam Controller's right pad touched: the cursor shows, nothing of the controller is taken.
+        HoverCursor.padTouch(true)
+        assertTrue(HoverCursor.active)
+        assertFalse(HoverCursor.takesSticks)
+        assertTrue("the sticks stay the game's", told.none { it })
+        assertFalse(HoverCursor.onStick(leftStick, 1f, 0f))
+        val x = HoverCursor.x
+        HoverCursor.padMove(30f, 0f)
+        assertEquals(x + 30f, HoverCursor.x, 0.01f)
+
+        // The cursor's button held as well takes the sticks; let go, the pad alone gives them back.
+        assertTrue(hold())
+        assertTrue(HoverCursor.takesSticks)
+        assertEquals(listOf(true), told)
+        HoverCursor.onButton(zl, false, HoverCursor.SOURCE_KEY)
+        assertTrue(HoverCursor.active)
+        assertEquals(listOf(true, false), told)
+
+        // Let go of the pad: the cursor stays a moment, for the popup to be read, then goes.
+        HoverCursor.padTouch(false)
+        assertTrue(HoverCursor.active)
+        shadowOf(Looper.getMainLooper()).idleFor(5, java.util.concurrent.TimeUnit.SECONDS)
+        assertFalse(HoverCursor.active)
+    }
+
+    @Test
+    fun aTriggerThatIsAKeyAndAnAxisSwitchesOnceAPull() {
+        showInGame()
+        HoverCursor.configure(zl, 100, toggles = true)
+        // The Legion G9's L2: its key and its axis both come down for one pull.
+        assertTrue(HoverCursor.onButton(zl, true, HoverCursor.SOURCE_KEY))
+        assertTrue(HoverCursor.onButton(zl, true, HoverCursor.SOURCE_AXIS))
+        assertTrue("one pull switches it on", HoverCursor.active)
+        HoverCursor.onButton(zl, false, HoverCursor.SOURCE_AXIS)
+        HoverCursor.onButton(zl, false, HoverCursor.SOURCE_KEY)
+        assertTrue("letting go keeps it on", HoverCursor.active)
+        // The next pull, the same way, switches it off.
+        HoverCursor.onButton(zl, true, HoverCursor.SOURCE_AXIS)
+        HoverCursor.onButton(zl, true, HoverCursor.SOURCE_KEY)
+        HoverCursor.onButton(zl, false, HoverCursor.SOURCE_KEY)
+        HoverCursor.onButton(zl, false, HoverCursor.SOURCE_AXIS)
+        assertFalse(HoverCursor.active)
     }
 
     @Test
@@ -618,7 +671,7 @@ class CursorModeTest {
         val middleY = ((cell.top + cell.bottom) / 2).toInt()
         val ringX = (HoverCursor.x + 9 * density).toInt()
 
-        // Unless chosen otherwise the cursor is a frame around the character it is on.
+        // Chosen (setUp), the cursor is a frame around the character it is on.
         assertTrue(ReaderSettings(activity).cursorFrame)
         val framed = picture()
         assertTrue("a frame at the character's edge", framed.getPixel(frameX, middleY) != plain.getPixel(frameX, middleY))

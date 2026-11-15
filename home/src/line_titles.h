@@ -7,7 +7,10 @@
 // and where a WebSocket's lines come from, in <shared folder>/program/sources.json:
 //
 //   { "address": "ws://localhost:6677",
-//     "ocr": { "address": "http://127.0.0.1:8794", "source": "furoshiki", "token": "…" },
+//     "ocr": { "address": "http://127.0.0.1:8794", "source": "furoshiki", "token": "…",
+//              "where": "service", "service": { "address": "https://…", "source": "furoshiki", "token": "…" } },
+//     "games": [ { "id": "SLPS-25088", "console": "ps2", "title": "…", "path": "…", "on": true,
+//                  "area": [0.08, 0.7, 0.84, 0.25], "areas": [ { "rect": […], "read": "ask" } ] } ],
 //     "titles": [ { "id": "LINES-3F9A0C1D", "title": "…", "by": "websocket" },
 //                 { "id": "LINES-0B1C2D3E", "title": "…", "by": "ocr",
 //                   "window": "the window's title", "area": [0.08, 0.7, 0.84, 0.25] } ] }
@@ -86,6 +89,39 @@ struct Helper {
     /// Which engine reads there: "meikiocr", "oneocr", "screenai" or "glens" (Google Lens, which
     /// sends the text area to Google). Empty: as the helper has it.
     QString engine;
+    /// Where OCR runs: "computer" (the helper above, on this computer or wherever its address
+    /// says) or "service" (an OCR service on another machine: Furochibi's, which answers the
+    /// same requests). Empty: never chosen (InUse says which it is then).
+    QString where;
+    /// The OCR service: its address (empty: the one the device knows by itself, where it knows
+    /// one), the pushed picture source this device feeds there and that source's token.
+    QString service_address;
+    QString service_source{QStringLiteral("furoshiki")};
+    QString service_token;
+};
+
+inline const QString OcrOnComputer = QStringLiteral("computer");
+inline const QString OcrOnService = QStringLiteral("service");
+/// Where OCR runs with these settings: what was chosen; never chosen, the service when the
+/// device knows one (`known_service`, its address) and no helper is set, else this computer.
+[[nodiscard]] QString OcrWhere(const Helper& helper, const QString& known_service);
+/// The helper a client is to ask (ocr_client.h): as it is for this computer; for the service,
+/// the service's address (the one set, else `known_service`), source and token, and no program
+/// to start. The engine and the choice stay.
+[[nodiscard]] Helper InUse(const Helper& helper, const QString& known_service);
+
+/// A game a core plays that has no script, read by OCR from the core's own picture
+/// (core_ocr.h; "games" in the file): by its game ID, which its statistics go by as any core
+/// game's. `area` and `more` are 0-1 of the game's picture; without an area it is on the shelf
+/// and asks for one when it is played.
+struct CoreGame {
+    QString id;
+    QString console; ///< The core's key: "ps2"
+    QString title;
+    QString path;    ///< Its file, as it was added
+    QRectF area;
+    QList<Box> more;
+    bool on{true};   ///< Read by OCR when it plays (the game's own switch)
 };
 
 /// The engines a helper may read with, in the settings' order, and what each is called.
@@ -96,7 +132,16 @@ struct Sources {
     QString address{DefaultAddress};
     Helper ocr;
     QList<Title> titles;
+    QList<CoreGame> games;
 };
+
+/// The core game of that ID read by OCR, or null.
+[[nodiscard]] const CoreGame* GameOf(const Sources& sources, const QString& id);
+/// Adds a core game read by OCR, or changes the one of its ID (its area and boxes cleaned as a
+/// window's are). False without an ID.
+bool SetGame(Sources& sources, const CoreGame& game);
+/// Takes a core game off the list. False when there is none of that ID.
+bool RemoveGame(Sources& sources, const QString& id);
 
 [[nodiscard]] Sources Load(const QString& folder);
 bool Save(const QString& folder, const Sources& sources);

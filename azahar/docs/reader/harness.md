@@ -34,11 +34,13 @@ session can sit idle between commands for as long as needed.
 | `hold BUTTON`, `release BUTTON` | Keep a button down across commands. |
 | `circle X Y` | Circle pad position, each from -1 to 1. `circle 0 1` walks forward. |
 | `touch X Y [hold=4] [after=4]` | Touch the bottom screen at pixel X, Y (320×240). |
+| `drag X0 Y0 X1 Y1 [frames=20] [after=4]` | A stroke on the bottom screen, the stylus moving evenly from one point to the other. |
 | `shot PATH` | Write a 400×480 PNG: top screen above the bottom screen. |
 | `events` | Print the text events emitted since the last `events`, one JSON object per line. |
 | `layouts` | Print the on-screen layouts reported since the last `layouts`, one JSON object per line. |
 | `profile PATH` | Load a Lua profile (replacing the current one). |
 | `unload` | Remove the profile. |
+| `actions`, `action N` | What the profile offers under *In this game* (`reader.action`), and choosing one, after which the profile may write the game's memory. |
 | `lua CODE` | Run Lua in the profile's state and print the result: `lua mem.u32(0x100000)`. |
 | `mem ADDR LEN` | Hex dump of game memory (ADDR in hex). |
 | `memfile ADDR LEN PATH` | Write game memory to a file. |

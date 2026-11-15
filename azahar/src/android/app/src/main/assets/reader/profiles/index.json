@@ -3,6 +3,21 @@
   "system": "3ds",
   "scripts": [
     {
+      "id": "0004000000078B00",
+      "title": "レイトン教授VS逆転裁判 (Professor Layton vs. Phoenix Wright: Ace Attorney)",
+      "reads": "Dialogue, narration, subtitles and the puzzles' texts, with speakers, tappable in the picture",
+      "version": "The Japanese cartridge release (CTR-P-AVSJ)",
+      "api": 1,
+      "file": "0004000000078B00.lua",
+      "size": 17103,
+      "sha256": "308129d291821d7e48b04e65ab4e38756b89e91a96ace945026b0de098cc4915",
+      "names": {
+        "file": "names-layton-vs-ace-attorney.zip",
+        "size": 4076,
+        "sha256": "d8a215888539e598741c36e82bca3240e7aa4de3995062ee1f678f426c5cd6a1"
+      }
+    },
+    {
       "id": "0004000000088A00",
       "title": "真・女神転生IV (Shin Megami Tensei IV)",
       "reads": "Dialogue, narration and choices, page by page",

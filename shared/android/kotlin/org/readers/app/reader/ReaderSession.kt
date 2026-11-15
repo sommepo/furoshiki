@@ -60,7 +60,7 @@ object ReaderSession {
     }
 
     /** Actions that can be bound to controller buttons. */
-    enum class Command { TOGGLE_PANEL, SENTENCE_CARD, BACKLOG }
+    enum class Command { TOGGLE_PANEL, SENTENCE_CARD, BACKLOG, WORD_CARD, CLOSE_POPUP }
 
     /** Sends [command] to whichever overlay holds the reader panel. Any thread. */
     fun dispatch(command: Command) {
@@ -93,7 +93,14 @@ object ReaderSession {
     private var appContext: Context? = null
     private var settings: ReaderSettings? = null
     private var database: ReaderDatabase? = null
-    private var tracker: ActivityTracker? = null // worker thread only
+    // The running session's, set and read on its worker thread. A session that ends clears it on
+    // its own worker, which may be busy until after the next session's worker has set the new
+    // one: so each session holds its own ([ownTracker]) and clears only that.
+    @Volatile
+    private var tracker: ActivityTracker? = null
+
+    /** This session's tracker once its worker has made it. Main thread; the cell's content, its worker's. */
+    private var ownTracker: java.util.concurrent.atomic.AtomicReference<ActivityTracker?>? = null
 
     @Volatile
     private var titleId: String = ""
@@ -195,11 +202,13 @@ object ReaderSession {
 
         val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "ReaderWorker") }
         worker = executor
+        val own = java.util.concurrent.atomic.AtomicReference<ActivityTracker?>()
+        ownTracker = own
         executor.execute {
             db.setGameTitle(key, title)
             tracker = ActivityTracker(db, key, idleTimeoutMs = prefs.idleTimeoutMs).apply {
                 paused = prefs.statsPaused
-            }
+            }.also { own.set(it) }
             lastLine = null
             lastPresented = null
             publishedActivity = null
@@ -264,9 +273,14 @@ object ReaderSession {
         main.removeCallbacks(heartbeat)
         val executor = worker
         worker = null
+        // Only this session's own: by the time this runs the next session may have set its tracker
+        // (seen on a device: every line of a game was then dropped, with nothing said).
+        val own = ownTracker
+        ownTracker = null
         executor?.execute {
-            tracker?.flush()
-            tracker = null
+            val ending = own?.getAndSet(null)
+            ending?.flush()
+            if (tracker === ending) tracker = null
         }
         executor?.shutdown()
         stopping = executor

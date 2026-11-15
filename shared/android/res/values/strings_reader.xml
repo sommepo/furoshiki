@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Reader fork strings, kept apart from strings.xml so upstream changes merge cleanly. -->
 <resources>
-    <string name="reader_title">Reader</string>
-    <string name="reader_menu_title">Reader</string>
+    <string name="reader_title">Settings</string>
+    <string name="reader_menu_title">Quick menu</string>
     <string name="reader_home_description">Settings, dictionaries, Anki and the supported games</string>
     <string name="reader_stats_home_title">Reading statistics</string>
     <string name="reader_stats_home_description">Characters read, speed and time, by day and by game</string>
@@ -12,8 +12,8 @@
     <string name="reader_backlog">Backlog</string>
     <string name="reader_mine_sentence">Make a sentence card</string>
     <string name="reader_more">More</string>
-    <string name="reader_hide_panel">Hide the reader panel</string>
-    <string name="reader_show_panel">Show the reader panel</string>
+    <string name="reader_hide_panel">Hide the text panel</string>
+    <string name="reader_show_panel">Show the text panel</string>
     <string name="reader_copy_line">Copy line</string>
     <string name="reader_line_copied">Line copied</string>
     <string name="reader_statistics">Statistics</string>
@@ -54,7 +54,7 @@
     <string name="reader_scripts_installed">Installed the script of %1$s.</string>
     <string name="reader_scripts_not_installed">The script of %1$s was not installed: %2$s</string>
     <string name="reader_scripts_installed_files">Installed: %1$s.</string>
-    <string name="reader_settings">Reader settings</string>
+    <string name="reader_settings">Settings</string>
     <string name="reader_dictionaries">Dictionaries</string>
     <string name="reader_anki_setup">Anki setup</string>
     <string name="reader_pause_tracking">Pause reading statistics</string>
@@ -66,10 +66,10 @@
     <string name="reader_waiting_for_text">Waiting for text…</string>
     <string name="reader_tracking_paused">Statistics paused</string>
 
-    <string name="reader_hotkey_panel">Reader: show or hide the panel</string>
-    <string name="reader_hotkey_card">Reader: sentence card</string>
-    <string name="reader_hotkey_backlog">Reader: backlog</string>
-    <string name="reader_hotkey_cursor">Reader: cursor (hold, or press as set in Reader settings)</string>
+    <string name="reader_hotkey_panel">Show or hide the text panel</string>
+    <string name="reader_hotkey_card">Make a card of the line</string>
+    <string name="reader_hotkey_backlog">Backlog</string>
+    <string name="reader_hotkey_cursor">Pointer (hold, or press as set in the settings)</string>
 
     <!-- Lookup -->
     <string name="reader_lookup_close">Close</string>
@@ -88,7 +88,7 @@
     <string name="reader_card_audio_game">Line audio on this game\'s cards</string>
     <!-- What the running game's script offers to do in the game (reader.action): open its chapters, start at one. -->
     <string name="reader_game_actions">In this game…</string>
-    <string name="reader_card_audio_as_general">As in Reader settings (%1$s)</string>
+    <string name="reader_card_audio_as_general">As in the settings (%1$s)</string>
     <string name="reader_card_audio_as_game">As set for this game (%1$s)</string>
     <string name="reader_pref_stats_button">Button that pauses statistics</string>
     <string name="reader_stats_paused_icon">Reading statistics are paused</string>
@@ -98,7 +98,7 @@
     <string name="reader_audio_keep">With audio</string>
     <string name="reader_audio_drop">Without</string>
     <string name="reader_anki_not_configured">Choose a deck, a note type and its fields in Anki setup first.</string>
-    <string name="reader_anki_disabled">Anki is turned off in Reader settings.</string>
+    <string name="reader_anki_disabled">Anki is turned off in the settings.</string>
     <string name="reader_ankidroid_missing">AnkiDroid is not installed.</string>
     <string name="reader_ankidroid_permission">Press Connect and allow access to AnkiDroid to add cards.</string>
 
@@ -145,9 +145,9 @@
     <string name="reader_dict_move_down">Move down</string>
     <string name="reader_dict_entry_counts">%1$d terms · %2$d extra entries</string>
     <string name="reader_dict_cancel">Cancel</string>
-    <string name="reader_dict_folder">Readers folder…</string>
-    <string name="reader_dict_folder_none">Choose a Readers folder to share dictionaries: give every reader app the same folder, and a dictionary put in it is imported by each.</string>
-    <string name="reader_dict_folder_set">Readers folder: %1$s. What is put in it is imported when this page opens.</string>
+    <string name="reader_dict_folder">Shared dictionaries folder…</string>
+    <string name="reader_dict_folder_none">Choose a folder to keep dictionaries in: a dictionary put in it is imported by itself.</string>
+    <string name="reader_dict_folder_set">Dictionaries folder: %1$s. What is put in it is imported when this page opens.</string>
 
     <!-- Anki setup -->
     <string name="reader_anki_target">Where cards go</string>
@@ -178,12 +178,12 @@
     <string name="reader_section_reading">Reading</string>
     <string name="reader_section_reading_summary">The game\'s text, the reading panel, the session line</string>
     <string name="reader_section_popup">Popup</string>
-    <string name="reader_section_popup_summary">The dictionary popup\'s look and size</string>
+    <string name="reader_section_popup_summary">The dictionary popup\'s theme and size</string>
     <string name="reader_section_cards">Cards</string>
     <string name="reader_section_sources">Sources</string>
     <string name="reader_section_sources_summary">The clipboard, the text server</string>
     <string name="reader_section_controller">Controller</string>
-    <string name="reader_section_controller_summary">The pointer and the reader\'s buttons</string>
+    <string name="reader_section_controller_summary">The pointer and the buttons for lookups, cards and the timer</string>
     <!-- The row that opens the rest of a page (androidx.preference's own name for it). -->
     <string name="expand_button_title">More</string>
     <string name="reader_section_lookup_summary">Tapping the game\'s text, the dictionary popup</string>
@@ -223,8 +223,8 @@
     <string name="reader_pref_cursor_speed">Cursor speed (%)</string>
     <string name="reader_pref_cursor_frame">Snap to the character under the cursor</string>
     <string name="reader_pref_cursor_home">Jump to the start of each new line</string>
-    <string name="reader_pref_category_panel">Reader panel</string>
-    <string name="reader_pref_panel_enabled">Show the reader panel</string>
+    <string name="reader_pref_category_panel">Text panel</string>
+    <string name="reader_pref_panel_enabled">Show the text panel</string>
     <string name="reader_pref_panel_enabled_summary">Game text as real text, with tap-to-look-up</string>
     <string name="reader_pref_panel_auto_hide">Only when the game\'s text cannot be tapped</string>
     <string name="reader_pref_panel_display">Display</string>
@@ -242,7 +242,7 @@
     <string name="reader_pref_idle_minutes">Stop the reading clock after (minutes without a new line)</string>
     <string name="reader_pref_session_hud">Show this session in the corner</string>
     <string name="reader_pref_session_hud_summary">Characters, speed and time, at the top right of the game</string>
-    <string name="reader_pref_stats_style">The session line\'s look</string>
+    <string name="reader_pref_stats_style">Session line style</string>
     <string-array name="reader_stats_style_entries">
         <item>Paper</item>
         <item>Paper dark</item>
@@ -323,12 +323,12 @@
     <string name="reader_setup_anki_button">Set up Anki</string>
     <string name="reader_setup_anki_button_description">Choose where cards go, the deck and the note type</string>
     <string name="reader_start_title">Getting started</string>
-    <string name="reader_start_intro">What the reader can use. Each one is optional and can wait.</string>
+    <string name="reader_start_intro">What Furoshiki can use. Each one is optional and can wait.</string>
     <string name="reader_start_step_done">%1$s: done</string>
     <string name="reader_start_done">Start reading</string>
-    <string name="reader_start_later">You can find all of this again in Reader settings.</string>
+    <string name="reader_start_later">You can find all of this again in the settings.</string>
     <string name="reader_pref_word_mark">Mark the word looked up</string>
-    <string name="reader_pref_popup_theme">The popup\'s look</string>
+    <string name="reader_pref_popup_theme">Popup theme</string>
     <string-array name="reader_popup_theme_entries">
         <item>The console\'s colours</item>
         <item>Furoshiki glass</item>
@@ -364,9 +364,9 @@
         <item>classic</item>
     </string-array>
     <string name="reader_pref_popup_opacity">How solid the popup is</string>
-    <string name="reader_pref_popup_opacity_summary">In percent; 0: as its look has it. Lower lets the game show through</string>
+    <string name="reader_pref_popup_opacity_summary">In percent; 0: default. Lower lets the game show through</string>
     <string name="reader_pref_popup_radius">The popup\'s corners</string>
-    <string name="reader_pref_popup_radius_summary">In pixels; -1: as its look has them</string>
+    <string name="reader_pref_popup_radius_summary">In pixels; -1: default</string>
     <string name="reader_pref_popup_compact">Senses shown before \"more\"</string>
     <string name="reader_pref_popup_compact_summary">0: all of them</string>
     <string name="reader_pref_popup_hide_tags">Leave out the senses\' grammar tags</string>
@@ -384,9 +384,9 @@
     </string-array>
     <string name="reader_lookup_more">more</string>
     <string name="reader_pref_popup_css">Your own CSS</string>
-    <string name="reader_pref_popup_css_summary">Rules after the look\'s: the classes are in the readers\' popup guide</string>
+    <string name="reader_pref_popup_css_summary">Rules after the theme\'s: the classes are in the popup guide</string>
     <string name="reader_pref_popup_import">Import a popup style…</string>
-    <string name="reader_pref_popup_import_summary">A style file from Furoshiki or another reader app</string>
+    <string name="reader_pref_popup_import_summary">A style file from Furoshiki on a computer</string>
     <string name="reader_pref_popup_export">Export the popup style…</string>
     <string name="reader_popup_style_imported">Popup style imported</string>
     <string name="reader_popup_style_exported">Popup style written</string>

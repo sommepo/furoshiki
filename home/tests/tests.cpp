@@ -33,11 +33,13 @@
 #include "hook_fetch.h"
 #include "hook_processes.h"
 #include "hook_runner.h"
+#include "core_hooks.h"
 #include "hook_scripts.h"
 #include "line_feed.h"
 #include "line_titles.h"
 #include "ocr_client.h"
 #include "ocr_helper.h"
+#include "ocr_gate.h"
 #include "window_list.h"
 #include <QImage>
 #include <QUrl>
@@ -50,6 +52,7 @@
 #include "updater.h"
 #endif
 #include "play_settings.h"
+#include "discs.h"
 #include "popup_controls.h"
 #include "popup_design.h"
 #include "popup_style.h"
@@ -918,6 +921,100 @@ int main(int argc, char** argv) {
         Lines::Sources fewer = again;
         CHECK(Lines::Remove(fewer, id) && fewer.titles.size() == 1 && !Lines::Remove(fewer, id));
 
+        // Where OCR runs: this computer's helper, or the OCR service; both kept, one in use.
+        {
+            Lines::Helper helper;
+            CHECK(Lines::OcrWhere(helper, QString()) == Lines::OcrOnComputer);
+            CHECK(Lines::OcrWhere(helper, QStringLiteral("https://ocr.example:8794")) == Lines::OcrOnService); // nothing set: the known service
+            helper.address = QStringLiteral("http://127.0.0.1:8794");
+            helper.program = QStringLiteral("C:/Readers/FurochibiHelper");
+            CHECK(Lines::OcrWhere(helper, QStringLiteral("https://ocr.example:8794")) == Lines::OcrOnComputer); // a helper set: it
+            helper.where = Lines::OcrOnService;
+            helper.service_token = QStringLiteral("the-service-token-0123");
+            Lines::Helper use = Lines::InUse(helper, QStringLiteral("https://ocr.example:8794/"));
+            CHECK(use.address == QStringLiteral("https://ocr.example:8794") && use.token == helper.service_token && use.program.isEmpty() &&
+                  use.source == QStringLiteral("furoshiki"));
+            helper.service_address = QStringLiteral("http://10.0.0.2:8794");
+            helper.service_source = QStringLiteral("desk");
+            use = Lines::InUse(helper, QStringLiteral("https://ocr.example:8794"));
+            CHECK(use.address == QStringLiteral("http://10.0.0.2:8794") && use.source == QStringLiteral("desk")); // the one typed first
+            helper.where = Lines::OcrOnComputer;
+            use = Lines::InUse(helper, QStringLiteral("https://ocr.example:8794"));
+            CHECK(use.address == QStringLiteral("http://127.0.0.1:8794") && use.program == helper.program && use.token.isEmpty());
+            CHECK(Lines::InUse({}, QString()).address.isEmpty()); // a published build with nothing set: nowhere
+            QTemporaryDir kept;
+            Lines::Sources with;
+            with.ocr = helper;
+            with.ocr.where = Lines::OcrOnService;
+            CHECK(Lines::SetGame(with, {QStringLiteral("SLPM-65123"), QStringLiteral("ps2"), Q(u8"ある"), QStringLiteral("/g/a.iso"), QRectF(0.1, 0.7, 0.8, 0.25),
+                                        {{QRectF(0, 0, 0.3, 0.1), true}, {QRectF(0.5, 0.5, 0.0001, 0.2), false}}, true}));
+            CHECK(Lines::SetGame(with, {QStringLiteral("SLPM-65999"), QStringLiteral("ps2"), QStringLiteral("B"), QString(), QRectF(), {}, false}));
+            CHECK(!Lines::SetGame(with, {}));
+            CHECK(Lines::Save(kept.path(), with));
+            const Lines::Sources read = Lines::Load(kept.path());
+            CHECK(read.ocr.where == Lines::OcrOnService && read.ocr.service_address == helper.service_address && read.ocr.service_source == QStringLiteral("desk") &&
+                  read.ocr.service_token == helper.service_token && read.ocr.address == helper.address);
+            CHECK(read.games.size() == 2);
+            const Lines::CoreGame* one = Lines::GameOf(read, QStringLiteral("SLPM-65123"));
+            CHECK(one != nullptr && one->console == QStringLiteral("ps2") && one->title == Q(u8"ある") && one->area == QRectF(0.1, 0.7, 0.8, 0.25) && one->on);
+            CHECK(one != nullptr && one->more.size() == 1 && one->more[0].ask); // a box too small to read is dropped
+            const Lines::CoreGame* two = Lines::GameOf(read, QStringLiteral("SLPM-65999"));
+            CHECK(two != nullptr && !two->on && !two->area.isValid());
+            Lines::Sources less = read;
+            CHECK(Lines::RemoveGame(less, QStringLiteral("SLPM-65999")) && less.games.size() == 1 && !Lines::RemoveGame(less, QStringLiteral("SLPM-65999")));
+            CHECK(Lines::GameOf(Lines::Load(root.path()), QStringLiteral("SLPM-65123")) == nullptr);
+        }
+
+        // A core's picture read by OCR: sent only while its boxes change, and a moment after.
+        {
+            QImage frame(320, 240, QImage::Format_RGB32);
+            frame.fill(Qt::black);
+            const QList<QRectF> watched{QRectF(0.1, 0.7, 0.8, 0.25)};
+            const QImage dark = Home::OcrGate::Signature(frame, watched);
+            CHECK(!dark.isNull() && Home::OcrGate::Signature(QImage(), watched).isNull() && Home::OcrGate::Signature(frame, {}).isNull());
+            CHECK(Home::OcrGate::ChangedShare(dark, dark) == 0.0 && Home::OcrGate::ChangedShare(QImage(), dark) == 1.0);
+            QImage above = frame;
+            above.fill(Qt::black);
+            for (int y = 0; y < 100; ++y) {
+                for (int x = 0; x < 320; ++x) {
+                    above.setPixel(x, y, 0xffffffff); // a change outside the box
+                }
+            }
+            CHECK(Home::OcrGate::ChangedShare(dark, Home::OcrGate::Signature(above, watched)) == 0.0);
+            QImage text = frame;
+            for (int y = 180; y < 220; ++y) {
+                for (int x = 40; x < 200; ++x) {
+                    text.setPixel(x, y, 0xffffffff);
+                }
+            }
+            const QImage written = Home::OcrGate::Signature(text, watched);
+            CHECK(Home::OcrGate::ChangedShare(dark, written) > 0.1);
+            Home::OcrGate::Gate gate(1500, 10000);
+            CHECK(gate.Want(dark, 0));      // the first picture
+            CHECK(gate.Want(dark, 250));    // the first picture counts as new: a moment of it
+            CHECK(!gate.Want(dark, 3000));  // the same since: nothing new
+            CHECK(gate.Want(written, 3250) && gate.BeganAt() == 3250); // text came
+            CHECK(gate.Want(written, 4000));  // a moment longer, for the helper to see it stand
+            CHECK(gate.Want(written, 4750));
+            CHECK(!gate.Want(written, 5000)); // it stood: no more
+            CHECK(!gate.Want(written, 14000));
+            CHECK(gate.Want(written, 14750)); // now and then all the same
+            gate.Missed();
+            CHECK(gate.Want(written, 15000)); // one that did not go is asked for again
+            CHECK(gate.Seen() == 10 && gate.Passed() == 7);
+            CHECK(!gate.Want(QImage(), 16000));
+
+            // The helper's places, in the whole picture, on the console's screens.
+            const QRectF picture(100, 0, 400, 600), upper(100, 0, 400, 300), lower(150, 300, 300, 300);
+            const Home::OcrGate::OnScreen top = Home::OcrGate::Place(QRectF(0.25, 0.1, 0.5, 0.1), picture, upper, lower);
+            CHECK(top.screen == 0 && std::abs(top.rect.y() - 0.2) < 1e-9 && std::abs(top.rect.width() - 0.5) < 1e-9);
+            const Home::OcrGate::OnScreen bottom = Home::OcrGate::Place(QRectF(0.25, 0.75, 0.5, 0.1), picture, upper, lower);
+            CHECK(bottom.screen == 1 && std::abs(bottom.rect.x() - 50.0 / 300) < 1e-9 && std::abs(bottom.rect.y() - 0.5) < 1e-9);
+            CHECK(Home::OcrGate::Place(QRectF(0.0, 0.75, 0.05, 0.05), picture, upper, lower).screen == -1); // beside the lower screen
+            const Home::OcrGate::OnScreen one = Home::OcrGate::Place(QRectF(0.1, 0.7, 0.8, 0.25), picture, QRectF(), QRectF());
+            CHECK(one.screen == 0 && one.rect == QRectF(0.1, 0.7, 0.8, 0.25)); // one screen: the box as it is
+        }
+
         // The stand-in window list: picture files named by the environment, read anew each time.
         const QString picture_file = root.filePath(QStringLiteral("game.png"));
         QImage game(64, 36, QImage::Format_RGB32);
@@ -1526,6 +1623,162 @@ server.serve_forever()
         qunsetenv("READER_HOME_FRIDA_INJECT");
 #endif
         CHECK(KitOf(QStringLiteral("scripts")).from.contains(QStringLiteral("0xDC00/scripts")) && KitOf(QStringLiteral("luna")).from.contains(LunaVersion) && CanFetch(QStringLiteral("scripts")));
+    }
+
+    // Games of the cores read by hook (core_hooks.h): LunaHook's table rows and an Agent script,
+    // made up after the real ones' forms, converted; what does not convert is counted and said.
+    {
+        using namespace Home::CoreHooks;
+        const QString luna = QStringLiteral(R"luna(
+namespace
+{
+    void GAME1(TextBuffer *buffer, HookParam *hp)
+    {
+        StringFilter(buffer, TEXTANDLEN("%K"));
+        StringFilter(buffer, TEXTANDLEN("\x81\x99")); // ☆
+        StringReplacer(buffer, TEXTANDLEN("\x84\xa5"), TEXTANDLEN("\x81\x5b"));
+        auto s = buffer->strAW();
+        s = re::sub(s, LR"(\{(.*?)\}\[(.*?)\])", L"$1");
+        buffer->fromWA(s);
+    }
+    void GAME2(TextBuffer *buffer, HookParam *hp)
+    {
+        static lru_cache<std::string> lastx(2);
+        auto s = buffer->strA();
+        if (lastx.touch(s))
+            return buffer->clear();
+        GAME1(buffer, hp);
+    }
+    void GAME3(TextBuffer *buffer, HookParam *hp)
+    {
+        auto s = buffer->strA();
+        if (s.size() > 3)
+        {
+            s = s.substr(3);
+        }
+        buffer->from(s);
+    }
+    void HOOKFN(hook_context *context, HookParam *hp, TextBuffer *buffer, uintptr_t *split) {}
+}
+static const emfuncinfoX emfunctionhooks_1[] = {
+    {0x8870320, {0, 3, 0, 0, GAME1, "ULJM00001"}},
+    {0x8870400, {FULL_STRING, 0xd, 4, 0, GAME2, std::vector<const char *>{"ULJM00002", "ULJM00003"}}},
+    {0x8870500, {0, 0, 0, HOOKFN, 0, "ULJM00004"}},
+    {0x8870600, {USING_CHAR | CODEC_UTF16, 0, 0, 0, 0, "ULJM00005"}},
+    {0x8870700, {0, 0, 0, 0, GAME3, "ULJM00006"}},
+    {0x8870800, {0, 1, 0, 0, NewLineCharFilterA, "ULJM00007"}}, // a comment
+};
+)luna");
+        Count count;
+        const QList<Game> psp = ConvertLunaSource(QStringLiteral("ppsspp_1"), luna, &count);
+        CHECK(count.entries == 6 && count.converted == 3);
+        CHECK(count.why_not.value(QStringLiteral("text read by a function of its own")) == 1 && count.why_not.value(QStringLiteral("a character a call")) == 1 &&
+              count.why_not.value(QStringLiteral("a filter that does more than cut, swap and replace")) == 1);
+        const QList<Game> one = Find(psp, QStringLiteral("psp"), QStringLiteral("ULJM00001"));
+        CHECK(one.size() == 1 && one[0].hooks.size() == 1);
+        if (one.size() == 1 && one[0].hooks.size() == 1) {
+            const Hook& hook = one[0].hooks[0];
+            CHECK(hook.address == 0x8870320 && hook.from == QStringLiteral("r7") && hook.text == QStringLiteral("sjis") && !hook.whole);
+            CHECK(hook.filters.size() == 4 && hook.filters[0] == QStringList({QStringLiteral("cut"), QStringLiteral("%K")}) &&
+                  hook.filters[1] == QStringList({QStringLiteral("cutb"), QString::fromLatin1("\x81\x99")}) &&
+                  hook.filters[2] == QStringList({QStringLiteral("swapb"), QString::fromLatin1("\x84\xa5"), QString::fromLatin1("\x81\x5b")}) &&
+                  hook.filters[3] == QStringList({QStringLiteral("re"), QStringLiteral(R"(\{(.*?)\}\[(.*?)\])"), QStringLiteral("$1")}));
+            const QString profile = Profile(one[0], QStringLiteral("ULJM00001"), QStringLiteral("あるゲーム"));
+            CHECK(profile.startsWith(QStringLiteral("-- reader: title あるゲーム\n-- reader: by hook\n")) && IsDescription(profile));
+            CHECK(profile.contains(QStringLiteral(R"({ "cutb", "\129\153" })")) && profile.contains(QStringLiteral("at = 0x8870320, from = \"r7\"")));
+        }
+        const QList<Game> two = Find(psp, QStringLiteral("psp"), QStringLiteral("ULJM00003"));
+        CHECK(two.size() == 1 && two[0].ids.size() == 2 && two[0].hooks.value(0).from == QStringLiteral("r17") && two[0].hooks.value(0).add == 4 &&
+              two[0].hooks.value(0).whole && two[0].hooks.value(0).text == QStringLiteral("sjis") &&
+              two[0].hooks.value(0).filters.value(0) == QStringList({QStringLiteral("once"), QStringLiteral("2")}));
+        CHECK(Find(psp, QStringLiteral("psp"), QStringLiteral("ULJM00007")).value(0).hooks.value(0).filters.value(0) == QStringList({QStringLiteral("cut"), QStringLiteral("\n")}));
+        // The Switch: counted from the game's executable; a 32-bit game's are not converted.
+        Count ns_count;
+        const QList<Game> ns = ConvertLunaSource(QStringLiteral("yuzu_1"), QStringLiteral(R"(
+    {0x8001B580, {FULL_STRING | CODEC_UTF8, 1, 0, 0, 0, 0x01005E5023A0A000ull, "1.0.0"}},
+    {0x0021B580, {FULL_STRING | CODEC_UTF8, 1, 0, 0, 0, 0x0100000000000000ull, "1.0.0"}},
+)"), &ns_count);
+        CHECK(ns.size() == 1 && ns[0].ids == QStringList({QStringLiteral("01005E5023A0A000")}) && ns[0].version == QStringLiteral("1.0.0") &&
+              ns[0].hooks.value(0).address == 0x17580 && ns[0].hooks.value(0).relative && ns[0].hooks.value(0).from == QStringLiteral("x1") && ns[0].hooks.value(0).wide);
+        CHECK(ns_count.why_not.value(QStringLiteral("a 32-bit Switch game")) == 1);
+        // The PS2: memory looked at every frame converts; a code hook does not (our PS2 cores run none).
+        Count ps2_count;
+        const QList<Game> ps2 = ConvertLunaSource(QStringLiteral("PCSX2_1"), QStringLiteral(R"(
+    {0xAFCF80, {DIRECT_READ, 0, 0, 0, 0, "SLPM-00001"}},
+    {0x14AC38, {0, PCSX2_REG_OFFSET(s4), 0, 0, 0, "SLPM-00002"}},
+)"), &ps2_count);
+        CHECK(ps2.size() == 1 && ps2[0].hooks.value(0).read && ps2[0].hooks.value(0).address == 0xAFCF80 &&
+              Profile(ps2[0], QStringLiteral("SLPM-00001"), {}).contains(QStringLiteral("-- reader: no hooks\n")) &&
+              ps2_count.why_not.value(QStringLiteral("a code hook on the PS2 (our PS2 cores run none)")) == 1);
+        // An Agent script that reads and replaces, and one whose handler does more.
+        Count agent_count;
+        const QList<Game> agent = ConvertAgentSource(QStringLiteral("PSP_NPJH00001_Made_Up.js"), QStringLiteral(R"js(// ==UserScript==
+// @name         [NPJH00001] Made Up
+// @version      0.1
+// @description  PPSSPP x64
+// ==/UserScript==
+const { setHook } = require("./libPPSSPP.js");
+const mainHandler = trans.send(handler, -200);
+setHook({
+    0x899a510: mainHandler.bind_(null, 2, "mail"), // mail
+    0x88719dc: mainHandler.bind_(null, 1, "text"),
+});
+function handler(regs, index, hookname) {
+    let address = regs[index].value;
+    let s = address.readShiftJisString();
+    //console.log("x");
+    let cleanedText = s.replace(/^�.*$|e_voice/g, '').replace(/\\n/g, '\n');
+    return cleanedText;
+}
+)js"), &agent_count);
+        CHECK(agent_count.converted == 1 && agent.size() == 1 && agent.value(0).hooks.size() == 2);
+        if (agent.size() == 1 && agent[0].hooks.size() == 2) {
+            CHECK(agent[0].ids == QStringList({QStringLiteral("NPJH00001")}) && agent[0].name == QStringLiteral("Made Up"));
+            CHECK(agent[0].hooks[0].name == QStringLiteral("mail") && agent[0].hooks[0].from == QStringLiteral("r6") && agent[0].hooks[1].from == QStringLiteral("r5"));
+            CHECK(agent[0].hooks[0].filters == QList<QStringList>({{QStringLiteral("re"), QStringLiteral(R"(^�.*$|e_voice)"), QString(), QString()},
+                                                                    {QStringLiteral("re"), QStringLiteral(R"(\\n)"), QStringLiteral("\n"), QString()}}));
+        }
+        Count busy_count;
+        ConvertAgentSource(QStringLiteral("PSVita_PCSG00001_Busy.js"), QStringLiteral(R"js(// @name [PCSG00001] Busy
+const h = trans.send(handler);
+setHook({ 0x80001000: h.bind_(null, 0) });
+function handler(regs, index) {
+    const s = regs[index].value.readUtf8String();
+    if (s.length < 3) return null;
+    return s;
+}
+)js"), &busy_count);
+        CHECK(busy_count.converted == 0 && busy_count.why_not.size() == 1);
+        // Kept, found, installed beside the user's own scripts, chosen.
+        const QList<Game> back = FromJson(ToJson(psp + agent));
+        CHECK(back.size() == psp.size() + agent.size() && Find(back, QStringLiteral("psp"), QStringLiteral("NPJH00001")).value(0).source == QStringLiteral("Agent"));
+        QTemporaryDir profiles;
+        QString error;
+        Write(profiles.filePath(QStringLiteral("ULJM00002.lua")), "-- reader: title Ours\nreader.hook(0, function() end)\n");
+        CHECK(!Install(two.value(0), QStringLiteral("ULJM00002"), {}, profiles.path(), error) && error.contains(QStringLiteral("script of its own")));
+        CHECK(Install(one.value(0), QStringLiteral("ULJM00001"), {}, profiles.path(), error));
+        CHECK(Choose(profiles.path(), QStringLiteral("ULJM00001"), {QStringLiteral("0x8870320")}, error));
+        QFile chosen(profiles.filePath(QStringLiteral("ULJM00001.lua")));
+        CHECK(chosen.open(QIODevice::ReadOnly) && chosen.readAll().contains("    only = { \"0x8870320\" },\n"));
+        CHECK(!Choose(profiles.path(), QStringLiteral("ULJM00002"), {}, error));
+        CHECK(Home::Hooks::KitOf(QStringLiteral("luna-tables")).from.contains(QStringLiteral("LunaHook/LunaHook/emulators")) && Home::Hooks::CanFetch(QStringLiteral("luna-tables")));
+    }
+
+    // A game on several discs is one title, its discs found beside the one listed (Discs).
+    {
+        CHECK(Home::Discs::Number(QStringLiteral("Final Fantasy VII (Japan) (Disc 2).cue")) == 2);
+        CHECK(Home::Discs::Number(QStringLiteral("Kamaitachi (Japan).cue")) == 0);
+        CHECK(Home::Discs::WithoutDisc(QStringLiteral("Aconcagua (Disc 1)")) == QStringLiteral("Aconcagua"));
+        QTemporaryDir discs;
+        for (const char* name : {"FF7 (Japan) (Disc 3).cue", "FF7 (Japan) (Disc 1).cue", "FF7 (Japan) (Disc 2).cue",
+                                 "FF7 (Japan) (Disc 1).bin", "Other (Japan) (Disc 1).cue"}) {
+            Write(discs.filePath(QString::fromUtf8(name)), "x");
+        }
+        const QStringList found = Home::Discs::Of(discs.filePath(QStringLiteral("FF7 (Japan) (Disc 2).cue")));
+        CHECK(found.size() == 3);
+        CHECK(found.value(0).endsWith(QStringLiteral("(Disc 1).cue")) && found.value(2).endsWith(QStringLiteral("(Disc 3).cue")));
+        CHECK(Home::Discs::GroupKey(found.value(0)) == Home::Discs::GroupKey(found.value(2)));
+        CHECK(Home::Discs::Of(QStringLiteral("/x/One (Japan).iso")) == QStringList{QStringLiteral("/x/One (Japan).iso")});
     }
 
     std::printf(failures == 0 ? "All tests passed\n" : "%d failure(s)\n", failures);

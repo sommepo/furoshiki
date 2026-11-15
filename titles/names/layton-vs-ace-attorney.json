@@ -1,0 +1,242 @@
+{
+ "source": {
+  "vndb": "v15119",
+  "fetched": "2026-11-14"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c17636",
+   "kind": "person",
+   "name": "エルシャール・レイトン",
+   "reading": "エルシャール・レイトン",
+   "romaji": "Hershel Layton",
+   "aliases": [
+    {
+     "text": "エルシャール・レイトン教授",
+     "reading": "エルシャール・レイトンきょうじゅ"
+    }
+   ],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17637",
+   "kind": "person",
+   "name": "ルーク・トライトン",
+   "reading": "ルーク・トライトン",
+   "romaji": "Luke Triton",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17638",
+   "kind": "person",
+   "name": "マホーネ・カタルーシア",
+   "reading": "マホーネ・カタルーシア",
+   "romaji": "Mahoney Catalucia",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c3941",
+   "kind": "person",
+   "name": "成歩堂 龍一",
+   "family": "成歩堂",
+   "given": "龍一",
+   "reading": "なるほどう りゅういち",
+   "family_reading": "なるほどう",
+   "given_reading": "りゅういち",
+   "romaji": "Naruhodou Ryuuichi",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c3944",
+   "kind": "person",
+   "name": "綾里 真宵",
+   "family": "綾里",
+   "given": "真宵",
+   "reading": "あやさと まよい",
+   "family_reading": "あやさと",
+   "given_reading": "まよい",
+   "romaji": "Ayasato Mayoi",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17635",
+   "kind": "person",
+   "name": "ジーケン・バーンロッド",
+   "reading": "ジーケン・バーンロッド",
+   "romaji": "Jiiken Baanroddo",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17639",
+   "kind": "person",
+   "name": "ストーリーテラー",
+   "reading": "ストーリーテラー",
+   "romaji": "Storyteller",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17640",
+   "kind": "person",
+   "name": "ジョドーラ",
+   "reading": "ジョドーラ",
+   "romaji": "Jodoora",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17641",
+   "kind": "person",
+   "name": "クローネ・ベルデューク",
+   "reading": "クローネ・ベルデューク",
+   "romaji": "Kuroune Belduke",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17642",
+   "kind": "person",
+   "name": "リテラスタ・カタルーシア",
+   "reading": "リテラスタ・カタルーシア",
+   "romaji": "Literasta Catalucia",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c105872",
+   "kind": "person",
+   "name": "オリーブ・アルデンテ",
+   "reading": "オリーブ・アルデンテ",
+   "romaji": "Olivia Aldente",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17646",
+   "kind": "person",
+   "name": "ナゾミ・ステリア",
+   "reading": "ナゾミ・ステリア",
+   "romaji": "Nazomi Suteria",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17938",
+   "kind": "person",
+   "name": "パトラス・アルグレイ",
+   "reading": "パトラス・アルグレイ",
+   "romaji": "Patorasu Earlgrey",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17940",
+   "kind": "person",
+   "name": "マーダラ・ボーゲン",
+   "reading": "マーダラ・ボーゲン",
+   "romaji": "Madalla Bougen",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17941",
+   "kind": "person",
+   "name": "カイック",
+   "reading": "カイック",
+   "romaji": "Kaikku",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c94443",
+   "kind": "person",
+   "name": "クロワ",
+   "reading": "クロワ",
+   "romaji": "Kurowa",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c10833",
+   "kind": "person",
+   "name": "御剣 怜侍",
+   "family": "御剣",
+   "given": "怜侍",
+   "reading": "みつるぎ れいじ",
+   "family_reading": "みつるぎ",
+   "given_reading": "れいじ",
+   "romaji": "Mitsurugi Reiji",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17939",
+   "kind": "person",
+   "name": "ミスト・ベルデューク",
+   "reading": "ミスト・ベルデューク",
+   "romaji": "Mist Belduke",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

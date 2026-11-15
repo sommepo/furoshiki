@@ -66,6 +66,8 @@ object GameNative {
     external fun discCurrent(): Int
     external fun discLabel(index: Int): ByteArray
     external fun insertDisc(index: Int): Boolean
+    /** Another disc of the running game, put after the others (0 when the core took it). */
+    external fun addDisc(path: String): Int
 
     /** The patches the core has for a game, as JSON: [{"name","about","on"}]. */
     external fun patches(gameId: String): ByteArray

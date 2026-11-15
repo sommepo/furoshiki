@@ -135,6 +135,26 @@ object Console {
         ),
     )
 
+    /** The Nintendo DS (melonDS Reader's core): its buttons are libretro's bits, as the 3DS's. */
+    private val DS = Info(
+        key = "nds",
+        appName = "melonDS Reader",
+        appKey = "melonds-reader",
+        mediaPrefix = "melonds_reader_",
+        gameId = Regex("[A-Z0-9]{4}"),
+        scriptExample = "AWIJ.lua",
+        gamePage = { "" },
+        scriptIndexUrl = "https://raw.githubusercontent.com/sommepo/furoshiki/main/melonds/reader/profiles/index.json",
+        yes = 8, no = 0, up = 4, down = 5, left = 6, right = 7,
+        pressMs = 80L,
+        pickStepMs = 220L,
+        crtFirstLook = null,
+        touchAll = THREE_DS.touchAll,
+        touchLeft = THREE_DS.touchLeft,
+        touchFace = THREE_DS.touchFace,
+        touchButtons = THREE_DS.touchButtons,
+    )
+
     private val PLAYSTATION = Info(
         key = "ps1",
         appName = "Station Reader",
@@ -240,7 +260,7 @@ object Console {
 
 
     private val TABLE = listOf(
-        PSP, DREAMCAST, THREE_DS, PLAYSTATION, PS2, VITA,
+        PSP, DREAMCAST, THREE_DS, PLAYSTATION, PS2, VITA, DS,
     ).associateBy { it.key }
 
     /** Before a game: any console's ID, so that the reader's screens list every game's script. */
@@ -287,7 +307,7 @@ object Console {
     const val HAS_NEXT_CHOICE = true
     /** A second display is the reader's unless the console's lower screen goes there. */
     val SECOND_DISPLAY_FREE get() = !TWO_SCREENS
-    val TWO_SCREENS get() = current.key == "3ds"
+    val TWO_SCREENS get() = current.key == "3ds" || current.key == "nds"
     const val CONSOLE_PAGE = false
 
     val CRT_FIRST_LOOK get() = current.crtFirstLook

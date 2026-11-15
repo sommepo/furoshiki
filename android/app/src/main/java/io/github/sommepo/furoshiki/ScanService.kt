@@ -91,7 +91,15 @@ class ScanService : Service() {
                     found.put(entry)
                 }
         }
-        save(key, found)
+        // Nothing at all found where the last look found games whose files are still there: the
+        // storage was not ready yet (just after the device starts) or the core could not say what
+        // its files are. The list stands as it was, rather than the console going from the shelf
+        // until the next look (the user, 2026-11-14: the Dreamcast and the PS2 gone after a restart).
+        if (found.length() == 0 && (stillThere(key) || !foldersReady())) {
+            Log.w("Furoshiki", "$key: no game found, its last list kept")
+        } else {
+            save(key, oneEntryAGame(found))
+        }
         // The list stands; what art it lacks comes after, as the network may be slow or absent.
         sendBroadcast(Intent(Places.SCANNED).setPackage(packageName).putExtra(EXTRA_LISTED, true))
         var fetched = false
@@ -104,6 +112,30 @@ class ScanService : Service() {
             }
         }
         if (fetched) save(key, found)
+    }
+
+    /** Whether every game folder can be read: just after the device starts the storage may not be. */
+    private fun foldersReady(): Boolean = Places.gameFolders(this).all { it.isDirectory && it.listFiles() != null }
+
+    /**
+     * Whether the console's last list has a game whose file is still there, or on a card not
+     * mounted yet: the Thor's SD card comes some time after the device starts, and its games
+     * looked gone until then (the user, 2026-11-14).
+     */
+    private fun stillThere(key: String): Boolean = runCatching {
+        val last = JSONArray(Places.gamesFile(this, key).readText())
+        (0 until last.length()).any { at ->
+            val path = last.getJSONObject(at).optString("path")
+            File(path).isFile || volumeMissing(path)
+        }
+    }.getOrDefault(false)
+
+    /** A path on a storage volume (/storage/<id>/…) that is not there or not readable yet. */
+    private fun volumeMissing(path: String): Boolean {
+        val parts = path.split('/')
+        if (parts.size < 4 || parts[1] != "storage" || parts[2] == "emulated" || parts[2] == "self") return false
+        val volume = File("/storage/${parts[2]}")
+        return !volume.isDirectory || volume.listFiles() == null
     }
 
     private fun save(key: String, found: JSONArray) {
@@ -123,5 +155,32 @@ class ScanService : Service() {
         /** Long enough after its last broadcast for a scan's process to have gone. */
         const val GONE_MS = 1000L
         private val DISC = Regex("\\(Disc (\\d+)\\)")
+
+        /**
+         * A game on several discs as one entry (the user, 2026-11-13): its first disc's, under its
+         * title without "(Disc N)", with how many discs it has. The game is given the rest as it
+         * starts (GameActivity, [Discs]).
+         */
+        fun oneEntryAGame(found: JSONArray): JSONArray {
+            val groups = LinkedHashMap<String, MutableList<JSONObject>>()
+            for (i in 0 until found.length()) {
+                val entry = found.getJSONObject(i)
+                val path = entry.optString("path")
+                val key = if (Discs.number(File(path).name) != null) Discs.groupKey(path) else "one:$path"
+                groups.getOrPut(key) { ArrayList() }.add(entry)
+            }
+            val out = JSONArray()
+            for (entries in groups.values) {
+                if (entries.size == 1) {
+                    out.put(entries[0])
+                    continue
+                }
+                val first = entries.minBy { Discs.number(File(it.optString("path")).name) ?: Int.MAX_VALUE }
+                first.put("title", Discs.withoutDisc(first.optString("title")))
+                first.put("discs", entries.size)
+                out.put(first)
+            }
+            return out
+        }
     }
 }

@@ -15,6 +15,7 @@ task="${1:-:app:assembleDebug}"; shift || true
 "$here/../../armsx2/tools/reader/build-core-android.sh" "$abi"
 "$here/../../armsx2/tools/reader/private-data.sh"
 "$here/../../vita3k/tools/reader/build-core-android.sh" "$abi"
+"$here/../../melonds/tools/reader/build-core-android.sh" "$abi"
 . "$here/env.sh"
 cd "$here/.."
 exec "$limit" -m "${READER_BUILD_MEMORY_MAX:-12G}" ./gradlew --no-daemon --max-workers="${READER_GRADLE_WORKERS:-4}" \

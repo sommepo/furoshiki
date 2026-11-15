@@ -449,7 +449,7 @@ class ReaderOverlayTest {
         build(1920, 1080)
         overlay.onLine(presented())
         layout()
-        val hide = find<View> { it.contentDescription == "Hide the reader panel" }!!
+        val hide = find<View> { it.contentDescription == "Hide the text panel" }!!
         hide.performClick()
         layout()
         snapshot("panel-hidden")
@@ -458,7 +458,7 @@ class ReaderOverlayTest {
         // Where the panel was is the game's again.
         tap(960f, 1000f)
         assertEquals(1, gameTaps)
-        val show = find<View> { it.contentDescription == "Show the reader panel" && it.visibility == View.VISIBLE }
+        val show = find<View> { it.contentDescription == "Show the text panel" && it.visibility == View.VISIBLE }
         assertNotNull(show)
         show!!.performClick()
         layout()

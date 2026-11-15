@@ -1,0 +1,197 @@
+{
+ "source": {
+  "vndb": "v3112",
+  "fetched": "2026-11-14"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c17597",
+   "kind": "person",
+   "name": "淳平",
+   "reading": "じゅんぺい",
+   "romaji": "Junpei",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17622",
+   "kind": "person",
+   "name": "倉式 茜",
+   "family": "倉式",
+   "given": "茜",
+   "reading": "くらしき あかね",
+   "family_reading": "くらしき",
+   "given_reading": "あかね",
+   "romaji": "Kurashiki Akane",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17598",
+   "kind": "person",
+   "name": "ゼロ",
+   "reading": "ゼロ",
+   "romaji": "Zero",
+   "aliases": [],
+   "role": "primary",
+   "sex": null,
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17599",
+   "kind": "person",
+   "name": "倉式 茜",
+   "family": "倉式",
+   "given": "茜",
+   "reading": "くらしき あかね",
+   "family_reading": "くらしき",
+   "given_reading": "あかね",
+   "romaji": "Kurashiki Akane",
+   "aliases": [
+    {
+     "text": "紫",
+     "reading": "むらさき"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17605",
+   "kind": "person",
+   "name": "四葉",
+   "reading": "よつば",
+   "romaji": "Yotsuba",
+   "aliases": [
+    {
+     "text": "四葉・フィールド",
+     "reading": "よつばフィールド"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c57656",
+   "kind": "person",
+   "name": "セブン",
+   "reading": "セブン",
+   "romaji": "Sebun",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c60221",
+   "kind": "person",
+   "name": "一宮",
+   "reading": "いちみや",
+   "romaji": "Ichimiya",
+   "aliases": [
+    {
+     "text": "本郷 源太郎",
+     "reading": "ほんごう げんたろう"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c60222",
+   "kind": "person",
+   "name": "ニルス",
+   "reading": "ニルス",
+   "romaji": "Nils",
+   "aliases": [
+    {
+     "text": "ライト・フィールド",
+     "reading": "ライト・フィールド"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c60224",
+   "kind": "person",
+   "name": "サンタ",
+   "reading": "サンタ",
+   "romaji": "Santa",
+   "aliases": [
+    {
+     "text": "倉式 葵",
+     "reading": "くらしき あおい"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c60225",
+   "kind": "person",
+   "name": "八代",
+   "reading": "やしろ",
+   "romaji": "Yashiro",
+   "aliases": [
+    {
+     "text": "柏原 葉月",
+     "reading": "かしわばら はづき"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c60226",
+   "kind": "person",
+   "name": "9番の男",
+   "romaji": "9th Man",
+   "aliases": [
+    {
+     "text": "窪田 輝昭"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [
+    "alias:窪田 輝昭"
+   ],
+   "reading": "きゅうばんのおとこ"
+  },
+  {
+   "id": "c17613",
+   "kind": "person",
+   "name": "アリス",
+   "reading": "アリス",
+   "romaji": "Alice",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  }
+ ]
+}

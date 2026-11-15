@@ -108,6 +108,11 @@ public:
     void Notify(const QString& text);
     /// A controller's back button went down (1 to 5): what the settings say it does.
     void OnBackButton(int button);
+    /// Does what an action named in the settings does (reader_backlog, reader_menu,
+    /// furoshiki_guide...): a back button's, or a button's the program gives one.
+    void RunAction(const QString& name);
+    /// While set, the back buttons go here first (a screen learning them); true: taken.
+    static std::function<bool(int)>& BackButtonCapture();
     /// The game goes on again though the reader did not say so (the emulator's own pause
     /// key, say): the reader's "paused" is over too.
     void GamePauseEnded();

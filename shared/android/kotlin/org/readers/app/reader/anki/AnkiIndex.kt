@@ -37,6 +37,21 @@ class AnkiIndex {
 
     data class Found(val answer: Answer, val notes: List<Long> = emptyList())
 
+    /**
+     * How well a word is known, by its notes' cards (Furochibi's word marks, after Jiten
+     * Reader's states): [ABSENT] no note, [NEW] notes whose cards are not learnt yet, [WEAK]
+     * learnt but not as well as [Grading.known] asks, [KNOWN] well known. [NOT_READY] while the
+     * deck, or how well its notes are known, has not been read for this source and grading.
+     */
+    enum class Level { NOT_READY, ABSENT, NEW, WEAK, KNOWN }
+
+    /**
+     * Two searches in Anki's own syntax, within the deck and field of the [Source]: the notes
+     * that are well known ([known]), and those that are learnt at least ([learnt]; null for
+     * every note). Anki itself works out R, intervals and the rest (WordMarks.gradingOf).
+     */
+    data class Grading(val known: String, val learnt: String?)
+
     /** What it should do next: nothing, read what changed, or read everything. */
     enum class Due { NOTHING, REFRESH, FILL }
 
@@ -45,12 +60,77 @@ class AnkiIndex {
     private var refreshedAt = 0L
     private val byValue = HashMap<String, MutableList<Long>>()
     private val valueOf = HashMap<Long, String>()
+    private var graded: Pair<Source, Grading>? = null
+    private var gradedAt = 0L
+    private var regradeAsked = false
+    private val knownNotes = HashSet<Long>()
+    private val learntNotes = HashSet<Long>()
 
     @Synchronized
     fun find(source: Source, value: String): Found {
         if (held != source) return Found(Answer.NOT_READY)
         val notes = byValue[normal(value)]
         return if (notes.isNullOrEmpty()) Found(Answer.ABSENT) else Found(Answer.PRESENT, notes.toList())
+    }
+
+    /** How well [value] is known: by the best of its notes (as Jiten Reader takes a word's best card). */
+    @Synchronized
+    fun levelOf(source: Source, grading: Grading, value: String): Level {
+        if (held != source) return Level.NOT_READY
+        val notes = byValue[normal(value)]
+        if (notes.isNullOrEmpty()) return Level.ABSENT
+        if (graded != source to grading) return Level.NOT_READY
+        return when {
+            notes.any { it in knownNotes } -> Level.KNOWN
+            grading.learnt == null || notes.any { it in learntNotes } -> Level.WEAK
+            else -> Level.NEW
+        }
+    }
+
+    /**
+     * How many notes are well known, weak and new by the last grading, or null before one: what
+     * the settings show beside the rule.
+     */
+    @Synchronized
+    fun counts(): IntArray? {
+        val grading = graded?.second ?: return null
+        val all = valueOf.keys
+        val known = all.count { it in knownNotes }
+        val weak = if (grading.learnt == null) all.size - known else all.count { it !in knownNotes && it in learntNotes }
+        return intArrayOf(known, weak, all.size - known - weak)
+    }
+
+    /** Whether how well the notes are known is to be asked of Anki again (R falls day by day). */
+    @Synchronized
+    fun gradingIsDue(source: Source, grading: Grading, now: Long): Boolean =
+        held == source && (regradeAsked || graded != source to grading || now - gradedAt >= REFRESH_AFTER_MS || now < gradedAt)
+
+    /** Asks Anki again at the next chance, whatever the time. */
+    @Synchronized
+    fun regradeSoon() {
+        regradeAsked = true
+    }
+
+    /**
+     * Asks Anki which notes of [source] are well known and which learnt ([grading]), ids only:
+     * two searches, however large the deck. Nothing happens before the deck was read. Throws
+     * [AnkiException] (also for a search Anki does not take, such as prop:r without FSRS).
+     */
+    fun grade(client: AnkiClient, source: Source, grading: Grading, now: Long) {
+        if (synchronized(this) { held != source }) return
+        val base = AnkiSearch.hasField(source.scope, source.field)
+        val known = client.findNotesWhere(base + " (" + grading.known + ")")
+        val learnt = grading.learnt?.let { client.findNotesWhere("$base ($it)") }.orEmpty()
+        synchronized(this) {
+            if (held != source) return
+            graded = source to grading
+            gradedAt = now
+            regradeAsked = false
+            knownNotes.clear()
+            knownNotes.addAll(known)
+            learntNotes.clear()
+            learntNotes.addAll(learnt)
+        }
     }
 
     @Synchronized
@@ -125,6 +205,16 @@ class AnkiIndex {
                 .put("filled_at", filledAt)
                 .put("refreshed_at", refreshedAt)
                 .put("notes", notes)
+                .apply {
+                    val (gradedSource, grading) = graded ?: return@apply
+                    if (gradedSource != source) return@apply
+                    put("grading", JSONObject()
+                        .put("known", grading.known)
+                        .put("learnt", grading.learnt ?: JSONObject.NULL)
+                        .put("at", gradedAt)
+                        .put("known_notes", org.json.JSONArray(knownNotes.toList()))
+                        .put("learnt_notes", org.json.JSONArray(learntNotes.toList())))
+                }
                 .toString()
         }
         return runCatching {
@@ -151,6 +241,16 @@ class AnkiIndex {
             byValue.clear()
             valueOf.clear()
             for (id in notes.keys()) put(id.toLong(), notes.optString(id))
+            graded = null
+            knownNotes.clear()
+            learntNotes.clear()
+            root.optJSONObject("grading")?.let { grading ->
+                graded = held!! to Grading(grading.optString("known"),
+                    if (grading.isNull("learnt")) null else grading.optString("learnt"))
+                gradedAt = grading.optLong("at")
+                grading.optJSONArray("known_notes")?.let { for (i in 0 until it.length()) knownNotes.add(it.optLong(i)) }
+                grading.optJSONArray("learnt_notes")?.let { for (i in 0 until it.length()) learntNotes.add(it.optLong(i)) }
+            }
         }
         return true
     }

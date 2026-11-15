@@ -24,6 +24,9 @@ namespace ReaderRows {
 /// Goes `step` on (a switch flips, a choice takes its next, a number its step); false when the
 /// row is none of these. The caller tells the reader its settings changed.
 bool Step(ReaderApp::ReaderSettings& settings, const QString& name, int step);
+/// A choice row's choices as the pages say them, and which is in use (-1 when none is); empty
+/// for a switch or a number. Step(settings, name, index - in_use) takes one.
+[[nodiscard]] QStringList Choices(const ReaderApp::ReaderSettings& settings, const QString& name, int* in_use);
 /// Whether the row was set by the user (it then carries a mark), and the row put back to what
 /// it is by itself; false when the row is none of these.
 [[nodiscard]] bool IsSet(const ReaderApp::ReaderSettings& settings, const QString& name);

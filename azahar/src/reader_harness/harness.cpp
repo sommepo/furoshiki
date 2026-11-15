@@ -300,6 +300,32 @@ public:
                 Run(hold, reply);
                 window->TouchReleased();
                 Run(after, reply);
+            } else if (command == "drag") {
+                // drag <x0> <y0> <x1> <y1> [frames=20] [frames afterwards=4]: a stroke on the
+                // bottom screen, the stylus moving evenly from one point to the other.
+                unsigned x0 = 0;
+                unsigned y0 = 0;
+                unsigned x1 = 0;
+                unsigned y1 = 0;
+                u64 frames = 20;
+                u64 after = 4;
+                in >> x0 >> y0 >> x1 >> y1 >> frames >> after;
+                frames = std::max<u64>(frames, 1);
+                const auto at = [&](u64 step, unsigned a, unsigned b, unsigned limit) {
+                    const double t = static_cast<double>(step) / static_cast<double>(frames);
+                    const double v = a + (static_cast<double>(b) - a) * t;
+                    return std::min(static_cast<unsigned>(v), limit - 1);
+                };
+                window->TouchPressed(BottomLeft + std::min(x0, BottomWidth - 1),
+                                     ScreenHeight + std::min(y0, ScreenHeight - 1));
+                for (u64 step = 1; step <= frames; ++step) {
+                    Run(1, reply);
+                    window->TouchMoved(BottomLeft + at(step, x0, x1, BottomWidth),
+                                       ScreenHeight + at(step, y0, y1, ScreenHeight));
+                }
+                Run(2, reply);
+                window->TouchReleased();
+                Run(after, reply);
             } else if (command == "circle") {
                 float x = 0.0f;
                 float y = 0.0f;
@@ -329,6 +355,19 @@ public:
                 if (!ok) {
                     reply.Fail("lua error");
                 }
+            } else if (command == "actions") {
+                // What the profile offers the player (reader.action), numbered from 0.
+                const auto labels = Reader::Engine::Instance().Actions();
+                for (std::size_t i = 0; i < labels.size(); ++i) {
+                    reply.body += std::to_string(i) + " " + labels[i] + "\n";
+                }
+            } else if (command == "action") {
+                // action <number>: as if the player chose it in the reader's menu (a profile
+                // may write the game's memory from then on: a test profile's way to jump ahead).
+                std::size_t index = 0;
+                in >> index;
+                const auto said = Reader::Engine::Instance().RunAction(index);
+                reply.body += said.value_or("(nothing said)") + "\n";
             } else if (command == "mem") {
                 // mem <hex address> <length>
                 u32 address = 0;

@@ -495,15 +495,37 @@ void ReaderController::UpdateMenu() {
     }
 }
 
+std::function<bool(int)>& ReaderController::BackButtonCapture() {
+    static std::function<bool(int)> capture;
+    return capture;
+}
+
 void ReaderController::OnBackButton(int button) {
-    auto& session = ReaderSession::Instance();
-    // The buttons are the reader's while a game is: not in the emulator's menus, and not
-    // under one of the reader's own windows.
-    if (!session.IsActive() || dialogs_open != 0 || (!running && !user_paused)) {
+    // A screen that learns which button does what has it first (Furoshiki's controller map).
+    if (const auto& capture = BackButtonCapture(); capture && capture(button)) {
         return;
     }
-    const QString name = session.Settings().BackButtonAction(button);
+    RunAction(ReaderSession::Instance().Settings().BackButtonAction(button));
+}
+
+void ReaderController::RunAction(const QString& name) {
+    auto& session = ReaderSession::Instance();
     if (name.isEmpty()) {
+        return;
+    }
+    // The program's own keys (Furoshiki's QActions named furoshiki_*: its menu over the game,
+    // full screen, the guide, OCR on request) work wherever its keys do.
+    if (name.startsWith(QStringLiteral("furoshiki_"))) {
+        if (dialogs_open == 0) {
+            if (QAction* action = main_window->findChild<QAction*>(name)) {
+                action->trigger();
+            }
+        }
+        return;
+    }
+    // The reader's are the reader's while a game is: not in the emulator's menus, and not
+    // under one of the reader's own windows.
+    if (!session.IsActive() || dialogs_open != 0 || (!running && !user_paused)) {
         return;
     }
     if (name == QStringLiteral("reader_menu")) {

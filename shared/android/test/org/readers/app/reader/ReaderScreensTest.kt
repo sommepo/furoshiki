@@ -330,7 +330,7 @@ class ReaderScreensTest {
         val page = settingsPage(activity)
         TestSupport.await("what was read today") { text(activity).contains("Nothing read today") }
         TestSupport.snapshot(root(activity), 1920, 1080, "screen-settings")
-        assertEquals("Reader", heading(activity))
+        assertEquals("Settings", heading(activity))
         assertEquals(
             listOf(
                 "Statistics", "Game scripts", "Settings", "Find a setting", "Reading", "Popup",
@@ -375,8 +375,7 @@ class ReaderScreensTest {
         assertEquals(
             listOfNotNull(
                 "reader_touch_buttons", "reader_touch_play",
-                "reader_cursor_button", "reader_cursor_toggle", "reader_cursor_speed", "reader_advance_button",
-                "reader_next_choice_button".takeIf { Console.HAS_NEXT_CHOICE }, "reader_stats_button",
+                "reader_cursor_toggle", "reader_cursor_speed", "reader_advance_button",
                 "reader_cursor_frame", "reader_cursor_home",
                 "reader_second_screen".takeIf { Console.SECOND_DISPLAY_FREE }
             ),
@@ -389,7 +388,7 @@ class ReaderScreensTest {
         activity.onBackPressedDispatcher.onBackPressed()
         settingsPage(activity)
         assertNull(activity.openSection)
-        assertEquals("Reader", heading(activity))
+        assertEquals("Settings", heading(activity))
         assertFalse("still open", activity.isFinishing)
     }
 
@@ -434,9 +433,9 @@ class ReaderScreensTest {
                 ReaderSettings.KEY_CLIPBOARD_AUTO,
                 // Controller
                 ReaderSettings.KEY_TOUCH_BUTTONS, ReaderSettings.KEY_TOUCH_PLAY,
-                ReaderSettings.KEY_CURSOR_BUTTON, ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED,
-                ReaderSettings.KEY_ADVANCE_BUTTON, ReaderSettings.KEY_NEXT_CHOICE_BUTTON.takeIf { Console.HAS_NEXT_CHOICE },
-                ReaderSettings.KEY_STATS_BUTTON, ReaderSettings.KEY_CURSOR_FRAME, ReaderSettings.KEY_CURSOR_HOME,
+                // (the buttons' own settings are the controller mapping screen's: ButtonMap)
+                ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED,
+                ReaderSettings.KEY_ADVANCE_BUTTON, ReaderSettings.KEY_CURSOR_FRAME, ReaderSettings.KEY_CURSOR_HOME,
                 ReaderSettings.KEY_SECOND_SCREEN.takeIf { Console.SECOND_DISPLAY_FREE },
             ),
             keys

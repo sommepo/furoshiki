@@ -1255,7 +1255,7 @@ void ReaderSettingsDialog(QWidget* parent) {
     sections->addItem(Tr("The popup"));
     QSpinBox* scale_box = spin(look, Tr("Popup text size"), Settings::KeyPopupScale, settings.PopupScale(), 60, 200,
          QStringLiteral(" %"));
-    QComboBox* theme_box = choice(look, Tr("The popup's look"), Settings::KeyPopupTheme,
+    QComboBox* theme_box = choice(look, Tr("Popup theme"), Settings::KeyPopupTheme,
            {{Tr("The console's colours"), QStringLiteral("console")},
             {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
             {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
@@ -1273,9 +1273,9 @@ void ReaderSettingsDialog(QWidget* parent) {
             {Tr("Classic (drawn without the page)"), QStringLiteral("classic")}},
            settings.PopupTheme());
     QSpinBox* opacity_box = spin(look, Tr("How solid the popup is"), Settings::KeyPopupOpacity, settings.PopupOpacity(), 0, 100,
-         Tr(" % (0: as its look has it)"));
+         Tr(" % (0: default)"));
     QSpinBox* radius_box = spin(look, Tr("The popup's corners"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
-         Tr(" px (-1: as its look has them)"));
+         Tr(" px (-1: default)"));
     QSpinBox* compact_box = spin(look, Tr("Senses shown before \"more\""), Settings::KeyPopupCompact, settings.PopupCompact(), 0, 9,
          Tr(" (0: all)"));
     QCheckBox* tags_box = check(look, Tr("Leave out the senses' grammar tags (n, v1, vt...)"), Settings::KeyPopupHideTags,
@@ -1301,7 +1301,7 @@ void ReaderSettingsDialog(QWidget* parent) {
     if (auto* demo = PopupWeb::Create(popup_page, ReaderSession::DataDirectory() + QStringLiteral("/webview2"))) {
         demo->setMinimumSize(340, 320);
         auto* side = new QVBoxLayout;
-        side->addWidget(new QLabel(Tr("How it looks")));
+        side->addWidget(new QLabel(Tr("Preview")));
         side->addWidget(demo, 1);
         if (PopupCustomiser()) {
             auto* customise = new QPushButton(Tr("Customise every part of it…"));
@@ -1432,7 +1432,7 @@ void ReaderSettingsDialog(QWidget* parent) {
     QFormLayout* stats = section(Tr("Statistics"));
     check(stats, Tr("Session line in a corner of the game"), Settings::KeySessionHud,
           settings.SessionHud());
-    choice(stats, Tr("The session line's look"), Settings::KeyStatsStyle,
+    choice(stats, Tr("Session line style"), Settings::KeyStatsStyle,
            {{Tr("Paper"), QStringLiteral("paper")},
             {Tr("Paper dark"), QStringLiteral("paper-dark")},
             {Tr("Card"), QStringLiteral("card")},

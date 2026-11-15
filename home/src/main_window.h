@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <QPointer>
+#include "controller_map.h"
+
 // The one program's one window (docs/one-program.md): Furoshiki's own page, and the game,
 // which a core draws into a widget of this window (the screen) while the reader's windows lie
 // over it. Built with HOME_CORES; without it Furoshiki's page is the window by itself.
@@ -62,6 +65,7 @@ public:
 signals:
     void Resized();
     void MenuWanted();
+    void ReadAskedWanted();
     void ReaderMenuWanted();
     void FullScreenWanted();
     /// F5 and F8: the savestate slot chosen last written, or loaded.
@@ -85,6 +89,8 @@ private:
 
 class SettingsWindow;
 
+class ControllerScreen;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -101,7 +107,7 @@ public:
     }
     /// Plays a game here: `app` is the reader app whose game it is ("station-reader"), or
     /// empty to choose the core by the file's type. False, with `error`, when no core plays it.
-    bool Play(const QString& path, const QString& app, QString& error);
+    bool Play(const QString& chosen, const QString& app, QString& error);
 #ifndef READER_NO_SAVE_SYNC
     /// A pairing link (docs/pairing.md): save sync set up from it, the settings window's Save
     /// sync tab shown. False, with `error`, when it is not one.
@@ -238,6 +244,27 @@ private:
     QRectF place_area{0, 0, 1, 1}; ///< Where in the window the text was last: read there first
     void PlaceHooked(const ReaderApp::PresentedLine& presented);
     void HookedPlaced(const ReaderApp::PresentedLine& presented, bool ok, const QString& seen, const QList<QRectF>& layout);
+    // A core's game that has no script, read by OCR from the core's own picture (core_ocr.h;
+    // line_titles.h, Lines::CoreGame).
+    class CoreOcr* core_ocr{};
+    QString ocr_pending;  ///< A game's file the wizard asked to be read by OCR: added once it says which game it is
+    QString ocr_said;     ///< What was last said of the helper over the game (each state once)
+    /// The wizard's: the game of `path` (a console's key, or none) goes on the shelf read by OCR and plays.
+    bool AddCoreOcrGame(const QString& console, const QString& path);
+    /// Whether a script reads the game of that ID.
+    [[nodiscard]] static bool HasScript(const QString& id);
+    /// The playing game's entry as kept, or one made for it now (not yet kept).
+    [[nodiscard]] Lines::CoreGame PlayingCoreGame() const;
+    /// Reads the playing game by OCR if it is one that is (and has no script); else stops.
+    void StartCoreOcr();
+    void StopCoreOcr();
+    /// The area step over the playing game's picture, as it stands now; then it is read.
+    void AskCoreArea();
+    /// The game's own switch.
+    void SetCoreOcrOn(bool on);
+    void ReadAskedBoxes();
+    /// The games read by OCR on the consoles' shelves, and the page told which they are.
+    void ShelveOcrGames();
     /// The strip, made once, for whichever source's lines have no place on a screen.
     void MakeStrip();
     /// A title read by a hook or OCR has begun: its cards take the game window's picture and the
@@ -273,7 +300,23 @@ private:
     QList<Addon> addons;            ///< The game add-ons found when the program started
     Companions* companions{};       ///< Their companions that run
     std::map<QString, QList<OwnGame>> own_games; ///< By console: found and played
+    std::map<QString, QList<OwnGame>> unscripted; ///< By console: found, but no script reads them
     QString playing;                ///< The file of the game being played
+    QStringList playing_discs;      ///< Its discs (Discs): the one started first, then the others in order
+    class GuideOverlay* guide_overlay{}; ///< The guide's next step over the game (guide_window.h)
+    /// The controller map over the window while it is open (controller_screen.h), and the
+    /// actions buttons are given in game (reader_button_action_<number>, the console's first).
+    QPointer<ControllerScreen> controller_screen;
+    void OpenControllerMap();
+    [[nodiscard]] Home::ControllerMap::Store ControllerStore();
+    QHash<int, QString> button_actions;
+    bool button_actions_known{};
+    /// The console's buttons on the controller's (pad_button_<id>): for each of the program's
+    /// roles, the role whose button presses it; -1: none does.
+    int game_source[32]{};
+    void ToggleGuide();
+    void MakeGuideKeys();
+    void GuideDone();
     QString playing_id;             ///< Its ID, once known (identify, or the core's game_loaded)
     QString console_folder;         ///< program/consoles/<key> of the running core
     int state_slot{1};

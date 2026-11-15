@@ -13,10 +13,15 @@
 // Part of home_window.cpp, after shelf_page.inc, inside namespace Home.
 
 struct HomeWindow::Wizard {
-    enum Step { Doors, Console, Hook, Helper, Window, Area, Name, Script, Program, Thread, Match };
+    enum Step { Doors, Console, Hook, Helper, Window, Area, Name, Script, Program, Thread, Match, Way, Game, CoreHook };
     Step step{Doors};
     int door{};
     bool helper_only{}; ///< Opened from the Settings' row for the helper alone
+    bool service{};     ///< The helper's step is of the OCR service (else of this computer's helper)
+    /// The area step is of a core's game (AskCoreArea): `picture` is the game's own and stays,
+    /// and taking or leaving the area goes back to the game.
+    bool core{};
+    std::function<void(bool, const QList<Lines::Box>&)> core_done;
     int row{};
     // The helper (B): its three settings, and what it said when asked.
     Lines::Helper helper;
@@ -58,6 +63,8 @@ struct HomeWindow::Wizard {
     OcrClient client;
     // A text hook (C): its engine, script, program and threads (wizard_hooks.inc).
     std::shared_ptr<HookSteps> hook;
+    // A game of a core without a script, read by hook (wizard_core_hooks.inc).
+    std::shared_ptr<CoreHookSteps> core_hook;
 };
 
 namespace {
@@ -136,11 +143,14 @@ double Wrapped(QPainter& p, const QFont& face, const QRectF& box, const QString&
 
 } // namespace
 
-void HomeWindow::OpenWizard(bool helper_only) {
+void HomeWindow::OpenWizard(int only) {
+    const bool helper_only = only != 0;
     auto made = std::make_shared<Wizard>();
     const Lines::Sources sources = Lines::Load(SharedFolder());
     made->helper = sources.ocr;
-    if (made->helper.address.isEmpty()) {
+    // Which of the two the helper's step is of: the one asked for, else the one OCR runs on.
+    made->service = only == 2 || (only == 0 && OcrWhere(made->helper) == Lines::OcrOnService);
+    if (made->helper.address.isEmpty() && !made->service) {
         // A helper installed on this computer (ocr_helper.h) needs no typing: its own file says
         // where it answers, its source and its token, and it is started when a window is read.
         if (const LocalHelper local = FindLocalHelper(QCoreApplication::applicationDirPath()); local.Valid()) {
@@ -157,7 +167,7 @@ void HomeWindow::OpenWizard(bool helper_only) {
     made->helper_only = helper_only;
     made->step = helper_only ? Wizard::Helper : Wizard::Doors;
     made->door = helper_only ? 1 : 0;
-    made->client.Set(made->helper);
+    made->client.Set(OcrInUse(made->helper));
     Wizard* w = made.get();
     connect(&w->client, &OcrClient::Answered, this, [this, w](bool ok, const QString& what) {
         if (wizard.get() != w) {
@@ -170,7 +180,7 @@ void HomeWindow::OpenWizard(bool helper_only) {
             sounds.Play(Sound::Select);
             if (w->helper_only) {
                 CloseWizard();
-                Say(QStringLiteral("The OCR helper answers at %1").arg(w->helper.address));
+                Say(QStringLiteral("%1 answers at %2").arg(w->service ? QStringLiteral("The OCR service") : QStringLiteral("The OCR helper"), w->client.Helper().address));
                 return;
             }
             WizardGo(w->window.title.isEmpty() ? Wizard::Window : Wizard::Area);
@@ -201,11 +211,37 @@ void HomeWindow::OpenWizard(bool helper_only) {
     update();
 }
 
+void HomeWindow::AskCoreArea(const QString& title, const QImage& picture, const QList<Lines::Box>& boxes,
+                             std::function<void(bool, const QList<Lines::Box>&)> done) {
+    if (!shelf_on) {
+        SetShelf(true, false);
+    }
+    OpenWizard();
+    Wizard& w = *wizard;
+    w.core = true;
+    w.core_done = std::move(done);
+    w.by_ocr = true;
+    w.window.title = title;
+    if (!boxes.isEmpty() && boxes.first().rect.isValid()) {
+        w.boxes = boxes;
+        w.boxes[0].ask = false;
+    }
+    // Where OCR runs is asked first where nothing is set: its step, then the area.
+    WizardGo(w.client.Configured() ? Wizard::Area : Wizard::Helper);
+    w.picture = picture;
+}
+
 void HomeWindow::CloseWizard() {
     if (!wizard_on) {
         return;
     }
     wizard_on = false;
+    if (wizard && wizard->core && wizard->core_done) {
+        // Left without an area taken: back to the game as it was.
+        const auto done = std::move(wizard->core_done);
+        wizard->core_done = nullptr;
+        done(false, {});
+    }
     if (wizard) {
         wizard->client.Unfollow();
     }
@@ -222,11 +258,13 @@ void HomeWindow::WizardGo(int to) {
     case Wizard::Window:
         w.listed_at = -100000;
         w.helper_asking = true;
-        w.client.Set(w.helper);
+        w.client.Set(OcrInUse(w.helper));
         w.client.Ask();
         break;
     case Wizard::Area:
-        w.picture = Windows::Grab(w.window);
+        if (!w.core) {
+            w.picture = Windows::Grab(w.window);
+        }
         w.pictured_at = -100000;
         w.read.clear();
         w.read_ok = false;
@@ -243,7 +281,7 @@ void HomeWindow::WizardGo(int to) {
         w.suggestion = -1;
         break;
     case Wizard::Helper:
-        w.field = w.helper.address.isEmpty() ? 0 : w.helper.token.isEmpty() ? 2 : 0;
+        w.field = (w.service ? w.helper.service_address : w.helper.address).isEmpty() ? 0 : (w.service ? w.helper.service_token : w.helper.token).isEmpty() ? 2 : 0;
         break;
     default:
         w.row = 0;
@@ -288,7 +326,15 @@ void HomeWindow::WizardStep() {
         w.row = std::clamp(w.row, 0, std::max(0, static_cast<int>(w.windows.size()) - 1));
         update();
     }
-    if (w.step == Wizard::Area) {
+    if (w.step == Wizard::Area && w.core) {
+        // The game stands still behind the page: its one picture, sent again now and then so
+        // that it is the one the helper has.
+        if (now - w.pictured_at > (w.client.Taken() == 0 ? 250 : 1500)) {
+            w.pictured_at = now;
+            w.client.Push(w.picture);
+            update();
+        }
+    } else if (w.step == Wizard::Area) {
         if (now - w.pictured_at > 250) {
             // Four pictures a second, as a title read from this window sends them.
             w.pictured_at = now;
@@ -305,6 +351,8 @@ void HomeWindow::WizardStep() {
         if (!w.read_waiting && now - w.read_at > 2000) {
             w.read_stale = true;
         }
+    }
+    if (w.step == Wizard::Area) {
         if (w.read_stale && !w.read_waiting && !w.drawing && now - w.area_at > 600 && w.client.Taken() > 0) {
             w.read_stale = false;
             w.read_waiting = true;
@@ -328,7 +376,8 @@ bool HomeWindow::WizardText(int key, const QString& text) {
     if (w.step == Wizard::Name) {
         into = &w.typed;
     } else if (w.step == Wizard::Helper) {
-        into = w.field == 0 ? &w.helper.address : w.field == 1 ? &w.helper.source : &w.helper.token;
+        into = w.service ? (w.field == 0 ? &w.helper.service_address : w.field == 1 ? &w.helper.service_source : &w.helper.service_token)
+                         : (w.field == 0 ? &w.helper.address : w.field == 1 ? &w.helper.source : &w.helper.token);
     }
     if (into == nullptr) {
         return false;
@@ -365,6 +414,10 @@ void HomeWindow::WizardAccept() {
         HookAccept();
         return;
     }
+    if (CoreHookStepOn()) {
+        CoreHookAccept();
+        return;
+    }
     switch (w.step) {
     case Wizard::Doors:
         if (w.door == 0) {
@@ -373,7 +426,7 @@ void HomeWindow::WizardAccept() {
                 Say(QStringLiteral("This build of Furoshiki plays no console itself: it has no cores"));
                 return;
             }
-            WizardGo(Wizard::Console);
+            WizardGo(Wizard::Way);
         } else if (w.door == 1) {
             w.window = {};
             w.game = {};
@@ -403,7 +456,67 @@ void HomeWindow::WizardAccept() {
         }
         return;
     }
+    case Wizard::Way:
+        sounds.Play(Sound::Select);
+        WizardGo(w.row == 1 ? Wizard::Game : Wizard::Console);
+        return;
+    case Wizard::Game: {
+        // One game, read by OCR: a file chosen, or a game found that no script reads. The
+        // program puts it on the shelf and plays it; its text's area is drawn over the game.
+        QString console, path;
+        if (w.row == 0) {
+            if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
+                Say(QStringLiteral("Without a display no file can be picked"));
+                return;
+            }
+            path = QFileDialog::getOpenFileName(this, QStringLiteral("A game to read by OCR"));
+        } else if (w.row - 1 < unread_games.size()) {
+            console = unread_games[w.row - 1].console;
+            path = unread_games[w.row - 1].path;
+        }
+        if (path.isEmpty()) {
+            return;
+        }
+        if (core_ocr_adder && core_ocr_adder(console, path)) {
+            sounds.Play(Sound::Select);
+            CloseWizard();
+            SetPages(false);
+        } else {
+            sounds.Play(Sound::Refuse);
+        }
+        return;
+    }
     case Wizard::Helper: {
+        if (w.service) {
+            // The OCR service: its address (none typed: the one the device knows), source and token.
+            const QString typed = w.helper.service_address.trimmed();
+            const QString address = Lines::CleanHelperAddress(typed);
+            if (address.isEmpty() && (!typed.isEmpty() || KnownOcrService().isEmpty())) {
+                sounds.Play(Sound::Refuse);
+                w.helper_said = QStringLiteral("AN ADDRESS IS HTTP://HOST:PORT");
+                w.field = 0;
+                update();
+                return;
+            }
+            w.helper.service_address = address;
+            w.helper.service_source = w.helper.service_source.trimmed().isEmpty() ? QStringLiteral("furoshiki") : w.helper.service_source.trimmed();
+            w.helper.service_token = w.helper.service_token.trimmed();
+            w.helper.where = Lines::OcrOnService; // set and asked: it is the one in use
+            Lines::Sources sources = Lines::Load(SharedFolder());
+            sources.ocr = w.helper;
+            if (!Lines::Save(SharedFolder(), sources)) {
+                sounds.Play(Sound::Refuse);
+                Say(QStringLiteral("The OCR service's settings could not be written"));
+                return;
+            }
+            w.client.Set(OcrInUse(w.helper));
+            w.helper_asking = true;
+            w.helper_then_on = true;
+            w.helper_said.clear();
+            w.client.Ask();
+            Changed();
+            return;
+        }
         const QString address = Lines::CleanHelperAddress(w.helper.address);
         if (address.isEmpty()) {
             sounds.Play(Sound::Refuse);
@@ -419,6 +532,9 @@ void HomeWindow::WizardAccept() {
         w.helper.address = address;
         w.helper.source = w.helper.source.trimmed().isEmpty() ? QStringLiteral("furoshiki") : w.helper.source.trimmed();
         w.helper.token = w.helper.token.trimmed();
+        if (!w.helper.where.isEmpty() || OcrWhere(w.helper) != Lines::OcrOnComputer) {
+            w.helper.where = Lines::OcrOnComputer; // set and asked: it is the one in use
+        }
         Lines::Sources sources = Lines::Load(SharedFolder());
         sources.ocr = w.helper;
         if (!Lines::Save(SharedFolder(), sources)) {
@@ -426,7 +542,7 @@ void HomeWindow::WizardAccept() {
             Say(QStringLiteral("The helper's settings could not be written"));
             return;
         }
-        w.client.Set(w.helper);
+        w.client.Set(OcrInUse(w.helper));
         w.helper_asking = true;
         w.helper_then_on = true;
         w.helper_said.clear();
@@ -456,6 +572,17 @@ void HomeWindow::WizardAccept() {
             return;
         }
         sounds.Play(Sound::Select);
+        if (w.core) {
+            // A core's game has its name: the boxes go to the program, and the game goes on.
+            const auto done = std::move(w.core_done);
+            w.core_done = nullptr;
+            const QList<Lines::Box> boxes = w.boxes;
+            CloseWizard();
+            if (done) {
+                done(true, boxes);
+            }
+            return;
+        }
         WizardGo(Wizard::Name);
         return;
     case Wizard::Name: {
@@ -484,6 +611,10 @@ void HomeWindow::WizardAccept() {
 
 void HomeWindow::WizardBack() {
     Wizard& w = *wizard;
+    if (CoreHookStepOn()) {
+        CoreHookKey(Qt::Key_Escape);
+        return;
+    }
     if (HookStepOn() || (w.step == Wizard::Name && (w.door == 2 || (w.door == 1 && !w.by_ocr)))) {
         HookBack();
         return;
@@ -494,7 +625,7 @@ void HomeWindow::WizardBack() {
         CloseWizard();
         return;
     case Wizard::Helper:
-        if (w.helper_only) {
+        if (w.helper_only || w.core) {
             CloseWizard();
             return;
         }
@@ -509,10 +640,19 @@ void HomeWindow::WizardBack() {
         }
         [[fallthrough]];
     case Wizard::Console:
+    case Wizard::Game:
+        w.row = w.step == Wizard::Game ? 1 : 0;
+        w.step = Wizard::Way;
+        break;
+    case Wizard::Way:
     case Wizard::Window:
         w.step = Wizard::Doors;
         break;
     case Wizard::Area:
+        if (w.core) {
+            CloseWizard();
+            return;
+        }
         if (w.game.name.isEmpty()) {
             WizardGo(Wizard::Window);
         } else {
@@ -574,6 +714,13 @@ bool HomeWindow::WizardKey(int key) {
     if (HookStepOn()) {
         return HookKey(key);
     }
+    if (CoreHookStepOn()) {
+        return CoreHookKey(key);
+    }
+    if (w.step == Wizard::Console && key == Qt::Key_H) {
+        CoreHookOpen(); // a game of it that no script reads, by hook (wizard_core_hooks.inc)
+        return true;
+    }
     if (key == Qt::Key_Return || key == Qt::Key_Enter) {
         WizardAccept();
         return true;
@@ -606,6 +753,16 @@ bool HomeWindow::WizardKey(int key) {
     case Wizard::Console:
         if (along) {
             move(w.row, by, static_cast<int>(consoles.size()));
+        }
+        break;
+    case Wizard::Way:
+        if (along) {
+            move(w.row, by, 2);
+        }
+        break;
+    case Wizard::Game:
+        if (along) {
+            move(w.row, by, static_cast<int>(unread_games.size()) + 1);
         }
         break;
     case Wizard::Helper:
@@ -800,11 +957,37 @@ void HomeWindow::SetOcrHelper(const QString& address, const QString& source, con
     Changed();
 }
 
+void HomeWindow::SetOcrService(const QString& address, const QString& source, const QString& token) {
+    Lines::Sources sources = Lines::Load(SharedFolder());
+    sources.ocr.service_address = Lines::CleanHelperAddress(address);
+    if (!source.isEmpty()) {
+        sources.ocr.service_source = source;
+    }
+    sources.ocr.service_token = token;
+    sources.ocr.where = Lines::OcrOnService;
+    Lines::Save(SharedFolder(), sources);
+    Changed();
+}
+
+void HomeWindow::SetOcrWhere(bool service) {
+    Lines::Sources sources = Lines::Load(SharedFolder());
+    sources.ocr.where = service ? Lines::OcrOnService : Lines::OcrOnComputer;
+    Lines::Save(SharedFolder(), sources);
+    const Lines::Helper use = OcrInUse(sources.ocr);
+    Say(use.address.isEmpty() ? (service ? QStringLiteral("No OCR service is set yet: OCR service, below") : QStringLiteral("No OCR helper is set on this computer yet: OCR helper, below"))
+                              : QStringLiteral("OCR runs on %1, at a title's next start").arg(service ? QStringLiteral("the OCR service at ") + use.address : QStringLiteral("this computer")));
+    Changed();
+}
+
 void HomeWindow::PaintWizard(QPainter& p) {
     const ShelfLook& l = *shelf_look;
     Wizard& w = *wizard;
     if (HookStepOn()) {
         PaintHook(p); // a text hook's steps: wizard_hooks.inc
+        return;
+    }
+    if (CoreHookStepOn()) {
+        PaintCoreHook(p); // a core's game read by hook: wizard_core_hooks.inc
         return;
     }
     const QFont small = ShelfFont(l.mono, 11, 0.14);
@@ -815,15 +998,16 @@ void HomeWindow::PaintWizard(QPainter& p) {
     const QFont key_face = ShelfFont(l.display, 12, 0.16);
 
     // The head: the way back, which door, which step of how many.
-    const int steps = w.door == 0 ? 2 : HookStepCount();
-    const int step = w.step == Wizard::Doors ? 1 : w.step == Wizard::Name ? steps : w.step == Wizard::Area || w.step == Wizard::Helper ? 4 : 2;
+    const int steps = w.door == 0 ? 3 : HookStepCount();
+    const int step = w.step == Wizard::Doors ? 1 : w.step == Wizard::Name ? steps : w.step == Wizard::Area || w.step == Wizard::Helper ? 4
+                     : w.step == Wizard::Console || w.step == Wizard::Game ? 3 : 2;
     double x = ShelfLeft;
     x += Put(p, small, x, 49, QStringLiteral("‹  LIBRARY"), Mix(l.muted, l.ink, Ease(20, 0, ShelfHovered(20, 0))));
     x += Put(p, small, x, 49, QStringLiteral("  ·  "), l.muted);
-    x += Put(p, small, x, 49, w.helper_only ? QStringLiteral("THE OCR HELPER") : QStringLiteral("ADD A TITLE"), l.ink);
+    x += Put(p, small, x, 49, w.core ? QStringLiteral("READ BY OCR") : w.helper_only ? (w.service ? QStringLiteral("THE OCR SERVICE") : QStringLiteral("THE OCR HELPER")) : QStringLiteral("ADD A TITLE"), l.ink);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
-    if (!w.helper_only) {
+    if (!w.helper_only && !w.core) {
         right -= Put(p, small, right, 49, QStringLiteral(" / %1  ·  ").arg(steps, 2, 10, QLatin1Char('0')), l.muted, 1);
         right -= Put(p, small, right, 49, QStringLiteral("%1").arg(step, 2, 10, QLatin1Char('0')), l.accent, 1);
         if (w.step != Wizard::Doors) {
@@ -842,13 +1026,23 @@ void HomeWindow::PaintWizard(QPainter& p) {
         break;
     case Wizard::Console:
         question = QStringLiteral("WHICH CONSOLE'S?");
-        keys = QStringLiteral("↑ ↓   ENTER   ESC");
+        keys = QStringLiteral("↑ ↓   ENTER   H A GAME NO SCRIPT READS, BY HOOK   ESC");
         key_label = QStringLiteral("CHOOSE A FOLDER");
         break;
+    case Wizard::Way:
+        question = QStringLiteral("WHAT READS IT?");
+        keys = QStringLiteral("↑ ↓   ENTER   ESC");
+        key_label = QStringLiteral("CHOOSE");
+        break;
+    case Wizard::Game:
+        question = QStringLiteral("WHICH GAME?");
+        keys = QStringLiteral("↑ ↓   ENTER   ESC");
+        key_label = w.row == 0 ? QStringLiteral("CHOOSE A FILE") : QStringLiteral("PLAY IT");
+        break;
     case Wizard::Helper:
-        question = QStringLiteral("WHERE IS THE OCR HELPER?");
+        question = w.service ? QStringLiteral("WHERE IS THE OCR SERVICE?") : QStringLiteral("WHERE IS THE OCR HELPER?");
         keys = QStringLiteral("↑ ↓   TYPE OR PASTE   ENTER   ESC");
-        key_label = w.helper_asking ? QStringLiteral("ASKING") : QStringLiteral("ASK THE HELPER");
+        key_label = w.helper_asking ? QStringLiteral("ASKING") : w.service ? QStringLiteral("ASK THE SERVICE") : QStringLiteral("ASK THE HELPER");
         break;
     case Wizard::Window:
         question = QStringLiteral("WHICH GAME?");
@@ -934,10 +1128,11 @@ void HomeWindow::PaintWizard(QPainter& p) {
         const double width = (ShelfRight - ShelfLeft) / 3;
         const Lines::Sources sources = Lines::Load(SharedFolder());
         const QList<QPair<QString, QString>> door_facts[] = {
-            {{QStringLiteral("READ BY"), QStringLiteral("A CORE")},
+            {{QStringLiteral("READ BY"), QStringLiteral("A CORE'S SCRIPT, ELSE OCR")},
              {QStringLiteral("HERE"), consoles.isEmpty() ? QStringLiteral("NO CORES") : consoles.size() == 1 ? QStringLiteral("1 CONSOLE") : QStringLiteral("%1 CONSOLES").arg(consoles.size())}},
             {{QStringLiteral("READ BY"), QStringLiteral("A HOOK, ELSE OCR")},
-             {QStringLiteral("OCR"), sources.ocr.address.isEmpty() ? QStringLiteral("NOT SET") : QUrl(sources.ocr.address).authority().toUpper()}},
+             {OcrWhere(sources.ocr) == Lines::OcrOnService ? QStringLiteral("OCR SERVICE") : QStringLiteral("OCR"),
+              OcrInUse(sources.ocr).address.isEmpty() ? QStringLiteral("NOT SET") : QUrl(OcrInUse(sources.ocr).address).authority().toUpper()}},
             {{QStringLiteral("READ BY"), QStringLiteral("LINES")},
              {QStringLiteral("FROM"), QStringLiteral("WEBSOCKET  ·  CLIPBOARD")}},
         };
@@ -986,14 +1181,57 @@ void HomeWindow::PaintWizard(QPainter& p) {
         facts(WizardTop + 27, {{QStringLiteral("READ BY"), QStringLiteral("A CORE")},
                                {QStringLiteral("CONSOLE"), w.row < consoles.size() ? consoles[w.row].name.toUpper() : QString()},
                                {QStringLiteral("ITS NAME"), QStringLiteral("FROM ITS TITLE RECORD")}});
+    } else if (w.step == Wizard::Way) {
+        const int found = static_cast<int>(unread_games.size());
+        w.row = std::clamp(w.row, 0, 1);
+        rows(ShelfLeft, table_width, WizardTop + 30,
+             {{QStringLiteral("A folder of games"), QStringLiteral("THEIR SCRIPTS READ THEM")}, {QStringLiteral("One game"), QStringLiteral("READ BY OCR")}}, w.row, 21);
+        const double after = facts(WizardTop + 27, w.row == 0 ? QList<QPair<QString, QString>>{{QStringLiteral("READ BY"), QStringLiteral("A CORE'S SCRIPT")},
+                                                                                                {QStringLiteral("ON THE SHELF"), QStringLiteral("EVERY GAME A SCRIPT READS")}}
+                                                              : QList<QPair<QString, QString>>{{QStringLiteral("READ BY"), QStringLiteral("CORE  ·  OCR")},
+                                                                                                {QStringLiteral("WITHOUT A SCRIPT HERE"), found == 1 ? QStringLiteral("1 GAME") : QStringLiteral("%1 GAMES").arg(found)},
+                                                                                                {QStringLiteral("OCR RUNS ON"), OcrWhere(w.helper) == Lines::OcrOnService ? QStringLiteral("THE OCR SERVICE") : QStringLiteral("THIS COMPUTER")}});
+        Wrapped(p, body, QRectF(WizardSide, after, ShelfRight - WizardSide, 120),
+                w.row == 0 ? QStringLiteral("A CONSOLE'S FOLDER: ITS GAMES THAT HAVE A SCRIPT STAND ON THE SHELF.")
+                           : QStringLiteral("ANY GAME A CORE PLAYS. IT STARTS; ONCE ITS TEXT IS ON THE SCREEN, ESC AND \"WHERE ITS TEXT IS\" DRAWS THE AREA OVER THE GAME'S OWN PICTURE."), l.muted);
+    } else if (w.step == Wizard::Game) {
+        // A file of the user's choosing first, then the games found that no script reads.
+        const int count = static_cast<int>(unread_games.size()) + 1;
+        w.row = std::clamp(w.row, 0, count - 1);
+        const int shown = 11, first = std::clamp(w.row - shown / 2, 0, std::max(0, count - shown));
+        double y = WizardTop + 30;
+        p.fillRect(QRectF(ShelfLeft, y - 22, table_width, 1), l.rule);
+        for (int i = first; i < std::min(count, first + shown); ++i) {
+            const bool on = i == w.row;
+            const double lit = Ease(21, i, ShelfHovered(21, i));
+            if (on || lit > 0) {
+                p.fillRect(QRectF(ShelfLeft, y - 21, 3, 33), on ? l.accent : Faded(l.accent, 0.4 * lit));
+            }
+            const QString name = i == 0 ? QStringLiteral("A game's file…") : unread_games[i - 1].title;
+            const QString side = i == 0 ? QStringLiteral("ANY CONSOLE PLAYED HERE") : unread_games[i - 1].console_name.toUpper() + QStringLiteral("  ·  ") + unread_games[i - 1].id;
+            Put(p, tiny, ShelfLeft + 16, y - 1, QStringLiteral("%1").arg(i + 1, 2, 10, QLatin1Char('0')), on ? l.ink : l.muted);
+            Put(p, name_face, ShelfLeft + 56, y, Paint::Fit(name, name_face, table_width - 56 - 320), on ? l.ink : Mix(Faded(l.ink, 0.62), l.ink, lit));
+            Put(p, value, ShelfLeft + table_width, y - 1, Paint::Fit(side, value, 300), on ? l.ink : Mix(l.muted, l.ink, lit), 1);
+            p.fillRect(QRectF(ShelfLeft, y + 12, table_width, 1), l.rule);
+            shelf_hits.append({QRectF(ShelfLeft, y - 22, table_width, 34), 21, i});
+            y += 34;
+        }
+        const Lines::Helper use = OcrInUse(w.helper);
+        facts(WizardTop + 27, {{QStringLiteral("READ BY"), QStringLiteral("CORE  ·  OCR")},
+                               {QStringLiteral("WITHOUT A SCRIPT HERE"), QStringLiteral("%1").arg(count - 1)},
+                               {QStringLiteral("OCR RUNS ON"), OcrWhere(w.helper) == Lines::OcrOnService ? QStringLiteral("THE OCR SERVICE") : QStringLiteral("THIS COMPUTER")},
+                               {QStringLiteral("AT"), use.address.isEmpty() ? QStringLiteral("NOT SET") : QUrl(use.address).authority().toUpper()},
+                               {QStringLiteral("ITS NAME"), QStringLiteral("THE GAME'S OWN")}});
     } else if (w.step == Wizard::Helper) {
         const QFont field_face = ShelfFont(l.mono, 19, 0.02);
         const QString labels[] = {QStringLiteral("ADDRESS"), QStringLiteral("PICTURE SOURCE"), QStringLiteral("TOKEN")};
-        const QString hints[] = {QStringLiteral("http://127.0.0.1:8794"), QStringLiteral("furoshiki"), QStringLiteral("as the helper's configuration has it")};
+        const QString known = KnownOcrService();
+        const QString hints[] = {w.service ? (known.isEmpty() ? QStringLiteral("https://host:8794") : known) : QStringLiteral("http://127.0.0.1:8794"), QStringLiteral("furoshiki"),
+                                 w.service ? QStringLiteral("as the service's configuration has it") : QStringLiteral("as the helper's configuration has it")};
         // The token is not shown whole: its length, and its last characters.
-        const QString token = w.helper.token.isEmpty() ? QString()
-                                                       : QString(std::max<qsizetype>(0, w.helper.token.size() - 4), QChar(0x2022)) + w.helper.token.right(4);
-        const QString values[] = {w.helper.address, w.helper.source, token};
+        const QString& whole = w.service ? w.helper.service_token : w.helper.token;
+        const QString token = whole.isEmpty() ? QString() : QString(std::max<qsizetype>(0, whole.size() - 4), QChar(0x2022)) + whole.right(4);
+        const QString values[] = {w.service ? w.helper.service_address : w.helper.address, w.service ? w.helper.service_source : w.helper.source, token};
         double y = WizardTop + 36;
         for (int i = 0; i < 3; ++i) {
             const bool on = i == w.field;
@@ -1005,9 +1243,10 @@ void HomeWindow::PaintWizard(QPainter& p) {
             shelf_hits.append({QRectF(ShelfLeft, y - 14, table_width, 66), 21, i});
             y += 84;
         }
-        const QString said = w.helper_asking ? QStringLiteral("%1 %2").arg(OcrHelper::Instance().Starting() ? QStringLiteral("STARTING THE HELPER AT") : QStringLiteral("ASKING"), w.helper.address.toUpper())
+        const QString said = w.helper_asking ? QStringLiteral("%1 %2").arg(OcrHelper::Instance().Starting() ? QStringLiteral("STARTING THE HELPER AT") : QStringLiteral("ASKING"), w.client.Helper().address.toUpper())
                              : w.helper_said.isEmpty() ? QStringLiteral("NOT ASKED YET") : w.helper_said;
-        facts(WizardTop + 27, {{QStringLiteral("THE HELPER"), w.helper_ok ? QStringLiteral("ANSWERS") : w.helper_asking ? QStringLiteral("…") : QStringLiteral("—")},
+        facts(WizardTop + 27, {{w.service ? QStringLiteral("THE SERVICE") : QStringLiteral("THE HELPER"), w.helper_ok ? QStringLiteral("ANSWERS") : w.helper_asking ? QStringLiteral("…") : QStringLiteral("—")},
+                               {QStringLiteral("OCR RUNS ON"), OcrWhere(w.helper) == Lines::OcrOnService ? QStringLiteral("THE OCR SERVICE") : QStringLiteral("THIS COMPUTER")},
                                {QStringLiteral("KEPT IN"), QStringLiteral("THIS DEVICE'S SETTINGS")}});
         Wrapped(p, body, QRectF(WizardSide, WizardTop + 84, ShelfRight - WizardSide, 120), said, w.helper_ok ? l.ink : l.muted);
     } else if (w.step == Wizard::Window) {
@@ -1101,7 +1340,7 @@ void HomeWindow::PaintWizard(QPainter& p) {
         p.fillRect(QRectF(w.sizing ? area.right() - 4 : area.left() - 4, w.sizing ? area.bottom() - 4 : area.top() - 4, 8, 8), l.accent);
 
         const auto percent = [](double v) { return QStringLiteral("%1").arg(static_cast<int>(std::lround(v * 100)), 2, 10, QLatin1Char('0')); };
-        const double after = facts(WizardTop + 27, {{QStringLiteral("WINDOW"), w.window.title.toUpper()},
+        const double after = facts(WizardTop + 27, {{w.core ? QStringLiteral("GAME") : QStringLiteral("WINDOW"), w.window.title.toUpper()},
                                                     {QStringLiteral("BOX"), QStringLiteral("%1 OF %2  ·  %3").arg(w.box + 1).arg(w.boxes.size()).arg(kind_of(w.box))},
                                                     {QStringLiteral("PICTURE"), w.picture.isNull() ? QStringLiteral("NONE") : QStringLiteral("%1 × %2").arg(w.picture.width()).arg(w.picture.height())},
                                                     {QStringLiteral("AREA"), QStringLiteral("X %1  Y %2  W %3  H %4").arg(percent(w.Rect().x()), percent(w.Rect().y()), percent(w.Rect().width()), percent(w.Rect().height()))},

@@ -18,6 +18,7 @@
 #include <QHash>
 #include <QJsonObject>
 #include <QPixmap>
+#include <QPointer>
 #include <QProcess>
 #include <QSet>
 #include <QStringList>
@@ -38,6 +39,8 @@ class Finder;
 /// A top-level window's first size and place, in the middle of its screen. A test run stays at
 /// 1280×720: its pictures and clicks are made for that.
 void PlaceFirst(QWidget* window);
+
+class ChoicePicker;
 
 class HomeWindow : public QWidget {
     Q_OBJECT
@@ -134,6 +137,11 @@ public:
     void SetSettingStep(std::function<void(const QString& row, int step)> step) {
         setting_step = std::move(step);
     }
+    /// The choices of a row of the program's that is a choice, as the pages say them, and which
+    /// is in use (-1 when the row is no choice); the picker takes one by stepping to it.
+    void SetSettingChoices(std::function<std::pair<QStringList, int>(const QString& row)> choices) {
+        setting_choices = std::move(choices);
+    }
     /// Shows the settings anew after they were changed elsewhere.
     void SettingsChanged() {
         Changed();
@@ -203,6 +211,12 @@ public:
         QFont text, mono;
     };
     [[nodiscard]] StripLook LookOfStrip();
+    /// The shelf's colours and faces, for a screen over the window (controller_screen.h).
+    struct ScreenLook {
+        QColor ground, raised, ink, muted, accent, rule;
+        std::function<QFont(int face, double px, double spacing)> font; ///< 0 display, 1 text, 2 mono
+    };
+    [[nodiscard]] ScreenLook LookOfScreen();
     /// Adds a title read from lines (line_titles.h; `by` "websocket" or "clipboard"), or changes
     /// how one is read; a name that is exactly a title record's is that title. Its game ID, or
     /// nothing with a word said on the page.
@@ -217,10 +231,49 @@ public:
     }
     /// The OCR helper's settings (line_titles.h, Lines::Helper), as the wizard writes them.
     void SetOcrHelper(const QString& address, const QString& source, const QString& token);
+    /// The OCR service's settings (Lines::Helper's service_*), and OCR runs there from now on.
+    void SetOcrService(const QString& address, const QString& source, const QString& token);
+    /// Where OCR runs: the OCR service, or this computer.
+    void SetOcrWhere(bool service);
+    /// A game a core plays here that no script reads (found in the consoles' folders): what
+    /// the wizard offers to read by OCR.
+    struct UnreadGame {
+        QString console; ///< The core's key
+        QString console_name;
+        QString id, title, path;
+    };
+    void SetUnreadGames(const QList<UnreadGame>& games) {
+        unread_games = games;
+        update();
+    }
+    /// The IDs of the core games read by OCR (line_titles.h, CoreGame): the shelf says so.
+    void SetOcrGames(const QSet<QString>& ids) {
+        ocr_games = ids;
+        update();
+    }
+    /// The wizard's "one game, read by OCR": the program puts the game of that file (of
+    /// `console`; empty: whichever core takes the file) on the shelf and plays it. False, with a
+    /// word said, when it could not.
+    void SetCoreOcrAdder(std::function<bool(const QString& console, const QString& path)> adder) {
+        core_ocr_adder = std::move(adder);
+    }
+    /// Asks where a core game's text is: the wizard's area step over `picture` (the game's own,
+    /// as it stands now), starting from `boxes` (none: the usual first box). `done` hears the
+    /// boxes taken (the first the text's own), or `taken` false when it was left.
+    void AskCoreArea(const QString& title, const QImage& picture, const QList<Lines::Box>& boxes,
+                     std::function<void(bool taken, const QList<Lines::Box>& boxes)> done);
     /// Where a WebSocket's lines come from (ws://host:port); said on the page when it is no such address.
     void SetLinesAddress(const QString& address);
     /// Called when the titles read from lines changed: the program writes their file with what
     /// was read of them. Without it the page writes the file itself.
+    /// A console's games found in its folders that no script reads, for reading one by hook
+    /// (wizard_core_hooks.inc).
+    struct UnscriptedGame {
+        QString id, title, path;
+    };
+    void SetUnscriptedGames(std::function<QList<UnscriptedGame>(const QString& console)> games) {
+        unscripted_games = std::move(games);
+    }
     void SetLinesChanged(std::function<void()> changed) {
         lines_changed = std::move(changed);
     }
@@ -448,7 +501,8 @@ private:
     void PaintSortLine(QPainter& p, double baseline);
     // Adding a title (wizard_page.inc): the doors, a window and its text's area, its name.
     struct Wizard;
-    void OpenWizard(bool helper_only = false);
+    /// `only` 1: the helper's step alone (the OCR helper on this computer); 2: the OCR service's.
+    void OpenWizard(int only = 0);
     void CloseWizard();
     void WizardGo(int step);
     void WizardStep();
@@ -472,6 +526,13 @@ private:
     // the program, its threads.
 public:
     struct HookSteps;
+    struct CoreHookSteps;
+    [[nodiscard]] bool CoreHookStepOn() const;
+    void CoreHookOpen();
+    void CoreHookAccept();
+    bool CoreHookKey(int key);
+    void PaintCoreHook(QPainter& p);
+    std::function<QList<UnscriptedGame>(const QString&)> unscripted_games;
     /// Adds a title read by a hook Furoshiki starts (line_titles.h; `hook` has its engine,
     /// script, program and threads). Its ID, or nothing when it could not be added.
     QString AddHookTitle(const QString& title, const Lines::Title& hook);
@@ -673,6 +734,9 @@ private:
 
     QStringList script;
     std::function<bool(const QString&, const QString&)> core_player;
+    std::function<bool(const QString&, const QString&)> core_ocr_adder;
+    QList<UnreadGame> unread_games;
+    QSet<QString> ocr_games;
     std::function<void()> lines_changed;
     std::function<bool(const QString&, const QString&)> script_commands;
     QList<PlayConsole> consoles;
@@ -687,6 +751,17 @@ private:
     std::function<void(const QString&)> open_settings;
     std::function<QString(const QString&)> setting_value;
     std::function<void(const QString&, int)> setting_step;
+    std::function<std::pair<QStringList, int>(const QString&)> setting_choices;
+    /// A choice row's every choice at once (choice_picker.h): Enter or a click on the row.
+    struct Pick {
+        QString title;
+        QStringList said;
+        int now{-1};
+        std::function<void(int)> take;
+    };
+    [[nodiscard]] Pick PickAt(int row);
+    bool OpenPick(int row);
+    QPointer<ChoicePicker> picker;
     std::function<bool(const QString&)> setting_is_set;
     std::function<void(const QString&)> setting_reset;
     std::function<QString(const QString&, const QString&)> popup_export;

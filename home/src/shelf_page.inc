@@ -442,6 +442,16 @@ HomeWindow::StripLook HomeWindow::LookOfStrip() {
     return {l.ground, l.ink, l.muted, l.accent, l.rule, ShelfFont(QStringLiteral("ZenKakuGothicNew-Medium.ttf"), 26), ShelfFont(l.mono, 11, 0.14)};
 }
 
+HomeWindow::ScreenLook HomeWindow::LookOfScreen() {
+    if (!shelf_look) {
+        ShelfLoad();
+    }
+    const ShelfLook l = *shelf_look;
+    return {l.ground, l.raised.isValid() && l.raised.alpha() > 0 ? l.raised : l.ground, l.ink, l.muted, l.accent,
+            l.rule.isValid() && l.rule.alpha() > 0 ? l.rule : l.muted,
+            [l](int face, double px, double spacing) { return ShelfFont(face == 0 ? l.display : face == 1 ? l.text : l.mono, px, spacing); }};
+}
+
 QString HomeWindow::AddLinesTitle(const QString& by, const QString& title) {
     const QString folder = SharedFolder();
     Lines::Sources sources = Lines::Load(folder);
@@ -1332,6 +1342,9 @@ bool HomeWindow::ShelfKey(int key) {
         const int page_row = RowChoice(page);
         const bool look_row = page.kind == Item::Settings && page_row < page_rows.size() && page_rows[page_row].setting >= 0 &&
                               IsSetting(page_rows[page_row].setting, "Look");
+        if (look_row && !renaming && (key == Qt::Key_Return || key == Qt::Key_Enter) && OpenPick(page_row)) {
+            return true; // every theme at once (choice_picker.h)
+        }
         if (look_row && !(renaming && key != Qt::Key_Left && key != Qt::Key_Right) && (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Return || key == Qt::Key_Enter)) {
             // Look: this page's own themes, not the save menu's.
             const int count = std::max<int>(1, shelf_themes.size());
@@ -2111,8 +2124,10 @@ void HomeWindow::PaintStage(QPainter& p) {
     const QString way = Lines::WayOf(game.path);
     facts.append({QStringLiteral("READ BY"),
                   !way.isEmpty() ? Lines::ReadByOf(game.path)
-                                 : QStringLiteral("CORE  ·  %1%2").arg(SystemLabel(library, title.system).toUpper(),
-                                                                       app != nullptr && !app->name.isEmpty() ? QStringLiteral("  ·  ") + app->name.toUpper() : QString())});
+                                 : QStringLiteral("CORE  ·  %1%2%3").arg(SystemLabel(library, title.system).toUpper(),
+                                                                         app != nullptr && !app->name.isEmpty() ? QStringLiteral("  ·  ") + app->name.toUpper() : QString(),
+                                                                         // A game no script reads, read from the core's own picture.
+                                                                         ocr_games.contains(game.id) ? QStringLiteral("  ·  OCR") : QString())});
     QString from; // whose figures the rows under it are
     if (tracked != nullptr) {
         from = QStringLiteral("STUDY TRACKER");
@@ -2444,7 +2459,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             double at = tx + Put(p, small, tx, box.top() + 36, number, l.accent);
             // What reads it: a core and its console, or lines and how they come.
             const QString way = Lines::WayOf(game.path);
-            Put(p, small, at, box.top() + 36, way.isEmpty() ? QStringLiteral("  ·  CORE  ·  ") + console : QStringLiteral("  ·  ") + Lines::ReadByOf(game.path), l.muted);
+            Put(p, small, at, box.top() + 36, way.isEmpty() ? QStringLiteral("  ·  CORE  ·  ") + console + (ocr_games.contains(game.id) ? QStringLiteral("  ·  OCR") : QString()) : QStringLiteral("  ·  ") + Lines::ReadByOf(game.path), l.muted);
 
             // Its name, as large as the column and four lines let it be.
             const QString said = ShelfTitleOf(game.id, game.title);

@@ -1511,6 +1511,13 @@ protected:
 	/// After the steps: the copies made ready to be read while the frame is presented.
 	virtual void ReaderGlowDone() {}
 	void ReaderDestroyGlow();
+	// Reader fork: the wide picture's frame without 3D (ReaderWideFill): the picture put together,
+	// the ever smaller copies its sides are made from, and the dimmed one.
+	static constexpr int READER_WIDE_COPIES = 8;
+	GSTexture* m_reader_wide = nullptr;
+	GSTexture* m_reader_wide_small[READER_WIDE_COPIES] = {};
+	GSTexture* m_reader_wide_dim = nullptr;
+	void ReaderDestroyWide();
 	/// Reader fork: whether the CRT picture may go to an HDR screen now (Reader::Crt::HdrWanted()
 	/// with the picture on). A renderer that draws into an HDR surface draws ImGui (PCSX2's
 	/// messages, the achievements' notifications) there with ReaderHdrImGuiShader's entry
@@ -1556,6 +1563,13 @@ public:
 	/// PresentShader::READER_CRT reads them. Nothing where the renderer cannot (the picture is
 	/// then the one of a single pass, as before).
 	void ReaderMakeGlow(GSTexture* sTex, const GSVector4& sRect, const GSVector4& dRect);
+
+	/// Reader fork: the current frame (after Merge) becomes a wider one that holds it whole in its
+	/// middle, `middle` of the new width, between sides that go on from its edges mirrored, much
+	/// blurred and dimmed (what a video player shows beside a narrow film). For a wide picture's
+	/// frames that have nothing to fill the width with. Made of the passes every renderer has
+	/// (StretchRect, the shade boost): no shader of its own.
+	void ReaderWideFill(float middle);
 
 	/// Returns a string containing current adapter in use.
 	const std::string& GetName() const { return m_name; }

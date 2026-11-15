@@ -41,6 +41,9 @@ data class TextLine(
      */
     val isMenu: Boolean get() = channel == CHANNEL_MENU
 
+    /** Read from the game's picture by OCR (an app's own source, meta "source": "ocr"), not by a script. */
+    val isFromPicture: Boolean get() = meta[META_SOURCE] == SOURCE_OCR
+
     /** Text with readings in Anki's furigana syntax: " 漢字[かんじ]". */
     fun toAnkiFurigana(): String = buildString {
         forEachSegment { base, reading ->
@@ -100,6 +103,8 @@ data class TextLine(
         const val CHANNEL_DIALOGUE = "dialogue"
         const val CHANNEL_CHOICE = "choice"
         const val CHANNEL_MENU = "menu"
+        const val META_SOURCE = "source"
+        const val SOURCE_OCR = "ocr"
 
         /** Parses the engine's event JSON. Returns null when the text is missing or empty. */
         fun fromJson(json: String, timestamp: Long): TextLine? {

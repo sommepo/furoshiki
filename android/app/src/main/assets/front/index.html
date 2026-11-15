@@ -10,7 +10,7 @@
 <div id="sheet">
   <header id="head">
     <div id="tab"><span id="tab-text"></span></div>
-    <div id="clock"></div>
+    <div id="right"><span id="status"></span><span id="clock"></span></div>
   </header>
   <main id="main">
     <section id="card" class="panel">
@@ -22,6 +22,7 @@
       </div>
       <div id="art"><img id="cover" alt=""><div id="bars"></div><div id="value"></div></div>
       <dl id="figures"></dl>
+      <div id="far" class="far" hidden><i></i></div>
       <div class="keys">
         <button id="go" type="button"></button>
         <button id="also" type="button" hidden></button>
@@ -35,15 +36,80 @@
       <ol id="rows"></ol>
     </section>
   </main>
+  <!-- The title in hand as a page of its own (front.js, drawStage): over its shelf. -->
+  <section id="stage">
+    <div id="stage-text">
+      <div id="stage-head"><button id="stage-back" type="button">‹ Library</button><span id="stage-where"></span></div>
+      <h1 id="stage-name"></h1>
+      <div id="stage-own"></div>
+      <div class="keys">
+        <button id="stage-go" type="button"></button>
+        <span id="stage-last"></span>
+      </div>
+      <div id="stage-far" class="far" hidden><i></i></div>
+      <dl id="stage-facts"></dl>
+      <div class="keys more">
+        <button id="stage-before" type="button">‹</button>
+        <button id="stage-after" type="button">›</button>
+        <button id="stage-log" type="button" hidden>Log</button>
+        <button id="stage-settings" type="button">Its settings</button>
+        <button id="stage-pin" type="button">Pin</button>
+      </div>
+    </div>
+    <div id="stage-art"><img id="stage-cover" alt=""></div>
+  </section>
   <footer id="foot">
     <span class="lr">L</span>
     <nav id="tabs"></nav>
     <span class="lr">R</span>
   </footer>
   <div id="pick" hidden><div id="pick-box" class="panel"><h2 id="pick-title"></h2><ol id="pick-rows"></ol></div></div>
+  <!-- The second display with something else in front (front.js, Lower.tell): the device itself. -->
+  <section id="away">
+    <div id="away-head"><span>Furoshiki</span><span id="away-status"></span></div>
+    <div id="away-clock"></div>
+    <div id="away-date"></div>
+    <div id="away-keys">
+      <button id="away-home" type="button">Shelf</button>
+      <div class="dial"><span>Volume</span><button type="button" data-dial="volume" data-by="-1">−</button><b id="away-volume"></b><button type="button" data-dial="volume" data-by="1">+</button></div>
+      <div class="dial" id="away-dim"><span>Brightness</span><button type="button" data-dial="brightness" data-by="-1">−</button><b id="away-brightness"></b><button type="button" data-dial="brightness" data-by="1">+</button></div>
+    </div>
+  </section>
+  <!-- The controller mapping screen (map.js): the consoles, the controller drawn, what each button does. -->
+  <section id="map" hidden>
+    <header id="map-head">
+      <button id="map-back" type="button">‹ Settings</button>
+      <span><i>Furoshiki  ·  </i>Controller</span>
+      <span id="map-pad-name"></span>
+    </header>
+    <div id="map-bar">
+      <span class="lr">L</span><nav id="map-tabs"></nav><button id="map-setup" type="button">Set up every button</button><span class="lr">R</span>
+    </div>
+    <div id="map-body">
+      <figure id="map-pad"><svg id="map-svg" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></figure>
+      <div id="map-side">
+        <div id="map-layer" hidden><span id="map-layer-text"></span><button id="map-same" type="button">Same as all consoles</button></div>
+        <ol id="map-rows"></ol>
+        <div id="map-wizard" hidden>
+          <p id="wiz-count"></p>
+          <p id="wiz-ask">Press your button for</p>
+          <p id="wiz-name"></p>
+          <p id="wiz-note"></p>
+          <div id="wiz-time"><i></i></div>
+          <div id="wiz-keys">
+            <button id="wiz-back" type="button">Back one</button>
+            <button id="wiz-skip" type="button">Skip</button>
+            <button id="wiz-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer id="map-foot"></footer>
+  </section>
   <div id="say"></div>
   <div id="scan"></div>
 </div>
 <script src="front.js"></script>
+<script src="map.js"></script>
 </body>
 </html>

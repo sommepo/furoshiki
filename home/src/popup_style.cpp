@@ -58,7 +58,9 @@ QJsonObject LookOf(const std::function<QString(const QString&)>& value) {
     const QString hide = text("reader_popup_hide_tags");
     bool has_radius = false;
     const int radius = text("reader_popup_radius").toInt(&has_radius);
-    return QJsonObject{{QStringLiteral("opacity"), text("reader_popup_opacity").toInt()},
+    // Nothing chosen: 90 % solid, the published default since 2026-11-15 (ReaderSettings::PopupOpacity).
+    const QString opacity = text("reader_popup_opacity");
+    return QJsonObject{{QStringLiteral("opacity"), opacity.isEmpty() ? 90 : opacity.toInt()},
                        {QStringLiteral("radius"), has_radius ? radius : -1},
                        {QStringLiteral("compact"), text("reader_popup_compact").toInt()},
                        {QStringLiteral("hideTags"), hide == QStringLiteral("true") || hide == QStringLiteral("1")},
@@ -75,7 +77,7 @@ QString Folder(const QString& program_folder) {
 QList<PlaySetting> Settings(const QString& folder) {
     PlaySetting theme;
     theme.key = QStringLiteral("popup.theme");
-    theme.label = QStringLiteral("Popup's look");
+    theme.label = QStringLiteral("Popup theme");
     theme.kind = PlaySetting::Choice;
     theme.default_value = QStringLiteral("console");
     theme.choices = {QStringLiteral("console")};
@@ -130,8 +132,8 @@ QList<PlaySetting> Settings(const QString& folder) {
             design,
             mark,
             lookups,
-            number("popup.opacity", "How solid (%, 0: the look's)", 0, 100, 5, "0"),
-            number("popup.radius", "Corners (px, -1: the look's)", -1, 28, 1, "-1"),
+            number("popup.opacity", "Opacity (%, 0: the look's own)", 0, 100, 5, "90"),
+            number("popup.radius", "Corners (px, -1: default)", -1, 28, 1, "-1"),
             number("popup.compact", "Senses before \"more\" (0: all)", 0, 9, 1, "0"),
             hide,
             portrait};

@@ -55,12 +55,26 @@ void SetGameStopped(void (*stopped)(void* context), void* context);
 void SetProgramCommands(std::function<bool(const QString& name, const QStringList& parts, const std::function<void(const QString&)>& reply)> commands);
 /// A line said over the game for a moment (a savestate written, a disc changed).
 void Notify(const QString& text);
+/// Does an action of the settings (reader_backlog, furoshiki_guide...): a button's the
+/// controller map gives one.
+void RunAction(const QString& name);
+/// While set, a controller's back buttons (1 to 5: the Steam Controller's grips and its "..."
+/// button) go here first; true: taken. Empty: they do their actions again.
+void CaptureBackButtons(std::function<bool(int)> capture);
 
 /// The buttons the reader's stick pointer may have (-1 for none first), and one's name.
 [[nodiscard]] QList<int> PointerButtons();
 [[nodiscard]] QString PointerButtonName(int button);
 /// Gives the pointer that button (-1: none, every button is the game's), a game playing at once.
 void SetPointerButton(int button);
+/// The game's picture as the core has it now (reader_core.h, READER_CORE_GRAB_PICTURE), no
+/// wider than `max_width`, handed to `done` on the main thread; a null picture when there is
+/// none. The core copies it on its own thread and goes on: nothing waits for it.
+void GrabPicture(int max_width, std::function<void(const class QImage&)> done);
+/// Where the game's picture and the console's screens (0 the upper, 1 the lower) are drawn in
+/// the screen widget, in its own units; empty where not known or not shown.
+[[nodiscard]] class QRectF PictureArea();
+[[nodiscard]] class QRectF ScreenArea(int screen);
 /// The Reader menu (statistics, dictionaries, Anki, settings, ...).
 [[nodiscard]] QMenu* Menu();
 

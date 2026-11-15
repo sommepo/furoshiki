@@ -174,7 +174,7 @@ Page Make(ReaderApp::ReaderSettings& settings, QWidget* parent) {
     }
     looks->addItem(Tr("My own"), QString());
     looks->setToolTip(Tr("Ready-made pictures. Moving a slider makes the picture your own."));
-    top->addRow(Tr("Look"), looks);
+    top->addRow(Tr("Preset"), looks);
     QObject::connect(looks, &QComboBox::activated, page, [looks, refresh](int index) {
         const QString key = looks->itemData(index).toString();
         if (!key.isEmpty()) {

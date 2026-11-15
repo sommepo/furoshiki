@@ -34,9 +34,17 @@ shaderc and others) beside it in `cores/`; that list covers them.
 Furoshiki for Android carries the same reader layer and these cores, built for Android, under the
 same terms: PPSSPP, Flycast, Azahar and DuckStation as above; **ARMSX2** (`armsx2/`, PCSX2 for
 Android, GPL-3.0-or-later, `armsx2/COPYING.GPLv3`) for the PS2; **Vita3K** (`vita3k/`, GPL-2.0-or-later,
-`vita3k/COPYING.txt`) for the PS Vita. Their third-party libraries' licences are in their folders
+`vita3k/COPYING.txt`) for the PS Vita; **melonDS** (`melonds/`, GPL-3.0-or-later, `melonds/LICENSE`,
+with its own free replacement BIOS and firmware, so no file of Nintendo's) for the Nintendo DS. Their third-party libraries' licences are in their folders
 and submodules as above. The app's own libraries from AndroidX and Google's Material Components
 are Apache-2.0; Lua, SQLite and zlib are built in as in the program.
+
+Its OCR on the device runs **meikiocr**'s models (rtr46, `https://huggingface.co/rtr46/meiki.text.detect.v0`
+and `meiki.txt.recognition.v0`, LGPL-3.0, carried unchanged in `assets/ocr/`: you may replace them
+with other versions of the same models) through **ONNX Runtime** (Microsoft, MIT,
+`https://github.com/microsoft/onnxruntime`, `libonnxruntime.so`). The pipeline that runs them
+(`android/app/src/main/java/io/github/sommepo/furoshiki/ocr/MeikiOcr.kt`) follows meikiocr's own
+(`https://github.com/rtr46/meikiocr`, Apache-2.0).
 
 ## Flycast under version 3
 

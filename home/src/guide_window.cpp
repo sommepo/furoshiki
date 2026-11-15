@@ -6,6 +6,9 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QListWidget>
+#include <QPainter>
+#include <QPainterPath>
+#include <QTextLayout>
 #include <QPushButton>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -129,6 +132,168 @@ void GuideWindow::Tick(int row) {
         // Where the checklist stands now (the section may be done, and the next one comes).
         Ask();
     });
+}
+
+GuideOverlay::GuideOverlay() : QWidget(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus) {
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
+    setAttribute(Qt::WA_ShowWithoutActivating);
+    setFocusPolicy(Qt::NoFocus);
+    again = new QTimer(this);
+    again->setInterval(30000);
+    connect(again, &QTimer::timeout, this, [this] { Ask(); });
+    // Where the game's window is now: it may move, or go full screen.
+    follow = new QTimer(this);
+    follow->setInterval(400);
+    connect(follow, &QTimer::timeout, this, [this] { Place(); });
+}
+
+void GuideOverlay::Toggle(QWidget* over_, const QString& service_, const QString& game_id_) {
+    if (isVisible() && game_id_ == game_id) {
+        Close();
+        return;
+    }
+    over = over_;
+    service = service_;
+    game_id = game_id_;
+    if (service.isEmpty()) {
+        place = {};
+        said = QStringLiteral("No guide service is known to this device (Settings, Furoshiki, Home server services)");
+    } else if (place.slug.isEmpty()) {
+        said = QStringLiteral("Asking for the guide…");
+    }
+    Place();
+    show();
+    raise();
+    again->start();
+    follow->start();
+    Ask();
+}
+
+void GuideOverlay::Close() {
+    again->stop();
+    follow->stop();
+    hide();
+}
+
+void GuideOverlay::Ask() {
+    if (service.isEmpty() || game_id.isEmpty() || asking) {
+        return;
+    }
+    asking = true;
+    const QString address = service + QStringLiteral("/api/guide?game_id=") + QString::fromLatin1(QUrl::toPercentEncoding(game_id));
+    Services::Ask(this, address, QByteArray(), QString(), 20, [this](const Services::Answer& answer) {
+        asking = false;
+        const GuidePlace read = answer.Ok() ? GuidePlace::Read(answer.body) : GuidePlace{};
+        place = read;
+        said = !read.slug.isEmpty() ? QString()
+               : answer.Ok()        ? QStringLiteral("No guide for this game")
+                                    : QStringLiteral("The guide service did not answer");
+        Place();
+        update();
+    });
+}
+
+int GuideOverlay::NextStep() const {
+    for (int i = 0; i < place.steps.size(); ++i) {
+        if (!place.steps[i].done) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void GuideOverlay::Done() {
+    const int at = NextStep();
+    if (!isVisible() || at < 0 || place.slug.isEmpty()) {
+        return;
+    }
+    // Ticked here at once (the next step shows), then kept by the service and asked again.
+    place.steps[at].done = true;
+    ++place.done;
+    update();
+    const QByteArray body = QJsonDocument(QJsonObject{{QStringLiteral("id"), place.steps[at].id}, {QStringLiteral("done"), true}})
+                                .toJson(QJsonDocument::Compact);
+    const QString address = service + QStringLiteral("/api/guide/") + QString::fromLatin1(QUrl::toPercentEncoding(place.slug)) +
+                            QStringLiteral("/tick");
+    Services::Ask(this, address, body, QString(), 20, [this](const Services::Answer& answer) {
+        if (!answer.Ok()) {
+            said = QStringLiteral("The tick was not kept: %1").arg(answer.error);
+        }
+        Ask();
+    });
+}
+
+void GuideOverlay::Place() {
+    if (over.isNull() || !over->isVisible() || over->window()->isMinimized()) {
+        hide();
+        return;
+    }
+    // In the top left corner of the game, a third of its width (at least 340 px, at most 560).
+    const QRect game(over->mapToGlobal(QPoint(0, 0)), over->size());
+    const int width = std::clamp(game.width() / 3, 340, 560);
+    QFont text = font();
+    text.setPointSizeF(13.5);
+    const int step = NextStep();
+    const QString shown = step >= 0 ? GuidePlace::Line(place.steps[step]) : said;
+    const QString first = step >= 0 ? place.steps[step].text.simplified() : shown;
+    const QRect room = QFontMetrics(text).boundingRect(QRect(0, 0, width - 36, 2000), Qt::TextWordWrap, first.isEmpty() ? QStringLiteral(" ") : first);
+    QFont quiet = font();
+    quiet.setPointSizeF(11);
+    const QString note = step >= 0 ? place.steps[step].note.simplified() : QString();
+    const int note_height = note.isEmpty() ? 0 : QFontMetrics(quiet).boundingRect(QRect(0, 0, width - 36, 2000), Qt::TextWordWrap, note).height() + 4;
+    const int height = std::min(room.height() + note_height + 74, game.height() / 2);
+    setGeometry(game.left() + 18, game.top() + 18, width, height);
+    if (!isVisible() && again->isActive()) {
+        show();
+    }
+}
+
+void GuideOverlay::paintEvent(QPaintEvent*) {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    // Furoshiki's Kon: indigo glass, cream type, a vermilion rule.
+    const QColor ground(16, 26, 58, 225), ink(236, 229, 211), muted(138, 147, 181), accent(217, 71, 43);
+    QPainterPath card;
+    card.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
+    p.fillPath(card, ground);
+    p.fillRect(QRectF(0, 12, 3, height() - 24), accent);
+    QFont small = font();
+    small.setPointSizeF(9);
+    small.setLetterSpacing(QFont::PercentageSpacing, 106);
+    QFont text = font();
+    text.setPointSizeF(13.5);
+    const int step = NextStep();
+    const QRect inner = rect().adjusted(18, 12, -18, -10);
+    // The guide and where it stands.
+    QString head = place.slug.isEmpty() ? QStringLiteral("GUIDE") : (place.sub.isEmpty() ? place.section : place.section + QStringLiteral(" · ") + place.sub);
+    p.setFont(small);
+    p.setPen(muted);
+    p.drawText(inner.left(), inner.top() + 12, QFontMetrics(small).elidedText(head.toUpper(), Qt::ElideRight, inner.width()));
+    // The step to do, or what is known instead; its note under it, quieter.
+    p.setFont(text);
+    p.setPen(step >= 0 ? ink : muted);
+    const QString shown = step >= 0 ? place.steps[step].text.simplified()
+                          : !said.isEmpty() ? said
+                                            : QStringLiteral("Every step of this section is done");
+    QRect drawn;
+    p.drawText(QRect(inner.left(), inner.top() + 22, inner.width(), inner.height() - 44), Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, shown, &drawn);
+    if (step >= 0 && !place.steps[step].note.simplified().isEmpty()) {
+        QFont quiet = font();
+        quiet.setPointSizeF(11);
+        p.setFont(quiet);
+        p.setPen(muted);
+        p.drawText(QRect(inner.left(), drawn.bottom() + 4, inner.width(), inner.bottom() - drawn.bottom() - 22), Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop,
+                   place.steps[step].note.simplified());
+    }
+    // How far, and the keys.
+    p.setFont(small);
+    p.setPen(muted);
+    if (place.total > 0) {
+        p.drawText(inner.left(), inner.bottom() - 2, QStringLiteral("%1 / %2").arg(place.done).arg(place.total));
+    }
+    const QString keys = step >= 0 ? QStringLiteral("CTRL+SHIFT+N DONE  ·  CTRL+SHIFT+G HIDE") : QStringLiteral("CTRL+SHIFT+G HIDE");
+    p.drawText(QRect(inner.left(), inner.bottom() - 14, inner.width(), 16), Qt::AlignRight | Qt::AlignBottom, keys);
 }
 
 } // namespace Home

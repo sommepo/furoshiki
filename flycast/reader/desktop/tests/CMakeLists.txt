@@ -22,6 +22,8 @@ add_executable(reader_desktop_tests
     ${READER_SHARED}/reader/core/next_choice.cpp
     # Progress set by hand (reader.progress), through the engine with made-up memory.
     ${READER_SHARED}/reader/desktop/tests/progress_test.cpp
+    # A game read by a hook description (reader.hooks), likewise.
+    ${READER_SHARED}/reader/desktop/tests/hook_description_test.cpp
     ${READER_SHARED}/reader/desktop/tests/deinflector.cpp
     ${READER_SHARED}/reader/desktop/tests/dictionary.cpp
     ${READER_SHARED}/reader/desktop/tests/discord_presence.cpp

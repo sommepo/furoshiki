@@ -126,7 +126,13 @@ public:
             Open(rate);
         }
         if (stream != nullptr && !paused) {
-            AAudioStream_write(stream, samples, static_cast<int32_t>(frames), 0);
+            const aaudio_result_t wrote = AAudioStream_write(stream, samples, static_cast<int32_t>(frames), 0);
+            // The output went away (a Bluetooth headset connected or gone, another route): the
+            // stream stays dead, every write refused, so it is opened again on what is there now
+            // (the user, 2026-11-14: the Thor silent after its earbuds came and went).
+            if (wrote == AAUDIO_ERROR_DISCONNECTED || AAudioStream_getState(stream) == AAUDIO_STREAM_STATE_DISCONNECTED) {
+                Open(rate);
+            }
         }
     }
     void Pause(bool pause) {
@@ -700,6 +706,11 @@ JNIEXPORT jbyteArray JNICALL GAME(discLabel)(JNIEnv* env, jobject, jint index) {
 
 JNIEXPORT jboolean JNICALL GAME(insertDisc)(JNIEnv*, jobject, jint index) {
     return g_session && g_session->InsertDisc(index) ? JNI_TRUE : JNI_FALSE;
+}
+
+/// Another disc of the running game (a game on several discs, Discs.kt): 0 when the core took it.
+JNIEXPORT jint JNICALL GAME(addDisc)(JNIEnv* env, jobject, jstring path) {
+    return g_session ? static_cast<jint>(g_session->AddDisc(FromJava(env, path))) : -1;
 }
 
 /// The patches the core has for a game: [{"name","about","on"}], "on" what it has by itself.

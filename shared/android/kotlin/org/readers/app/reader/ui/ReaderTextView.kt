@@ -63,6 +63,21 @@ class ReaderTextView @JvmOverloads constructor(
 
     var wordHighlightColor: Int = 0x66FFD54F
 
+    /** A coloured line under part of the text (UTF-16 offsets of the line). */
+    data class Underline(val range: IntRange, val color: Int)
+
+    /**
+     * Lines drawn under words, each in its colour (Furochibi's word marks: how well Anki has
+     * them). Cleared by [setLine].
+     */
+    var underlines: List<Underline> = emptyList()
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+    private val underlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
     private val gestures =
         GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent) = true
@@ -91,6 +106,7 @@ class ReaderTextView @JvmOverloads constructor(
         plainText = text
         rubySpans = ruby
         furigana = showFurigana
+        underlines = emptyList()
         markedRange = null
         markTargets = emptyList()
         glide.clear()
@@ -129,6 +145,19 @@ class ReaderTextView @JvmOverloads constructor(
             for (row in glide.drawn) canvas.drawRoundRect(row, radius, radius, fillPaint)
         }
         super.onDraw(canvas)
+        if (underlines.isNotEmpty()) {
+            val density = resources.displayMetrics.density
+            val thickness = maxOf(2f, 2f * density)
+            for (mark in underlines) {
+                underlinePaint.color = mark.color
+                for (row in rowsOf(mark.range)) {
+                    // Under the letters, a little inside the word so that two marks side by side part.
+                    val top = row.bottom - thickness * 0.5f
+                    canvas.drawRoundRect(row.left + density, top, row.right - density, top + thickness,
+                        thickness / 2, thickness / 2, underlinePaint)
+                }
+            }
+        }
         if (markStyle == ReaderSettings.WORD_MARK_OUTLINE && glide.visible) {
             val width = 2f * resources.displayMetrics.density
             framePaint.strokeWidth = width

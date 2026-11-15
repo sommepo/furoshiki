@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "ocr_helper.h"
+#include "services.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -108,6 +109,22 @@ Lines::Helper SettingOf(const LocalHelper& local) {
     helper.token = local.token;
     helper.program = local.folder;
     return helper;
+}
+
+QString KnownOcrService() {
+#ifndef HOME_PUBLIC
+    return Lines::CleanHelperAddress(Services::Of(QStringLiteral("furochibi")));
+#else
+    return {};
+#endif
+}
+
+QString OcrWhere(const Lines::Helper& helper) {
+    return Lines::OcrWhere(helper, KnownOcrService());
+}
+
+Lines::Helper OcrInUse(const Lines::Helper& helper) {
+    return Lines::InUse(helper, KnownOcrService());
 }
 
 Lines::Helper Refreshed(const Lines::Helper& helper) {

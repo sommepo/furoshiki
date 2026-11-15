@@ -428,6 +428,22 @@ void UseSession(Home::CoreSession* session) {
     ReaderApp::PlacedText::SetBend(glass ? std::function<void(float&, float&)>([](float& x, float& y) { Reader::Crt::ToScreen(x, y); }) : nullptr);
 }
 
+void GrabPicture(int max_width, std::function<void(const QImage&)> done) {
+    if (g_controller == nullptr) {
+        done(QImage());
+        return;
+    }
+    g_controller->CaptureFrame(max_width, std::move(done));
+}
+
+QRectF PictureArea() {
+    return g_controller != nullptr ? g_controller->PictureArea() : QRectF();
+}
+
+QRectF ScreenArea(int screen) {
+    return g_controller != nullptr ? g_controller->ScreenArea(screen) : QRectF();
+}
+
 void UseSource(ReadingSource* source) {
     if (g_controller != nullptr) {
         g_controller->Use(source);
@@ -485,6 +501,16 @@ void Notify(const QString& text) {
     if (g_controller != nullptr) {
         g_controller->Notify(text);
     }
+}
+
+void RunAction(const QString& name) {
+    if (g_controller != nullptr) {
+        g_controller->RunAction(name);
+    }
+}
+
+void CaptureBackButtons(std::function<bool(int)> capture) {
+    ReaderController::BackButtonCapture() = std::move(capture);
 }
 
 QList<int> PointerButtons() {

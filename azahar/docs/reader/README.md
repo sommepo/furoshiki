@@ -11,7 +11,7 @@ It only does this for games that have a **text profile** (see
 - [Text profiles: API and rules](profiles.md)
 - [Headless harness for writing profiles](harness.md)
 - [How it is built](architecture.md)
-- Game notes: [Shin Megami Tensei IV](games/smt4.md)
+- Game notes: [Shin Megami Tensei IV](games/smt4.md), [Professor Layton vs. Phoenix Wright](games/layton-vs-ace-attorney.md)
 
 ## Install
 
@@ -278,6 +278,7 @@ install from is published with Furoshiki (`sommepo/furoshiki`, made by the repos
 | Game | Title ID | Notes |
 | --- | --- | --- |
 | 真・女神転生IV (Japan) | 0004000000088A00 | [Dialogue, narration and choices, page by page, tappable in the game's picture](games/smt4.md). Movie subtitles and menu text are not covered. |
+| レイトン教授VS逆転裁判 (Japan) | 0004000000078B00 | [Dialogue, narration, subtitles and the puzzles' texts, with speakers and furigana, tappable in the game's picture](games/layton-vs-ace-attorney.md). Court was not reached in the harness. |
 
 A profile is tied to one build of a game and says so when it meets another.
 

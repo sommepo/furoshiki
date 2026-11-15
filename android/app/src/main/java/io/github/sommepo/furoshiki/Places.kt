@@ -30,7 +30,7 @@ object Places {
     val CORES = linkedMapOf(
         "psp" to "libreader_core_ppsspp.so", "dc" to "libreader_core_flycast.so", "3ds" to "libreader_core_azahar.so",
         "ps1" to "libreader_core_station.so", "ps2" to "libreader_core_armsx2.so",
-        "psvita" to "libreader_core_vita3k.so",
+        "psvita" to "libreader_core_vita3k.so", "nds" to "libreader_core_melonds.so",
     )
 
     private fun root(context: Context): File = context.getExternalFilesDir(null) ?: context.filesDir

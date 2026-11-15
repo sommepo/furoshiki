@@ -173,14 +173,18 @@ const std::vector<Recipe>& Recipes() {
         // squeeze they would narrow twice. The 2D of both games is triangle fans (PRIM 5), depth-tested
         // like the 3D, which is strips; message windows are nearly as wide as the picture (full=cover),
         // full-screen stills are pillarboxed (fills=tex). A field camera sets its window when a room is
-        // entered, so a savestate made at 4:3 keeps the narrow view until the next room.
+        // entered, so a savestate made at 4:3 kept the narrow view until the next room: the core now
+        // puts the main camera's window right each frame (`camera`: the pointer the game keeps to it,
+        // stored by the routine that makes it, 0x4634xx in Persona 4 and 0x1921xx in Persona 3; the
+        // window is RenderWare's, x, y and their reciprocals from +104).
         {"SLPM-66445", 0x05C3D28F, "ペルソナ3",
          "Not checked: battles, Persona art, the field menu. fills=tex would squeeze a textured full-screen effect "
          "over 3D, if there is one. Films are pillarboxed at their own shape (seen at 32:9).",
          "32:9 and 21:9: the dorm hallway with a message and portrait, the dorm hall, the school's entrance hall in free "
          "movement with the HUD, the name entry (SSIM 0.94-0.98): the middle is the 4:3 picture, the 2D at its own shape",
          "prim=5,depth,full=cover,fills=tex",
-         {{0x007B179C, W, With, 0x3FE38E38}}},
+         {{0x007B179C, W, With, 0x3FE38E38}},
+         0x007B4DA0},
         {"SLPM-66978", 0x4E63E63C, "ペルソナ4",
          "Not checked: battles, Persona art, the field menu. fills=tex would squeeze a textured full-screen effect "
          "over 3D, if there is one. Films are pillarboxed at their own shape (seen at 32:9).",
@@ -188,7 +192,8 @@ const std::vector<Recipe>& Recipes() {
          "in free movement with the HUD (two views), the name entry, the title (SSIM 0.94-0.99): the middle is the 4:3 "
          "picture, the 2D at its own shape",
          "prim=5,depth,full=cover,fills=tex",
-         {{0x0076F61C, W, With, 0x3FE38E38}}},
+         {{0x0076F61C, W, With, 0x3FE38E38}},
+         0x00773450},
     };
     return recipes;
 }

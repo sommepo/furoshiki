@@ -42,6 +42,10 @@ add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp
 	# OCR helper's client (Furochibi's service, at an address that is the device's setting).
 	src/window_list.cpp src/window_list.h
 	src/ocr_client.cpp src/ocr_client.h
+	# A core's own picture read by OCR: when a picture is worth sending, and where its text is on the screens.
+	src/ocr_gate.cpp src/ocr_gate.h
+	# A game on several discs as one title (its discs found beside the one listed).
+	src/discs.cpp src/discs.h
 	# Hooks started by the program (docs/hooks.md): the engines' output read into threads and
 	# lines, 0xDC00's Agent scripts listed and bundled, the programs running, the engines' files
 	# fetched, an engine run against a process.
@@ -50,6 +54,9 @@ add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp
 	src/hook_processes.cpp src/hook_processes.h
 	src/hook_fetch.cpp src/hook_fetch.h
 	src/hook_runner.cpp src/hook_runner.h
+	# Games of the cores read by hook (docs/core-hooks.md): LunaHook's and Agent's knowledge of a
+	# game on an emulator turned into a hook description the reader's engine runs.
+	src/core_hooks.cpp src/core_hooks.h
 	# A title's box art where none is built in: Steam's, VNDB's (docs/furoshiki-3.md, 14).
 	src/art_fetch.cpp src/art_fetch.h
 	# That helper installed on this computer, started when a window is read and stopped with the program.
@@ -116,6 +123,8 @@ endif()
 # Furoshiki 3's page (src/shelf_page.inc): its themes, seven values and three faces each.
 file(GLOB HOME_SHELF_THEMES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" shelf/*.json)
 qt_add_resources(reader-home "shelf" PREFIX "/shelf" BASE "${CMAKE_CURRENT_SOURCE_DIR}/shelf" FILES ${HOME_SHELF_THEMES})
+# The controller map's pads, inputs and actions: the Android app's too (controller_map.h).
+qt_add_resources(reader-home "controllers" PREFIX "/controllers" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../shared/controllers" FILES ../shared/controllers/controllers.json)
 if(HOME_PUBLIC)
 	target_compile_definitions(home_core PUBLIC HOME_PUBLIC READER_NO_SAVE_SYNC)
 endif()
@@ -139,6 +148,9 @@ if(HOME_TESTS)
 	enable_language(C)
 	add_executable(hook-target tests/hooks/hook_target.c)
 	set_target_properties(hook-target PROPERTIES ENABLE_EXPORTS ON C_VISIBILITY_PRESET default)
+	# Converts fetched hook tables and scripts and counts what converts (docs/core-hooks.md).
+	add_executable(core-hooks tests/core_hooks_tool.cpp)
+	target_link_libraries(core-hooks PRIVATE home_core)
 	add_executable(reader-home-tests tests/tests.cpp)
 	target_link_libraries(reader-home-tests PRIVATE home_core)
 	# The CRT picture's layers, with the shared table they are made from.
@@ -372,7 +384,7 @@ if(HOME_CORES)
 		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp src/settings_crt.cpp
 		src/reader_rows.cpp src/reader_rows.h src/guide_window.cpp src/guide_window.h
 		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h
-		src/ocr_source.cpp src/ocr_source.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h
+		src/ocr_source.cpp src/ocr_source.h src/core_ocr.cpp src/core_ocr.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h src/choice_picker.cpp src/choice_picker.h src/controller_map.cpp src/controller_map.h src/controller_screen.cpp src/controller_screen.h
 		src/hook_source.cpp src/hook_source.h
 		# The computer's sound for those titles' cards, without OBS (Windows' WASAPI loopback).
 		src/loopback_audio.cpp src/loopback_audio.h)

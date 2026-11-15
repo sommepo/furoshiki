@@ -18,6 +18,7 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QUrl>
+#include "core_hooks.h"
 #include "hook_fetch.h"
 #include "hook_processes.h"
 #include "art_fetch.h"
@@ -50,6 +51,7 @@
 #include <QWheelEvent>
 #include "app_icon.h"
 #include "home_window.h"
+#include "choice_picker.h"
 #include "services.h"
 #include "look_paint.h"
 
@@ -175,8 +177,8 @@ constexpr SettingRow SettingRows[] = {
     {"Daily goal", "Characters to read in a day; the statistics say how far today is", nullptr, 0, 0, 0, 0, "Reading", 0, true},
     {"Discord status", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
     {"Discord application ID", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
-    {"Customise the popup", "Its look and every part of it, with a preview", nullptr, 0, 0, 0, 0, "Popup", 2, false},
-    {"How solid", "Lower lets the game show through the popup; as its look has it at the left end", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Customise the popup", "Its theme and every part of it, with a preview", nullptr, 0, 0, 0, 0, "Popup", 2, false},
+    {"How solid", "Lower lets the game show through the popup; the default at the left end", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Text size", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Popup", 0, false},
@@ -194,8 +196,10 @@ constexpr SettingRow SettingRows[] = {
     {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Add a title", "A disc or file of a console, a game's window on this computer read by OCR, or a text hook's lines: Enter, and it asks what it needs", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR helper", "Furochibi's service, which reads a game window's pictures: its address, this device's picture source there and its token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR engine", "Which engine reads a game window's text at the OCR helper: meikiocr, OneOCR (Windows' own), Chrome's Screen AI, or Google Lens, which sends the text area to Google", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR runs on", "Where a game's pictures are read: this computer (its OCR helper) or an OCR service on another machine; both stay set, and a title read by OCR takes the one chosen at its next start", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR helper", "The helper that reads on this computer: its address, this device's picture source there and its token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR service", "An OCR service on another machine (Furochibi's): its address, this device's picture source there and that source's token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR engine", "Which engine reads a game's text: meikiocr, OneOCR (Windows' own), Chrome's Screen AI, or Google Lens, which sends the text area to Google", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"Lines address", "The WebSocket a title read from lines listens to: a texthooker's, such as ws://localhost:6677; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
@@ -215,20 +219,13 @@ constexpr SettingRow SettingRows[] = {
     {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #endif
     {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Sources", 0, true},
-    {"Pointer button", "Held, the sticks move the reader's pointer instead of the game; none: every button is the game's. The mouse and the Steam Controller's pad always point", nullptr, 0, 0, 0, 0, "Controller", 1, false},
+    {"Map the controller", "Every action on a button or a grip: for all consoles, or one console's own", nullptr, 0, 0, 0, 0, "Controller", 2, false},
     {"Pointer button: press once", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
     {"Pointer speed", "", nullptr, 0, 0, 0, 0, "Controller", 3, false},
-    {"Reader menu button", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
     {"Trackpad speed", "How far the pointer goes for a swipe of the right pad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controller", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Controller", 0, false},
-    {"Reading clock button", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
     {"Frame the character pointed at", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
     {"Pointer jumps to each new line", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Grip 1", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Grip 2", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Grip 3", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Grip 4", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"The \"...\" button", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
     {"Trackpad acceleration", "Extra speed for fast swipes", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controller", 0, true},
     {"Scroll speed", "How far a swipe of the left pad turns the wheel", "scroll", 0.2, 3.0, 0.1, 1.0, "Controller", 0, true},
     {"Pointer rolls on", "After a flick, as a trackball does", "trackball", 0, 0, 0, 1, "Controller", 0, true},
@@ -245,6 +242,8 @@ constexpr SettingRow SettingRows[] = {
     {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Read the on-request boxes (OCR)", "Ctrl+Shift+R, or R on the strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Guide's next step over the game", "Ctrl+Shift+G, or Select and L1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Tick the guide's step shown", "Ctrl+Shift+N, or Select and R1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Reader menu", "F1, or the right button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Menu over the game", "Escape, or Guide", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Settings", "F2", nullptr, 0, 0, 0, 0, "Keys", 0, false},
@@ -329,6 +328,8 @@ constexpr RowLabel RowLabels[] = {
     {"Start the clip earlier by", "Start audio earlier by"},
     {"Pictures kept", "Screenshots kept"},
     {"Picture width, at most", "Maximum screenshot width"},
+    {"OCR runs on", "Run OCR on"},
+    {"OCR helper", "OCR helper on this computer"},
     {"Lines address", "Texthooker address"},
     {"Text server", "Send lines to texthooker pages"},
     {"Text server's port", "Text server port"},
@@ -1032,7 +1033,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
         }
         // The popup's look as one file, which the Android apps read and write too.
         rows.append({QStringLiteral("Export popup style"),
-                     QStringLiteral("ENTER  THE LOOK, ITS SETTINGS AND YOUR CSS HERE, AS ONE FILE"), {}, {}, -1});
+                     QStringLiteral("ENTER  THE THEME, ITS SETTINGS AND YOUR CSS HERE, AS ONE FILE"), {}, {}, -1});
         rows.append({QStringLiteral("Import popup style"),
                      QStringLiteral("ENTER  A STYLE FILE, FROM HERE OR AN ANDROID APP, FOR %1").arg(layer_name), {}, {}, -1});
         for (const PlaySetting& setting : LayerSettings()) {
@@ -1129,6 +1130,12 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             } else if (name == QStringLiteral("OCR helper")) {
                 const QString address = Lines::Load(SharedFolder()).ocr.address;
                 value = address.isEmpty() ? QStringLiteral("NOT SET") : address;
+            } else if (name == QStringLiteral("OCR runs on")) {
+                value = OcrWhere(Lines::Load(SharedFolder()).ocr) == Lines::OcrOnService ? QStringLiteral("OCR SERVICE") : QStringLiteral("THIS COMPUTER");
+            } else if (name == QStringLiteral("OCR service")) {
+                // The one set; else the one the device knows by itself (a pairing named it).
+                const QString set = Lines::Load(SharedFolder()).ocr.service_address;
+                value = !set.isEmpty() ? set : KnownOcrService().isEmpty() ? QStringLiteral("NOT SET") : KnownOcrService();
             } else if (setting_value) {
                 value = setting_value(name);
             }
@@ -1147,7 +1154,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             rows.last().steps = setting.host == 1 || setting.host == 3 || (setting.key != nullptr && setting.step != 0) ||
                                 name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
                                 name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture") ||
-                                name == QStringLiteral("OCR engine");
+                                name == QStringLiteral("OCR engine") || name == QStringLiteral("OCR runs on");
         }
         break;
     }
@@ -1590,8 +1597,148 @@ void HomeWindow::Bump(int direction) {
     update();
 }
 
+HomeWindow::Pick HomeWindow::PickAt(int row) {
+    Pick pick;
+    const QList<Item> items = Items();
+    const Item& item = items[axis_choice];
+    const QList<Row> rows = Rows(item);
+    if (row < 0 || row >= rows.size()) {
+        return pick;
+    }
+    pick.title = Labelled(item.kind == Item::Settings ? item.system : QStringLiteral("Consoles"), rows[row].title);
+    const auto step_to = [this](std::function<void(int)> step) {
+        return [this, step = std::move(step)](int index) {
+            step(index);
+            sounds.Play(Sound::Select);
+            Changed();
+        };
+    };
+    if (item.kind == Item::Consoles) {
+        if (play == nullptr) {
+            return pick;
+        }
+        if (row == 0) {
+            pick.said.append(QStringLiteral("All consoles"));
+            for (const PlayConsole& console : consoles) {
+                pick.said.append(console.name);
+            }
+            pick.now = console_layer;
+            pick.take = step_to([this](int index) { ChangeConsoleSetting(0, index - console_layer); });
+        } else if (row == 1 && console_layer > 0) {
+            pick.said.append(QStringLiteral("Every game"));
+            for (const ConsoleGame& game : console_games.value(LayerConsole())) {
+                pick.said.append(game.title);
+            }
+            pick.now = console_game;
+            pick.take = step_to([this](int index) { ChangeConsoleSetting(1, index - console_game); });
+        } else if (row >= ConsoleHeadRows()) {
+            const QList<PlaySetting> settings = LayerSettings();
+            const int index = row - ConsoleHeadRows();
+            if (index >= settings.size() || settings[index].kind != PlaySetting::Choice) {
+                return pick;
+            }
+            const PlaySetting setting = settings[index];
+            for (const QString& choice : setting.choices) {
+                pick.said.append(setting.Shown(choice));
+            }
+            pick.now = static_cast<int>(setting.choices.indexOf(play->Value(setting, LayerConsole(), LayerGame()).value));
+            pick.take = step_to([this, setting](int chosen) {
+                play->Set(setting.key, setting.choices[chosen], LayerConsole(), LayerGame());
+                if (!play->Save()) {
+                    Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+                }
+            });
+        }
+    } else if (item.kind == Item::Settings) {
+        const int srow = SettingAt(item.system, more_open.contains(item.system), row);
+        if (srow < 0 || qstrcmp(SettingRows[srow].section, "Keys") == 0) {
+            return pick;
+        }
+        const QString name = QString::fromLatin1(SettingRows[srow].name);
+        if (name == QStringLiteral("Look") && shelf_on) {
+            // The shelf's own themes (shelf/*.json), by the names they give themselves.
+            for (const QString& key : shelf_themes) {
+                QFile data(QStringLiteral(":/shelf/%1.json").arg(key));
+                const QString called = data.open(QIODevice::ReadOnly)
+                                           ? QJsonDocument::fromJson(data.readAll()).object().value(QStringLiteral("name")).toString()
+                                           : QString();
+                pick.said.append(called.isEmpty() ? key : called);
+            }
+            pick.now = static_cast<int>(shelf_themes.indexOf(QSettings().value(QStringLiteral("shelf/theme"), QStringLiteral("mono")).toString()));
+            const QStringList keys = shelf_themes;
+            pick.take = [this, keys](int index) {
+                SetShelfTheme(keys[index], true);
+                sounds.Play(Sound::Select);
+            };
+        } else if (name == QStringLiteral("Look")) {
+            pick.said = ThemeNames();
+            pick.now = theme_index;
+            pick.take = step_to([this](int index) { SetTheme(index, true); });
+        } else if (name == QStringLiteral("Fuzz")) {
+            static const QStringList levels{QStringLiteral("off"), QStringLiteral("light"), QStringLiteral("heavy")};
+            pick.said = {QStringLiteral("Off"), QStringLiteral("Light"), QStringLiteral("Heavy")};
+            pick.now = static_cast<int>(levels.indexOf(FuzzLevel()));
+            pick.take = step_to([this](int index) { SetFuzz(levels[index], true); });
+        } else if (name == QStringLiteral("Icon")) {
+            const QList<IconColours>& choices = IconChoices();
+            for (int i = 0; i < choices.size(); ++i) {
+                pick.said.append(IconLabel(choices[i].key));
+                if (choices[i].key == ChosenIcon()) {
+                    pick.now = i;
+                }
+            }
+            pick.take = step_to([](int index) { ChooseIcon(IconChoices()[index].key); });
+        } else if (name == QStringLiteral("OCR engine")) {
+            const QStringList engines = QStringList{QString()} + Lines::OcrEngines;
+            for (const QString& engine : engines) {
+                pick.said.append(Lines::OcrEngineName(engine));
+            }
+            pick.now = static_cast<int>(engines.indexOf(Lines::Load(SharedFolder()).ocr.engine));
+            pick.take = step_to([this, engines](int index) {
+                Lines::Sources sources = Lines::Load(SharedFolder());
+                sources.ocr.engine = engines[index];
+                Lines::Save(SharedFolder(), sources);
+                if (sources.ocr.engine == QStringLiteral("glens")) {
+                    Say(QStringLiteral("Google Lens sends each text area it reads to Google"));
+                }
+            });
+        } else if (name == QStringLiteral("OCR runs on")) {
+            pick.said = {QStringLiteral("This computer"), QStringLiteral("OCR service")};
+            pick.now = OcrWhere(Lines::Load(SharedFolder()).ocr) == Lines::OcrOnService ? 1 : 0;
+            pick.take = step_to([this](int index) { SetOcrWhere(index == 1); });
+        } else if (name == QStringLiteral("Wide picture")) {
+            const QString now = WideValue().toLower();
+            if (play == nullptr || !WideShapes.contains(now)) {
+                return pick;
+            }
+            for (const QString& shape : WideShapes) {
+                pick.said.append(shape == QStringLiteral("off") ? QStringLiteral("Off: each game in its own shape") : shape);
+            }
+            pick.now = static_cast<int>(WideShapes.indexOf(now));
+            pick.take = [this, now](int index) { WideStep(index - static_cast<int>(WideShapes.indexOf(now))); };
+        } else if (SettingRows[srow].host == 1 && setting_choices && setting_step) {
+            auto [said, now] = setting_choices(name);
+            pick.said = said;
+            pick.now = now;
+            pick.take = step_to([this, name, now](int index) {
+                if (index != now) { // a step of 0 is Enter's, which goes on to the next
+                    setting_step(name, index - std::max(0, now));
+                }
+            });
+        }
+    }
+    if (pick.said.size() < 3) {
+        pick.said.clear(); // a switch, or a pair: Enter and the arrows are quicker
+    }
+    return pick;
+}
+
 void HomeWindow::Key(int key) {
     if (!running.isEmpty() || playing_game) {
+        return;
+    }
+    if (picker != nullptr) {
+        picker->Key(key); // every choice of a setting is up: the keys are its own
         return;
     }
     if (key == Qt::Key_F3) {
@@ -1640,6 +1787,11 @@ void HomeWindow::Key(int key) {
                 Say(QStringLiteral("Google Lens sends each text area it reads to Google"));
             }
             Changed();
+            return;
+        }
+        if (IsSetting(srow, "OCR runs on")) {
+            SetOcrWhere(OcrWhere(Lines::Load(SharedFolder()).ocr) != Lines::OcrOnService);
+            sounds.Play(Sound::Move);
             return;
         }
         if (IsSetting(srow, "Wide picture")) {
@@ -1771,6 +1923,9 @@ void HomeWindow::Accept() {
     const QList<Item> items = Items();
     const Item& item = items[axis_choice];
     const int row = RowChoice(item);
+    if (OpenPick(row)) {
+        return; // a choice of three or more: all of them at once
+    }
     if (item.kind == Item::System) {
         const QList<Game> games = GamesOf(item.system);
         if (row >= games.size()) {
@@ -1849,7 +2004,7 @@ void HomeWindow::Accept() {
         } else if (name == QStringLiteral("Wide picture")) {
             WideStep(1);
             return;
-        } else if (name == QStringLiteral("OCR engine")) {
+        } else if (name == QStringLiteral("OCR engine") || name == QStringLiteral("OCR runs on")) {
             Key(Qt::Key_Right);
             return;
         } else if (name == QStringLiteral("Rename labels")) {
@@ -1911,12 +2066,12 @@ void HomeWindow::Accept() {
             if (ok && !address.isEmpty()) {
                 SetLinesAddress(address);
             }
-        } else if (name == QStringLiteral("Add a title") || name == QStringLiteral("OCR helper")) {
+        } else if (name == QStringLiteral("Add a title") || name == QStringLiteral("OCR helper") || name == QStringLiteral("OCR service")) {
             // The shelf's own (wizard_page.inc); from the save menu, the shelf comes with it.
             if (!shelf_on) {
                 SetShelf(true, false);
             }
-            OpenWizard(name == QStringLiteral("OCR helper"));
+            OpenWizard(name == QStringLiteral("OCR helper") ? 1 : name == QStringLiteral("OCR service") ? 2 : 0);
         } else if (name == QStringLiteral("Pair a device") || name == QStringLiteral("RetroAchievements")) {
             if (open_settings) {
                 sounds.Play(Sound::Select);
@@ -2106,7 +2261,12 @@ void HomeWindow::mousePressEvent(QMouseEvent* event) {
         } else {
             // A click chooses a row, a second one takes it.
             int& row = RowChoice(items[axis_choice]);
-            if (row == hit.index) {
+            if (row != hit.index && !PickAt(hit.index).said.isEmpty()) {
+                // A choice opens at the first click: all of its choices at once.
+                row = hit.index;
+                Changed(PartCard | PartList);
+                OpenPick(row);
+            } else if (row == hit.index) {
                 Accept();
             } else {
                 row = hit.index;
@@ -3532,6 +3692,12 @@ void HomeWindow::NextScriptLine() {
     } else if (word == QStringLiteral("ocr-helper")) {
         // ocr-helper ADDRESS SOURCE TOKEN: the helper's settings, as the wizard writes them.
         SetOcrHelper(rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1, 1), rest.section(QLatin1Char(' '), 2, 2));
+    } else if (word == QStringLiteral("ocr-service")) {
+        // ocr-service ADDRESS SOURCE TOKEN: the OCR service's settings, and OCR runs there.
+        SetOcrService(rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1, 1), rest.section(QLatin1Char(' '), 2, 2));
+    } else if (word == QStringLiteral("ocr-where")) {
+        // ocr-where computer|service
+        SetOcrWhere(rest.trimmed() == Lines::OcrOnService);
     } else if (word == QStringLiteral("ocr-add")) {
         // ocr-add X Y W H WINDOW|TITLE: a window read by OCR, without the wizard (a test's).
         const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
@@ -3552,5 +3718,43 @@ void HomeWindow::NextScriptLine() {
 #include "shelf_page.inc"
 #include "wizard_page.inc"
 #include "wizard_hooks.inc"
+#include "wizard_core_hooks.inc"
+
+bool HomeWindow::OpenPick(int row) {
+    Pick pick = PickAt(row);
+    if (pick.said.isEmpty() || !pick.take) {
+        return false;
+    }
+    // In the page's own colours and type: the shelf's theme, or the save menu's look.
+    ChoicePicker::Colours colours;
+    colours.scale = std::min(width() / SheetW, height() / SheetH);
+    if (shelf_on || !look) {
+        if (!shelf_look) {
+            ShelfLoad();
+        }
+        const ShelfLook& l = *shelf_look;
+        colours.card = l.raised.isValid() && l.raised.alpha() > 0 ? l.raised : l.ground;
+        colours.txt = l.ink;
+        colours.sel = l.ink;
+        colours.dim = l.muted;
+        colours.accent = l.accent;
+        colours.rule = l.rule.isValid() && l.rule.alpha() > 0 ? l.rule : l.muted;
+        colours.title = ShelfFont(l.mono, 11 * colours.scale, 0.14);
+        colours.row = ShelfFont(l.text, 16 * colours.scale);
+    } else {
+        colours.card = look->page;
+        colours.txt = look->txt;
+        colours.sel = look->txt;
+        colours.dim = look->dim.alpha() > 0 ? look->dim : look->txt;
+        colours.accent = look->theme.Colour(QStringLiteral("accent"), look->tab_txt);
+        colours.rule = colours.dim;
+        colours.title = look->note;
+        colours.row = look->row;
+    }
+    HoverNone();
+    sounds.Play(Sound::Select);
+    picker = ChoicePicker::Open(this, pick.title, pick.said, pick.now, colours, pick.take);
+    return true;
+}
 
 } // namespace Home

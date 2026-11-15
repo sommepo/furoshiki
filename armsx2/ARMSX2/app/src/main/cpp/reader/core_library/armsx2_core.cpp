@@ -302,7 +302,9 @@ void PutSettings() {
     si.SetBoolValue("Achievements", "Notifications", true);
     si.SetBoolValue("Achievements", "LeaderboardNotifications", true);
     si.SetBoolValue("Achievements", "SoundEffects", false); // PCSX2's sounds go past the program's sound
-    si.SetStringValue("SPU2/Output", "Backend", "Oboe");
+    // The program plays what the core hands it (OnAudioFloat, host.play): PCSX2's own output as
+    // well played every sound twice (the user, 2026-11-14: CLANNAD's sound doubled on the Fold).
+    si.SetStringValue("SPU2/Output", "Backend", READER_HOST_HAS(play) && g_host->play != nullptr ? "Null" : "Oboe");
     si.SetBoolValue("EmuCore", "EnableFastBoot", on(Value("ps2.fast_boot", "1")));
     si.SetBoolValue("EmuCore", "EnableWideScreenPatches", on(Value("ps2.widescreen", "0")));
     const std::string blending = Value("ps2.blending", "basic");
