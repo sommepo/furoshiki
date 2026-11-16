@@ -252,7 +252,7 @@ void Explain(QWidget* parent, const ReaderApp::PresentedLine& presented) {
     layout->addWidget(view, 1);
     auto* buttons = new QHBoxLayout;
     auto* again = new QPushButton(Tr("Ask again"));
-    auto* card = new QPushButton(Tr("Card with this English"));
+    auto* card = new QPushButton(Tr("Add card with translation"));
     auto* close = new QPushButton(Tr("Close"));
     buttons->addWidget(again);
     buttons->addStretch(1);
@@ -358,7 +358,7 @@ void Backlog(QWidget* parent) {
         games->setCurrentIndex(games->findData(current_game));
     }
     auto* search = new QLineEdit;
-    search->setPlaceholderText(Tr("Search the lines read"));
+    search->setPlaceholderText(Tr("Search"));
     search->setClearButtonEnabled(true);
     top->addWidget(games, 1);
     top->addWidget(search, 2);
@@ -384,11 +384,11 @@ void Backlog(QWidget* parent) {
     scroll->setMaximumHeight(220);
     layout->addWidget(scroll);
 
-    auto* status = new QLabel(Tr("Click a word of the line to look it up."));
+    auto* status = new QLabel(Tr("Click a word to look it up."));
     layout->addWidget(status);
     auto* buttons = new QHBoxLayout;
     auto* older = new QPushButton(Tr("Older lines"));
-    auto* card = new QPushButton(Tr("Card of this sentence"));
+    auto* card = new QPushButton(Tr("Add sentence card"));
     auto* explain = new QPushButton(Tr("Explain"));
     auto* close = new QPushButton(Tr("Close"));
     buttons->addWidget(older);
@@ -529,8 +529,8 @@ void Backlog(QWidget* parent) {
     };
     QObject::connect(list, &QListWidget::itemSelectionChanged, &dialog, [list, card] {
         const int count = static_cast<int>(list->selectedItems().size());
-        card->setText(count > 1 ? Tr("Card of these %1 lines").arg(count)
-                                : Tr("Card of this sentence"));
+        card->setText(count > 1 ? Tr("Add card (%1 lines)").arg(count)
+                                : Tr("Add sentence card"));
     });
     QObject::connect(explain, &QPushButton::clicked, &dialog, [&, chosen] {
         if (const auto presented = chosen()) {
@@ -539,7 +539,7 @@ void Backlog(QWidget* parent) {
     });
     QObject::connect(card, &QPushButton::clicked, &dialog, [&, chosen] {
         if (const auto presented = chosen()) {
-            status->setText(Tr("Making a card…"));
+            status->setText(Tr("Adding card…"));
             flow.MineSentence(*presented);
         }
     });
@@ -594,17 +594,16 @@ void Statistics(QWidget* parent) {
     tabs->addTab(sessions, Tr("Sessions"));
     layout->addWidget(tabs, 1);
 
-    auto* paused = new QCheckBox(Tr("Pause statistics: count neither characters nor time"));
+    auto* paused = new QCheckBox(Tr("Pause statistics"));
     paused->setChecked(session.Settings().StatsPaused());
     layout->addWidget(paused);
 
     auto* buttons = new QHBoxLayout;
-    auto* delete_session = new QPushButton(Tr("Delete the selected session"));
+    auto* delete_session = new QPushButton(Tr("Delete session"));
     auto* export_json = new QPushButton(Tr("Export JSON…"));
     auto* export_csv = new QPushButton(Tr("Export CSV…"));
-    auto* strip = new QPushButton(Tr("Remove text counted twice…"));
-    strip->setToolTip(Tr("A long text read by scrolling (a mail on a phone in a game) was counted again at every stop: "
-                         "this takes the repeats out of the counts. The lines themselves stay."));
+    auto* strip = new QPushButton(Tr("Remove duplicate text…"));
+    strip->setToolTip(Tr("Removes repeated text from the counts"));
     auto* clear_game = new QPushButton(Tr("Clear this game"));
     auto* clear_all = new QPushButton(Tr("Clear everything"));
     auto* close = new QPushButton(Tr("Close"));
@@ -679,7 +678,7 @@ void Statistics(QWidget* parent) {
             return;
         }
         if (QMessageBox::question(&dialog, Tr("Delete session"),
-                                  Tr("Delete this session and what it counted?")) !=
+                                  Tr("Delete this session?")) !=
             QMessageBox::Yes) {
             return;
         }
@@ -695,7 +694,7 @@ void Statistics(QWidget* parent) {
         }
         QFile file(path);
         if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-            QMessageBox::warning(&dialog, Tr("Export"), Tr("The file could not be written."));
+            QMessageBox::warning(&dialog, Tr("Export"), Tr("Couldn't save the file."));
         }
     };
     QObject::connect(export_json, &QPushButton::clicked, &dialog, [&, save] {
@@ -716,7 +715,7 @@ void Statistics(QWidget* parent) {
         refresh();
     };
     QObject::connect(clear_game, &QPushButton::clicked, &dialog, [&, clear] {
-        clear(session.GameKey(), Tr("Remove the sessions and totals of this game?"));
+        clear(session.GameKey(), Tr("Clear statistics for this game?"));
     });
     QObject::connect(strip, &QPushButton::clicked, &dialog, [&] {
         try {
@@ -724,13 +723,12 @@ void Statistics(QWidget* parent) {
             const qint64 found = database.StripOverlaps(false);
             QApplication::restoreOverrideCursor();
             if (found == 0) {
-                QMessageBox::information(&dialog, Tr("Remove text counted twice"),
-                                         Tr("Nothing was counted twice."));
+                QMessageBox::information(&dialog, Tr("Remove duplicate text"),
+                                         Tr("No duplicate text found."));
                 return;
             }
-            if (QMessageBox::question(&dialog, Tr("Remove text counted twice"),
-                                      Tr("%1 characters were counted that had already stood in the lines just "
-                                         "before them. Take them out of the counts?")
+            if (QMessageBox::question(&dialog, Tr("Remove duplicate text"),
+                                      Tr("Remove %1 duplicate characters from the counts?")
                                           .arg(Number(found))) != QMessageBox::Yes) {
                 return;
             }
@@ -739,12 +737,12 @@ void Statistics(QWidget* parent) {
             QApplication::restoreOverrideCursor();
         } catch (const std::exception& error) {
             QApplication::restoreOverrideCursor();
-            QMessageBox::warning(&dialog, Tr("Remove text counted twice"), QString::fromUtf8(error.what()));
+            QMessageBox::warning(&dialog, Tr("Remove duplicate text"), QString::fromUtf8(error.what()));
         }
         refresh();
     });
     QObject::connect(clear_all, &QPushButton::clicked, &dialog, [&, clear] {
-        clear({}, Tr("Remove the sessions and totals of every game?"));
+        clear({}, Tr("Clear all statistics?"));
     });
     QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
 
@@ -764,9 +762,7 @@ void Dictionaries(QWidget* parent) {
     dialog.resize(640, 460);
     auto* layout = new QVBoxLayout(&dialog);
     auto* hint = new QLabel(
-        Tr("Dictionaries in the Yomitan format (.zip): term dictionaries for definitions, "
-           "frequency and pitch dictionaries for the extra lines. The order of the list is the "
-           "order entries are shown in. Nothing is bundled and nothing is downloaded."));
+        Tr("Yomitan dictionaries (.zip), shown in this order."));
     hint->setWordWrap(true);
     layout->addWidget(hint);
 
@@ -798,7 +794,7 @@ void Dictionaries(QWidget* parent) {
                     details.append(Tr("%1 entries").arg(Number(info.term_count)));
                 }
                 if (info.meta_count > 0) {
-                    details.append(Tr("%1 frequency or pitch entries").arg(Number(info.meta_count)));
+                    details.append(Tr("%1 frequency/pitch entries").arg(Number(info.meta_count)));
                 }
                 if (!info.revision.isEmpty()) {
                     details.append(info.revision);
@@ -850,7 +846,7 @@ void Dictionaries(QWidget* parent) {
             return;
         }
         if (QMessageBox::question(&dialog, Tr("Delete dictionary"),
-                                  Tr("Delete this dictionary from the app?")) != QMessageBox::Yes) {
+                                  Tr("Delete this dictionary?")) != QMessageBox::Yes) {
             return;
         }
         const qint64 id = item->data(Qt::UserRole).toLongLong();
@@ -930,14 +926,14 @@ void AnkiSetup(QWidget* parent) {
     dialog.resize(680, 620);
     auto* layout = new QVBoxLayout(&dialog);
 
-    auto* enabled = new QCheckBox(Tr("Make cards in Anki, through the AnkiConnect add-on"));
+    auto* enabled = new QCheckBox(Tr("Enable Anki cards (AnkiConnect)"));
     enabled->setChecked(settings.AnkiTransport() == QStringLiteral("ankiconnect"));
     layout->addWidget(enabled);
 
     auto* form = new QFormLayout;
     auto* url = new QLineEdit(settings.AnkiConnectUrl());
     auto* key = new QLineEdit(settings.AnkiConnectKey());
-    key->setPlaceholderText(Tr("Only if you set one in AnkiConnect"));
+    key->setPlaceholderText(Tr("Optional"));
     auto* connect_row = new QHBoxLayout;
     auto* connect_button = new QPushButton(Tr("Connect"));
     auto* connection = new QLabel;
@@ -958,14 +954,13 @@ void AnkiSetup(QWidget* parent) {
     layout->addLayout(form);
 
     auto* fields = new QTableWidget(0, 2);
-    fields->setHorizontalHeaderLabels({Tr("Field"), Tr("What it gets")});
+    fields->setHorizontalHeaderLabels({Tr("Field"), Tr("Content")});
     fields->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     fields->horizontalHeader()->setStretchLastSection(true);
     fields->verticalHeader()->setVisible(false);
     layout->addWidget(fields, 1);
     auto* markers_hint = new QLabel(
-        Tr("A field is a template: markers such as {expression}, {sentence}, {screenshot} or "
-           "{audio}, with any text around them. Leave a field empty to leave it alone."));
+        Tr("Use markers like {expression}, {sentence}, {screenshot} or {audio}."));
     markers_hint->setWordWrap(true);
     layout->addWidget(markers_hint);
     auto* suggest = new QPushButton(Tr("Suggest from field names"));
@@ -980,7 +975,7 @@ void AnkiSetup(QWidget* parent) {
     layout->addLayout(form2);
     auto* duplicates = new QCheckBox(Tr("Allow duplicate cards"));
     duplicates->setChecked(settings.AnkiAllowDuplicates());
-    auto* anywhere = new QCheckBox(Tr("A word in any deck counts as already there"));
+    auto* anywhere = new QCheckBox(Tr("Check for duplicates in all decks"));
     anywhere->setChecked(settings.AnkiDuplicatesAnywhere());
     layout->addWidget(duplicates);
     layout->addWidget(anywhere);
@@ -1057,7 +1052,7 @@ void AnkiSetup(QWidget* parent) {
         QStringList models;
         QString problem;
         int version = 0;
-        connection->setText(Tr("Asking Anki…"));
+        connection->setText(Tr("Connecting…"));
         QGuiApplication::setOverrideCursor(Qt::WaitCursor);
         RunBlocking([&decks, &models, &problem, &version, client] {
             try {
@@ -1220,28 +1215,28 @@ void ReaderSettingsDialog(QWidget* parent) {
         return options;
     };
 
-    QFormLayout* text = section(Tr("Looking words up"));
-    check(text, Tr("Click words in the game's own text"), Settings::KeyScreenText,
+    QFormLayout* text = section(Tr("Lookup"));
+    check(text, Tr("Click to look up"), Settings::KeyScreenText,
           settings.ScreenText());
-    check(text, Tr("Play by touch: beside the text goes on, an answer is picked"),
+    check(text, Tr("Tap to advance"),
           Settings::KeyTouchPlay, settings.TouchPlay());
-    choice(text, Tr("By pointing at a word"), Settings::KeyHoverLookup,
+    choice(text, Tr("Look up on hover"), Settings::KeyHoverLookup,
            {{Tr("Off"), QStringLiteral("off")},
-            {Tr("While Shift is held"), QStringLiteral("shift")},
+            {Tr("While holding Shift"), QStringLiteral("shift")},
             {Tr("Always"), QStringLiteral("always")}},
            settings.HoverLookup());
-    spin(text, Tr("Popup height, at most"), Settings::KeyPopupHeight,
-         settings.PopupHeightPercent(), 10, 80, Tr(" % of the picture"));
-    spin(text, Tr("Close the popup after"), Settings::KeyPopupAutoHide,
-         settings.PopupAutoHideSeconds(), 0, 120, Tr(" s left alone (0: it stays)"));
-    check(text, Tr("Close the popup when the pointer leaves its word and the popup"),
+    spin(text, Tr("Maximum popup height"), Settings::KeyPopupHeight,
+         settings.PopupHeightPercent(), 10, 80, Tr(" % of screen"));
+    spin(text, Tr("Auto-close popup after"), Settings::KeyPopupAutoHide,
+         settings.PopupAutoHideSeconds(), 0, 120, Tr(" s (0: never)"));
+    check(text, Tr("Close popup when the mouse leaves"),
           Settings::KeyPopupHideOnExit, settings.PopupHideOnExit());
-    choice(text, Tr("Mark the word looked up"), Settings::KeyWordMark,
+    choice(text, Tr("Highlight looked-up word"), Settings::KeyWordMark,
            {{Tr("Outline"), QStringLiteral("outline")},
             {Tr("Highlight"), QStringLiteral("highlight")},
-            {Tr("Not at all"), QStringLiteral("none")}},
+            {Tr("None"), QStringLiteral("none")}},
            settings.WordMark());
-    check(text, Tr("Outline what can be clicked"), Settings::KeyScreenTextOutline,
+    check(text, Tr("Outline clickable text"), Settings::KeyScreenTextOutline,
           settings.ScreenTextOutline());
 
     // The popup: its look and what it shows, beside a demo of it drawn as it will be (the
@@ -1255,47 +1250,47 @@ void ReaderSettingsDialog(QWidget* parent) {
     look_column->addStretch(1);
     popup_row->addLayout(look_column, 3);
     pages->addWidget(popup_page);
-    sections->addItem(Tr("The popup"));
+    sections->addItem(Tr("Popup"));
     QSpinBox* scale_box = spin(look, Tr("Popup text size"), Settings::KeyPopupScale, settings.PopupScale(), 60, 200,
          QStringLiteral(" %"));
     QComboBox* theme_box = choice(look, Tr("Popup theme"), Settings::KeyPopupTheme,
-           {{Tr("The console's colours"), QStringLiteral("console")},
+           {{Tr("Console colours"), QStringLiteral("console")},
             {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
             {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
             {Tr("Paper"), QStringLiteral("paper")},
             {Tr("Paper dark"), QStringLiteral("paper-dark")},
             {Tr("Solarized dark"), QStringLiteral("solarized-dark")},
             {Tr("Solarized light"), QStringLiteral("solarized-light")},
-            {Tr("Glass (see-through)"), QStringLiteral("glass")},
-            {Tr("Dense (as much as fits)"), QStringLiteral("dense")},
-            {Tr("Kuro (a black sheet)"), QStringLiteral("kuro")},
-            {Tr("Shoin (a framed card)"), QStringLiteral("shoin")},
-            {Tr("Ookii (large type)"), QStringLiteral("ookii")},
-            {Tr("Kumihan (type and rules)"), QStringLiteral("kumihan")},
-            {Tr("Kon (indigo, Furoshiki's Kon)"), QStringLiteral("kon")},
-            {Tr("Classic (drawn without the page)"), QStringLiteral("classic")}},
+            {Tr("Glass"), QStringLiteral("glass")},
+            {Tr("Dense"), QStringLiteral("dense")},
+            {Tr("Kuro"), QStringLiteral("kuro")},
+            {Tr("Shoin"), QStringLiteral("shoin")},
+            {Tr("Ookii (large text)"), QStringLiteral("ookii")},
+            {Tr("Kumihan"), QStringLiteral("kumihan")},
+            {Tr("Kon (indigo)"), QStringLiteral("kon")},
+            {Tr("Classic"), QStringLiteral("classic")}},
            settings.PopupTheme());
-    QSpinBox* opacity_box = spin(look, Tr("How solid the popup is"), Settings::KeyPopupOpacity, settings.PopupOpacity(), 0, 100,
+    QSpinBox* opacity_box = spin(look, Tr("Popup opacity"), Settings::KeyPopupOpacity, settings.PopupOpacity(), 0, 100,
          Tr(" % (0: default)"));
-    QSpinBox* radius_box = spin(look, Tr("The popup's corners"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
+    QSpinBox* radius_box = spin(look, Tr("Corner radius"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
          Tr(" px (-1: default)"));
-    QSpinBox* compact_box = spin(look, Tr("Senses shown before \"more\""), Settings::KeyPopupCompact, settings.PopupCompact(), 0, 9,
+    QSpinBox* compact_box = spin(look, Tr("Definitions before \"more\""), Settings::KeyPopupCompact, settings.PopupCompact(), 0, 9,
          Tr(" (0: all)"));
-    QCheckBox* tags_box = check(look, Tr("Leave out the senses' grammar tags (n, v1, vt...)"), Settings::KeyPopupHideTags,
+    QCheckBox* tags_box = check(look, Tr("Hide grammar tags"), Settings::KeyPopupHideTags,
           settings.PopupHideTags());
-    QComboBox* portrait_box = choice(look, Tr("A name's picture"), Settings::KeyPopupPortrait,
+    QComboBox* portrait_box = choice(look, Tr("Character portraits"), Settings::KeyPopupPortrait,
            {{Tr("Small"), QStringLiteral("small")},
             {Tr("Large"), QStringLiteral("large")},
-            {Tr("Not shown"), QStringLiteral("off")}},
+            {Tr("Off"), QStringLiteral("off")}},
            settings.PopupPortrait());
-    QCheckBox* mark_box = check(look, Tr("Mark words that are not in Anki"), Settings::KeyPopupMarkUnknown,
+    QCheckBox* mark_box = check(look, Tr("Highlight words not in Anki"), Settings::KeyPopupMarkUnknown,
           settings.PopupMarkUnknown());
-    QComboBox* lookups_box = choice(look, Tr("How often a word was looked up"), Settings::KeyPopupLookups,
-           {{Tr("The number of times"), QStringLiteral("count")},
-            {Tr("The number, when and where first"), QStringLiteral("where")},
-            {Tr("Not shown"), QStringLiteral("off")}},
+    QComboBox* lookups_box = choice(look, Tr("Lookup count"), Settings::KeyPopupLookups,
+           {{Tr("Count"), QStringLiteral("count")},
+            {Tr("Count and first seen"), QStringLiteral("where")},
+            {Tr("Off"), QStringLiteral("off")}},
            settings.PopupLookups());
-    QComboBox* corner_box = choice(look, Tr("Where the add button stands"), Settings::KeyCardCorner,
+    QComboBox* corner_box = choice(look, Tr("Add button position"), Settings::KeyCardCorner,
            {{Tr("Bottom left"), QStringLiteral("bottom_left")},
             {Tr("Bottom right"), QStringLiteral("bottom_right")},
             {Tr("Top left"), QStringLiteral("top_left")},
@@ -1307,7 +1302,7 @@ void ReaderSettingsDialog(QWidget* parent) {
         side->addWidget(new QLabel(Tr("Preview")));
         side->addWidget(demo, 1);
         if (PopupCustomiser()) {
-            auto* customise = new QPushButton(Tr("Customise every part of it…"));
+            auto* customise = new QPushButton(Tr("Customize…"));
             side->addWidget(customise);
             QObject::connect(customise, &QPushButton::clicked, &dialog, [&dialog] {
                 dialog.reject();
@@ -1376,53 +1371,53 @@ void ReaderSettingsDialog(QWidget* parent) {
     choice(cursor, Tr("Button"), Settings::KeyCursorButton,
            buttons(false),
            QString::number(settings.CursorButton()));
-    check(cursor, Tr("Press once instead of holding"), Settings::KeyCursorToggle,
+    check(cursor, Tr("Toggle instead of hold"), Settings::KeyCursorToggle,
           settings.CursorToggle());
-    choice(cursor, Tr("Button that opens the Reader menu"), Settings::KeyMenuButton, buttons(true),
+    choice(cursor, Tr("Quick menu button"), Settings::KeyMenuButton, buttons(true),
            QString::number(settings.MenuButton()));
     spin(cursor, Tr("Speed"), Settings::KeyCursorSpeed, settings.CursorSpeed(), 25, 300,
          QStringLiteral(" %"));
-    check(cursor, Tr("Frame the character under the cursor"), Settings::KeyCursorFrame,
+    check(cursor, Tr("Highlight character under cursor"), Settings::KeyCursorFrame,
           settings.CursorFrame());
-    check(cursor, Tr("Jump to the start of each new line"), Settings::KeyCursorHome,
+    check(cursor, Tr("Move to new lines"), Settings::KeyCursorHome,
           settings.CursorHome());
 
     QFormLayout* cards = section(Tr("Cards"));
-    choice(cards, Tr("The line's audio"), Settings::KeyCardAudio,
-           {{Tr("Ask for each card"), QStringLiteral("ask")},
-            {Tr("Always add it"), QStringLiteral("always")},
-            {Tr("Never add it"), QStringLiteral("never")}},
+    choice(cards, Tr("Audio on cards"), Settings::KeyCardAudio,
+           {{Tr("Ask each time"), QStringLiteral("ask")},
+            {Tr("Always"), QStringLiteral("always")},
+            {Tr("Never"), QStringLiteral("never")}},
            Settings::CardAudioValue(settings.CardAudioGeneral()));
-    check(cards, Tr("Keep the game's audio for cards"), Settings::KeyCaptureAudio,
+    check(cards, Tr("Record game audio"), Settings::KeyCaptureAudio,
           settings.CaptureAudio());
-    spin(cards, Tr("Audio clip, at most"), Settings::KeyAudioMax, settings.AudioClipMaxSeconds(),
+    spin(cards, Tr("Maximum clip length"), Settings::KeyAudioMax, settings.AudioClipMaxSeconds(),
          3, 60, Tr(" s"));
-    spin(cards, Tr("Start the clip earlier by"), Settings::KeyAudioLead, settings.AudioLeadMs(), 0,
+    spin(cards, Tr("Clip lead-in"), Settings::KeyAudioLead, settings.AudioLeadMs(), 0,
          2000, Tr(" ms"));
-    check(cards, Tr("Cut the clip to what is said"), Settings::KeyAudioVoiceTrim,
+    check(cards, Tr("Trim audio to the voice"), Settings::KeyAudioVoiceTrim,
           settings.AudioVoiceTrim());
-    spin(cards, Tr("Lines before, in {context}"), Settings::KeyCardContextLines,
+    spin(cards, Tr("Context lines"), Settings::KeyCardContextLines,
          settings.CardContextLines(), 0, 5, Tr(" lines"));
     spin(cards, Tr("Screenshots kept"), Settings::KeyScreenshotCache,
          settings.ScreenshotCacheLines(), 0, 200, Tr(" lines"));
-    spin(cards, Tr("Screenshot width, at most"), Settings::KeyScreenshotWidth,
+    spin(cards, Tr("Maximum screenshot width"), Settings::KeyScreenshotWidth,
          settings.ScreenshotMaxWidth(), 320, 3840, Tr(" px"));
 
     // The buttons on a controller's back, which no game uses.
-    QFormLayout* back = section(Tr("Back buttons (Steam Controller grips)"));
+    QFormLayout* back = section(Tr("Back buttons"));
     {
         QList<std::pair<QString, QString>> actions{
             {Tr("Nothing"), QStringLiteral("none")},
-            {Tr("Pause the game, to look words up"), QStringLiteral("reader_pause_game")},
+            {Tr("Pause game"), QStringLiteral("reader_pause_game")},
             {Tr("Pause statistics"), QStringLiteral("reader_pause_stats")},
-            {Tr("Make a card of the sentence"), QStringLiteral("reader_sentence_card")},
+            {Tr("Add sentence card"), QStringLiteral("reader_sentence_card")},
             {Tr("Backlog"), QStringLiteral("reader_backlog")},
             {Tr("Statistics"), QStringLiteral("reader_statistics")},
-            {Tr("Close the popup"), QStringLiteral("reader_close_popup")},
-            {Tr("The reader's menu"), QStringLiteral("reader_menu")}};
+            {Tr("Close popup"), QStringLiteral("reader_close_popup")},
+            {Tr("Quick menu"), QStringLiteral("reader_menu")}};
         // Only where the emulator can go on to the next choice (console.h).
         if (Reader::ConsoleTraits::HasNextChoice) {
-            actions.insert(3, {Tr("Go on to the next choice"), QStringLiteral("reader_next_choice")});
+            actions.insert(3, {Tr("Skip to next choice"), QStringLiteral("reader_next_choice")});
         }
         const QStringList names{Tr("Grip 1"), Tr("Grip 2"), Tr("Grip 3"), Tr("Grip 4"), Tr("The \"...\" button")};
         for (int button = 1; button <= names.size(); ++button) {
@@ -1433,34 +1428,32 @@ void ReaderSettingsDialog(QWidget* parent) {
     }
 
     QFormLayout* stats = section(Tr("Statistics"));
-    check(stats, Tr("Session line in a corner of the game"), Settings::KeySessionHud,
+    check(stats, Tr("Session stats overlay"), Settings::KeySessionHud,
           settings.SessionHud());
-    choice(stats, Tr("Session line style"), Settings::KeyStatsStyle,
+    choice(stats, Tr("Overlay style"), Settings::KeyStatsStyle,
            {{Tr("Paper"), QStringLiteral("paper")},
             {Tr("Paper dark"), QStringLiteral("paper-dark")},
             {Tr("Card"), QStringLiteral("card")},
             {Tr("Ink (no box)"), QStringLiteral("ink")}},
            settings.StatsStyle());
     check(stats, Tr("Pause statistics (Ctrl+T)"), Settings::KeyStatsPaused, settings.StatsPaused());
-    choice(stats, Tr("Button that pauses statistics"), Settings::KeyStatsButton,
+    choice(stats, Tr("Pause statistics button"), Settings::KeyStatsButton,
            buttons(false),
            QString::number(settings.StatsButton()));
-    spin(stats, Tr("Reading time stops after"), Settings::KeyIdleSeconds,
+    spin(stats, Tr("Idle timeout"), Settings::KeyIdleSeconds,
          static_cast<int>(settings.IdleTimeoutMs() / 1000), Settings::IdleSecondsMin,
-         static_cast<int>(ReaderApp::ReadingRules::MaxIdleTimeoutMs / 1000), Tr(" s without a new line"));
-    check(stats, Tr("Show the game, characters read and speed in my Discord status"),
+         static_cast<int>(ReaderApp::ReadingRules::MaxIdleTimeoutMs / 1000), Tr(" s"));
+    check(stats, Tr("Show in Discord status"),
           Settings::KeyDiscordEnabled, settings.DiscordEnabled());
     {
         auto* id = new QLineEdit(settings.DiscordApplicationId());
-        id->setPlaceholderText(Tr("17 to 20 digits"));
+        id->setPlaceholderText(Tr("17–20 digits"));
         stats->addRow(Tr("Discord application ID"), id);
         savers.append([&settings, id] {
             settings.SetValue(Settings::KeyDiscordApplicationId, id->text().trimmed());
         });
         auto* about = new QLabel(
-            Tr("The status reads \"Playing\" and the name of a Discord application of your "
-               "own: make one at discord.com/developers/applications (New Application, any "
-               "name) and copy its Application ID here."));
+            Tr("Create one at discord.com/developers/applications."));
         about->setWordWrap(true);
         stats->addRow(about);
     }
@@ -1478,10 +1471,10 @@ void ReaderSettingsDialog(QWidget* parent) {
             {QStringLiteral("{\"sentence\": …}"), QStringLiteral("sentence")},
             {Tr("Full JSON event"), QStringLiteral("json")}},
            settings.TextHookFormat());
-    check(output, Tr("Speaker's name before the line"), Settings::KeyHookSpeaker,
+    check(output, Tr("Include speaker name"), Settings::KeyHookSpeaker,
           settings.TextHookSpeaker());
 #endif
-    check(output, Tr("Copy each new line to the clipboard"), Settings::KeyClipboardAuto,
+    check(output, Tr("Copy lines to clipboard"), Settings::KeyClipboardAuto,
           settings.ClipboardAuto());
 #ifndef READER_NO_TEXT_SERVER
     const QString address = session.TextHookAddress();
@@ -1494,7 +1487,7 @@ void ReaderSettingsDialog(QWidget* parent) {
     // the game's picture at once, and is put back when the window is left unsaved.
     const ReaderCrtPage::Page crt = ReaderCrtPage::Make(settings, &dialog);
     pages->addWidget(crt.widget);
-    sections->addItem(Tr("CRT picture"));
+    sections->addItem(Tr("CRT filter"));
     savers.append(crt.save);
     QObject::connect(&dialog, &QDialog::rejected, &dialog, crt.revert);
 
@@ -1546,7 +1539,7 @@ static void ProgressWindow(QWidget* parent) {
     std::optional<Reader::ProgressList> list = engine.Progress();
     if (!list || list->items.empty()) {
         QMessageBox::information(parent, Tr("Progress"),
-                                 Tr("The game's script offers nothing to mark."));
+                                 Tr("Nothing to mark for this game."));
         return;
     }
     QDialog dialog(parent);
@@ -1554,8 +1547,7 @@ static void ProgressWindow(QWidget* parent) {
                                               : QString::fromStdString(list->title));
     dialog.resize(560, 640);
     auto* layout = new QVBoxLayout(&dialog);
-    auto* intro = new QLabel(Tr("Tick what you have finished elsewhere. The game's own progress "
-                                "is changed at once."));
+    auto* intro = new QLabel(Tr("Mark what you've completed elsewhere."));
     intro->setWordWrap(true);
     layout->addWidget(intro);
 
@@ -1627,11 +1619,11 @@ static void ProgressWindow(QWidget* parent) {
                          const bool done = row->checkState(0) == Qt::Checked;
                          std::string error;
                          if (engine.MarkProgress(id.toStdString(), done, error)) {
-                             status->setText((done ? Tr("Marked finished: %1")
-                                                   : Tr("Marked not finished: %1"))
+                             status->setText((done ? Tr("Completed: %1")
+                                                   : Tr("Not completed: %1"))
                                                  .arg(row->text(0)));
                          } else {
-                             status->setText(Tr("Not changed: %1")
+                             status->setText(Tr("Couldn't change: %1")
                                                  .arg(QString::fromStdString(error).left(200)));
                          }
                          refresh();
@@ -1656,7 +1648,7 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
     const QString address =
         QStringLiteral("https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip");
     const QString file = ReaderSession::DataDirectory() + QStringLiteral("/jitendex-yomitan.zip");
-    QProgressDialog progress(Tr("Fetching Jitendex (39 MB)…"), Tr("Cancel"), 0, 0, parent);
+    QProgressDialog progress(Tr("Downloading Jitendex (39 MB)…"), Tr("Cancel"), 0, 0, parent);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(0);
     progress.setAutoClose(false);
@@ -1684,7 +1676,7 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
         }
         if (curl.error() == QProcess::FailedToStart || curl.exitStatus() != QProcess::NormalExit || curl.exitCode() != 0) {
             const QString said = QString::fromUtf8(curl.readAllStandardError()).trimmed();
-            *problem = said.isEmpty() ? Tr("Jitendex could not be fetched (curl).") : said;
+            *problem = said.isEmpty() ? Tr("Couldn't download Jitendex.") : said;
             QFile::remove(file);
             return false;
         }

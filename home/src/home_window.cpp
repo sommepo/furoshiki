@@ -166,7 +166,7 @@ constexpr SettingRow SettingRows[] = {
     {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
     {"Dictionaries", "", nullptr, 0, 0, 0, 0, "Reading", 2, false},
 #ifndef READER_NO_EXPLAIN
-    {"Explain with", "Ctrl+E on a line: its English and its grammar, by Claude Code on this computer", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Explain with", "Translation and grammar (Ctrl+E)", nullptr, 0, 0, 0, 0, "Reading", 1, false},
 #endif
     {"More", "", nullptr, 0, 0, 0, 0, "Reading", 0, false},
     {"Play by touch", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
@@ -174,20 +174,20 @@ constexpr SettingRow SettingRows[] = {
     {"Session line over the game", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
     {"Session line's look", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
     {"Pause the reading clock", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Idle after", "A line with no new one for this long stops the reading clock", nullptr, 0, 0, 0, 0, "Reading", 3, true},
+    {"Idle after", "", nullptr, 0, 0, 0, 0, "Reading", 3, true},
     {"Tidy reading time", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
-    {"Daily goal", "Characters to read in a day; the statistics say how far today is", nullptr, 0, 0, 0, 0, "Reading", 0, true},
+    {"Daily goal", "Characters a day", nullptr, 0, 0, 0, 0, "Reading", 0, true},
     {"Discord status", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
     {"Discord application ID", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
-    {"Customise the popup", "Its theme and every part of it, with a preview", nullptr, 0, 0, 0, 0, "Popup", 2, false},
-    {"How solid", "Lower lets the game show through the popup; the default at the left end", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Customise the popup", "Theme and layout", nullptr, 0, 0, 0, 0, "Popup", 2, false},
+    {"How solid", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Text size", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Popup", 0, false},
     {"Close after", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
     {"Close when the pointer leaves", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
     {"Add button's corner", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
-    {"Anki", "Where cards go: the deck, the note type and what each field gets", nullptr, 0, 0, 0, 0, "Cards", 2, false},
+    {"Anki", "Deck, note type and fields", nullptr, 0, 0, 0, 0, "Cards", 2, false},
     {"Line audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
     {"Cut the clip to the voice", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
     {"Lines before, in {context}", "", nullptr, 0, 0, 0, 0, "Cards", 3, false},
@@ -197,16 +197,16 @@ constexpr SettingRow SettingRows[] = {
     {"Start the clip earlier by", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
-    {"Add a title", "A disc or file of a console, a game's window on this computer read by OCR, or a text hook's lines: Enter, and it asks what it needs", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR runs on", "Where a game's pictures are read: this computer (its OCR helper) or an OCR service on another machine; both stay set, and a title read by OCR takes the one chosen at its next start", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR helper", "The helper that reads on this computer: its address, this device's picture source there and its token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR service", "An OCR service on another machine (Furochibi's): its address, this device's picture source there and that source's token; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR engine", "Which engine reads a game's text: meikiocr, OneOCR (Windows' own), Chrome's Screen AI, or Google Lens, which sends the text area to Google", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"Lines address", "The WebSocket a title read from lines listens to: a texthooker's, such as ws://localhost:6677; Enter to change", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"Add a title", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR runs on", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR helper", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR service", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"OCR engine", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
+    {"Lines address", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
     {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #ifndef READER_NO_TEXT_SERVER
-    {"Text server", "Every line read, sent to a WebSocket for texthooker pages", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Text server", "For texthooker pages", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #endif
 #ifndef READER_NO_TEXT_SERVER
     {"Text server's port", "", nullptr, 0, 0, 0, 0, "Sources", 3, true},
@@ -221,17 +221,17 @@ constexpr SettingRow SettingRows[] = {
     {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
 #endif
     {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Sources", 0, true},
-    {"Map the controller", "Every action on a button or a grip: for all consoles, or one console's own", nullptr, 0, 0, 0, 0, "Controller", 2, false},
+    {"Map the controller", "", nullptr, 0, 0, 0, 0, "Controller", 2, false},
     {"Pointer button: press once", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
     {"Pointer speed", "", nullptr, 0, 0, 0, 0, "Controller", 3, false},
-    {"Trackpad speed", "How far the pointer goes for a swipe of the right pad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controller", 0, false},
+    {"Trackpad speed", "Right trackpad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controller", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Controller", 0, false},
     {"Frame the character pointed at", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
     {"Pointer jumps to each new line", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Trackpad acceleration", "Extra speed for fast swipes", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controller", 0, true},
-    {"Scroll speed", "How far a swipe of the left pad turns the wheel", "scroll", 0.2, 3.0, 0.1, 1.0, "Controller", 0, true},
-    {"Pointer rolls on", "After a flick, as a trackball does", "trackball", 0, 0, 0, 1, "Controller", 0, true},
-    {"Pad ticks", "The pads tick under the finger and click when pressed", "haptics", 0, 0, 0, 1, "Controller", 0, true},
+    {"Trackpad acceleration", "", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controller", 0, true},
+    {"Scroll speed", "Left trackpad", "scroll", 0.2, 3.0, 0.1, 1.0, "Controller", 0, true},
+    {"Pointer rolls on", "", "trackball", 0, 0, 0, 1, "Controller", 0, true},
+    {"Pad ticks", "", "haptics", 0, 0, 0, 1, "Controller", 0, true},
     {"Tick strength", "", "tick_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
     {"Click strength", "", "click_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
     // Keys: what each does, said once (the controller's own are the Controller page's rows).
@@ -245,45 +245,45 @@ constexpr SettingRow SettingRows[] = {
     {"Pause the game", "Ctrl+G", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Read the on-request boxes (OCR)", "Ctrl+Shift+R, or R on the strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Read the on-request boxes (OCR)", "Ctrl+Shift+R · R on the text strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
 #ifndef READER_NO_SAVE_SYNC
-    {"Guide's next step over the game", "Ctrl+Shift+G, or Select and L1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Tick the guide's step shown", "Ctrl+Shift+N, or Select and R1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Guide's next step over the game", "Ctrl+Shift+G · Select+L1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Tick the guide's step shown", "Ctrl+Shift+N · Select+R1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
 #endif
-    {"Reader menu", "F1, or the right button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Menu over the game", "Escape, or Guide", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Reader menu", "F1 · Right-click", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Menu over the game", "Esc · Guide button", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Settings", "F2", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Find a setting", "/ on the settings", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Find a setting", "/ in Settings", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Full screen", "F11", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Next look", "F4 on the shelf", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Next look", "F4 in Library", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Sort the shelf", "S", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Find box art", "F on a title", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Look", "This window's theme; left and right change it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"Wide picture", "Games drawn for a wide screen (16:9, 21:9, 32:9), never stretched: the PS2 and the Switch, for the games that have a checked recipe; from the next game started", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"CRT picture", "The games shown as on a tube: for all consoles, one console or one game", nullptr, 0, 0, 0, 0, "Furoshiki", 2, false},
+    {"Find box art", "F on a game", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Look", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Wide picture", "Supported PS2 and Switch games", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"CRT picture", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, false},
     {"Full screen", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
 #ifndef READER_NO_SAVE_SYNC
-    {"Save sync", "The games' saves kept the same on every device, through a save sync service of your own", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Save sync", "Keep saves in sync across devices", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
 #endif
-    {"RetroAchievements", "Your login and the hardcore switch, for the cores that have achievements; Enter to change", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"Icon", "The program's icon, on its window and the task bar; left and right change it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Icon", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
     {"Menu sounds", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
-    {"Games start in a window", "Most of the screen's height, in the middle; off: full screen where the app says how", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Games start in a window", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
 #ifndef READER_NO_SAVE_SYNC
-    {"Pair a device", "Save sync set up from the pairing link the service's page shows: Enter, then paste it", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Pair a device", "Paste a pairing link", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
 #endif
-    {"Study tracker", "Where your study tracker answers: its figures stand on the shelf", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+    {"Study tracker", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
 #ifndef READER_NO_SAVE_SYNC
-    {"Update", "A newer build of the program from your Files page: Enter looks, and Enter again takes it for the next start", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
-    {"Home server's services", "The tracker, Furochibi, the guides, the Files and Anki, as the save sync service this device is paired with names them: Enter asks it again", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+    {"Update", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
+    {"Home server's services", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
 #endif
-    {"Fuzz", "A little colour fringe, softness, grain and fine lines, as an old screen had; off, light or heavy", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
-    {"Moving cursor", "The orbs turn and spring to the chosen title, its glow breathes; off: they stand still", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
+    {"Fuzz", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
+    {"Moving cursor", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
     {"Exit", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
     // Developer: the pages' own words, changed in place and handed back for the next build.
-    {"Rename labels", "On: Enter or a click on any row of any page asks what it is to be called; a click on the page's own name renames the page", nullptr, 0, 0, 0, 0, "Developer", 0, false},
-    {"Copy my labels", "Every label changed here, as text on the clipboard, for the next build", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+    {"Rename labels", "Click a row to rename it", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+    {"Copy my labels", "Copies them to the clipboard", nullptr, 0, 0, 0, 0, "Developer", 0, false},
     {"Open the labels file", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
     {"Put every label back", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
 };
@@ -309,65 +309,81 @@ struct RowLabel {
     const char* label;
 };
 constexpr RowLabel RowLabels[] = {
-    {"Click words in the game's text", "Click a word to look it up"},
+    {"Click words in the game's text", "Click to look up"},
     {"Look up by pointing", "Look up on hover"},
-    {"Mark the word looked up", "Highlight the looked-up word"},
+    {"Mark the word looked up", "Highlight looked-up word"},
     {"Explain with", "Explain lines with"},
-    {"Play by touch", "Tap the game to advance"},
+    {"Play by touch", "Tap to advance"},
     {"Outline what can be clicked", "Outline clickable text"},
-    {"Session line over the game", "Session figures over the game"},
-    {"Session line's look", "Session figures style"},
-    {"Reading/Pause the reading clock", "Reading timer paused"},
-    {"Idle after", "Stop the timer when idle for"},
+    {"Session line over the game", "Session stats overlay"},
+    {"Session line's look", "Session overlay style"},
+    {"Reading/Pause the reading clock", "Pause reading timer"},
+    {"Idle after", "Idle timeout"},
     {"Tidy reading time", "Recalculate reading time"},
     {"Customise the popup", "Popup design"},
     {"How solid", "Opacity"},
     {"Height, at most", "Maximum height"},
-    {"Close after", "Close by itself after"},
+    {"Close after", "Auto-close after"},
+    {"Close when the pointer leaves", "Close when the mouse leaves"},
     {"Add button's corner", "Add button position"},
     {"Anki", "Anki setup"},
     {"Line audio", "Audio on cards"},
     {"Cut the clip to the voice", "Trim audio to the voice"},
-    {"Lines before, in {context}", "Context lines before"},
+    {"Lines before, in {context}", "Context lines"},
     {"Keep the game's audio", "Record game audio"},
-    {"Clip, at most", "Maximum audio length"},
-    {"Start the clip earlier by", "Start audio earlier by"},
+    {"Clip, at most", "Maximum clip length"},
+    {"Start the clip earlier by", "Clip lead-in"},
     {"Pictures kept", "Screenshots kept"},
     {"Picture width, at most", "Maximum screenshot width"},
+    {"Add a title", "Add game"},
     {"OCR runs on", "Run OCR on"},
-    {"OCR helper", "OCR helper on this computer"},
+    {"OCR helper", "Local OCR helper"},
     {"Lines address", "Texthooker address"},
-    {"Text server", "Send lines to texthooker pages"},
+    {"Copy each line to the clipboard", "Copy lines to clipboard"},
     {"Text server's port", "Text server port"},
     {"Other devices may connect", "Allow other devices"},
     {"Text server's format", "Text server format"},
-    {"Speaker's name before the line", "Include the speaker's name"},
-    {"Read again what the reader apps say", "Refresh the library"},
+    {"Speaker's name before the line", "Include speaker name"},
+    {"Read again what the reader apps say", "Refresh library"},
+    {"Map the controller", "Button mapping"},
     {"Pointer button: press once", "Pointer button toggles"},
     {"Reader menu button", "Quick menu button"},
     {"Reading clock button", "Timer pause button"},
-    {"Frame the character pointed at", "Box the character under the pointer"},
+    {"Frame the character pointed at", "Highlight character under pointer"},
+    {"Pointer jumps to each new line", "Move pointer to new lines"},
     {"The \"...\" button", "The … button"},
     {"Pointer rolls on", "Trackball glide"},
     {"Pad ticks", "Trackpad haptics"},
     {"Tick strength", "Haptic tick strength"},
     {"Click strength", "Haptic click strength"},
-    {"A card of the sentence", "Make a card of the line"},
-    {"A card of the word looked up", "Make a card of the looked-up word"},
-    {"Take the last card back", "Undo the last card"},
-    {"Keys/Pause the reading clock", "Pause the reading timer"},
-    {"Next choice", "Skip to the next choice"},
+    {"A card of the sentence", "Add sentence card"},
+    {"A card of the word looked up", "Add word card"},
+    {"Take the last card back", "Undo last card"},
+    {"Explain the line", "Explain line"},
+    {"Pause the game", "Pause game"},
+    {"Keys/Pause the reading clock", "Pause reading timer"},
+    {"Next choice", "Skip to next choice"},
+    {"Read the on-request boxes (OCR)", "Read OCR areas"},
+    {"Guide's next step over the game", "Show next guide step"},
+    {"Tick the guide's step shown", "Check off guide step"},
     {"Reader menu", "Quick menu"},
     {"Menu over the game", "Game menu"},
+    {"Find a setting", "Search settings"},
     {"Next look", "Next theme"},
+    {"Sort the shelf", "Sort library"},
     {"Look", "Theme"},
     {"Wide picture", "Widescreen"},
-    {"CRT picture", "CRT effect"},
+    {"CRT picture", "CRT filter"},
     {"Games start in a window", "Start games in a window"},
-    {"Home server's services", "Home server services"},
-    {"Update", "Check for an update"},
+    {"Home server's services", "Home server"},
+    {"Update", "Check for updates"},
+    {"Moving cursor", "Animated cursor"},
+    {"Exit", "Quit Furoshiki"},
+    {"Copy my labels", "Copy labels"},
+    {"Open the labels file", "Open labels file"},
+    {"Put every label back", "Reset labels"},
     {"Statistics/Days in a row", "Day streak"},
-    {"Statistics/Days with reading", "Days read"},
+    {"Statistics/Days with reading", "Reading days"},
     {"Statistics/Games begun", "Games started"},
 };
 
@@ -751,7 +767,7 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
             running.clear();
             ShowAsSet();
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("%1 did not start: %2").arg(what, child.errorString()));
+            Say(QStringLiteral("Couldn't start %1: %2").arg(what, child.errorString()));
         }
     });
 }
@@ -977,7 +993,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             const int streak = Streak(library.days, today);
             rows.append({QStringLiteral("Days in a row"), {}, QString::number(streak), {}, -1, streak == 0});
         }
-        rows.append({QStringLiteral("Characters read"), QStringLiteral("EVERY APP TOGETHER"), CountText(library.chars), {}, -1});
+        rows.append({QStringLiteral("Characters read"), QStringLiteral("ALL APPS"), CountText(library.chars), {}, -1});
         rows.append({QStringLiteral("Time spent reading"), TimeText(library.active_ms).toUpper(), PlayClock(library.active_ms), {}, -1});
         rows.append({QStringLiteral("Days with reading"), {}, QString::number(library.days.size()), {}, -1});
         rows.append({QStringLiteral("Games begun"), {}, QStringLiteral("%1／%2").arg(begun).arg(distinct.size()), {}, -1});
@@ -999,13 +1015,13 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
     case Item::Readers:
         for (const App& app : ReaderApps()) {
             rows.append({app.name,
-                         app.program_found ? QStringLiteral("ITS OWN MENU  ·  %1").arg(app.program)
-                                           : QStringLiteral("NOT FOUND WHERE IT SAID IT WAS  ·  %1").arg(app.program),
+                         app.program_found ? QStringLiteral("OPEN MENU  ·  %1").arg(app.program)
+                                           : QStringLiteral("NOT FOUND  ·  %1").arg(app.program),
                          QStringLiteral("%1 TO READ").arg(app.games.size()), {}, -1});
         }
         if (rows.isEmpty()) {
-            rows.append({QStringLiteral("No app has reported its games yet"),
-                         QStringLiteral("START EACH APP ONCE, THEN PRESS F5 HERE"), {}, {}, -1});
+            rows.append({QStringLiteral("No apps yet"),
+                         QStringLiteral("OPEN EACH APP ONCE, THEN PRESS F5"), {}, {}, -1});
         }
         for (const QString& problem : library.problems) {
             rows.append({problem, {}, {}, {}, -1});
@@ -1016,32 +1032,32 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
         const QString console = LayerConsole();
         const QString game = LayerGame();
         const QString layer_name = console_layer == 0 ? QStringLiteral("ALL CONSOLES") : consoles[console_layer - 1].name;
-        rows.append({QStringLiteral("Settings for"), QStringLiteral("LEFT RIGHT  ALL CONSOLES, OR ONE WHERE IT DIFFERS"),
+        rows.append({QStringLiteral("Settings for"), QStringLiteral(""),
                      layer_name, {}, -1});
         rows.last().steps = true;
         if (!console.isEmpty()) {
             const QList<ConsoleGame> games = console_games.value(console);
             rows.append({QStringLiteral("Game"),
-                         games.isEmpty() ? QStringLiteral("NO GAME OF IT FOUND YET")
-                                         : QStringLiteral("LEFT RIGHT  EVERY GAME, OR ONE WHERE IT DIFFERS (%1 GAMES)").arg(games.size()),
-                         game.isEmpty() ? QStringLiteral("EVERY GAME") : games[console_game - 1].title, {}, -1});
+                         games.isEmpty() ? QStringLiteral("NO GAMES FOUND")
+                                         : QStringLiteral("%1 GAMES").arg(games.size()),
+                         game.isEmpty() ? QStringLiteral("ALL GAMES") : games[console_game - 1].title, {}, -1});
             rows.last().steps = true;
             const QStringList folders = play->Folders(console);
             rows.append({QStringLiteral("Game folders"),
-                         (folders.isEmpty() ? QStringLiteral("ENTER  ADD A FOLDER TO LOOK FOR ITS GAMES IN")
-                                            : QStringLiteral("ENTER  ADD ONE  ·  BACKSPACE  FORGET %1").arg(QDir::toNativeSeparators(folders.last())))
+                         (folders.isEmpty() ? QStringLiteral("ENTER  ADD FOLDER")
+                                            : QStringLiteral("ENTER  ADD  ·  BACKSPACE  REMOVE %1").arg(QDir::toNativeSeparators(folders.last())))
                              .toUpper(),
                          QString::number(folders.size()), {}, -1});
             const ConsoleSetup setup = console_setup ? console_setup(console) : ConsoleSetup{};
             rows.append({QStringLiteral("System files"),
-                         QStringLiteral("%1  ·  ENTER  ADD FILES  ·  %2").arg(setup.status, QDir::toNativeSeparators(setup.system_folder)).toUpper(),
+                         QStringLiteral("%1  ·  %2").arg(setup.status, QDir::toNativeSeparators(setup.system_folder)).toUpper(),
                          setup.ready ? QStringLiteral("READY") : QStringLiteral("MISSING"), {}, -1, setup.ready});
         }
         // The popup's look as one file, which the Android apps read and write too.
         rows.append({QStringLiteral("Export popup style"),
-                     QStringLiteral("ENTER  THE THEME, ITS SETTINGS AND YOUR CSS HERE, AS ONE FILE"), {}, {}, -1});
+                     QStringLiteral(""), {}, {}, -1});
         rows.append({QStringLiteral("Import popup style"),
-                     QStringLiteral("ENTER  A STYLE FILE, FROM HERE OR AN ANDROID APP, FOR %1").arg(layer_name), {}, {}, -1});
+                     QStringLiteral("FOR %1").arg(layer_name), {}, {}, -1});
         for (const PlaySetting& setting : LayerSettings()) {
             const QString label = setting.label.isEmpty() ? CommonLabel(setting.key) : setting.label;
             QString meta;
@@ -1051,13 +1067,13 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 const PlaySettings::Resolved resolved = play->Value(setting, console, game);
                 value = resolved.value;
                 dim = resolved.from != PlaySettings::Layer::Game;
-                meta = resolved.from == PlaySettings::Layer::Game ? QStringLiteral("ONLY FOR THIS GAME  ·  BACKSPACE  AS ITS CONSOLE HAS IT")
-                                                                  : QStringLiteral("AS ITS CONSOLE HAS IT");
+                meta = resolved.from == PlaySettings::Layer::Game ? QStringLiteral("THIS GAME  ·  BACKSPACE  RESET")
+                                                                  : QStringLiteral("CONSOLE SETTING");
             } else if (console.isEmpty()) {
                 const bool set = play->IsSet(setting.key);
                 value = play->Value(setting, {}).value; // all consoles' layer, or the core's own
-                meta = set ? QStringLiteral("FOR EVERY CONSOLE  ·  BACKSPACE  AS EACH CONSOLE HAS IT")
-                           : QStringLiteral("AS EACH CONSOLE HAS IT");
+                meta = set ? QStringLiteral("ALL CONSOLES  ·  BACKSPACE  RESET")
+                           : QStringLiteral("DEFAULT");
                 dim = !set;
             } else {
                 const PlaySettings::Resolved resolved = play->Value(setting, console);
@@ -1065,12 +1081,12 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 dim = resolved.from != PlaySettings::Layer::Console;
                 if (!setting.Common()) {
                     meta = resolved.from == PlaySettings::Layer::Console
-                               ? QStringLiteral("%1'S OWN  ·  BACKSPACE  AS IT COMES").arg(layer_name)
-                               : QStringLiteral("%1'S OWN  ·  AS IT COMES").arg(layer_name);
+                               ? QStringLiteral("%1  ·  BACKSPACE  RESET").arg(layer_name)
+                               : QStringLiteral("%1  ·  DEFAULT").arg(layer_name);
                 } else if (resolved.from == PlaySettings::Layer::Console) {
-                    meta = QStringLiteral("ONLY FOR %1  ·  BACKSPACE  SAME AS ALL CONSOLES").arg(layer_name);
+                    meta = QStringLiteral("%1  ·  BACKSPACE  RESET").arg(layer_name);
                 } else {
-                    meta = QStringLiteral("SAME AS ALL CONSOLES");
+                    meta = QStringLiteral("ALL CONSOLES");
                 }
             }
             rows.append({label, meta, setting.Shown(value), {}, -1, dim});
@@ -1093,7 +1109,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 for (int other = 0; other < SettingCount; ++other) {
                     behind += SettingRows[other].more && item.system == QLatin1String(SettingRows[other].section) ? 1 : 0;
                 }
-                rows.append({opened ? QStringLiteral("Fewer") : QStringLiteral("More"), {},
+                rows.append({opened ? QStringLiteral("Less") : QStringLiteral("More"), {},
                              opened ? QString() : QStringLiteral("+%1").arg(behind), {}, i, true});
                 continue;
             }
@@ -1122,7 +1138,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 value = renaming ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Copy my labels")) {
                 LabelsLoad();
-                value = labels.isEmpty() ? QStringLiteral("NONE CHANGED") : QStringLiteral("%1 CHANGED").arg(labels.size());
+                value = labels.isEmpty() ? QStringLiteral("NONE") : QStringLiteral("%1 RENAMED").arg(labels.size());
             } else if (name == QStringLiteral("Full screen")) {
                 value = full_screen ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Games start in a window")) {
@@ -1264,7 +1280,7 @@ void HomeWindow::SetSlide(int row, double value) {
     shared.insert(QStringLiteral("steam"), steam);
     pad.SetTuning(TuningOf(steam)); // felt here at once
     if (!SaveShared(SharedFolder(), shared)) {
-        Say(QStringLiteral("The settings could not be written to %1").arg(SharedFolder()));
+        Say(QStringLiteral("Couldn't save settings to %1").arg(SharedFolder()));
     }
 }
 
@@ -1349,7 +1365,7 @@ void HomeWindow::ChangeConsoleSetting(int row, int steps, bool clear) {
         sounds.Play(Sound::Move);
     }
     if (!play->Save()) {
-        Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+        Say(QStringLiteral("Couldn't save settings to %1").arg(play->File()));
     }
     Changed(PartCard | PartList);
 }
@@ -1388,7 +1404,7 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
             folders.removeLast();
         } else {
             const QString chosen = QFileDialog::getExistingDirectory(
-                this, QStringLiteral("A folder of %1 games").arg(consoles[console_layer - 1].name),
+                this, QStringLiteral("Choose %1 games folder").arg(consoles[console_layer - 1].name),
                 folders.isEmpty() ? QDir::homePath() : folders.last());
             if (chosen.isEmpty()) {
                 return;
@@ -1398,7 +1414,7 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
         }
         play->SetFolders(console, folders);
         if (!play->Save()) {
-            Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+            Say(QStringLiteral("Couldn't save settings to %1").arg(play->File()));
         }
         sounds.Play(Sound::Select);
         if (console_folders_changed) {
@@ -1409,20 +1425,20 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
         // System files: the BIOS, firmware or keys the user has, copied where the core looks.
         const ConsoleSetup setup = console_setup(console);
         const QStringList files = QFileDialog::getOpenFileNames(
-            this, QStringLiteral("%1: BIOS, firmware or keys").arg(consoles[console_layer - 1].name), QDir::homePath());
+            this, QStringLiteral("%1 BIOS, firmware or keys").arg(consoles[console_layer - 1].name), QDir::homePath());
         int copied = 0;
         QDir().mkpath(setup.system_folder);
         for (const QString& file : files) {
             const QString target = setup.system_folder + QLatin1Char('/') + QFileInfo(file).fileName();
             if (QFileInfo::exists(target)) {
-                Say(QStringLiteral("%1 is there already").arg(QFileInfo(file).fileName()));
+                Say(QStringLiteral("%1 already exists").arg(QFileInfo(file).fileName()));
                 continue;
             }
             copied += QFile::copy(file, target) ? 1 : 0;
         }
         if (copied > 0) {
             sounds.Play(Sound::Select);
-            Say(QStringLiteral("%1 file(s) put in %2").arg(copied).arg(QDir::toNativeSeparators(setup.system_folder)));
+            Say(QStringLiteral("%1 file(s) added to %2").arg(copied).arg(QDir::toNativeSeparators(setup.system_folder)));
         }
         Changed();
     }
@@ -1472,7 +1488,7 @@ void HomeWindow::Rename(const QString& page, const QString& name) {
     bool ok = false;
     const QString by_itself = OwnLabel(page, name);
     const QString typed = QInputDialog::getText(this, QStringLiteral("Rename"),
-                                                QStringLiteral("What \"%1\" is to be called (empty: as it comes)").arg(by_itself), QLineEdit::Normal,
+                                                QStringLiteral("New name for \"%1\" (leave empty to reset)").arg(by_itself), QLineEdit::Normal,
                                                 Labelled(page, name), &ok).trimmed();
     if (!ok) {
         return;
@@ -1510,7 +1526,7 @@ QString HomeWindow::WideValue() const {
             widest = std::max(widest, std::max<int>(0, WideShapes.indexOf(play->Value(*wide, console.key).value)));
         }
     }
-    return widest < 0 ? QStringLiteral("NO CORE HAS IT") : WideShapes[widest].toUpper();
+    return widest < 0 ? QStringLiteral("NOT SUPPORTED") : WideShapes[widest].toUpper();
 }
 
 void HomeWindow::WideStep(int steps) {
@@ -1532,11 +1548,11 @@ void HomeWindow::WideStep(int steps) {
         }
     }
     if (!play->Save()) {
-        Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+        Say(QStringLiteral("Couldn't save settings to %1").arg(play->File()));
     } else if (next == QStringLiteral("off")) {
-        Say(QStringLiteral("Games are drawn in their own shape"));
+        Say(QStringLiteral("Widescreen off"));
     } else {
-        Say(QStringLiteral("%1 for %2, where a game has a checked recipe; from the next game started").arg(next, given.isEmpty() ? QStringLiteral("no console") : given.join(QStringLiteral(" and "))));
+        Say(QStringLiteral("Widescreen %1 for %2").arg(next, given.isEmpty() ? QStringLiteral("no console") : given.join(QStringLiteral(" and "))));
     }
     sounds.Play(Sound::Move);
     Changed();
@@ -1631,7 +1647,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
             pick.now = console_layer;
             pick.take = step_to([this](int index) { ChangeConsoleSetting(0, index - console_layer); });
         } else if (row == 1 && console_layer > 0) {
-            pick.said.append(QStringLiteral("Every game"));
+            pick.said.append(QStringLiteral("All games"));
             for (const ConsoleGame& game : console_games.value(LayerConsole())) {
                 pick.said.append(game.title);
             }
@@ -1651,7 +1667,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
             pick.take = step_to([this, setting](int chosen) {
                 play->Set(setting.key, setting.choices[chosen], LayerConsole(), LayerGame());
                 if (!play->Save()) {
-                    Say(QStringLiteral("The settings could not be written to %1").arg(play->File()));
+                    Say(QStringLiteral("Couldn't save settings to %1").arg(play->File()));
                 }
             });
         }
@@ -1705,7 +1721,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
                 sources.ocr.engine = engines[index];
                 Lines::Save(SharedFolder(), sources);
                 if (sources.ocr.engine == QStringLiteral("glens")) {
-                    Say(QStringLiteral("Google Lens sends each text area it reads to Google"));
+                    Say(QStringLiteral("Google Lens sends text areas to Google"));
                 }
             });
         } else if (name == QStringLiteral("OCR runs on")) {
@@ -1718,7 +1734,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
                 return pick;
             }
             for (const QString& shape : WideShapes) {
-                pick.said.append(shape == QStringLiteral("off") ? QStringLiteral("Off: each game in its own shape") : shape);
+                pick.said.append(shape == QStringLiteral("off") ? QStringLiteral("Off") : shape);
             }
             pick.now = static_cast<int>(WideShapes.indexOf(now));
             pick.take = [this, now](int index) { WideStep(index - static_cast<int>(WideShapes.indexOf(now))); };
@@ -1790,7 +1806,7 @@ void HomeWindow::Key(int key) {
             Lines::Save(SharedFolder(), sources);
             sounds.Play(Sound::Move);
             if (sources.ocr.engine == QStringLiteral("glens")) {
-                Say(QStringLiteral("Google Lens sends each text area it reads to Google"));
+                Say(QStringLiteral("Google Lens sends text areas to Google"));
             }
             Changed();
             return;
@@ -1947,12 +1963,12 @@ void HomeWindow::Accept() {
         const App* app = AppOf(game.app);
         if (app == nullptr || !app->program_found) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("%1 is not where it said it was: start it once by hand").arg(app ? app->name : game.app));
+            Say(QStringLiteral("%1 not found. Open it once, then try again").arg(app ? app->name : game.app));
             return;
         }
         if (NeedsFile(*app) && !QFileInfo::exists(game.path)) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("The game's file is not there: %1").arg(game.path));
+            Say(QStringLiteral("Game file not found: %1").arg(game.path));
             return;
         }
         Launch(*app, GameArguments(*app, game, games_windowed), game.title);
@@ -1964,7 +1980,7 @@ void HomeWindow::Accept() {
         const App& app = apps[row];
         if (!app.program_found) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("%1 is not where it said it was: start it once by hand").arg(app.name));
+            Say(QStringLiteral("%1 not found. Open it once, then try again").arg(app.name));
             return;
         }
         Launch(app, app.menu_args, app.name);
@@ -1998,7 +2014,7 @@ void HomeWindow::Accept() {
                 setting_step(name, 0);
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("That is in the program that plays the games itself"));
+                Say(QStringLiteral("Not available in this version"));
             }
         } else if (SettingRows[srow].host == 3) {
             // A number: the arrows change it.
@@ -2016,7 +2032,7 @@ void HomeWindow::Accept() {
         } else if (name == QStringLiteral("Rename labels")) {
             renaming = !renaming;
             sounds.Play(Sound::Select);
-            Say(renaming ? QStringLiteral("Enter or a click on any row gives it another label") : QStringLiteral("Labels are no longer renamed"));
+            Say(renaming ? QStringLiteral("Click a row to rename it") : QStringLiteral("Renaming off"));
         } else if (name == QStringLiteral("Copy my labels")) {
             LabelsLoad();
             QJsonObject all;
@@ -2025,7 +2041,7 @@ void HomeWindow::Accept() {
             }
             QGuiApplication::clipboard()->setText(QString::fromUtf8(QJsonDocument(all).toJson(QJsonDocument::Indented)));
             sounds.Play(Sound::Select);
-            Say(labels.isEmpty() ? QStringLiteral("No label has been changed yet") : QStringLiteral("Copied %1: paste them to whoever makes the next build").arg(labels.size()));
+            Say(labels.isEmpty() ? QStringLiteral("No labels renamed") : QStringLiteral("Copied %1 labels").arg(labels.size()));
         } else if (name == QStringLiteral("Open the labels file")) {
             LabelsLoad();
             LabelsSave(); // there, even if empty
@@ -2037,7 +2053,7 @@ void HomeWindow::Accept() {
             labels.clear();
             LabelsSave();
             sounds.Play(Sound::Back);
-            Say(QStringLiteral("%1 put back").arg(count == 1 ? QStringLiteral("1 label") : QStringLiteral("%1 labels").arg(count)));
+            Say(QStringLiteral("%1 reset").arg(count == 1 ? QStringLiteral("1 label") : QStringLiteral("%1 labels").arg(count)));
         } else if (name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz")
                    || name == QStringLiteral("Daily goal") || SettingRows[srow].host == 1) {
             Key(Qt::Key_Right);
@@ -2062,12 +2078,12 @@ void HomeWindow::Accept() {
                 save_sync_open();
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("Save sync is in the program that plays the games itself"));
+                Say(QStringLiteral("Not available in this version"));
             }
         } else if (name == QStringLiteral("Lines address")) {
             Lines::Sources sources = Lines::Load(SharedFolder());
             bool ok = false;
-            const QString address = QInputDialog::getText(this, QStringLiteral("Lines address"), QStringLiteral("The WebSocket lines come from"),
+            const QString address = QInputDialog::getText(this, QStringLiteral("Lines address"), QStringLiteral("WebSocket address"),
                                                           QLineEdit::Normal, sources.address, &ok).trimmed();
             if (ok && !address.isEmpty()) {
                 SetLinesAddress(address);
@@ -2085,7 +2101,7 @@ void HomeWindow::Accept() {
                                                                             : QStringLiteral("Achievements"));
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("That is in the program that plays the games itself"));
+                Say(QStringLiteral("Not available in this version"));
             }
         } else if (name == QStringLiteral("Exit")) {
             window()->close();

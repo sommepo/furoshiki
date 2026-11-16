@@ -1,7 +1,7 @@
 {
   "name": "Nocturne",
   "order": 4,
-  "about": "Dark: a black-teal void with a pale Kagutsuchi glow, cold silver text, a cyan glow on the chosen row, a blood-red accent",
+  "about": "Black-teal, cyan glow",
   "page": "#07090c",
   "bg": "repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,rgba(255,255,255,0) 1px 3px),radial-gradient(ellipse at 74% 10%,rgba(214,236,240,.16),rgba(214,236,240,0) 34%),radial-gradient(ellipse at 20% 90%,rgba(30,92,104,.32),rgba(30,92,104,0) 55%),linear-gradient(170deg,#141a20 0%,#0b0f13 55%,#06080a 100%)",
 

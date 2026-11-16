@@ -130,7 +130,7 @@ Library Load(const QString& folder) {
             continue;
         }
         if (root.value(QStringLiteral("format")).toInt(1) > AppFileFormat) {
-            library.problems.append(QStringLiteral("%1: written by a newer version (format %2): update Furoshiki")
+            library.problems.append(QStringLiteral("%1: needs a newer Furoshiki (format %2)")
                                         .arg(info.fileName())
                                         .arg(root.value(QStringLiteral("format")).toInt()));
             continue;

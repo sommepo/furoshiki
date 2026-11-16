@@ -64,7 +64,7 @@ LookupFlow::LookupFlow(QWidget* popup_parent)
         if (player.IsPlaying()) {
             player.Stop();
         } else if (!asking.isEmpty() && !player.Play(asking.first().clip.samples) && notify) {
-            notify(tr("The clip cannot be played: no sound device"));
+            notify(tr("Can't play audio: no sound device"));
         }
     };
     connect(prompt, &AudioPrompt::ListenClicked, this, listen);
@@ -254,7 +254,7 @@ void LookupFlow::OnLookupDone(int request, const PresentedLine& presented, int o
         popup->resize(PopupWidth(), std::max(popup->height(), 56));
     }
     if (!has_dictionaries) {
-        popup->ShowMessage(tr("No dictionary is installed yet."), true);
+        popup->ShowMessage(tr("No dictionaries installed"), true);
     } else if (results.isEmpty()) {
         popup->ShowMessage(tr("No entry for %1").arg(presented.line.text.mid(offset, 8)), false);
     } else {
@@ -638,7 +638,7 @@ void LookupFlow::ShowNotes(int index) {
     CountLookup();
     miner.ShowNotes(known, [this](const QString& failure) {
         if (!failure.isEmpty() && notify) {
-            notify(tr("Anki could not show the note: %1").arg(failure));
+            notify(tr("Couldn't open note in Anki: %1").arg(failure));
         }
     });
 }
@@ -648,8 +648,8 @@ void LookupFlow::UndoLast() {
         if (!notify) {
             return;
         }
-        notify(undone ? tr("Card taken back")
-                      : failure.isEmpty() ? tr("No card to take back") : tr("Still in Anki: %1").arg(failure));
+        notify(undone ? tr("Card removed")
+                      : failure.isEmpty() ? tr("No card to undo") : tr("Couldn't remove card: %1").arg(failure));
     });
 }
 
@@ -667,16 +667,16 @@ void LookupFlow::Report(const Miner::Outcome& outcome) {
     }
     switch (outcome.kind) {
     case Miner::Outcome::Kind::Added:
-        notify(tr("Card added  ·  Ctrl+Z takes it back"));
+        notify(tr("Card added  ·  Ctrl+Z to undo"));
         break;
     case Miner::Outcome::Kind::Exists:
-        notify(tr("Anki has this word already"));
+        notify(tr("Already in Anki"));
         break;
     case Miner::Outcome::Kind::Failed:
-        notify(tr("No card: %1").arg(outcome.message));
+        notify(tr("Couldn't add card: %1").arg(outcome.message));
         break;
     case Miner::Outcome::Kind::Queued:
-        notify(tr("Anki is not reachable: the card is kept, and sent when it is"));
+        notify(tr("Anki not reachable. Card saved for later"));
         break;
     case Miner::Outcome::Kind::Cancelled:
         break; // the user called it off: nothing to say

@@ -30,7 +30,7 @@ QString UserProfiles(const QString& shared) {
 /// What is known of a game for its row: "AGENT · 3 HOOKS", or nothing.
 QString KnownOf(const QList<CoreHooks::Game>& found) {
     if (found.isEmpty()) {
-        return QStringLiteral("NO HOOK KNOWN");
+        return QStringLiteral("NO HOOK FOUND");
     }
     const int hooks = static_cast<int>(found.first().hooks.size());
     return QStringLiteral("%1  ·  %2 HOOK%3%4")
@@ -97,7 +97,7 @@ void HomeWindow::CoreHookAccept() {
             return;
         }
         c.fetching = {QStringLiteral("scripts")};
-        c.said = QStringLiteral("FETCHING LUNAHOOK'S TABLES");
+        c.said = QStringLiteral("DOWNLOADING LUNAHOOK TABLES");
         c.fetch.Start(QStringLiteral("luna-tables"), shared);
         sounds.Play(Sound::Select);
         update();
@@ -107,7 +107,7 @@ void HomeWindow::CoreHookAccept() {
     const QList<CoreHooks::Game> found = CoreHooks::Find(c.known, c.console, game.id);
     if (found.isEmpty()) {
         sounds.Play(Sound::Refuse);
-        c.said = c.known.isEmpty() ? QStringLiteral("FETCH THE HOOKS FIRST: THE LAST ROW") : QStringLiteral("NEITHER LUNAHOOK NOR AGENT KNOWS %1").arg(game.id);
+        c.said = c.known.isEmpty() ? QStringLiteral("DOWNLOAD HOOKS FIRST (LAST ROW)") : QStringLiteral("NO HOOK FOUND FOR %1").arg(game.id);
         update();
         return;
     }
@@ -124,7 +124,7 @@ void HomeWindow::CoreHookAccept() {
     if (console_folders_changed) {
         console_folders_changed(console); // looked for again: it is listed now
     }
-    Say(QStringLiteral("%1 is read by hook (%2's): its lines come as the game shows them, without places on the screen").arg(title, found.first().source));
+    Say(QStringLiteral("Added %1 (hook from %2)").arg(title, found.first().source));
 }
 
 bool HomeWindow::CoreHookKey(int key) {
@@ -163,7 +163,7 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
     double x = ShelfLeft;
     x += Put(p, small, x, 49, QStringLiteral("‹  LIBRARY"), l.muted);
     x += Put(p, small, x, 49, QStringLiteral("  ·  "), l.muted);
-    Put(p, small, x, 49, QStringLiteral("ADD A TITLE"), l.ink);
+    Put(p, small, x, 49, QStringLiteral("ADD GAME"), l.ink);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
     right -= Put(p, small, right, 49, QStringLiteral(" / 02  ·  "), l.muted, 1);
@@ -172,13 +172,13 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
     p.fillRect(QRectF(ShelfLeft, 64, ShelfRight - ShelfLeft, 1), l.rule);
     shelf_hits.append({QRectF(ShelfLeft, 30, 140, 30), 20, 0});
 
-    Put(p, ShelfFont(l.display, 27, 0.02), ShelfLeft, ShelfTop + 44, QStringLiteral("WHICH GAME, READ BY HOOK?"), l.ink);
-    Put(p, small, ShelfLeft, ShelfTop + 72, QStringLiteral("%1'S GAMES THAT NO SCRIPT READS  ·  ↑ ↓   ENTER   ESC").arg(c.console_name.toUpper()), l.muted);
+    Put(p, ShelfFont(l.display, 27, 0.02), ShelfLeft, ShelfTop + 44, QStringLiteral("WHICH GAME?"), l.ink);
+    Put(p, small, ShelfLeft, ShelfTop + 72, QStringLiteral("%1 GAMES WITHOUT A SCRIPT  ·  ↑ ↓   ENTER   ESC").arg(c.console_name.toUpper()), l.muted);
 
     const bool fetch_row = w.row >= c.games.size();
     const QList<CoreHooks::Game> found = fetch_row ? QList<CoreHooks::Game>() : CoreHooks::Find(c.known, c.console, c.games[w.row].id);
-    const QString key_label = fetch_row ? (c.fetch.Busy() ? QStringLiteral("FETCHING") : QStringLiteral("FETCH AND CONVERT"))
-                              : found.isEmpty() ? QStringLiteral("NO HOOK KNOWN") : QStringLiteral("READ IT BY HOOK");
+    const QString key_label = fetch_row ? (c.fetch.Busy() ? QStringLiteral("FETCHING") : QStringLiteral("DOWNLOAD AND CONVERT"))
+                              : found.isEmpty() ? QStringLiteral("NO HOOK FOUND") : QStringLiteral("USE HOOK");
     const QRectF key(WizardSide, bottom - 44, ShelfRight - WizardSide, 44);
     p.fillRect(key, l.ink);
     Put(p, key_face, key.center().x(), key.center().y() + 4.6, key_label, l.ground, 2);
@@ -197,8 +197,8 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
             left = c.games[i].title.isEmpty() ? c.games[i].id : c.games[i].title;
             right_text = KnownOf(CoreHooks::Find(c.known, c.console, c.games[i].id));
         } else {
-            left = c.known.isEmpty() ? QStringLiteral("Fetch LunaHook's and Agent's hooks") : QStringLiteral("Fetch them again");
-            right_text = c.known.isEmpty() ? QStringLiteral("NONE HERE YET") : QStringLiteral("%1 DESCRIPTIONS").arg(c.known.size());
+            left = c.known.isEmpty() ? QStringLiteral("Download hooks (LunaHook, Agent)") : QStringLiteral("Download again");
+            right_text = c.known.isEmpty() ? QStringLiteral("NONE") : QStringLiteral("%1 DESCRIPTIONS").arg(c.known.size());
         }
         if (on) {
             p.fillRect(QRectF(ShelfLeft, y - 21, 3, 33), l.accent);
@@ -216,21 +216,21 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
     if (fetch_row) {
         const Hooks::Kit luna = Hooks::KitOf(QStringLiteral("luna-tables")), agent = Hooks::KitOf(QStringLiteral("scripts"));
         facts = {{QStringLiteral("LUNAHOOK"), luna.whose.toUpper()}, {QStringLiteral("AGENT"), agent.whose.toUpper()},
-                 {QStringLiteral("SIZE"), QStringLiteral("%1 + %2").arg(luna.size, agent.size)}, {QStringLiteral("KEPT IN"), QStringLiteral("PROGRAM/HOOKS")}};
+                 {QStringLiteral("SIZE"), QStringLiteral("%1 + %2").arg(luna.size, agent.size)}, {QStringLiteral("SAVED IN"), QStringLiteral("PROGRAM/HOOKS")}};
     } else {
         facts.append({QStringLiteral("ID"), c.games[w.row].id});
         if (!found.isEmpty()) {
             const CoreHooks::Game& game = found.first();
             facts.append({QStringLiteral("FROM"), game.source.toUpper() + QStringLiteral("  ·  ") + game.from});
             if (!game.version.isEmpty()) {
-                facts.append({QStringLiteral("FOR ITS VERSION"), game.version});
+                facts.append({QStringLiteral("VERSION"), game.version});
             }
             QStringList names;
             for (const CoreHooks::Hook& hook : game.hooks) {
                 names.append(hook.name);
             }
             facts.append({QStringLiteral("HOOKS"), names.join(QStringLiteral("  ·  "))});
-            facts.append({QStringLiteral("ON THE SCREEN"), QStringLiteral("THE TEXT STRIP: NO PLACES")});
+            facts.append({QStringLiteral("ON THE SCREEN"), QStringLiteral("TEXT STRIP ONLY")});
         }
     }
     if (!c.said.isEmpty()) {

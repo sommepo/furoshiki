@@ -458,8 +458,8 @@ QString HomeWindow::AddLinesTitle(const QString& by, const QString& title) {
     const QString id = Lines::Add(sources, title, by, RecordNamed(title.trimmed()));
     if (id.isEmpty() || !Lines::Save(folder, sources)) {
         sounds.Play(Sound::Refuse);
-        Say(id.isEmpty() ? QStringLiteral("A title read from lines wants a name, and to be read by WebSocket or from the clipboard")
-                         : QStringLiteral("The titles read from lines could not be written"));
+        Say(id.isEmpty() ? QStringLiteral("Enter a name and choose WebSocket or clipboard")
+                         : QStringLiteral("Couldn't save the game"));
         return {};
     }
     if (lines_changed) {
@@ -470,8 +470,8 @@ QString HomeWindow::AddLinesTitle(const QString& by, const QString& title) {
     sounds.Play(Sound::Select);
     ReloadKeepingChoice();
     Changed();
-    Say(QStringLiteral("%1 is on the shelf, read %2").arg(title.trimmed(), by == QStringLiteral("clipboard") ? QStringLiteral("from the clipboard")
-                                                                                                                 : QStringLiteral("from ") + sources.address));
+    Say(QStringLiteral("Added %1 (%2)").arg(title.trimmed(), by == QStringLiteral("clipboard") ? QStringLiteral("clipboard")
+                                                                                                                 : sources.address));
     return id;
 }
 
@@ -479,7 +479,7 @@ void HomeWindow::SetLinesAddress(const QString& address) {
     const QUrl url(address.trimmed());
     if (!url.isValid() || url.scheme() != QStringLiteral("ws") || url.host().isEmpty()) {
         sounds.Play(Sound::Refuse);
-        Say(QStringLiteral("\"%1\" is no WebSocket address: ws://host:port").arg(address));
+        Say(QStringLiteral("Not a WebSocket address: %1").arg(address));
         return;
     }
     Lines::Sources sources = Lines::Load(SharedFolder());
@@ -1035,7 +1035,7 @@ void HomeWindow::FindArt() {
             want.exe_path = running->path;
         }
     }
-    art_said = QStringLiteral("LOOKING");
+    art_said = QStringLiteral("SEARCHING");
     art_said_of = game.id;
     art_finder->Start(want, SharedFolder());
     sounds.Play(Sound::Select);
@@ -1147,7 +1147,7 @@ void HomeWindow::SetLog(bool on) {
         const QList<ShelfTitle>& titles = ShelfTitles();
         if (shelf_choice >= titles.size() || ReadingOf(titles[shelf_choice].game.id).lines.isEmpty()) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("No lines of this title have been read on this device yet"));
+            Say(QStringLiteral("No lines yet"));
             return;
         }
         log_line = -1;
@@ -1750,7 +1750,7 @@ void HomeWindow::PaintLog(QPainter& p) {
     double x = ShelfLeft;
     x += Put(p, small, x, 49, QStringLiteral("‹  "), ShelfHovered(8, 0) ? l.ink : l.muted);
     const QString said = ShelfTitleOf(game.id, game.title).toUpper();
-    x += Put(p, small, x, 49, HasJapanese(said) ? QStringLiteral("THE TITLE") : said, ShelfHovered(8, 0) ? l.ink : l.muted);
+    x += Put(p, small, x, 49, HasJapanese(said) ? QStringLiteral("GAME") : said, ShelfHovered(8, 0) ? l.ink : l.muted);
     Put(p, small, x, 49, QStringLiteral("  ·  LOG"), l.ink);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
@@ -1810,7 +1810,7 @@ void HomeWindow::PaintLog(QPainter& p) {
     }
     PutKeys(p, tiny, ShelfRight, 674,
             {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ LINE"), Qt::Key_Down}, {QStringLiteral("Q"), Qt::Key_Q},
-             {QStringLiteral("E EIGHT LINES"), Qt::Key_E}, {QStringLiteral("ENTER COPY"), Qt::Key_Return}, {QStringLiteral("ESC THE TITLE"), Qt::Key_Escape}});
+             {QStringLiteral("E PAGE"), Qt::Key_E}, {QStringLiteral("ENTER COPY"), Qt::Key_Return}, {QStringLiteral("ESC BACK"), Qt::Key_Escape}});
 }
 
 void HomeWindow::PaintPages(QPainter& p) {
@@ -1829,12 +1829,12 @@ void HomeWindow::PaintPages(QPainter& p) {
     const auto page_label = [&](const Item& one) { return Labelled(QStringLiteral("Page"), one.label).toUpper(); };
 
     double x = ShelfLeft;
-    x += Put(p, small, x, 49, pages_back ? QStringLiteral("‹  THE GAME") : QStringLiteral("‹  LIBRARY"), Mix(l.muted, l.ink, Ease(7, 0, ShelfHovered(7, 0))));
+    x += Put(p, small, x, 49, pages_back ? QStringLiteral("‹  BACK TO GAME") : QStringLiteral("‹  LIBRARY"), Mix(l.muted, l.ink, Ease(7, 0, ShelfHovered(7, 0))));
     Put(p, small, x, 49, QStringLiteral("  ·  ") + page_label(item), l.ink);
     double head_right = ShelfRight;
     head_right -= Put(p, small, head_right, 49, shelf_minute, l.ink, 1);
     if (renaming) {
-        Put(p, small, head_right, 49, QStringLiteral("RENAMING LABELS  ·  CLICK A ROW, OR ENTER  ·  "), l.accent, 1);
+        Put(p, small, head_right, 49, QStringLiteral("RENAMING  ·  CLICK A ROW OR PRESS ENTER  ·  "), l.accent, 1);
     }
     p.fillRect(QRectF(ShelfLeft, 64, ShelfRight - ShelfLeft, 1), l.rule);
     shelf_hits.append({QRectF(ShelfLeft, 30, 140, 30), 7, 0});
@@ -1895,7 +1895,7 @@ void HomeWindow::PaintPages(QPainter& p) {
         // What is typed, and the settings found: each with its page, the one in hand marked.
         const QFont typed = ShelfFont(l.display, 22, 0.02);
         const QList<int> found = FoundSettings(find_text);
-        Put(p, typed, left, ShelfTop + 18, find_text.isEmpty() ? QStringLiteral("FIND A SETTING") : find_text.toUpper(),
+        Put(p, typed, left, ShelfTop + 18, find_text.isEmpty() ? QStringLiteral("SEARCH SETTINGS") : find_text.toUpper(),
             find_text.isEmpty() ? l.muted : l.ink);
         double row_y = ShelfTop + 30 + row_height;
         p.fillRect(QRectF(left, row_y - 22, right - left, 1), l.rule);
@@ -1914,11 +1914,11 @@ void HomeWindow::PaintPages(QPainter& p) {
             row_y += row_height;
         }
         if (found.isEmpty() && !find_text.isEmpty()) {
-            Put(p, name, left + 56, row_y, QStringLiteral("Nothing is called that"), l.muted);
+            Put(p, name, left + 56, row_y, QStringLiteral("No results"), l.muted);
         }
         p.fillRect(QRectF(ShelfLeft, 646, ShelfRight - ShelfLeft, 1), l.rule);
         PutKeys(p, tiny, ShelfRight, 674,
-                {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ CHOOSE"), Qt::Key_Down}, {QStringLiteral("ENTER GO TO IT"), Qt::Key_Return},
+                {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ CHOOSE"), Qt::Key_Down}, {QStringLiteral("ENTER OPEN"), Qt::Key_Return},
                  {QStringLiteral("ESC BACK"), Qt::Key_Escape}});
         return;
     }
@@ -2029,9 +2029,9 @@ void HomeWindow::PaintPages(QPainter& p) {
     PutKeys(p, tiny, ShelfRight, 674,
             {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ ROW"), Qt::Key_Down}, {QStringLiteral("←"), Qt::Key_Left},
              {QStringLiteral("→ CHANGE"), Qt::Key_Right}, {QStringLiteral("Q"), Qt::Key_Q}, {QStringLiteral("E SECTION"), Qt::Key_E},
-             {QStringLiteral("ENTER DO"), Qt::Key_Return}, {QStringLiteral("⌫ AS IT COMES"), Qt::Key_Backspace},
-             {QStringLiteral("/ FIND"), Qt::Key_Slash},
-             {pages_back ? QStringLiteral("ESC THE GAME") : QStringLiteral("ESC THE SHELF"), Qt::Key_Escape}});
+             {QStringLiteral("ENTER SELECT"), Qt::Key_Return}, {QStringLiteral("⌫ RESET"), Qt::Key_Backspace},
+             {QStringLiteral("/ SEARCH"), Qt::Key_Slash},
+             {pages_back ? QStringLiteral("ESC BACK TO GAME") : QStringLiteral("ESC LIBRARY"), Qt::Key_Escape}});
 }
 
 void HomeWindow::PaintStage(QPainter& p) {
@@ -2109,7 +2109,7 @@ void HomeWindow::PaintStage(QPainter& p) {
         l.ground, 2);
     shelf_hits.append({key, 3, 0});
     Put(p, small, key.right() + 22, key.center().y() + 4,
-        day.isEmpty() ? QStringLiteral("NOT READ YET") : QStringLiteral("LAST READ  ") + DayText(day, true), l.muted);
+        day.isEmpty() ? QStringLiteral("NOT STARTED") : QStringLiteral("LAST READ  ") + DayText(day, true), l.muted);
     if (tracked != nullptr && tracked->total > 0) {
         // How far through it: a hairline, filled to what was read.
         const QRectF bar(ShelfLeft, key.bottom() + 16, column, 2);
@@ -2160,7 +2160,7 @@ void HomeWindow::PaintStage(QPainter& p) {
     }
     if (const auto other = elsewhere.constFind(game.id); other != elsewhere.constEnd() && other->second > game.last_day) {
         // Read on another device since it was read here: its save is fetched as the game starts.
-        facts.append({QStringLiteral("ELSEWHERE"), QStringLiteral("%1  ·  %2").arg(other->first.toUpper(), DayText(other->second, true).toUpper())});
+        facts.append({QStringLiteral("OTHER DEVICE"), QStringLiteral("%1  ·  %2").arg(other->first.toUpper(), DayText(other->second, true).toUpper())});
     }
 #ifndef READER_NO_SAVE_SYNC // the guides are the dev line's
     if (!record.guide.isEmpty()) {
@@ -2170,8 +2170,8 @@ void HomeWindow::PaintStage(QPainter& p) {
     const bool art_missing = ArtMissing(game);
     if (art_missing || art_said_of == game.id) {
         const bool looking = art_finder != nullptr && art_finder->Busy() && art_finder->GameId() == game.id;
-        facts.append({QStringLiteral("BOX ART"), looking ? QStringLiteral("LOOKING …") : art_said_of == game.id && !art_said.isEmpty() ? art_said
-                                                         : QStringLiteral("MISSING  ·  F FIND")});
+        facts.append({QStringLiteral("BOX ART"), looking ? QStringLiteral("SEARCHING…") : art_said_of == game.id && !art_said.isEmpty() ? art_said
+                                                         : QStringLiteral("MISSING  ·  F TO FIND")});
     }
     const TitleReading& reading = ReadingOf(game.id);
     if (!reading.days.isEmpty()) {
@@ -2199,7 +2199,7 @@ void HomeWindow::PaintStage(QPainter& p) {
                 const double tall = std::max(1.0, 16.0 * reading.days[count - 1 - d].second / most);
                 p.fillRect(QRectF(ShelfLeft + 150 + d * 9, y + 2 - tall, 6, tall), l.ink);
             }
-            Put(p, tiny, ShelfLeft + column, y, QStringLiteral("MOST %1 A DAY").arg(CountText(most)), l.muted, 1);
+            Put(p, tiny, ShelfLeft + column, y, QStringLiteral("BEST DAY %1").arg(CountText(most)), l.muted, 1);
         }
         y += 30;
     }
@@ -2230,7 +2230,7 @@ void HomeWindow::PaintStage(QPainter& p) {
     }
     Put(p, small, ShelfLeft, 674, SystemLabel(library, title.system).toUpper(), l.ink);
     QList<QPair<QString, int>> stage_keys{{QStringLiteral("ENTER PLAY"), Qt::Key_Return}, {QStringLiteral("←"), Qt::Key_Left},
-                                          {QStringLiteral("→ ANOTHER TITLE"), Qt::Key_Right}, {QStringLiteral("↑ THE SHELF"), Qt::Key_Up},
+                                          {QStringLiteral("→ NEXT GAME"), Qt::Key_Right}, {QStringLiteral("↑ LIBRARY"), Qt::Key_Up},
                                           {QStringLiteral("↓ LOG"), Qt::Key_Down}};
     if (art_missing) {
         stage_keys.append({QStringLiteral("F FIND BOX ART"), Qt::Key_F});
@@ -2254,7 +2254,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
     Put(p, small, x, 49, QStringLiteral("  ·  LIBRARY"), l.muted);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
-    Put(p, small, right, 49, QStringLiteral("%1 %2  ·  ").arg(count).arg(count == 1 ? QStringLiteral("TITLE") : QStringLiteral("TITLES")), l.muted, 1);
+    Put(p, small, right, 49, QStringLiteral("%1 %2  ·  ").arg(count).arg(count == 1 ? QStringLiteral("GAME") : QStringLiteral("GAMES")), l.muted, 1);
     p.fillRect(QRectF(ShelfLeft, 64, ShelfRight - ShelfLeft, 1), l.rule);
 
     // The shelves as floors (the maintainer chose "B · Lift", 2026-11-10): this one fills the page
@@ -2535,7 +2535,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             const QFont face = ShelfFont(l.display, 12.5, 0.06);
             p.translate(box.center().x(), box.top() + 46);
             p.rotate(90);
-            Put(p, face, 0, 4.4, QStringLiteral("ADD A TITLE"), Faded(l.muted, seen));
+            Put(p, face, 0, 4.4, QStringLiteral("ADD GAME"), Faded(l.muted, seen));
             p.restore();
         }
         if (open > 0.02) {
@@ -2544,11 +2544,11 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             p.setOpacity(p.opacity() * open);
             const double tx = box.left() + 28, tw = SpineOpen - 56;
             const double at = tx + Put(p, small, tx, box.top() + 36, QStringLiteral("＋"), l.accent);
-            Put(p, small, at, box.top() + 36, count == 0 ? QStringLiteral("  ·  THE SHELF IS EMPTY") : QStringLiteral("  ·  ONE MORE"), l.muted);
-            Put(p, ShelfFont(l.display, 32, 0.02), tx, box.top() + 104, QStringLiteral("ADD A TITLE"), l.ink);
-            const QList<QPair<QString, QString>> doors = {{QStringLiteral("A DISC OR FILE"), QStringLiteral("A CORE")},
-                                                          {QStringLiteral("A GAME WINDOW"), QStringLiteral("HOOK  ·  OCR")},
-                                                          {QStringLiteral("LINES I SEND"), QStringLiteral("LINES")}};
+            Put(p, small, at, box.top() + 36, count == 0 ? QStringLiteral("  ·  LIBRARY IS EMPTY") : QStringLiteral("  ·  NEW"), l.muted);
+            Put(p, ShelfFont(l.display, 32, 0.02), tx, box.top() + 104, QStringLiteral("ADD GAME"), l.ink);
+            const QList<QPair<QString, QString>> doors = {{QStringLiteral("DISC OR FILE"), QStringLiteral("EMULATOR")},
+                                                          {QStringLiteral("GAME WINDOW"), QStringLiteral("HOOK  ·  OCR")},
+                                                          {QStringLiteral("TEXTHOOKER OR CLIPBOARD"), QStringLiteral("LINES")}};
             double y = box.bottom() - 150;
             for (int d = 0; d < doors.size(); ++d) {
                 p.fillRect(QRectF(tx, y - 17, tw, 1), l.rule);

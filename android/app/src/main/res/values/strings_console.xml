@@ -6,7 +6,7 @@
          word; the first is what is pressed at first. -->
     <string name="reader_advance_button_default" translatable="false">-1</string>
     <string-array name="reader_advance_button_entries">
-        <item>The console\'s yes</item>
+        <item>Confirm button</item>
         <item>East (○, Dreamcast B, 3DS A)</item>
         <item>South (×, Dreamcast A, 3DS B)</item>
         <item>West (□, Dreamcast X, 3DS Y)</item>

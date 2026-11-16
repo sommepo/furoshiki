@@ -634,7 +634,7 @@ class ScreenTextOverlayTest {
         TestSupport.find(popup(), ImageButton::class.java) { it.contentDescription == description && it.isShown }
 
     private fun addBox() = box("Add to Anki")
-    private fun bookBox() = box("Already in Anki: show the note")
+    private fun bookBox() = box("View in Anki")
 
     /** Where [view] is drawn in the root, as left, top, right, bottom. */
     private fun placeOf(view: View): IntArray {
@@ -819,7 +819,7 @@ class ScreenTextOverlayTest {
         assertNull(bookBox())
         addBox()!!.performClick()
         TestSupport.await("the failure to be reported") {
-            ShadowToast.getTextOfLatestToast()?.startsWith("Card not added") == true
+            ShadowToast.getTextOfLatestToast()?.startsWith("Couldn't add card") == true
         }
         assertNotNull("the plus is there to try again", addBox())
         assertTrue(addBox()!!.isEnabled)
@@ -1045,14 +1045,14 @@ class ScreenTextOverlayTest {
         assertNull(sessionLine())
         assertTrue(overlay.pauseShown)
         val mark = TestSupport.find(root, TextView::class.java) {
-            it.isShown && it.contentDescription == "Reading statistics are paused"
+            it.isShown && it.contentDescription == "Statistics paused"
         }
         assertNotNull(mark)
         prefs.edit().putBoolean(ReaderSettings.KEY_STATS_PAUSED, false).commit()
         TestSupport.idle()
         assertFalse(overlay.pauseShown)
         assertNull(TestSupport.find(root, TextView::class.java) {
-            it.isShown && it.contentDescription == "Reading statistics are paused"
+            it.isShown && it.contentDescription == "Statistics paused"
         })
         // Both settings back to what they are at first (removed, not cleared: clear() tells the
         // listeners nothing in an app that targets Android 10 or older, as Station Reader does).
@@ -1153,7 +1153,7 @@ class ScreenTextOverlayTest {
         TestSupport.find(question(), View::class.java) { it.contentDescription == label && it.isShown }!!
 
     /** What the question's buttons mean, as their content descriptions say. */
-    private fun answers(): List<String> = listOf("Listen", "Stop", "With audio", "Without")
+    private fun answers(): List<String> = listOf("Play", "Stop", "With audio", "Without audio")
         .filter { label -> TestSupport.find(question(), View::class.java) { it.contentDescription == label && it.isShown } != null }
 
     /** A real tap on the middle of the question's button whose sign means [label]. */
@@ -1213,7 +1213,7 @@ class ScreenTextOverlayTest {
         TestSupport.snapshot(root, 1920, 1080, "card-audio-question")
         // Signs, no words: what each button does is said to a screen reader only.
         assertEquals("", TestSupport.allText(question).trim())
-        assertEquals(listOf("Listen", "With audio", "Without"), answers())
+        assertEquals(listOf("Play", "With audio", "Without audio"), answers())
 
         // It is inside the picture, over the plus that asked for the card: no gap between the
         // popup and the question for the cursor to look a word up in on its way.
@@ -1235,7 +1235,7 @@ class ScreenTextOverlayTest {
         assertTrue("an answer in the first moment is not taken", question.isShown)
 
         letTheQuestionSettle()
-        tapAnswer("Without")
+        tapAnswer("Without audio")
         assertFalse("answered: the question is gone", question.isShown)
         TestSupport.await("the note to be sent") { stub.received("addNote").isNotEmpty() }
         assertEquals("", sentNote(stub).getString("SentenceAudio"))
@@ -1299,27 +1299,27 @@ class ScreenTextOverlayTest {
             org.robolectric.shadows.ShadowMediaPlayer.MediaInfo(1000, 0)
         )
         fun placeOfAnswer(label: String) = placeOf(answer(label)).toList()
-        val before = placeOfAnswer("With audio") to placeOfAnswer("Without")
-        tapAnswer("Listen")
+        val before = placeOfAnswer("With audio") to placeOfAnswer("Without audio")
+        tapAnswer("Play")
         TestSupport.await("the button to offer stopping") { "Stop" in answers() }
         layout()
         assertEquals(
             "the other buttons stay where they are while the first says Stop",
             before,
-            placeOfAnswer("With audio") to placeOfAnswer("Without")
+            placeOfAnswer("With audio") to placeOfAnswer("Without audio")
         )
         assertTrue("listening is not an answer", question.isShown)
         assertTrue(stub.received("addNote").isEmpty())
 
         // Played to its end, the button offers it again.
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1200))
-        assertTrue(answers().toString(), "Listen" in answers())
+        assertTrue(answers().toString(), "Play" in answers())
 
         // Stopped half way by the same button, and still nothing is answered.
-        tapAnswer("Listen")
+        tapAnswer("Play")
         TestSupport.await("the button to offer stopping") { "Stop" in answers() }
         tapAnswer("Stop")
-        assertTrue("Listen" in answers())
+        assertTrue("Play" in answers())
         assertTrue(question.isShown)
 
         tapAnswer("With audio")
@@ -1387,7 +1387,7 @@ class ScreenTextOverlayTest {
         val shown = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
         assertTrue(shown.isShowing)
         val entries = (0 until shown.listView.adapter.count).map { shown.listView.adapter.getItem(it).toString() }
-        assertTrue("the menu has the reload entry: $entries", entries.contains("Reload text profile"))
+        assertTrue("the menu has the reload entry: $entries", entries.contains("Reload script"))
         shown.dismiss()
         menu.chooseCardAudio()
         TestSupport.idle()
@@ -1409,7 +1409,7 @@ class ScreenTextOverlayTest {
         var dialog = open()
         val offered = (0 until dialog.listView.adapter.count).map { dialog.listView.adapter.getItem(it).toString() }
         assertEquals(
-            listOf("As in the settings (Ask for each card)", "Always add it", "Ask for each card", "Never add it"),
+            listOf("Default (Ask each time)", "Always", "Ask each time", "Never"),
             offered
         )
         assertEquals("the game has no choice of its own yet", 0, dialog.listView.checkedItemPosition)
@@ -1433,7 +1433,7 @@ class ScreenTextOverlayTest {
         ReaderCatalog.forget()
         runningGame(Console.Test.GAME)
         dialog = open()
-        assertEquals("As set for this game (Never add it)", dialog.listView.adapter.getItem(0).toString())
+        assertEquals("This game (Never)", dialog.listView.adapter.getItem(0).toString())
         assertEquals(0, dialog.listView.checkedItemPosition)
     }
 

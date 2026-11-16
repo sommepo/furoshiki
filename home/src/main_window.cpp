@@ -674,7 +674,7 @@ MainWindow::MainWindow() {
             ReaderUi::RunAnkiSetupDialog(this);
         } else if (row == QStringLiteral("Discord application ID")) {
             bool ok = false;
-            const QString id = QInputDialog::getText(this, row, QStringLiteral("Of a Discord application of your own (17 to 20 digits)"),
+            const QString id = QInputDialog::getText(this, row, QStringLiteral("Application ID (17–20 digits)"),
                                                      QLineEdit::Normal, settings.DiscordApplicationId(), &ok).trimmed();
             if (ok) {
                 settings.SetValue(Settings::KeyDiscordApplicationId, id);
@@ -684,14 +684,14 @@ MainWindow::MainWindow() {
         } else if (row == QStringLiteral("Update")) {
             // Enter looks; with a build offered, Enter takes it.
             if (!update_offer.IsNone()) {
-                home->Say(QStringLiteral("Fetching the new build…"));
+                home->Say(QStringLiteral("Downloading update…"));
                 Home::Updater::Take(this, update_offer, [this](const QString& error) {
                     if (error.isEmpty()) {
                         update_offer = {};
-                        update_said = QStringLiteral("IN PLACE: START AGAIN");
-                        home->Say(QStringLiteral("The new build is in place: it runs at the next start"));
+                        update_said = QStringLiteral("RESTART TO UPDATE");
+                        home->Say(QStringLiteral("Update installed. Restart Furoshiki to finish"));
                     } else {
-                        home->Say(QStringLiteral("Not updated: %1").arg(error));
+                        home->Say(QStringLiteral("Update failed: %1").arg(error));
                     }
                     home->Refresh();
                 });
@@ -702,7 +702,7 @@ MainWindow::MainWindow() {
             AskHomeServer(true);
         } else if (row == QStringLiteral("Study tracker")) {
             bool ok = false;
-            const QString url = QInputDialog::getText(this, row, QStringLiteral("Where your study tracker answers"), QLineEdit::Normal,
+            const QString url = QInputDialog::getText(this, row, QStringLiteral("Study tracker address"), QLineEdit::Normal,
                                                       home->TrackerUrl(), &ok).trimmed();
             if (ok) {
                 home->SetTrackerUrl(url);
@@ -775,7 +775,7 @@ MainWindow::MainWindow() {
             if (!user.isEmpty()) {
                 return user.toUpper();
             }
-            return qEnvironmentVariable("READER_RA_USER").isEmpty() ? QStringLiteral("OFF") : QStringLiteral("FRONT END'S");
+            return qEnvironmentVariable("READER_RA_USER").isEmpty() ? QStringLiteral("OFF") : QStringLiteral("FROM FRONT END");
         }
         if (row == QStringLiteral("Pointer button")) {
             return ReaderUi::PointerButtonName(ReaderUi::ReaderSession::Instance().Settings().CursorButton()).toUpper();
@@ -799,7 +799,7 @@ MainWindow::MainWindow() {
         }
         if (row == QStringLiteral("Home server's services")) {
             const QMap<QString, QString> known = Home::Services::All();
-            return known.isEmpty() ? QStringLiteral("NONE YET") : QStringList(known.keys()).join(QStringLiteral(" · ")).toUpper();
+            return known.isEmpty() ? QStringLiteral("NONE") : QStringList(known.keys()).join(QStringLiteral(" · ")).toUpper();
         }
         if (row == QStringLiteral("Study tracker")) {
             return home->TrackerUrl().isEmpty() ? QStringLiteral("NOT SET") : home->TrackerUrl();
@@ -826,7 +826,7 @@ MainWindow::MainWindow() {
             });
             const QString name = (console.isEmpty() ? QStringLiteral("all-consoles") : console) +
                                  (game.isEmpty() ? QString() : QLatin1Char('-') + game) + QStringLiteral("-popup-style.json");
-            const QString file = QFileDialog::getSaveFileName(this, QStringLiteral("Export the popup style"),
+            const QString file = QFileDialog::getSaveFileName(this, QStringLiteral("Export popup style"),
                                                               popup_folder + QLatin1Char('/') + name,
                                                               QStringLiteral("Popup style (*.json)"));
             if (file.isEmpty()) {
@@ -834,12 +834,12 @@ MainWindow::MainWindow() {
             }
             QSaveFile out(file);
             if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(style).toJson()) < 0 || !out.commit()) {
-                return QStringLiteral("The style could not be written to %1").arg(QDir::toNativeSeparators(file));
+                return QStringLiteral("Couldn't save style to %1").arg(QDir::toNativeSeparators(file));
             }
-            return QStringLiteral("Popup style written to %1").arg(QDir::toNativeSeparators(file));
+            return QStringLiteral("Popup style exported to %1").arg(QDir::toNativeSeparators(file));
         },
         [this](const QString& console, const QString& game) {
-            const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Import a popup style"), popup_folder,
+            const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Import popup style"), popup_folder,
                                                               QStringLiteral("Popup style (*.json)"));
             if (file.isEmpty()) {
                 return QString();
@@ -850,7 +850,7 @@ MainWindow::MainWindow() {
                                                       QFileInfo(file).completeBaseName().remove(QStringLiteral("-popup-style")),
                                                       console, game);
             if (!failed.isEmpty()) {
-                return QStringLiteral("Not imported: %1").arg(failed);
+                return QStringLiteral("Couldn't import: %1").arg(failed);
             }
             AddPopupSettings(); // its CSS is a new choice
             home->SetConsoles(consoles, &play_settings);
@@ -1087,9 +1087,9 @@ bool MainWindow::StartSession(Loaded* entry, QString& error) {
     });
     entry->session->SetDiscCallback([](int32_t index, int32_t result) {
         ReaderUi::PostToGui([index, result] {
-            ReaderUi::Notify(result != 0    ? QStringLiteral("The disc could not be changed")
-                             : index < 0    ? QStringLiteral("The tray is open")
-                                            : QStringLiteral("Disc %1 is in").arg(index + 1));
+            ReaderUi::Notify(result != 0    ? QStringLiteral("Couldn't change disc")
+                             : index < 0    ? QStringLiteral("Disc tray open")
+                                            : QStringLiteral("Disc %1 inserted").arg(index + 1));
         });
     });
     // A core's message for the player (RetroAchievements' unlocks), where the game is shown.
@@ -1103,10 +1103,10 @@ bool MainWindow::StartSession(Loaded* entry, QString& error) {
     entry->session->SetStateCallback([](uint32_t what, int32_t slot, int32_t result, const std::string& message) {
         ReaderUi::PostToGui([what, slot, result, why = QString::fromStdString(message)] {
             if (result == 0) {
-                ReaderUi::Notify(what == 0 ? QStringLiteral("Saved in slot %1").arg(slot)
+                ReaderUi::Notify(what == 0 ? QStringLiteral("Saved to slot %1").arg(slot)
                                            : QStringLiteral("Slot %1 loaded").arg(slot));
             } else {
-                ReaderUi::Notify((what == 0 ? QStringLiteral("Slot %1 could not be written") : QStringLiteral("Slot %1 could not be loaded"))
+                ReaderUi::Notify((what == 0 ? QStringLiteral("Couldn't save to slot %1") : QStringLiteral("Couldn't load slot %1"))
                                      .arg(slot) +
                                  (why.isEmpty() ? QString() : QStringLiteral(": ") + why));
             }
@@ -1215,15 +1215,15 @@ bool MainWindow::UsePairing(const QString& link, QString& error) {
 void MainWindow::CheckUpdate(bool say) {
     Home::Updater::Check(this, Home::Services::Of(QStringLiteral("files")), [this, say](const Home::Updater::Offer& offer, const QString& error) {
         update_offer = offer;
-        update_said = !error.isEmpty() ? QStringLiteral("NOT KNOWN")
+        update_said = !error.isEmpty() ? QStringLiteral("UNKNOWN")
                       : offer.IsNone() ? QStringLiteral("UP TO DATE")
-                                       : QStringLiteral("A NEW BUILD  ·  ENTER TAKES IT");
+                                       : QStringLiteral("UPDATE AVAILABLE");
         if (!offer.IsNone()) {
             // Said once on the page, whoever asked: what changed, where the index says it.
-            home->Say(offer.changes.isEmpty() ? QStringLiteral("A new build of Furoshiki is on your Files page: Settings, Furoshiki, Update")
-                                              : QStringLiteral("A new build is on your Files page: %1").arg(offer.changes));
+            home->Say(offer.changes.isEmpty() ? QStringLiteral("Update available")
+                                              : QStringLiteral("Update available: %1").arg(offer.changes));
         } else if (say) {
-            home->Say(error.isEmpty() ? QStringLiteral("This is the build your Files page has") : QStringLiteral("The Files page did not answer: %1").arg(error));
+            home->Say(error.isEmpty() ? QStringLiteral("Furoshiki is up to date") : QStringLiteral("Couldn't check for updates: %1").arg(error));
         }
         home->Refresh();
     });
@@ -1236,7 +1236,7 @@ void MainWindow::AskHomeServer(bool say) {
     PairedService(&addresses, &code);
     if (addresses.isEmpty() || code.isEmpty()) {
         if (say) {
-            home->Say(QStringLiteral("Not paired with a save sync service yet: Pair a device"));
+            home->Say(QStringLiteral("Not paired. Pair a device first"));
         }
         return;
     }
@@ -1255,8 +1255,8 @@ void MainWindow::AskHomeServer(bool say) {
     });
     Home::Services::AskPaired(this, addresses, code, [this, say](int count) {
         if (say) {
-            home->Say(count < 0 ? QStringLiteral("The save sync service did not answer")
-                                : count == 0 ? QStringLiteral("It names no other service (its config.json's \"services\")")
+            home->Say(count < 0 ? QStringLiteral("Couldn't reach the save sync service")
+                                : count == 0 ? QStringLiteral("No services found")
                                              : QStringLiteral("%1 services known").arg(count));
         }
         if (count > 0) {
@@ -1456,8 +1456,8 @@ MainWindow::Loaded* MainWindow::CoreFor(const QString& app, const QString& path,
     if (!by_type.isEmpty()) {
         return by_type.first();
     }
-    error = app.isEmpty() ? QStringLiteral("No core here plays .%1 files").arg(suffix)
-                          : QStringLiteral("No core here plays the games of %1").arg(app);
+    error = app.isEmpty() ? QStringLiteral("Unsupported file type: .%1").arg(suffix)
+                          : QStringLiteral("%1 games aren't supported").arg(app);
     return nullptr;
 }
 
@@ -1544,7 +1544,7 @@ bool MainWindow::Play(const QString& chosen, const QString& app, QString& error)
                 // The wizard's game: it says which it is now, and goes on the shelf read by OCR.
                 ocr_pending.clear();
                 if (HasScript(id)) {
-                    ReaderUi::Notify(QStringLiteral("This game has a script: it is read by it"));
+                    ReaderUi::Notify(QStringLiteral("This game already has a script"));
                 } else if (Lines::Sources sources = Lines::Load(SharedFolder()); Lines::GameOf(sources, id) == nullptr) {
                     Lines::SetGame(sources, PlayingCoreGame());
                     Lines::Save(SharedFolder(), sources);
@@ -1595,12 +1595,12 @@ bool MainWindow::StartAddons(const QString& console_key, const QString& game) {
         QString problem;
         if (!companions->Start(addon, &problem)) {
             qWarning("add-on %s: its companion did not start: %s", qPrintable(addon.name), qPrintable(problem));
-            ReaderUi::Notify(QStringLiteral("%1's companion did not start").arg(addon.name));
+            ReaderUi::Notify(QStringLiteral("Couldn't start %1 companion").arg(addon.name));
         } else if (!was) {
             qInfo("add-on %s: its companion started", qPrintable(addon.name));
             ReaderUi::Notify(addon.url.isEmpty()
-                                 ? QStringLiteral("%1's companion is on").arg(addon.name)
-                                 : QStringLiteral("%1's companion: %2 (Escape: Open the companion)").arg(addon.name, addon.url));
+                                 ? QStringLiteral("%1 companion started").arg(addon.name)
+                                 : QStringLiteral("%1 companion: %2").arg(addon.name, addon.url));
         }
     }
     return scripts;
@@ -1652,7 +1652,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
         title = Lines::PathOf(known) == path ? &known : title;
     }
     if (title == nullptr) {
-        error = QStringLiteral("No title is read from %1").arg(path);
+        error = QStringLiteral("No game uses %1").arg(path);
         return false;
     }
     const bool by_ocr = title->by == QStringLiteral("ocr");
@@ -1681,7 +1681,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
         const QString host = address.host().toLower();
         if (address.port() == session.Settings().TextHookPort() &&
             (host == QStringLiteral("localhost") || host == QStringLiteral("127.0.0.1") || host == QStringLiteral("::1"))) {
-            error = QStringLiteral("%1 is Furoshiki's own text server: give it or the lines another port").arg(sources.address);
+            error = QStringLiteral("%1 is Furoshiki's text server. Use another port").arg(sources.address);
             return false;
         }
     }
@@ -1717,7 +1717,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
             }
             ocr->ReadAsked([this](bool ok, const QString& what) {
                 if (!ok && ocr != nullptr && ocr->Running()) {
-                    strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), what.isEmpty() ? QStringLiteral("nothing read on request") : what);
+                    strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), what.isEmpty() ? QStringLiteral("No text read") : what);
                 }
             });
         };
@@ -1748,8 +1748,8 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
     strip->SetLine({});
     strip->Place();
     strip->show();
-    home->Notify(by_ocr ? QStringLiteral("Reading %1 from the window \"%2\": %3").arg(title->title, title->window, ocr->Status())
-                        : QStringLiteral("Reading %1 from lines: %2").arg(title->title, lines->Status()));
+    home->Notify(by_ocr ? QStringLiteral("%1 · Window \"%2\": %3").arg(title->title, title->window, ocr->Status())
+                        : QStringLiteral("%1 · Lines: %2").arg(title->title, lines->Status()));
     return true;
 }
 
@@ -1807,7 +1807,7 @@ bool MainWindow::ReadHook(const Lines::Title& title, QString& error) {
     strip->SetLine({});
     strip->Place();
     strip->show();
-    home->Notify(QStringLiteral("Reading %1 by a hook: %2").arg(title.title, hook->Status()));
+    home->Notify(QStringLiteral("%1 · Hook: %2").arg(title.title, hook->Status()));
     return true;
 }
 
@@ -1952,7 +1952,7 @@ void MainWindow::StartCoreOcr() {
         return;
     }
     if (!game->area.isValid()) {
-        ReaderUi::Notify(QStringLiteral("Read by OCR: once its text is on the screen, Esc and \"Where its text is…\""));
+        ReaderUi::Notify(QStringLiteral("OCR on. When text appears, press Esc and choose \"Set text area…\""));
         return;
     }
     if (core_ocr == nullptr) {
@@ -1989,7 +1989,7 @@ void MainWindow::SetCoreOcrOn(bool on) {
     ShelveOcrGames();
     if (!on) {
         StopCoreOcr();
-        ReaderUi::Notify(QStringLiteral("This game is no longer read by OCR"));
+        ReaderUi::Notify(QStringLiteral("OCR off"));
     } else if (game.area.isValid()) {
         StartCoreOcr();
     } else {
@@ -2008,7 +2008,7 @@ void MainWindow::AskCoreArea() {
             return;
         }
         if (picture.isNull()) {
-            ReaderUi::Notify(QStringLiteral("The core gives no picture of the game to draw the area on"));
+            ReaderUi::Notify(QStringLiteral("No game image to select from"));
             return;
         }
         StopCoreOcr();
@@ -2054,7 +2054,7 @@ void MainWindow::ReadAskedBoxes() {
     }
     core_ocr->ReadAsked([](bool ok, const QString& what) {
         if (!ok) {
-            ReaderUi::Notify(what.isEmpty() ? QStringLiteral("Nothing read on request") : what);
+            ReaderUi::Notify(what.isEmpty() ? QStringLiteral("No text read") : what);
         }
     });
 }
@@ -2683,23 +2683,23 @@ HomeWindow::ConsoleSetup MainWindow::SetupOf(const QString& key) const {
         const QStringList bios = files({QStringLiteral("*.bin"), QStringLiteral("*.BIN")}, key == QStringLiteral("ps1") ? 512 * 1024 : 4 * 1024 * 1024);
         setup.ready = !bios.isEmpty();
         setup.status = setup.ready ? QStringLiteral("BIOS %1").arg(bios.join(QStringLiteral(", ")))
-                                   : QStringLiteral("THE CONSOLE'S BIOS IS NEEDED (A .BIN OF YOUR OWN CONSOLE)");
+                                   : QStringLiteral("BIOS REQUIRED");
     } else if (key == QStringLiteral("switch")) {
         setup.ready = folder.exists(QStringLiteral("prod.keys"));
         const bool firmware = QDir(setup.system_folder + QStringLiteral("/nand/system/Contents/registered")).isEmpty() == false;
-        setup.status = setup.ready ? QStringLiteral("KEYS FOUND%1").arg(firmware ? QStringLiteral(", FIRMWARE IN THE NAND") : QStringLiteral(", NO FIRMWARE"))
-                                   : QStringLiteral("PROD.KEYS FROM YOUR OWN SWITCH IS NEEDED");
+        setup.status = setup.ready ? QStringLiteral("KEYS FOUND%1").arg(firmware ? QStringLiteral(", FIRMWARE INSTALLED") : QStringLiteral(", NO FIRMWARE"))
+                                   : QStringLiteral("PROD.KEYS REQUIRED");
     } else if (key == QStringLiteral("dc")) {
         const QStringList bios = files({QStringLiteral("dc_boot.bin"), QStringLiteral("dc/dc_boot.bin")}, 0);
         setup.status = bios.isEmpty() && !folder.exists(QStringLiteral("dc/dc_boot.bin"))
-                           ? QStringLiteral("NOTHING NEEDED (FLYCAST'S OWN BIOS; DC_BOOT.BIN OF YOURS IF YOU LIKE)")
+                           ? QStringLiteral("OPTIONAL (DC_BOOT.BIN)")
                            : QStringLiteral("YOUR DREAMCAST'S BIOS");
     } else if (key == QStringLiteral("3ds")) {
         setup.status = folder.exists(QStringLiteral("sysdata/aes_keys.txt")) || folder.exists(QStringLiteral("aes_keys.txt"))
                            ? QStringLiteral("AES KEYS FOUND")
-                           : QStringLiteral("NOTHING NEEDED FOR DECRYPTED GAMES");
+                           : QStringLiteral("NOT NEEDED FOR DECRYPTED GAMES");
     } else {
-        setup.status = QStringLiteral("NOTHING NEEDED");
+        setup.status = QStringLiteral("NOT NEEDED");
     }
     return setup;
 }
@@ -3240,28 +3240,28 @@ void MainWindow::OpenMenu() {
             ReaderUi::ProgramPaused(false);
             screen->setFocus();
         });
-        QAction* guide_over = menu->addAction(QStringLiteral("Guide's next step over the game"));
+        QAction* guide_over = menu->addAction(QStringLiteral("Show next guide step"));
         guide_over->setObjectName(QStringLiteral("guide-over"));
         connect(guide_over, &QAction::triggered, this, [this] { ToggleGuide(); });
 #endif
         // A game no script reads: read by OCR from the core's own picture (core_ocr.h), the
         // game's own switch, and where its text is.
-        QAction* by_ocr = menu->addAction(QStringLiteral("Read this game by OCR"));
+        QAction* by_ocr = menu->addAction(QStringLiteral("Use OCR for this game"));
         by_ocr->setObjectName(QStringLiteral("ocr-on"));
         by_ocr->setCheckable(true);
         connect(by_ocr, &QAction::triggered, this, [this](bool on) { SetCoreOcrOn(on); });
-        QAction* ocr_area = menu->addAction(QStringLiteral("Where its text is…"));
+        QAction* ocr_area = menu->addAction(QStringLiteral("Set text area…"));
         ocr_area->setObjectName(QStringLiteral("ocr-area"));
         // Not before the menu has closed and let the game go on: the area step stops it itself.
         connect(ocr_area, &QAction::triggered, this, [this] { QTimer::singleShot(0, this, [this] { AskCoreArea(); }); });
-        QAction* ocr_read = menu->addAction(QStringLiteral("Read the boxes read on request"));
+        QAction* ocr_read = menu->addAction(QStringLiteral("Read OCR areas"));
         ocr_read->setObjectName(QStringLiteral("ocr-read"));
         ocr_read->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
         connect(ocr_read, &QAction::triggered, this, [this] { ReadAskedBoxes(); });
-        QAction* folder = menu->addAction(QStringLiteral("Open the save folder"));
+        QAction* folder = menu->addAction(QStringLiteral("Open save folder"));
         connect(folder, &QAction::triggered, this, [this] { OpenSaveFolder(); });
         // The page of the game's add-on's companion (addons.h), in the browser.
-        QAction* companion_page = menu->addAction(QStringLiteral("Open the companion"));
+        QAction* companion_page = menu->addAction(QStringLiteral("Open companion"));
         companion_page->setObjectName(QStringLiteral("companion"));
         connect(companion_page, &QAction::triggered, this, [this] {
             if (const Addon* addon = PlayingCompanion()) {
@@ -3269,7 +3269,7 @@ void MainWindow::OpenMenu() {
             }
         });
         menu->addSeparator();
-        QAction* quit = menu->addAction(QStringLiteral("Back to Furoshiki"));
+        QAction* quit = menu->addAction(QStringLiteral("Quit game"));
         connect(quit, &QAction::triggered, this, [this] { EndGame(); });
         // Out of the program altogether, the game stopped as on closing the window (its last
         // save sent): where a front end such as EmulationStation started the game, the way
@@ -3304,7 +3304,7 @@ void MainWindow::OpenMenu() {
                 const Addon* addon = PlayingCompanion();
                 page->setVisible(addon != nullptr);
                 if (addon != nullptr) {
-                    page->setText(QStringLiteral("Open the companion (%1)").arg(addon->name));
+                    page->setText(QStringLiteral("Open %1 companion").arg(addon->name));
                 }
             }
         });
@@ -3397,9 +3397,9 @@ void MainWindow::SaveStateTo(int slot) {
         image.save(picture);
     });
     if (!current->session->SaveState(slot) && (current->session->Features() & READER_CORE_HAS_STATES) == 0) {
-        ReaderUi::Notify(QStringLiteral("Slot %1 could not be written").arg(slot));
+        ReaderUi::Notify(QStringLiteral("Couldn't save to slot %1").arg(slot));
     } else if ((current->session->Features() & READER_CORE_HAS_STATES) == 0) {
-        ReaderUi::Notify(QStringLiteral("Saved in slot %1").arg(slot)); // a core that does not answer
+        ReaderUi::Notify(QStringLiteral("Saved to slot %1").arg(slot)); // a core that does not answer
     }
 }
 
@@ -3409,7 +3409,7 @@ void MainWindow::LoadStateFrom(int slot) {
     }
     state_slot = slot;
     if (!current->session->LoadState(slot) && (current->session->Features() & READER_CORE_HAS_STATES) == 0) {
-        ReaderUi::Notify(QStringLiteral("Slot %1 could not be loaded").arg(slot));
+        ReaderUi::Notify(QStringLiteral("Couldn't load slot %1").arg(slot));
     } else if ((current->session->Features() & READER_CORE_HAS_STATES) == 0) {
         ReaderUi::Notify(QStringLiteral("Slot %1 loaded").arg(slot));
     }
@@ -3430,7 +3430,7 @@ void MainWindow::FillDiscMenu(QMenu* into) {
         action->setChecked(static_cast<int32_t>(i) == now);
         connect(action, &QAction::triggered, this, [this, i] {
             if (current != nullptr && !current->session->InsertDisc(static_cast<int32_t>(i))) {
-                ReaderUi::Notify(QStringLiteral("The disc could not be changed"));
+                ReaderUi::Notify(QStringLiteral("Couldn't change disc"));
             } else if (i < static_cast<uint32_t>(playing_discs.size())) {
                 // The game starts on this disc next time.
                 QSettings().setValue(QStringLiteral("discs/") + Discs::GroupKey(playing_discs[i]), playing_discs[i]);
@@ -3438,14 +3438,14 @@ void MainWindow::FillDiscMenu(QMenu* into) {
         });
     }
     into->addSeparator();
-    QAction* open = into->addAction(QStringLiteral("Open the tray"));
+    QAction* open = into->addAction(QStringLiteral("Open disc tray"));
     open->setEnabled(now >= 0);
     connect(open, &QAction::triggered, this, [this] {
         if (current != nullptr) {
             current->session->InsertDisc(-1);
         }
     });
-    QAction* add = into->addAction(QStringLiteral("Another disc's file…"));
+    QAction* add = into->addAction(QStringLiteral("Choose disc file…"));
     connect(add, &QAction::triggered, this, [this] {
         if (current == nullptr) {
             return;
@@ -3454,14 +3454,14 @@ void MainWindow::FillDiscMenu(QMenu* into) {
         for (uint32_t i = 0; i < current->core.info->file_type_count; ++i) {
             types.append(QStringLiteral("*.") + QString::fromUtf8(current->core.info->file_types[i]));
         }
-        const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Another disc"), QFileInfo(playing).path(),
+        const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Choose disc"), QFileInfo(playing).path(),
                                                           QStringLiteral("Discs (%1)").arg(types.join(QLatin1Char(' '))));
         if (file.isEmpty() || current == nullptr) {
             return;
         }
         const int32_t index = current->session->AddDisc(QDir::toNativeSeparators(file).toStdString());
         if (index < 0 || !current->session->InsertDisc(index)) {
-            ReaderUi::Notify(QStringLiteral("That disc could not be put in"));
+            ReaderUi::Notify(QStringLiteral("Couldn't insert disc"));
         }
     });
 }
@@ -3482,9 +3482,9 @@ void MainWindow::FillPortMenu(QMenu* into) {
             who = QString::fromUtf8(SDL_GameControllerName(port_pads[port]));
         }
         if (port == 0) {
-            who = who.isEmpty() ? QStringLiteral("keyboard") : who + QStringLiteral(" and the keyboard");
+            who = who.isEmpty() ? QStringLiteral("keyboard") : who + QStringLiteral(" + keyboard");
         }
-        const QString title = QStringLiteral("Port %1: %2").arg(port + 1).arg(who.isEmpty() ? QStringLiteral("nobody") : who);
+        const QString title = QStringLiteral("Port %1: %2").arg(port + 1).arg(who.isEmpty() ? QStringLiteral("None") : who);
         QList<reader_core_device> fitting;
         for (const reader_core_device& device : devices) {
             if (((device.ports >> port) & 1) != 0) {
@@ -3507,7 +3507,7 @@ void MainWindow::FillPortMenu(QMenu* into) {
                 play_settings.Set(setting, QString::number(id), key);
                 play_settings.Save();
                 if (current != nullptr && !current->session->SetPortDevice(port, id)) {
-                    ReaderUi::Notify(QStringLiteral("Port %1 takes it at the next start").arg(port + 1));
+                    ReaderUi::Notify(QStringLiteral("Port %1 changes at next start").arg(port + 1));
                 }
             });
         }
@@ -3523,7 +3523,7 @@ void MainWindow::FillPatchMenu(QMenu* into) {
     const QString game = playing_id;
     const uint32_t features = current->session->Features();
     if (game.isEmpty()) {
-        into->addAction(QStringLiteral("The game is not known yet"))->setEnabled(false);
+        into->addAction(QStringLiteral("Game not identified yet"))->setEnabled(false);
         return;
     }
     if ((features & READER_CORE_HAS_PATCHES) != 0) {
@@ -3583,7 +3583,7 @@ void MainWindow::EditCodes() {
     bool ok = false;
     const QString codes = QInputDialog::getMultiLineText(
         this, QStringLiteral("Cheat codes"),
-        QStringLiteral("Codes for %1, one to a line, as the console's players write them:").arg(game),
+        QStringLiteral("Codes for %1, one per line:").arg(game),
         play_settings.Raw(setting, key, game), &ok);
     ReaderUi::ProgramPaused(false);
     screen->setFocus();
@@ -3593,7 +3593,7 @@ void MainWindow::EditCodes() {
     play_settings.Set(setting, codes.trimmed(), key, game);
     play_settings.Save();
     ApplyPlaySettings(game);
-    ReaderUi::Notify(codes.trimmed().isEmpty() ? QStringLiteral("No cheat codes") : QStringLiteral("Cheat codes in"));
+    ReaderUi::Notify(codes.trimmed().isEmpty() ? QStringLiteral("No cheat codes") : QStringLiteral("Cheat codes applied"));
 }
 
 void MainWindow::OpenSaveFolder() {
@@ -3615,7 +3615,7 @@ void MainWindow::OpenSaveFolder() {
         folder = console_folder + QStringLiteral("/saves");
     }
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(folder))) {
-        ReaderUi::Notify(QStringLiteral("The saves are in %1").arg(QDir::toNativeSeparators(folder)));
+        ReaderUi::Notify(QStringLiteral("Saves: %1").arg(QDir::toNativeSeparators(folder)));
     }
 }
 

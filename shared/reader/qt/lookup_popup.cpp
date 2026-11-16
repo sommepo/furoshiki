@@ -319,7 +319,7 @@ void LookupPopup::ShowMessage(const QString& message, bool offer_dictionaries) {
     }
     add(Span(EscapeHtml(message), Scaled(SensePx), Style::PopupText), false);
     if (offer_dictionaries) {
-        add(Span(EscapeHtml(tr("Open the dictionaries")), Scaled(SensePx), Style::PopupAccent), true);
+        add(Span(EscapeHtml(tr("Open dictionaries")), Scaled(SensePx), Style::PopupAccent), true);
     }
 }
 
@@ -456,10 +456,10 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
         {QStringLiteral("game"), ReaderSession::Instance().GameKey()},
         {QStringLiteral("labels"),
          QJsonObject{{QStringLiteral("add"), tr("Add to Anki")},
-                     {QStringLiteral("book"), tr("Already in Anki: show the note")},
+                     {QStringLiteral("book"), tr("In Anki · Show note")},
                      {QStringLiteral("forms"), tr("forms")},
                      {QStringLiteral("more"), tr("more")},
-                     {QStringLiteral("dictionaries"), tr("Open the dictionaries")},
+                     {QStringLiteral("dictionaries"), tr("Open dictionaries")},
                      {QStringLiteral("listen"), tr("Listen")},
                      {QStringLiteral("stop"), tr("Stop")},
                      {QStringLiteral("keep"), tr("With audio")},

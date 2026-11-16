@@ -245,7 +245,7 @@ void TextStrip::paintEvent(QPaintEvent*) {
 
     if (line.line.text.isEmpty()) {
         p.setPen(look.muted);
-        p.drawText(QPointF(Side, TextTop + QFontMetricsF(look.text).ascent() * 0.7), QStringLiteral("WAITING FOR A LINE"));
+        p.drawText(QPointF(Side, TextTop + QFontMetricsF(look.text).ascent() * 0.7), QStringLiteral("WAITING FOR TEXT"));
         return;
     }
     // The word looked up: a rule in the accent under it.

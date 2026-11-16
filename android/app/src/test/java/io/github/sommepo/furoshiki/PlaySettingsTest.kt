@@ -90,13 +90,13 @@ class PlaySettingsTest {
         val play = PlaySettings(file)
         play.set("sound.volume", "80")
         val inherited = play.page(listOf(volume), "ps2").getJSONObject(0)
-        assertEquals("Same as all consoles", inherited.getString("from"))
+        assertEquals("All consoles", inherited.getString("from"))
         assertFalse(inherited.getBoolean("set"))
         play.set("sound.volume", "60", "ps2")
         val own = play.page(listOf(volume), "ps2").getJSONObject(0)
         assertEquals("", own.getString("from"))
         assertEquals("60", own.getString("value"))
-        assertEquals("Same as its console", play.page(listOf(volume), "ps2", "SLPM-1").getJSONObject(0).getString("from"))
+        assertEquals("Console setting", play.page(listOf(volume), "ps2", "SLPM-1").getJSONObject(0).getString("from"))
     }
 
     @Test

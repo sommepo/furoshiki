@@ -1,7 +1,7 @@
 {
   "name": "Periwinkle",
   "order": 2,
-  "about": "Watercolour periwinkle, an italic serif header and clock, deep-blue text, a pink glow on the chosen row, a pink-framed card",
+  "about": "Periwinkle watercolour, pink accents",
   "page": "#9da7e6",
   "bg": "radial-gradient(ellipse at 18% 18%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(ellipse at 82% 72%,rgba(104,116,214,.5),rgba(104,116,214,0) 55%),radial-gradient(ellipse at 62% 8%,rgba(214,190,255,.55),rgba(214,190,255,0) 48%),radial-gradient(ellipse at 30% 88%,rgba(160,200,255,.45),rgba(160,200,255,0) 50%),linear-gradient(160deg,#aeb7ec,#929de2 52%,#b6bcef)",
 

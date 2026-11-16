@@ -161,7 +161,7 @@ private:
     /// Asks the Files page for another build of the program (updater.h).
     void CheckUpdate(bool say);
     Home::Updater::Offer update_offer;
-    QString update_said{QStringLiteral("ENTER LOOKS")};
+    QString update_said{QStringLiteral("CHECK NOW")};
     QPointer<SettingsWindow> settings_window;
 #ifndef READER_NO_SAVE_SYNC
     QStringList sync_folders; ///< Save sync's notes folder of each console started

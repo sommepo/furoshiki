@@ -52,11 +52,11 @@ QString HookSource::Label() const {
 bool HookSource::Start(const Lines::Title& title_, const QString& shared_, QString& error) {
     Stop();
     if (!Hooks::EngineOf(title_.engine)) {
-        error = QStringLiteral("\"%1\" is no hook engine").arg(title_.engine);
+        error = QStringLiteral("Unknown hook engine: %1").arg(title_.engine);
         return false;
     }
     if (title_.process.isEmpty()) {
-        error = QStringLiteral("%1 does not say which program it is hooked in").arg(title_.title);
+        error = QStringLiteral("%1 has no program set").arg(title_.title);
         return false;
     }
     title = title_;

@@ -101,6 +101,9 @@ class ReaderOverlay(
     private val textView = ReaderTextView(context)
     private val choicesView = ReaderTextView(context)
     private val handle = ImageButton(context)
+
+    /** The panel's buttons: for a finger on the second display, larger than over the game. */
+    private val buttonDp = if (secondary) 56f else 40f
     private val sessionView = StatsLineView(context)
 
     /** Two bars: the statistics are paused. */
@@ -421,7 +424,7 @@ class ReaderOverlay(
         handle.contentDescription = context.getString(R.string.reader_show_panel)
         handle.setOnClickListener { setUserHidden(false) }
         handle.visibility = GONE
-        addView(handle, LayoutParams(dp(40f), dp(40f)))
+        addView(handle, LayoutParams(dp(buttonDp), dp(buttonDp)))
     }
 
     private fun button(icon: Int, description: Int, action: (View) -> Unit) = ImageButton(context).apply {
@@ -429,8 +432,9 @@ class ReaderOverlay(
         imageTintList = ColorStateList.valueOf(ReaderStyle.TEXT)
         setBackgroundColor(Color.TRANSPARENT)
         contentDescription = context.getString(description)
-        setPadding(dp(8f), dp(8f), dp(8f), dp(8f))
-        layoutParams = LinearLayout.LayoutParams(dp(40f), dp(40f))
+        val inset = dp(if (secondary) 14f else 8f)
+        setPadding(inset, inset, inset, inset)
+        layoutParams = LinearLayout.LayoutParams(dp(buttonDp), dp(buttonDp))
         setOnClickListener(action)
     }
 
@@ -659,7 +663,7 @@ class ReaderOverlay(
     private fun applySizes() {
         if (height == 0) return
         // The cap is for the whole panel: take off the button row and the panel's padding.
-        val chrome = dp(40f) + panel.paddingTop + panel.paddingBottom
+        val chrome = dp(buttonDp) + panel.paddingTop + panel.paddingBottom
         // On the second display, the trackpad's, the line is the thing to read there and the app's
         // keys have a strip of their own below: it may take more than over a game.
         val percent = if (secondary) maxOf(settings.panelHeightPercent, SECOND_PANEL_PERCENT) else settings.panelHeightPercent
@@ -795,6 +799,30 @@ class ReaderOverlay(
             }
         }
     }
+
+    /**
+     * Where on this layer a touch is the reader's: the text placed in the game's picture and the
+     * open popup, in its pixels; null when there is none. A layer over another app, which lets
+     * every other touch through to it, catches touches there alone (an app's companion, one screen).
+     */
+    fun readerArea(): Area? {
+        var area: Area? = null
+        for (text in screenText.texts) area = area?.union(text.rows) ?: text.rows
+        lookups.popupArea()?.let { popup ->
+            val shifted = Area(popup.left + lookups.left, popup.top + lookups.top, popup.right + lookups.left, popup.bottom + lookups.top)
+            area = area?.union(shifted) ?: shifted
+        }
+        return area
+    }
+
+    /**
+     * True while this layer draws over the game's own picture: the cursor while it is shown, the
+     * popup and its word's mark. What reads the game from a capture of the screen that holds this
+     * layer (an app's companion, its OCR) waits meanwhile, so as not to read the reader's own marks.
+     */
+    val drawsOverGame: Boolean
+        get() = !secondary && (lookups.isOpen ||
+            cursorOn && (!HoverCursor.always || SystemClock.uptimeMillis() - cursorMoved < CURSOR_IDLE_MS))
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val dimPaint = Paint().apply { color = ReaderStyle.TRACKPAD_DIM }
@@ -952,7 +980,11 @@ class ReaderOverlay(
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (clicking) return super.dispatchTouchEvent(event)
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-            padArea = if (HoverCursor.active) trackpad.firstOrNull { it.contains(event.x, event.y) } else null
+            // The line's panel and an open popup on the trackpad's display are tapped as themselves:
+            // a word of the line looked up there, the popup's buttons pressed; the rest is the pad.
+            val reader = panel.visibility == VISIBLE && LookupLayer.areaOf(panel, this).contains(event.x, event.y) ||
+                lookups.popupContains(event.x - lookups.left, event.y - lookups.top)
+            padArea = if (HoverCursor.active && !reader) trackpad.firstOrNull { it.contains(event.x, event.y) } else null
             padPointer = -1
             if (padArea != null) {
                 // The whole gesture is the trackpad's, to its end: nothing of it is the game's.

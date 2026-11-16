@@ -62,16 +62,16 @@ const QList<Control>& Controls() {
         {QStringLiteral("frequency"), QStringLiteral("Frequency"), QStringLiteral("Text"), Control::Size, 6, 32},
         {QStringLiteral("background"), QStringLiteral("Background"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("text"), QStringLiteral("Text"), QStringLiteral("Colours"), Control::Colour},
-        {QStringLiteral("dim"), QStringLiteral("Quieter text"), QStringLiteral("Colours"), Control::Colour},
+        {QStringLiteral("dim"), QStringLiteral("Secondary text"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("border_colour"), QStringLiteral("Border"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("tag_background"), QStringLiteral("Tag background"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("tag_text"), QStringLiteral("Tag text"), QStringLiteral("Colours"), Control::Colour},
-        {QStringLiteral("unknown"), QStringLiteral("Not-in-Anki mark"), QStringLiteral("Colours"), Control::Colour},
+        {QStringLiteral("unknown"), QStringLiteral("Not in Anki"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("button"), QStringLiteral("Buttons"), QStringLiteral("Colours"), Control::Colour},
         {QStringLiteral("border"), QStringLiteral("Border width"), QStringLiteral("Box"), Control::Size, 0, 12},
         {QStringLiteral("corners"), QStringLiteral("Corners"), QStringLiteral("Box"), Control::Size, 0, 32},
-        {QStringLiteral("padding"), QStringLiteral("Inner space"), QStringLiteral("Box"), Control::Size, 0, 40},
-        {QStringLiteral("spacing"), QStringLiteral("Space between words"), QStringLiteral("Box"), Control::Size, 0, 32},
+        {QStringLiteral("padding"), QStringLiteral("Padding"), QStringLiteral("Box"), Control::Size, 0, 40},
+        {QStringLiteral("spacing"), QStringLiteral("Entry spacing"), QStringLiteral("Box"), Control::Size, 0, 32},
     };
     return controls;
 }

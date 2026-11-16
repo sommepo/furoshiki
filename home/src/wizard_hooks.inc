@@ -239,14 +239,14 @@ void HomeWindow::HookFetch(const QString& kit) {
     }
     if (!Hooks::CanFetch(kit)) {
         sounds.Play(Sound::Refuse);
-        h.fetch_said = kit == QStringLiteral("frida") ? QStringLiteral("FRIDA-INJECT COMES WITH FUROSHIKI'S PACKAGE, IN HOOKS BESIDE THE PROGRAM: IT IS NOT THERE")
+        h.fetch_said = kit == QStringLiteral("frida") ? QStringLiteral("FRIDA-INJECT NOT FOUND IN THE HOOKS FOLDER")
                                                       : QStringLiteral("%1 IS A WINDOWS PROGRAM: IT HOOKS GAMES ON WINDOWS ONLY").arg(Hooks::KitOf(kit).name.toUpper());
         update();
         return;
     }
     if (dry_run && qEnvironmentVariableIsEmpty("READER_HOME_SCRIPTS_URL") && qEnvironmentVariableIsEmpty("READER_HOME_FRIDA_URL")) {
         // A test run fetches nothing from the network unless it names where from.
-        h.fetch_said = QStringLiteral("A TEST RUN FETCHES NOTHING");
+        h.fetch_said = QStringLiteral("DOWNLOADS ARE OFF IN TEST MODE");
         update();
         return;
     }
@@ -267,7 +267,7 @@ void HomeWindow::HookAccept() {
             const QUrl url(w.address.trimmed());
             if (!url.isValid() || url.scheme() != QStringLiteral("ws") || url.host().isEmpty()) {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("\"%1\" is no WebSocket address: ws://host:port").arg(w.address));
+                Say(QStringLiteral("Not a WebSocket address: %1").arg(w.address));
                 return;
             }
             SetLinesAddress(w.address);
@@ -339,7 +339,7 @@ void HomeWindow::HookAccept() {
             // The script is the choice; it must have loaded.
             if (!h.runner.Attached()) {
                 sounds.Play(Sound::Refuse);
-                Say(!h.runner.Fault().isEmpty() ? QStringLiteral("The script is not in the program: %1").arg(h.runner.Fault()) : QStringLiteral("The script has not loaded yet"));
+                Say(!h.runner.Fault().isEmpty() ? QStringLiteral("Couldn't load script: %1").arg(h.runner.Fault()) : QStringLiteral("Script still loading"));
                 return;
             }
         } else {
@@ -348,7 +348,7 @@ void HomeWindow::HookAccept() {
             }
             if (h.chosen.isEmpty()) {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("No thread has said anything yet: go on a line in the game"));
+                Say(QStringLiteral("No text yet. Advance a line in the game"));
                 return;
             }
         }
@@ -493,8 +493,8 @@ QString HomeWindow::AddHookTitle(const QString& title, const Lines::Title& hook)
     const QString id = Lines::AddHook(sources, title, hook, RecordNamed(title.trimmed()));
     if (id.isEmpty() || !Lines::Save(folder, sources)) {
         sounds.Play(Sound::Refuse);
-        Say(id.isEmpty() ? QStringLiteral("A title read by a hook wants a name, an engine and the program it is hooked in")
-                         : QStringLiteral("The titles read from lines could not be written"));
+        Say(id.isEmpty() ? QStringLiteral("Enter a name, choose an engine and a program")
+                         : QStringLiteral("Couldn't save the game"));
         return {};
     }
     if (lines_changed) {
@@ -555,7 +555,7 @@ void HomeWindow::PaintHook(QPainter& p) {
     double x = ShelfLeft;
     x += Put(p, small, x, 49, QStringLiteral("‹  LIBRARY"), l.muted);
     x += Put(p, small, x, 49, QStringLiteral("  ·  "), l.muted);
-    Put(p, small, x, 49, QStringLiteral("ADD A TITLE"), l.ink);
+    Put(p, small, x, 49, QStringLiteral("ADD GAME"), l.ink);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
     right -= Put(p, small, right, 49, QStringLiteral(" / %1  ·  ").arg(steps, 2, 10, QLatin1Char('0')), l.muted, 1);
@@ -570,33 +570,33 @@ void HomeWindow::PaintHook(QPainter& p) {
     QString question, about, keys, key_label;
     switch (w.step) {
     case Wizard::Hook:
-        question = QStringLiteral("FROM WHERE?");
+        question = QStringLiteral("SOURCE");
         keys = QStringLiteral("↑ ↓   ENTER   ESC");
-        key_label = QStringLiteral("GO ON");
+        key_label = QStringLiteral("NEXT");
         break;
     case Wizard::Match: {
-        question = QStringLiteral("HOW IS IT READ?");
+        question = QStringLiteral("HOW SHOULD IT BE READ?");
         keys = QStringLiteral("↑ ↓   ENTER   ESC");
         const QList<int> list = MatchRows(h);
         const int pick = list.value(std::clamp(w.row, 0, static_cast<int>(list.size()) - 1));
-        key_label = h.fetch.Busy() && pick >= -1 ? QStringLiteral("FETCHING THE SCRIPTS") : pick >= 0 ? QStringLiteral("HOOK WITH THIS SCRIPT") : pick == -1 ? QStringLiteral("SEARCH")
-                    : pick == -4 ? QStringLiteral("READ BY OCR") : QStringLiteral("HOOK");
+        key_label = h.fetch.Busy() && pick >= -1 ? QStringLiteral("DOWNLOADING SCRIPTS") : pick >= 0 ? QStringLiteral("HOOK WITH THIS SCRIPT") : pick == -1 ? QStringLiteral("SEARCH")
+                    : pick == -4 ? QStringLiteral("USE OCR") : QStringLiteral("HOOK");
         break;
     }
     case Wizard::Script:
         question = QStringLiteral("WHICH SCRIPT?");
-        keys = have_scripts ? QStringLiteral("TYPE TO SEARCH   ↑ ↓   F5 NEWEST   ENTER   ESC") : QStringLiteral("ENTER   ESC");
-        key_label = h.fetch.Busy() ? QStringLiteral("FETCHING") : have_scripts ? QStringLiteral("USE THIS SCRIPT") : QStringLiteral("FETCH THE SCRIPTS");
+        keys = have_scripts ? QStringLiteral("TYPE TO SEARCH   ↑ ↓   F5 REFRESH   ENTER   ESC") : QStringLiteral("ENTER   ESC");
+        key_label = h.fetch.Busy() ? QStringLiteral("FETCHING") : have_scripts ? QStringLiteral("USE THIS SCRIPT") : QStringLiteral("DOWNLOAD SCRIPTS");
         break;
     case Wizard::Program:
         question = QStringLiteral("WHICH PROGRAM?");
         keys = QStringLiteral("↑ ↓   ENTER   ESC");
-        key_label = h.fetch.Busy() ? QStringLiteral("FETCHING") : kit_here ? QStringLiteral("HOOK THIS PROGRAM") : QStringLiteral("FETCH %1  ·  %2").arg(agent ? QStringLiteral("FRIDA") : engine_name, kit.size.toUpper());
+        key_label = h.fetch.Busy() ? QStringLiteral("FETCHING") : kit_here ? QStringLiteral("HOOK THIS PROGRAM") : QStringLiteral("DOWNLOAD %1  ·  %2").arg(agent ? QStringLiteral("FRIDA") : engine_name, kit.size.toUpper());
         break;
     default:
-        question = agent ? QStringLiteral("WHAT DOES IT SAY?") : QStringLiteral("WHICH IS THE DIALOGUE?");
-        keys = agent ? QStringLiteral("ENTER   ESC") : QStringLiteral("↑ ↓   SPACE ONE MORE   ENTER   ESC");
-        key_label = agent ? QStringLiteral("GO ON") : h.chosen.size() > 1 ? QStringLiteral("USE THESE %1 THREADS").arg(h.chosen.size()) : QStringLiteral("USE THIS THREAD");
+        question = agent ? QStringLiteral("WAITING FOR TEXT") : QStringLiteral("WHICH THREAD IS THE DIALOGUE?");
+        keys = agent ? QStringLiteral("ENTER   ESC") : QStringLiteral("↑ ↓   SPACE ADD   ENTER   ESC");
+        key_label = agent ? QStringLiteral("NEXT") : h.chosen.size() > 1 ? QStringLiteral("USE THESE %1 THREADS").arg(h.chosen.size()) : QStringLiteral("USE THIS THREAD");
         break;
     }
     Put(p, ShelfFont(l.display, 27, 0.02), ShelfLeft, ShelfTop + 44, question, l.ink);
@@ -674,7 +674,7 @@ void HomeWindow::PaintHook(QPainter& p) {
                 const Hooks::Agent::Script& script = h.matches[pick];
                 shown.append({script.name, script.id.isEmpty() ? QStringLiteral("AGENT  ·  %1").arg(script.platform) : QStringLiteral("AGENT  ·  %1").arg(script.id.toUpper()), false});
             } else if (pick == -1) {
-                shown.append({QStringLiteral("Search the scripts"), h.fetch.Busy() ? QStringLiteral("FETCHING …") : have_scripts ? QString::number(scripts) : QStringLiteral("NOT FETCHED"), false});
+                shown.append({QStringLiteral("Search scripts"), h.fetch.Busy() ? QStringLiteral("DOWNLOADING…") : have_scripts ? QString::number(scripts) : QStringLiteral("NOT DOWNLOADED"), false});
             } else if (pick == -2) {
                 shown.append({QStringLiteral("LunaHook"), QString(), false});
             } else if (pick == -3) {
@@ -696,11 +696,11 @@ void HomeWindow::PaintHook(QPainter& p) {
     } else if (w.step == Wizard::Script) {
         const bool japanese = HasJapanese(h.typed);
         Field(p, l, japanese ? ShelfFont(l.text, 22) : ShelfFont(l.mono, 19, 0.02), ShelfLeft, WizardTop + 40, table_width, h.typed,
-              QStringLiteral("SEARCH: A NAME, AN ID, A CONSOLE"), true);
+              QStringLiteral("SEARCH BY NAME, ID OR CONSOLE"), true);
         double y = WizardTop + 104;
         const int shown = 9;
         if (!have_scripts) {
-            Put(p, ShelfFont(l.display, 19, 0.04), ShelfLeft, y + 16, QStringLiteral("NOT FETCHED"), l.muted);
+            Put(p, ShelfFont(l.display, 19, 0.04), ShelfLeft, y + 16, QStringLiteral("NOT DOWNLOADED"), l.muted);
         } else {
             Put(p, tiny, ShelfLeft, y - 30, h.found.isEmpty() ? QStringLiteral("NONE") : QStringLiteral("%1 OF %2").arg(h.found.size()).arg(h.scripts.size()), l.muted);
             const int first = std::clamp(w.row - shown / 2, 0, std::max(0, static_cast<int>(h.found.size()) - shown));
@@ -716,8 +716,8 @@ void HomeWindow::PaintHook(QPainter& p) {
         if (have_scripts && w.row < h.found.size()) {
             const Hooks::Agent::Script& script = h.found[w.row];
             known.append({QStringLiteral("RUNS IN"), script.runs_on.isEmpty() ? script.platform : script.runs_on.toUpper()});
-            known.append({QStringLiteral("GAME'S VERSION"), script.version.isEmpty() ? QStringLiteral("NOT SAID") : script.version.toUpper()});
-            known.append({QStringLiteral("WRITTEN BY"), script.author.isEmpty() ? QStringLiteral("NOT SAID") : script.author.toUpper()});
+            known.append({QStringLiteral("GAME VERSION"), script.version.isEmpty() ? QStringLiteral("UNKNOWN") : script.version.toUpper()});
+            known.append({QStringLiteral("WRITTEN BY"), script.author.isEmpty() ? QStringLiteral("UNKNOWN") : script.author.toUpper()});
         }
         const qint64 fetched = Hooks::ScriptsFetched(shared);
         known.append({QStringLiteral("FETCHED"), fetched > 0 ? QDateTime::fromMSecsSinceEpoch(fetched).toString(QStringLiteral("yyyy-MM-dd")) : QStringLiteral("NOT YET")});
@@ -740,7 +740,7 @@ void HomeWindow::PaintHook(QPainter& p) {
                                                                                   program.is32 ? QStringLiteral("32-BIT") : QStringLiteral("64-BIT")).arg(program.pid), false});
         }
         if (list.isEmpty()) {
-            Put(p, ShelfFont(l.display, 19, 0.04), ShelfLeft, WizardTop + 60, QStringLiteral("NO PROGRAM WITH A WINDOW IS RUNNING"), l.muted);
+            Put(p, ShelfFont(l.display, 19, 0.04), ShelfLeft, WizardTop + 60, QStringLiteral("NO OPEN WINDOWS"), l.muted);
         } else {
             rows(WizardTop + 30, list, first, w.row, false);
         }
@@ -749,7 +749,7 @@ void HomeWindow::PaintHook(QPainter& p) {
             known.append({QStringLiteral("SCRIPT"), h.script.name.toUpper()});
             known.append({QStringLiteral("RUNS IN"), h.script.runs_on.isEmpty() ? h.script.platform : h.script.runs_on.toUpper()});
         }
-        known.append({QStringLiteral("ITS FILES"), kit_here ? QStringLiteral("HERE") : QStringLiteral("NOT FETCHED YET")});
+        known.append({QStringLiteral("FILES"), kit_here ? QStringLiteral("HERE") : QStringLiteral("NOT DOWNLOADED")});
         known.append({QStringLiteral("PROGRAMS"), QString::number(h.programs.size())});
         const double after = facts(WizardTop + 27, known);
         if (!fetching.isEmpty()) {
@@ -774,8 +774,8 @@ void HomeWindow::PaintHook(QPainter& p) {
         const bool failed = h.runner.Running() && !h.runner.Attached() && !h.runner.Fault().isEmpty();
         if (list.isEmpty()) {
             Put(p, ShelfFont(l.display, 19, 0.04), ShelfLeft, WizardTop + 60,
-                !h.runner.Running() ? QStringLiteral("THE HOOK ENDED") : h.runner.Attached() ? QStringLiteral("NOTHING SAID YET")
-                : failed ? (agent ? QStringLiteral("THE SCRIPT STOPPED") : QStringLiteral("THE ENGINE REFUSED")) : QStringLiteral("HOOKING"), l.muted);
+                !h.runner.Running() ? QStringLiteral("HOOK STOPPED") : h.runner.Attached() ? QStringLiteral("NO TEXT YET")
+                : failed ? (agent ? QStringLiteral("SCRIPT STOPPED") : QStringLiteral("ENGINE FAILED")) : QStringLiteral("HOOKING"), l.muted);
             Wrapped(p, body, QRectF(ShelfLeft, WizardTop + 78, table_width, 90),
                     !h.runner.Running() || failed ? h.runner.Fault().toUpper() : QString(), failed ? l.ink : l.muted);
         } else {
@@ -791,10 +791,10 @@ void HomeWindow::PaintHook(QPainter& p) {
         }
         const double after = facts(WizardTop + 27, known);
         // What the engine and the script themselves say, the newest last.
-        Put(p, tiny, WizardSide, after + 12, agent ? QStringLiteral("THE SCRIPT SAYS") : QStringLiteral("THE ENGINE SAYS"), l.muted);
+        Put(p, tiny, WizardSide, after + 12, agent ? QStringLiteral("SCRIPT OUTPUT") : QStringLiteral("ENGINE OUTPUT"), l.muted);
         const QStringList said = h.runner.Said().mid(std::max<qsizetype>(0, h.runner.Said().size() - 5));
         Wrapped(p, tiny, QRectF(WizardSide, after + 26, ShelfRight - WizardSide, key.top() - after - 40),
-                said.isEmpty() ? QStringLiteral("NOTHING YET") : said.join(QLatin1Char('\n')).toUpper(), h.runner.Fault().isEmpty() ? l.muted : l.ink);
+                said.isEmpty() ? QStringLiteral("NO TEXT YET") : said.join(QLatin1Char('\n')).toUpper(), h.runner.Fault().isEmpty() ? l.muted : l.ink);
     }
 
     p.fillRect(QRectF(ShelfLeft, 646, ShelfRight - ShelfLeft, 1), l.rule);

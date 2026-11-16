@@ -1,7 +1,7 @@
 {
   "name": "Slate",
   "order": 1,
-  "about": "Warm grey, dot-matrix type for labels and numbers, a mint glow on the chosen row, a red accent groove",
+  "about": "Warm grey, mint glow",
   "page": "#a8a397",
   "bg": "repeating-conic-gradient(rgba(0,0,0,.035) 0 25%,rgba(0,0,0,0) 0 50%) 0 0/2px 2px,radial-gradient(ellipse at 40% 28%,#cdc9be 0%,#b5b0a4 58%,#9f9a8e 100%)",
 

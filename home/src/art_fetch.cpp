@@ -335,7 +335,7 @@ void Finder::Finish() {
     busy = false;
     const bool found = got_cover || got_spine;
     emit Done(want.game_id, found,
-              found ? QStringLiteral("Box art found: %1").arg(from.join(QStringLiteral(", ")).toLower()) : QStringLiteral("No box art found for %1; its spine is made in its console's look").arg(want.title));
+              found ? QStringLiteral("Box art found: %1").arg(from.join(QStringLiteral(", ")).toLower()) : QStringLiteral("No box art found for %1").arg(want.title));
 }
 
 } // namespace Home::Art

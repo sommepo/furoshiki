@@ -21,6 +21,11 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- A game another app plays read by OCR of the screen (companion/ScreenCapture). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- Its lookups over that game, a see-through layer the companion puts over the other app. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <queries>
         <!-- The other apps, listed on the Apps page while Furoshiki is the home screen. -->
@@ -546,6 +551,20 @@
             android:theme="@style/Theme.Furoshiki.Game" />
 
         <service android:name=".AppSetupService" android:process=":game" android:exported="false" />
+        <!-- Another app's game, read on the second display while that app plays it on the main one. -->
+        <activity
+            android:name=".companion.CompanionActivity"
+            android:process=":game"
+            android:taskAffinity="${applicationId}.companion"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
+            android:theme="@style/Theme.Furoshiki.Game" />
+        <service
+            android:name=".companion.ScreenCapture"
+            android:process=":game"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         <service android:name=".ScanService" android:process=":scan" android:exported="false" />
 
         <activity

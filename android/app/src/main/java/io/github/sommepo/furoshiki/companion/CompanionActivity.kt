@@ -1,0 +1,485 @@
+// SPDX-FileCopyrightText: Furoshiki contributors
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+package io.github.sommepo.furoshiki.companion
+
+import android.app.Activity
+import android.app.ActivityOptions
+import android.content.ComponentName
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.media.projection.MediaProjectionManager
+import android.os.Bundle
+import android.util.TypedValue
+import android.view.Display
+import android.view.Gravity
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import io.github.sommepo.furoshiki.HomeScreen
+import io.github.sommepo.furoshiki.LowerKeys
+import io.github.sommepo.furoshiki.R
+import io.github.sommepo.furoshiki.ocr.OcrSetup
+import io.github.sommepo.furoshiki.ocr.OcrSource
+import io.github.sommepo.furoshiki.reader.ReaderSession
+import io.github.sommepo.furoshiki.reader.cursor.HoverCursor
+import io.github.sommepo.furoshiki.reader.screen.ScreenGeometry
+import io.github.sommepo.furoshiki.reader.ui.ReaderHost
+import io.github.sommepo.furoshiki.reader.ui.ReaderOverlay
+import io.github.sommepo.furoshiki.reader.ui.ScreenTextLayer
+
+/**
+ * Furoshiki as the companion of a game another app plays (GameNative, say): the game on the main
+ * display, this on the second, where the line read by OCR of the screen stands large, a tap on a
+ * word looks it up, and the keys below make a card, open the backlog, read again or set the text
+ * area up. The reading session is the game's own as a console's would be: figures, backlog, cards,
+ * the names, under the title's ID ([AppTitles]).
+ *
+ * Android asks the player to allow the capture each time; once it is allowed, the game is started
+ * on the main display.
+ *
+ * Two ways of reading (the *Over game* key): the line large on this display, a tap on a word
+ * looking it up here; or **over the game**, a see-through layer over the other app on the main
+ * display (Android's *Display over other apps*) drawing the pointer, the words' marks and the
+ * popup where the game shows its text, this display then the trackpad that moves the pointer, as
+ * with a console's game on a handheld with two screens. Touches on the main display stay the game's.
+ *
+ * **On a device with one display** (a phone, a tablet) the companion starts on that display, and
+ * over the game is the only way: the popup on the game's own screen, a tap on a word of the text
+ * read looking it up (a small window over that text and over the open popup catches those taps,
+ * every other touch is the game's), and a small button in the corner bringing this page back with
+ * its keys. Android's *Display over other apps* is asked for before the capture.
+ */
+class CompanionActivity : Activity() {
+    private lateinit var app: String
+    private lateinit var appActivity: String
+    private lateinit var gameId: String
+    private lateinit var title: String
+    private lateinit var status: TextView
+    private lateinit var keys: FrameLayout
+    private var ocr: OcrSource? = null
+    private lateinit var stage: FrameLayout
+
+    /** Over the game: the layer on the main display, while it is there. */
+    private var above: ReaderOverlay? = null
+
+    /** What the process had before: put back as the companion ends (a console's game comes after). */
+    private val armedBefore = HoverCursor.armed
+    private val geometryBefore = ScreenTextLayer.geometryOf
+    private var setting = false
+    private var launched = false
+    private var ended = false
+
+    private val frames get() = ScreenCapture.frames
+
+    /** A device with one display: the companion and the game share it. */
+    private val oneScreen: Boolean by lazy {
+        @Suppress("DEPRECATION")
+        val id = if (android.os.Build.VERSION.SDK_INT >= 30) display?.displayId else windowManager.defaultDisplay.displayId
+        (id ?: Display.DEFAULT_DISPLAY) == Display.DEFAULT_DISPLAY
+    }
+
+    /** One display: the taps on the text read (and on the open popup), and the button back here. */
+    private var catcher: android.view.View? = null
+    private var catcherParams: WindowManager.LayoutParams? = null
+    private var button: android.view.View? = null
+    private var waitingForLayer = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val path = intent.getStringExtra(EXTRA_PATH).orEmpty()
+        val (named, activity) = AppTitles.appOf(path) ?: run {
+            finish()
+            return
+        }
+        app = named
+        appActivity = activity
+        gameId = intent.getStringExtra(EXTRA_GAME).orEmpty()
+        title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifEmpty { gameId }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        ReaderSession.start(this, gameId, title)
+        HomeScreen.setPlaying(this, path, AppTitles.CONSOLE, gameId)
+        ReaderSession.media?.frameSource = { maxWidth, done -> frames.copy(maxWidth, done) }
+
+        val density = resources.displayMetrics.density
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.BLACK)
+        }
+        status = TextView(this).apply {
+            setTextColor(0xFF8A93B5.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = Typeface.MONOSPACE
+            letterSpacing = .12f
+            gravity = Gravity.CENTER_VERTICAL
+            val pad = (16 * density).toInt()
+            setPadding(pad, (10 * density).toInt(), pad, (6 * density).toInt())
+        }
+        root.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // The line and its lookups (the panel holds the line large), or the trackpad over the game.
+        stage = FrameLayout(this)
+        root.addView(stage, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        // OCR's lines are what is pointed at here, a game script or not; the main display's layer
+        // is the whole captured screen, as the places of the text read are fractions of it.
+        HoverCursor.armed = { ReaderSession.isActive }
+        ScreenTextLayer.geometryOf = { secondary, width, height ->
+            // One display: no trackpad, the game's screen is tapped.
+            if (secondary) (if (oneScreen) null else ScreenGeometry.padOnly(width, height))
+            else ScreenGeometry.fromPicture(intArrayOf(width, height, 0, 0, width, height))
+        }
+        keys = FrameLayout(this)
+        root.addView(keys, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        setContentView(root)
+
+        // Over the game, the capture holds Furoshiki's own layer: nothing is looked at while it draws.
+        ocr = OcrSource(this, frames, gameId) { frames.capturing && !setting && !ended && above?.drawsOverGame != true }
+        frames.onChanged = { capturing ->
+            showKeys()
+            say()
+            if (capturing) {
+                ocr?.start()
+                if (!launched) startGame()
+            }
+        }
+        over = oneScreen || getSharedPreferences("game", MODE_PRIVATE).getBoolean(KEY_OVER, true)
+        applyWay()
+        say()
+        showKeys()
+        when {
+            frames.capturing -> frames.onChanged?.invoke(true)
+            // One display: the layer over the game first, as there is nowhere else to read.
+            oneScreen && !android.provider.Settings.canDrawOverlays(this) -> askLayer()
+            else -> askCapture()
+        }
+    }
+
+    private fun askLayer() {
+        waitingForLayer = true
+        Toast.makeText(this, R.string.companion_allow_over, Toast.LENGTH_LONG).show()
+        runCatching {
+            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName")))
+        }
+    }
+
+    // ---- Over the game, or the line below ----
+
+    private var over = false
+
+    /** Builds this display's overlay, and the main display's layer when reading over the game. */
+    private fun applyWay() {
+        if (over && !android.provider.Settings.canDrawOverlays(this)) over = false
+        stage.removeAllViews()
+        removeAbove()
+        // Over the game: no second screen holds the panel, the main display's layer does (and
+        // hides it while the text read has its places); this one is the trackpad alone. With one
+        // display this page, when it is in front, shows the line as the second display would.
+        val host = ReaderHost(this, { !over })
+        stage.addView(
+            ReaderOverlay(this, if (oneScreen) ReaderHost(this, { true }) else host, secondary = true),
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+        if (over) {
+            addAbove(host)
+            if (oneScreen) addTouches()
+        }
+        HoverCursor.refresh()
+    }
+
+    private fun addAbove(host: ReaderHost) {
+        val display = getSystemService(android.hardware.display.DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY) ?: return
+        val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        val windowContext = createDisplayContext(display).createWindowContext(type, null)
+        val context = android.view.ContextThemeWrapper(windowContext, R.style.Theme_Furoshiki_Game)
+        val layer = ReaderOverlay(context, host, secondary = false)
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            android.graphics.PixelFormat.TRANSLUCENT
+        )
+        params.title = "Furoshiki over the game"
+        runCatching { windowContext.getSystemService(WindowManager::class.java).addView(layer, params) }
+            .onSuccess { above = layer }
+            .onFailure { Toast.makeText(this, it.message ?: "Overlay unavailable", Toast.LENGTH_LONG).show() }
+    }
+
+    private fun removeAbove() {
+        stage.removeCallbacks(followText)
+        for (view in listOfNotNull(catcher, button)) {
+            runCatching { (view.context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(view) }
+        }
+        catcher = null
+        catcherParams = null
+        button = null
+        val layer = above ?: return
+        above = null
+        runCatching { (layer.context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(layer) }
+    }
+
+    /**
+     * One display: a window over the text read and the open popup that hands its touches to the
+     * layer (where they look a word up, or press the popup's buttons), and the button back here.
+     */
+    private fun addTouches() {
+        val layer = above ?: return
+        val manager = layer.context.getSystemService(WINDOW_SERVICE) as WindowManager
+        val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        val taps = object : android.view.View(layer.context) {
+            override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+                val target = above ?: return false
+                // A touch anywhere else is the game's, and closes the popup as a tap off it would.
+                if (event.actionMasked == android.view.MotionEvent.ACTION_OUTSIDE) {
+                    if (target.readerArea() != null) ReaderSession.dispatch(ReaderSession.Command.CLOSE_POPUP)
+                    return true
+                }
+                val params = catcherParams ?: return false
+                val moved = android.view.MotionEvent.obtain(event)
+                moved.offsetLocation(params.x.toFloat(), params.y.toFloat())
+                target.dispatchTouchEvent(moved)
+                moved.recycle()
+                return true
+            }
+        }
+        val params = WindowManager.LayoutParams(
+            1, 1, type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            android.graphics.PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            title = "Furoshiki: the text read"
+        }
+        runCatching { manager.addView(taps, params) }.onSuccess {
+            catcher = taps
+            catcherParams = params
+        }
+        // The button back to the companion's page and its keys: small, in the top left corner.
+        val density = resources.displayMetrics.density
+        val size = (40 * density).toInt()
+        val back = TextView(layer.context).apply {
+            text = "ふ"
+            gravity = Gravity.CENTER
+            setTextColor(0xFFECE5D3.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(0x99101A3A.toInt())
+            }
+            setOnClickListener { comeBack() }
+        }
+        val at = WindowManager.LayoutParams(
+            size, size, type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            android.graphics.PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = (8 * density).toInt()
+            // Below the status bar, which stands over every app's layer and would take the touch.
+            val bar = resources.getIdentifier("status_bar_height", "dimen", "android")
+            y = (if (bar > 0) resources.getDimensionPixelSize(bar) else 0) + (8 * density).toInt()
+            title = "Furoshiki: back to the companion"
+        }
+        runCatching { manager.addView(back, at) }.onSuccess { button = back }
+        stage.post(followText)
+    }
+
+    /** The catching window follows the text read and the popup, a few times a second. */
+    private val followText = object : Runnable {
+        override fun run() {
+            val layer = above ?: return
+            val taps = catcher ?: return
+            val params = catcherParams ?: return
+            val area = layer.readerArea()
+            val touchable = area != null && !area.isEmpty
+            val flags = if (touchable) params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+            else params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            val x = area?.left?.toInt() ?: 0
+            val y = area?.top?.toInt() ?: 0
+            val w = area?.width?.toInt()?.coerceAtLeast(1) ?: 1
+            val h = area?.height?.toInt()?.coerceAtLeast(1) ?: 1
+            if (flags != params.flags || x != params.x || y != params.y || w != params.width || h != params.height) {
+                params.flags = flags
+                params.x = x
+                params.y = y
+                params.width = w
+                params.height = h
+                runCatching { (taps.context.getSystemService(WINDOW_SERVICE) as WindowManager).updateViewLayout(taps, params) }
+            }
+            stage.postDelayed(this, FOLLOW_MS)
+        }
+    }
+
+    /** One display: this page, with the line and its keys, in front of the game. */
+    private fun comeBack() {
+        startActivity(Intent(this, CompanionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** The *Over game* key: changes the way, asking Android first for the layer over other apps. */
+    private fun toggleWay() {
+        if (!over && !android.provider.Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, R.string.companion_allow_over, Toast.LENGTH_LONG).show()
+            runCatching {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName")))
+            }
+            return
+        }
+        over = !over
+        getSharedPreferences("game", MODE_PRIVATE).edit().putBoolean(KEY_OVER, over).apply()
+        applyWay()
+        showKeys()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ReaderSession.setReading(true)
+        // One display: this page in front, the layer over the game stands aside until it is back.
+        if (oneScreen) showAbove(false)
+    }
+
+    private fun showAbove(shown: Boolean) {
+        val visibility = if (shown) android.view.View.VISIBLE else android.view.View.GONE
+        for (view in listOfNotNull(above, catcher, button)) view.visibility = visibility
+        if (!shown) ReaderSession.dispatch(ReaderSession.Command.CLOSE_POPUP)
+    }
+
+    override fun onStop() {
+        // One display: the game in front is what is being read, the layer over it shown again.
+        if (!oneScreen) ReaderSession.setReading(false) else if (!ended) showAbove(true)
+        super.onStop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ocr?.reload()
+        if (waitingForLayer && android.provider.Settings.canDrawOverlays(this)) {
+            // One display, back from Android's page with the layer allowed: now the capture.
+            waitingForLayer = false
+            over = true
+            applyWay()
+            showKeys()
+            if (!frames.capturing) askCapture()
+            return
+        }
+        // Back from Android's page for the layer over other apps: over the game, now it is allowed.
+        if (!over && android.provider.Settings.canDrawOverlays(this) && getSharedPreferences("game", MODE_PRIVATE).getBoolean(KEY_OVER, true) && above == null && stage.childCount > 0) {
+            over = true
+            applyWay()
+            showKeys()
+        }
+    }
+
+    override fun onDestroy() {
+        end()
+        super.onDestroy()
+    }
+
+    private fun end() {
+        if (ended) return
+        ended = true
+        frames.onChanged = null
+        removeAbove()
+        HoverCursor.armed = armedBefore
+        ScreenTextLayer.geometryOf = geometryBefore
+        HoverCursor.refresh()
+        ocr?.stop()
+        ScreenCapture.stop(this)
+        ReaderSession.stop()
+        HomeScreen.setPlaying(this, null)
+    }
+
+    // ---- The capture and the game ----
+
+    private fun askCapture() {
+        val manager = getSystemService(MediaProjectionManager::class.java)
+        runCatching { startActivityForResult(manager.createScreenCaptureIntent(), ASK_CAPTURE) }
+            .onFailure { Toast.makeText(this, getString(R.string.companion_no_capture), Toast.LENGTH_LONG).show() }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != ASK_CAPTURE) return
+        if (resultCode == RESULT_OK && data != null) {
+            ScreenCapture.start(this, resultCode, data)
+        } else {
+            say()
+            showKeys()
+        }
+    }
+
+    /** The game's app on the main display, in front there. */
+    private fun startGame() {
+        launched = true
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            .setComponent(ComponentName(app, appActivity))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY)
+        runCatching { startActivity(intent, options.toBundle()) }
+            .onFailure { Toast.makeText(this, getString(R.string.companion_no_app, app), Toast.LENGTH_LONG).show() }
+    }
+
+    // ---- What the display says and its keys ----
+
+    private fun say() {
+        val what = when {
+            frames.capturing -> getString(R.string.companion_reading)
+            else -> getString(R.string.companion_allow)
+        }
+        status.text = (title + "  ·  " + what).uppercase()
+    }
+
+    private fun showKeys() {
+        keys.removeAllViews()
+        val list = if (frames.capturing) listOf(
+            LowerKeys.Key(getString(R.string.companion_key_over), { over }) { toggleWay() }.takeIf { !oneScreen },
+            LowerKeys.Key(getString(R.string.lower_key_read)) { ocr?.readNow() },
+            LowerKeys.Key(getString(R.string.companion_key_area)) { setUpArea() },
+            LowerKeys.Key(getString(R.string.lower_key_stats)) { ReaderSession.toggleStatsPaused() },
+            LowerKeys.Key(getString(R.string.lower_key_card)) { ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD) },
+            LowerKeys.Key(getString(R.string.lower_key_log)) { ReaderSession.dispatch(ReaderSession.Command.BACKLOG) },
+            LowerKeys.Key(getString(R.string.companion_key_game)) { startGame() },
+            LowerKeys.Key(getString(R.string.companion_key_end)) { finish() },
+        ).filterNotNull() else listOf(
+            LowerKeys.Key(getString(R.string.companion_key_allow)) { if (oneScreen && !android.provider.Settings.canDrawOverlays(this)) askLayer() else askCapture() },
+            LowerKeys.Key(getString(R.string.companion_key_end)) { finish() },
+        )
+        keys.addView(LowerKeys.view(this, list))
+    }
+
+    /** The text area drawn over the screen as it stands (the same setup as over a console's game). */
+    private fun setUpArea() {
+        val source = ocr ?: return
+        if (setting || frames.width <= 0) return
+        setting = true
+        frames.copy(frames.width) { bitmap ->
+            if (bitmap == null || ended) {
+                setting = false
+                return@copy
+            }
+            val whole = android.graphics.Rect(0, 0, bitmap.width, bitmap.height)
+            OcrSetup(
+                this, bitmap, whole, source.game,
+                read = { areas -> source.read(bitmap, whole, areas) },
+                onSave = { source.setGame(it) },
+                onClosed = { setting = false },
+            ).show()
+        }
+    }
+
+    companion object {
+        const val EXTRA_PATH = "path"
+        const val EXTRA_GAME = "game"
+        const val EXTRA_TITLE = "title"
+        private const val ASK_CAPTURE = 41
+        private const val KEY_OVER = "companion_over"
+        private const val FOLLOW_MS = 200L
+    }
+}

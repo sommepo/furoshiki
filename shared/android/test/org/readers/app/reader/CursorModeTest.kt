@@ -606,7 +606,7 @@ class CursorModeTest {
         )
         tap(1600f, 300f)
         TestSupport.await("the box to answer") { ShadowToast.getTextOfLatestToast() != null }
-        assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Card not added"))
+        assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Couldn't add card"))
         assertEquals(View.VISIBLE, popup.visibility)
 
         // A tap with the cursor on nothing closes the popup, as a tap beside it would.

@@ -120,7 +120,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 (guide?.shown == true && guide!!.view.let { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }) ||
                 within(drawerHandle, x, y, 10 * density) || within(drawer, x, y, 0f)
         }
-        ocr = io.github.sommepo.furoshiki.ocr.OcrSource(this, surface, gameId) { resumedNow && !inMenu && !leaving && started }
+        ocr = io.github.sommepo.furoshiki.ocr.OcrSource(this, io.github.sommepo.furoshiki.ocr.SurfaceFrames(surface), gameId) { resumedNow && !inMenu && !leaving && started }
         ReaderGlue.stoppedByItself = { if (!leaving) fail(GameNative.lastError()?.removePrefix("core: ") ?: getString(R.string.game_ended)) }
         thread(name = "GameStart") {
             val error = prepare(key)
@@ -302,6 +302,11 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }) { act("stats") },
                 LowerKeys.Key(getString(R.string.lower_key_card)) { act("card") },
                 LowerKeys.Key(getString(R.string.lower_key_log)) { act("log") },
+                // The line shown always (on), or only where the game's own text can't be pointed at:
+                // the second display then the trackpad alone.
+                LowerKeys.Key(getString(R.string.lower_key_line), { !settings.panelAutoHide }) {
+                    settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_AUTO_HIDE, !settings.panelAutoHide).apply()
+                },
                 LowerKeys.Key(getString(R.string.lower_key_explain)) { act("explain") }.takeIf { Explain.offered(this) },
                 LowerKeys.Key(getString(R.string.lower_key_read)) { act("ocr_now") }.takeIf { ocr?.active == true },
                 LowerKeys.Key(getString(R.string.lower_key_guide), { guide?.shown == true }) { act("guide") }.takeIf { guide?.offered() == true },
@@ -723,22 +728,29 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         leaving = true
         guide?.hide()
         ocr?.stop()
+        var gone = false
+        // The game ends here whatever its core does: one that never comes back from stopping (a
+        // hung emulator thread) left the game "in play" and its process running behind the shelf.
+        val go = Runnable {
+            if (gone) return@Runnable
+            gone = true
+            HomeScreen.setPlaying(this, null)
+            if (HomeScreen.chosen(this)) {
+                // The page is the home screen, in a task of its own: this one goes whole.
+                startActivity(HomeScreen.home())
+                finishAndRemoveTask()
+            } else {
+                startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+                finish()
+            }
+            Process.killProcess(Process.myPid())
+        }
+        window.decorView.postDelayed(go, LEAVE_AT_MOST_MS)
         thread(name = "GameEnd") {
             if (started) GameNative.stop()
             runOnUiThread { ReaderSession.stop() }
             ReaderSession.awaitStopped(3000)
-            runOnUiThread {
-                HomeScreen.setPlaying(this, null)
-                if (HomeScreen.chosen(this)) {
-                    // The page is the home screen, in a task of its own: this one goes whole.
-                    startActivity(HomeScreen.home())
-                    finishAndRemoveTask()
-                } else {
-                    startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
-                    finish()
-                }
-                Process.killProcess(Process.myPid())
-            }
+            runOnUiThread(go)
         }
     }
 
@@ -935,6 +947,9 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     }
 
     companion object {
+        /** How long the game may take to stop before it is ended anyway. */
+        private const val LEAVE_AT_MOST_MS = 4000L
+
         const val EXTRA_PATH = "path"
         const val EXTRA_CONSOLE = "console"
         const val EXTRA_GAME = "game"

@@ -1228,7 +1228,7 @@ int Rebuild(const QString& shared, QString& said) {
     QDir().mkpath(hooks);
     QSaveFile out(IndexFile(shared));
     if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(ToJson(games)).toJson(QJsonDocument::Compact)) < 0 || !out.commit()) {
-        said = QStringLiteral("The hooks could not be kept in %1").arg(IndexFile(shared));
+        said = QStringLiteral("Couldn't save hooks to %1").arg(IndexFile(shared));
         return -1;
     }
     QStringList known;
@@ -1346,7 +1346,7 @@ bool IsDescription(const QString& source) {
 bool Install(const Game& game, const QString& id, const QString& title, const QString& profiles, QString& error) {
     const QString file = profiles + u'/' + id + QStringLiteral(".lua");
     if (QFileInfo::exists(file) && !IsDescription(ReadText(file))) {
-        error = QStringLiteral("%1 has a script of its own already").arg(id);
+        error = QStringLiteral("%1 already has a script").arg(id);
         return false;
     }
     QDir().mkpath(profiles);

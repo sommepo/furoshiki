@@ -1,7 +1,7 @@
 {
   "name": "Silver",
   "order": 3,
-  "about": "Pale brushed silver, orange accents, the clock in a small green LCD panel",
+  "about": "Brushed silver, orange accents",
   "page": "#c3cad6",
   "bg": "repeating-linear-gradient(0deg,rgba(255,255,255,.22) 0 1px,rgba(255,255,255,0) 1px 3px),radial-gradient(ellipse at 30% 0%,rgba(255,255,255,.75),rgba(255,255,255,0) 55%),linear-gradient(180deg,#e9edf3 0%,#cbd2dd 58%,#b4bcca 100%)",
 

@@ -1755,7 +1755,7 @@ function handler(regs, index) {
         QTemporaryDir profiles;
         QString error;
         Write(profiles.filePath(QStringLiteral("ULJM00002.lua")), "-- reader: title Ours\nreader.hook(0, function() end)\n");
-        CHECK(!Install(two.value(0), QStringLiteral("ULJM00002"), {}, profiles.path(), error) && error.contains(QStringLiteral("script of its own")));
+        CHECK(!Install(two.value(0), QStringLiteral("ULJM00002"), {}, profiles.path(), error) && error.contains(QStringLiteral("already has a script")));
         CHECK(Install(one.value(0), QStringLiteral("ULJM00001"), {}, profiles.path(), error));
         CHECK(Choose(profiles.path(), QStringLiteral("ULJM00001"), {QStringLiteral("0x8870320")}, error));
         QFile chosen(profiles.filePath(QStringLiteral("ULJM00001.lua")));

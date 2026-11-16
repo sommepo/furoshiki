@@ -199,13 +199,13 @@ std::optional<QByteArray> Fetch(const QUrl& url, QString* error) {
     if (url.isLocalFile()) {
         QFile file(url.toLocalFile());
         if (!file.open(QIODevice::ReadOnly)) {
-            *error = Tr("Cannot read %1: %2").arg(url.toLocalFile(), file.errorString());
+            *error = Tr("Couldn't read %1: %2").arg(url.toLocalFile(), file.errorString());
             return std::nullopt;
         }
         return file.readAll();
     }
     if (url.scheme() != QStringLiteral("https") && url.scheme() != QStringLiteral("http")) {
-        *error = Tr("%1 is not an address the app can fetch").arg(url.toString());
+        *error = Tr("Invalid address: %1").arg(url.toString());
         return std::nullopt;
     }
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -247,13 +247,13 @@ QString StateText(const Row& row, bool list_known) {
         case State::Own:
             return Tr("Your own script");
         case State::TooNew:
-            return Tr("Needs a newer app");
+            return Tr("Requires update");
         }
     }
     if (row.user) {
         return list_known ? Tr("Your own script") : Tr("Installed");
     }
-    return row.bundled ? Tr("Comes with the app") : QString();
+    return row.bundled ? Tr("Built-in") : QString();
 }
 
 } // namespace
@@ -265,9 +265,7 @@ void RunGameScriptsDialog(QWidget* parent) {
     dialog.resize(820, 560);
     auto* layout = new QVBoxLayout(&dialog);
     auto* about = new QLabel(
-        Tr("A game's text is read by a script written for that game. Install one from the list "
-           "published with the app, or a file of your own. A game with a script carries a book "
-           "badge in the game list; a script installed while its game runs is used at once."));
+        Tr("Scripts let Furoshiki read each game's text."));
     about->setWordWrap(true);
     layout->addWidget(about);
 
@@ -294,9 +292,9 @@ void RunGameScriptsDialog(QWidget* parent) {
     auto* buttons = new QHBoxLayout;
     auto* install = new QPushButton(Tr("Install"));
     auto* remove = new QPushButton(Tr("Remove"));
-    auto* from_file = new QPushButton(Tr("Install from a file…"));
-    auto* again = new QPushButton(Tr("Look at the list again"));
-    auto* folder_button = new QPushButton(Tr("Open the folder"));
+    auto* from_file = new QPushButton(Tr("Install from file…"));
+    auto* again = new QPushButton(Tr("Refresh"));
+    auto* folder_button = new QPushButton(Tr("Open folder"));
     install->setObjectName(QStringLiteral("reader_scripts_install"));
     remove->setObjectName(QStringLiteral("reader_scripts_remove"));
     for (QPushButton* button : {install, remove, from_file, again, folder_button}) {
@@ -332,7 +330,7 @@ void RunGameScriptsDialog(QWidget* parent) {
         install->setEnabled(row && row->state && *row->state != State::Installed &&
                             *row->state != State::TooNew);
         install->setText(row && row->state == State::Update ? Tr("Update")
-                         : row && row->state == State::Own  ? Tr("Replace with the list's")
+                         : row && row->state == State::Own  ? Tr("Replace with latest")
                                                              : Tr("Install"));
         remove->setEnabled(row && row->user);
     };
@@ -395,8 +393,7 @@ void RunGameScriptsDialog(QWidget* parent) {
         // An app that publishes no list (console.h) shows what it comes with and the user's own.
         if (IndexAddress().isEmpty()) {
             again->setVisible(false);
-            status->setText(Tr("This app has no published list of scripts: these are the ones it "
-                               "comes with and your own."));
+            status->setText(Tr("Built-in and your own scripts"));
             fill();
             return;
         }
@@ -407,7 +404,7 @@ void RunGameScriptsDialog(QWidget* parent) {
             index = ReaderApp::Scripts::ParseIndex(*bytes, &error);
         }
         if (index) {
-            status->setText(Tr("Scripts in the published list: %1.").arg(index->entries.size()));
+            status->setText(Tr("%1 scripts available").arg(index->entries.size()));
             // The names dictionaries of the scripts installed from the list, new or changed
             // since (a script installed before its game's names were listed has none).
             QStringList fetched;
@@ -423,7 +420,7 @@ void RunGameScriptsDialog(QWidget* parent) {
                 }
             }
         } else {
-            status->setText(Tr("The list of scripts could not be had: %1").arg(error));
+            status->setText(Tr("Couldn't load the script list: %1").arg(error));
         }
         fill();
     };
@@ -452,7 +449,7 @@ void RunGameScriptsDialog(QWidget* parent) {
         const ReaderApp::Scripts::Entry entry = *row->entry;
         if (row->state == State::Own &&
             QMessageBox::question(&dialog, Tr("Game scripts"),
-                                  Tr("Your own script of %1 is replaced by the list's.")
+                                  Tr("Replace your script for %1?")
                                       .arg(entry.title),
                                   QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
             return;
@@ -477,10 +474,10 @@ void RunGameScriptsDialog(QWidget* parent) {
             }
         }
         if (files.size() == wanted.size() && folder.Install(entry, files, &error)) {
-            status->setText(Tr("Installed the script of %1.").arg(entry.title));
+            status->setText(Tr("Installed script for %1").arg(entry.title));
             changed({entry.id});
         } else {
-            status->setText(Tr("The script of %1 was not installed: %2").arg(entry.title, error));
+            status->setText(Tr("Couldn't install script for %1: %2").arg(entry.title, error));
         }
     });
     QObject::connect(remove, &QPushButton::clicked, &dialog, [&] {
@@ -490,22 +487,22 @@ void RunGameScriptsDialog(QWidget* parent) {
         }
         const QString id = row->id;
         const QString title = row->title;
-        QString text = Tr("The script of %1 is removed from the app's folder.").arg(title);
+        QString text = Tr("Remove the script for %1?").arg(title);
         if (row->bundled) {
-            text += u' ' + Tr("The one that comes with the app is used again.");
+            text += u' ' + Tr("The built-in script will be used.");
         }
         if (QMessageBox::question(&dialog, Tr("Game scripts"), text,
                                   QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
             return;
         }
         folder.Remove(id);
-        status->setText(Tr("Removed the script of %1.").arg(title));
+        status->setText(Tr("Removed script for %1").arg(title));
         changed({id});
     });
     QObject::connect(from_file, &QPushButton::clicked, &dialog, [&] {
         const QStringList paths = QFileDialog::getOpenFileNames(
             &dialog, Tr("Install game scripts"), QString(),
-            Tr("Game scripts and their data (*.lua *.charset *.bin);;All files (*)"));
+            Tr("Game scripts (*.lua *.charset *.bin);;All files (*)"));
         if (paths.isEmpty()) {
             return;
         }

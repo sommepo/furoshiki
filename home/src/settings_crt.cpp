@@ -238,20 +238,19 @@ void SettingsWindow::FillCrtRows() {
     filling = false;
     const bool own = play.IsSet(CrtLayers::Key, layer.console, layer.game);
     if (layer.console.isEmpty()) {
-        crt_note->setText(own ? QStringLiteral("Every console's games, unless a console or a game has its own.")
-                              : QStringLiteral("Every console's games, unless a console or a game has its own. "
-                                               "Nothing changed here yet."));
+        crt_note->setText(own ? QStringLiteral("Applies to all consoles unless overridden.")
+                              : QStringLiteral("Applies to all consoles unless overridden."));
         crt_follow->setText(QStringLiteral("Reset to defaults"));
         crt_follow->setEnabled(own);
     } else if (layer.game.isEmpty()) {
-        crt_note->setText(own ? QStringLiteral("This console has values of its own; the rest are all consoles'.")
-                              : QStringLiteral("Same as all consoles: a change here is this console's alone."));
-        crt_follow->setText(QStringLiteral("Same as all consoles"));
+        crt_note->setText(own ? QStringLiteral("Custom settings for this console.")
+                              : QStringLiteral("Using all-consoles settings."));
+        crt_follow->setText(QStringLiteral("Use all-consoles settings"));
         crt_follow->setEnabled(own);
     } else {
-        crt_note->setText(own ? QStringLiteral("This game has values of its own; the rest are its console's.")
-                              : QStringLiteral("Same as its console: a change here is this game's alone."));
-        crt_follow->setText(QStringLiteral("Same as its console"));
+        crt_note->setText(own ? QStringLiteral("Custom settings for this game.")
+                              : QStringLiteral("Using console settings."));
+        crt_follow->setText(QStringLiteral("Use console settings"));
         crt_follow->setEnabled(own);
     }
 }

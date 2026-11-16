@@ -55,8 +55,8 @@
              (reader/ui/CrtSettings.kt). -->
         <Preference
             app:key="reader_open_crt"
-            app:title="CRT picture"
-            app:summary="Scan lines, phosphor and curved glass: the game as on an old television"
+            app:title="CRT filter"
+            app:summary="Scanlines, phosphor, curvature"
             app:iconSpaceReserved="false" />
         <!-- The app's own page (Console.CONSOLE_PAGE, reader_prefs_console.xml): hidden where
              it has none. -->

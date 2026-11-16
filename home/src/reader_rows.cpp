@@ -69,7 +69,7 @@ const QList<Entry>& Entries() {
             Switch("Click words in the game's text", Settings::KeyScreenText, &Settings::ScreenText),
             Chosen("Look up by pointing", Settings::KeyHoverLookup, text(&Settings::HoverLookup),
                    {{QStringLiteral("Off"), QStringLiteral("off")},
-                    {QStringLiteral("With Shift"), QStringLiteral("shift")},
+                    {QStringLiteral("While holding Shift"), QStringLiteral("shift")},
                     {QStringLiteral("Always"), QStringLiteral("always")}}),
             Chosen("Mark the word looked up", Settings::KeyWordMark, text(&Settings::WordMark),
                    {{QStringLiteral("Outline"), QStringLiteral("outline")},
@@ -133,27 +133,27 @@ const QList<Entry>& Entries() {
         };
         // The buttons on a controller's back, which no game uses.
         QList<Choice> actions{{QStringLiteral("Nothing"), QStringLiteral("none")},
-                              {QStringLiteral("Pause the game"), QStringLiteral("reader_pause_game")},
-                              {QStringLiteral("Pause the clock"), QStringLiteral("reader_pause_stats")},
+                              {QStringLiteral("Pause game"), QStringLiteral("reader_pause_game")},
+                              {QStringLiteral("Pause timer"), QStringLiteral("reader_pause_stats")},
                               {QStringLiteral("Sentence card"), QStringLiteral("reader_sentence_card")},
                               {QStringLiteral("Word card"), QStringLiteral("reader_word_card")},
-                              {QStringLiteral("Take the card back"), QStringLiteral("reader_undo_card")},
+                              {QStringLiteral("Undo card"), QStringLiteral("reader_undo_card")},
                               {QStringLiteral("Backlog"), QStringLiteral("reader_backlog")},
 #ifndef READER_NO_EXPLAIN
                               {QStringLiteral("Explain"), QStringLiteral("reader_explain")},
 #endif
-                              {QStringLiteral("Close the popup"), QStringLiteral("reader_close_popup")},
-                              {QStringLiteral("Reader menu"), QStringLiteral("reader_menu")},
-                              {QStringLiteral("Menu over the game"), QStringLiteral("furoshiki_game_menu")},
+                              {QStringLiteral("Close popup"), QStringLiteral("reader_close_popup")},
+                              {QStringLiteral("Quick menu"), QStringLiteral("reader_menu")},
+                              {QStringLiteral("Game menu"), QStringLiteral("furoshiki_game_menu")},
                               {QStringLiteral("Full screen"), QStringLiteral("furoshiki_full_screen")},
                               {QStringLiteral("Settings"), QStringLiteral("furoshiki_settings")},
 #ifndef READER_NO_SAVE_SYNC
-                              {QStringLiteral("Show or hide the guide's step"), QStringLiteral("furoshiki_guide")},
-                              {QStringLiteral("Tick the guide's step"), QStringLiteral("furoshiki_guide_done")},
+                              {QStringLiteral("Toggle guide step"), QStringLiteral("furoshiki_guide")},
+                              {QStringLiteral("Check off guide step"), QStringLiteral("furoshiki_guide_done")},
 #endif
-                              {QStringLiteral("Read the on-request boxes (OCR)"), QStringLiteral("furoshiki_ocr_read")}};
+                              {QStringLiteral("Read OCR areas"), QStringLiteral("furoshiki_ocr_read")}};
         if (Reader::ConsoleTraits::HasNextChoice) {
-            actions.insert(3, {QStringLiteral("Next choice"), QStringLiteral("reader_next_choice")});
+            actions.insert(3, {QStringLiteral("Skip to next choice"), QStringLiteral("reader_next_choice")});
         }
         const char* const names[] = {"Grip 1", "Grip 2", "Grip 3", "Grip 4", "The \"...\" button"};
         for (int button = 1; button <= 5; ++button) {

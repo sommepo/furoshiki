@@ -299,7 +299,7 @@ QString OcrEngineName(const QString& engine) {
            : engine == QStringLiteral("screenai") ? QStringLiteral("Screen AI")
            : engine == QStringLiteral("glens")    ? QStringLiteral("Google Lens")
            : engine == QStringLiteral("meikiocr") ? QStringLiteral("meikiocr")
-                                                  : QStringLiteral("As the helper has it");
+                                                  : QStringLiteral("Default");
 }
 
 QString AddWindow(Sources& sources, const QString& title, const QString& window, const QRectF& area, const QString& record_key,

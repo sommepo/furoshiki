@@ -191,7 +191,7 @@ bool CoreSession::LoadGame(const std::string& game, std::string& error) {
 std::string CoreSession::MissingGame(const std::string& game) {
     namespace fs = std::filesystem;
     if (game.empty()) {
-        return "No game was named";
+        return "No game selected";
     }
     const fs::path path{std::u8string(game.begin(), game.end())};
     std::error_code failed;
@@ -205,13 +205,13 @@ std::string CoreSession::MissingGame(const std::string& game) {
         if (fs::is_symlink(link)) {
             const fs::path to = fs::read_symlink(path, failed);
             const std::u8string named = to.u8string();
-            return "The game's file is a link to something not there: " + game +
+            return "Broken link: " + game +
                    (failed ? std::string() : " (to " + std::string(named.begin(), named.end()) + ")");
         }
-        return "The game's file is not there: " + game;
+        return "Game file not found: " + game;
     }
     if (fs::is_regular_file(target) && !std::ifstream(path, std::ios::binary).is_open()) {
-        return "The game's file cannot be read: " + game;
+        return "Couldn't read game file: " + game;
     }
     return {};
 }

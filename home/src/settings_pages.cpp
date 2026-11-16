@@ -126,17 +126,15 @@ void PairedService(QStringList* addresses, QString* code) {
 QWidget* SettingsWindow::SyncTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Every game's save follows you to your other devices through your save sync service "
-                                          "(the one your other devices use). The quickest way in: the pairing link its page "
-                                          "shows, pasted here."),
+    layout->addWidget(Note(QStringLiteral("Keep your saves in sync across devices. Paste the pairing link from your save sync service."),
                            page));
 
-    auto* pair_box = new QGroupBox(QStringLiteral("Pair with a link"), page);
+    auto* pair_box = new QGroupBox(QStringLiteral("Pairing link"), page);
     auto* pair_row = new QHBoxLayout(pair_box);
     pair_link = new QLineEdit(pair_box);
     pair_link->setPlaceholderText(QStringLiteral("readersync://pair?v=1&sync=…&code=…"));
     auto* paste = new QPushButton(QStringLiteral("Paste"), pair_box);
-    auto* use = new QPushButton(QStringLiteral("Use this link"), pair_box);
+    auto* use = new QPushButton(QStringLiteral("Pair"), pair_box);
     pair_row->addWidget(pair_link, 1);
     pair_row->addWidget(paste);
     pair_row->addWidget(use);
@@ -145,21 +143,20 @@ QWidget* SettingsWindow::SyncTab() {
     const auto use_link = [this] {
         QString error;
         if (!UsePairing(pair_link->text(), &error)) {
-            sync_test->setText(QStringLiteral("Not used: %1.").arg(error));
+            sync_test->setText(QStringLiteral("Couldn't pair: %1").arg(error));
         }
     };
     connect(use, &QPushButton::clicked, this, use_link);
     connect(pair_link, &QLineEdit::returnPressed, this, use_link);
 
-    sync_on = new QCheckBox(QStringLiteral("Sync saves with my other devices"), page);
+    sync_on = new QCheckBox(QStringLiteral("Sync saves"), page);
     layout->addWidget(sync_on);
     auto* form = new QFormLayout;
     auto* addresses_row = new QHBoxLayout;
     sync_addresses = new QListWidget(page);
     sync_addresses->setMaximumHeight(120);
     sync_addresses->setDragDropMode(QAbstractItemView::InternalMove);
-    sync_addresses->setToolTip(QStringLiteral("Tried in this order: the home network's address first, then the Tailscale "
-                                              "network's. Double-click to change one; drag to reorder."));
+    sync_addresses->setToolTip(QStringLiteral("Tried in order. Double-click to edit, drag to reorder."));
     addresses_row->addWidget(sync_addresses, 1);
     auto* address_buttons = new QVBoxLayout;
     auto* add = new QPushButton(QStringLiteral("Add"), page);
@@ -171,15 +168,15 @@ QWidget* SettingsWindow::SyncTab() {
     form->addRow(QStringLiteral("Addresses"), addresses_row);
     sync_code = new QLineEdit(page);
     sync_code->setEchoMode(QLineEdit::PasswordEchoOnEdit);
-    sync_code->setPlaceholderText(QStringLiteral("the code the service shows"));
+    sync_code->setPlaceholderText(QStringLiteral("Pairing code"));
     form->addRow(QStringLiteral("Code"), sync_code);
     sync_device = new QLineEdit(page);
-    form->addRow(QStringLiteral("This device's name"), sync_device);
+    form->addRow(QStringLiteral("Device name"), sync_device);
     layout->addLayout(form);
 
     auto* buttons = new QHBoxLayout;
     auto* test = new QPushButton(QStringLiteral("Test connection"), page);
-    auto* all = new QPushButton(QStringLiteral("Sync every game now"), page);
+    auto* all = new QPushButton(QStringLiteral("Sync all now"), page);
     auto* conflicts = new QPushButton(QStringLiteral("Conflicts and versions…"), page);
     buttons->addWidget(test);
     buttons->addWidget(all);
@@ -213,7 +210,7 @@ QWidget* SettingsWindow::SyncTab() {
         if (SaveSync::Host::Started()) {
             SaveSync::Host::SyncAll();
         } else {
-            sync_test->setText(QStringLiteral("Save sync runs with the consoles' cores, and none has started here."));
+            sync_test->setText(QStringLiteral("Save sync isn't available: no emulator cores loaded."));
         }
     });
     connect(conflicts, &QPushButton::clicked, this, [this] {
@@ -303,7 +300,7 @@ bool SettingsWindow::UsePairing(const QString& link, QString* error) {
     Home::Services::Keep(pairing->services);
     pair_link->clear(); // the code is in it
     ShowTab(QStringLiteral("Save sync"));
-    sync_test->setText(QStringLiteral("Paired with %1: %2 addresses. Testing them…")
+    sync_test->setText(QStringLiteral("Paired with %1 (%2 addresses). Testing…")
                            .arg(pairing->name.isEmpty() ? QStringLiteral("the service") : pairing->name)
                            .arg(pairing->sync.size()));
     TestSync();
@@ -315,10 +312,10 @@ void SettingsWindow::TestSync() {
     const SaveSync::Host::Settings settings = CurrentSync();
     const std::vector<SaveSync::Address> addresses = SaveSync::ParseAddresses(settings.addresses);
     if (addresses.empty() || settings.code.empty()) {
-        sync_test->setText(QStringLiteral("An address and the code are needed first."));
+        sync_test->setText(QStringLiteral("Enter an address and a code first."));
         return;
     }
-    sync_test->setText(QStringLiteral("Asking %1 address(es)…").arg(addresses.size()));
+    sync_test->setText(QStringLiteral("Testing %1 address(es)…").arg(addresses.size()));
     // Each address on its own, in the background: which of them answers here and now.
     QPointer<QLabel> out = sync_test;
     std::thread([out, addresses, settings] {
@@ -337,11 +334,11 @@ void SettingsWindow::TestSync() {
                 lines.append(QStringLiteral("✓ %1 answered (%2 ms)").arg(where).arg(took));
             }
         }
-        lines.prepend(good > 0 ? QStringLiteral("Tested %1: the service answered at %2 of %3 addresses.")
+        lines.prepend(good > 0 ? QStringLiteral("%1: %2 of %3 addresses connected.")
                                      .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss")))
                                      .arg(good)
                                      .arg(addresses.size())
-                               : QStringLiteral("No address answered."));
+                               : QStringLiteral("Couldn't connect."));
         QMetaObject::invokeMethod(qApp, [out, text = lines.join(QLatin1Char('\n'))] {
             if (out) {
                 out->setText(text);
@@ -365,17 +362,17 @@ void SettingsWindow::ShowSyncStatus() {
         }
     }
     const quint64 generation = SaveSync::Host::Started() ? SaveSync::Host::Generation() : 0;
-    const QString when = last.isValid() ? QStringLiteral("Last save synced here: %1.").arg(last.toString(QStringLiteral("yyyy-MM-dd HH:mm")))
-                                        : QStringLiteral("No save synced here yet.");
+    const QString when = last.isValid() ? QStringLiteral("Last synced: %1").arg(last.toString(QStringLiteral("yyyy-MM-dd HH:mm")))
+                                        : QStringLiteral("Not synced yet");
     if (generation == sync_seen && sync_status->text().startsWith(when)) {
         return;
     }
     sync_seen = generation;
     QString status = SaveSync::Host::Started() ? QString::fromStdString(SaveSync::Host::Status()).trimmed()
-                                               : QStringLiteral("Save sync starts with the consoles' cores; none has started here.");
+                                               : QStringLiteral("Save sync isn't available: no emulator cores loaded.");
     const int conflicts = SaveSync::Host::Started() ? static_cast<int>(SaveSync::Host::Conflicts().size()) : 0;
     if (conflicts > 0) {
-        status += QStringLiteral("\n%1 game(s) have two different saves: Conflicts and versions… answers them.").arg(conflicts);
+        status += QStringLiteral("\n%1 game(s) have conflicts.").arg(conflicts);
     }
     sync_status->setText(when + (status.isEmpty() ? QString() : QStringLiteral("\n") + status));
 }
@@ -386,9 +383,7 @@ void SettingsWindow::ShowSyncStatus() {
 QWidget* SettingsWindow::AchievementsTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Your RetroAchievements login, handed to each core that has achievements (PCSX2's, "
-                                          "Flycast's) when a game starts. The token is the site's \"Web API key\" or the one "
-                                          "a login gives; your password is never kept."),
+    layout->addWidget(Note(QStringLiteral("Sign in to RetroAchievements. Your password isn't stored."),
                            page));
     auto* form = new QFormLayout;
     ra_user = new QLineEdit(page);
@@ -397,14 +392,14 @@ QWidget* SettingsWindow::AchievementsTab() {
     ra_token = new QLineEdit(page);
     ra_token->setEchoMode(QLineEdit::PasswordEchoOnEdit);
     token_row->addWidget(ra_token, 1);
-    auto* login = new QPushButton(QStringLiteral("Log in with password…"), page);
+    auto* login = new QPushButton(QStringLiteral("Sign in with password…"), page);
     token_row->addWidget(login);
     form->addRow(QStringLiteral("Token"), token_row);
-    ra_hardcore = new QCheckBox(QStringLiteral("Hardcore: no savestates, no cheats, no slowing down"), page);
+    ra_hardcore = new QCheckBox(QStringLiteral("Hardcore mode"), page);
     form->addRow(QString(), ra_hardcore);
     layout->addLayout(form);
     auto* buttons = new QHBoxLayout;
-    auto* forget = new QPushButton(QStringLiteral("Log out"), page);
+    auto* forget = new QPushButton(QStringLiteral("Sign out"), page);
     buttons->addWidget(forget);
     buttons->addStretch(1);
     layout->addLayout(buttons);
@@ -420,8 +415,7 @@ QWidget* SettingsWindow::AchievementsTab() {
                                                : hardcore == QStringLiteral("1"));
     filling = false;
     if (ra_user->text().isEmpty() && !qEnvironmentVariable("READER_RA_USER").isEmpty()) {
-        ra_note->setText(QStringLiteral("Not set here: the login %1 comes from the front end that started Furoshiki "
-                                        "(Batocera's own). One set here comes first.")
+        ra_note->setText(QStringLiteral("Signed in as %1 (from front end)")
                              .arg(qEnvironmentVariable("READER_RA_USER")));
     }
     for (QLineEdit* field : {ra_user, ra_token}) {
@@ -435,7 +429,7 @@ QWidget* SettingsWindow::AchievementsTab() {
         ra_token->clear();
         filling = false;
         StoreAchievements();
-        ra_note->setText(QStringLiteral("Logged out here."));
+        ra_note->setText(QStringLiteral("Signed out"));
     });
     return page;
 }
@@ -453,20 +447,19 @@ void SettingsWindow::StoreAchievements() {
         home->SettingsChanged();
     }
     ra_note->setText(ra_user->text().trimmed().isEmpty()
-                         ? QStringLiteral("No login: the cores play without achievements.")
-                         : QStringLiteral("Kept. It counts from the next game started."));
+                         ? QStringLiteral("Not signed in")
+                         : QStringLiteral("Saved. Applies from the next game"));
 }
 
 void SettingsWindow::LogInAchievements() {
     const QString user = ra_user->text().trimmed();
     if (user.isEmpty()) {
-        ra_note->setText(QStringLiteral("Your user name first."));
+        ra_note->setText(QStringLiteral("Enter your user name first."));
         return;
     }
     bool ok = false;
     const QString password = QInputDialog::getText(this, QStringLiteral("RetroAchievements"),
-                                                   QStringLiteral("The password of %1 (sent to retroachievements.org once, "
-                                                                  "for a token; not kept):")
+                                                   QStringLiteral("Password for %1:")
                                                        .arg(user),
                                                    QLineEdit::Password, {}, &ok);
     if (!ok || password.isEmpty()) {
@@ -480,7 +473,7 @@ void SettingsWindow::LogInAchievements() {
     form.addQueryItem(QStringLiteral("r"), QStringLiteral("login2"));
     form.addQueryItem(QStringLiteral("u"), user);
     form.addQueryItem(QStringLiteral("p"), password);
-    ra_note->setText(QStringLiteral("Logging in…"));
+    ra_note->setText(QStringLiteral("Signing in…"));
     QNetworkReply* reply = network->post(request, form.toString(QUrl::FullyEncoded).toUtf8());
     connect(reply, &QNetworkReply::finished, this, [this, reply, network] {
         const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
@@ -490,10 +483,10 @@ void SettingsWindow::LogInAchievements() {
             ra_token->setText(token);
             filling = false;
             StoreAchievements();
-            ra_note->setText(QStringLiteral("Logged in: the token is kept, the password is not."));
+            ra_note->setText(QStringLiteral("Signed in"));
         } else {
             const QString why = answer.value(QStringLiteral("Error")).toString();
-            ra_note->setText(QStringLiteral("Not logged in: %1").arg(!why.isEmpty() ? why : reply->errorString()));
+            ra_note->setText(QStringLiteral("Couldn't sign in: %1").arg(!why.isEmpty() ? why : reply->errorString()));
         }
         reply->deleteLater();
         network->deleteLater();
@@ -505,9 +498,7 @@ void SettingsWindow::LogInAchievements() {
 QWidget* SettingsWindow::ControllerTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("The lookup pointer always follows the mouse and the Steam Controller's right pad. "
-                                          "It can also be moved with the sticks while a button is held; that button then "
-                                          "stops reaching the game. With None, every button is the game's."),
+    layout->addWidget(Note(QStringLiteral("Hold this button to move the lookup pointer with the sticks."),
                            page));
     auto* form = new QFormLayout;
     pointer_button = new QComboBox(page);
@@ -521,7 +512,7 @@ QWidget* SettingsWindow::ControllerTab() {
             home->SettingsChanged();
         }
     });
-    form->addRow(QStringLiteral("Button that moves the pointer with the sticks"), pointer_button);
+    form->addRow(QStringLiteral("Pointer button"), pointer_button);
     layout->addLayout(form);
     layout->addStretch(1);
     return page;
@@ -532,9 +523,7 @@ QWidget* SettingsWindow::ControllerTab() {
 QWidget* SettingsWindow::ReadingTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Reading time is counted while a game with a script is in front and a new line or a "
-                                          "word looked up came not long ago. Past this, the clock stops until the next line: "
-                                          "playing on without new text is not reading. Shared with the reader apps (reader.ini)."),
+    layout->addWidget(Note(QStringLiteral("Stop the reading timer when no new text appears."),
                            page));
     auto& settings = ReaderUi::ReaderSession::Instance().Settings();
     auto* form = new QFormLayout;
@@ -544,7 +533,7 @@ QWidget* SettingsWindow::ReadingTab() {
     idle_seconds->setSuffix(QStringLiteral(" s"));
     idle_seconds->setSingleStep(5);
     idle_seconds->setValue(static_cast<int>(settings.IdleTimeoutMs() / 1000));
-    form->addRow(QStringLiteral("Reading time stops after, without a new line"), idle_seconds);
+    form->addRow(QStringLiteral("Idle timeout"), idle_seconds);
     layout->addLayout(form);
     connect(idle_seconds, &QSpinBox::valueChanged, this, [this](int value) {
         auto& session = ReaderUi::ReaderSession::Instance();
@@ -554,16 +543,11 @@ QWidget* SettingsWindow::ReadingTab() {
     });
 
     layout->addSpacing(12);
-    layout->addWidget(Note(QStringLiteral("Tidy reading time works every session's time out again from when its lines came: "
-                                          "your own pace in that session (or game) gives how long each line can take at most, "
-                                          "a word looked up shows you were there, and the rest, play without new text, is "
-                                          "taken out. It never adds time. It runs by itself on the session just read when a "
-                                          "game stops; this does every earlier one, with the time above as the longest a "
-                                          "line is read. The time as counted is kept, so it can be put back."),
+    layout->addWidget(Note(QStringLiteral("Recalculate past sessions from when lines appeared."),
                            page));
     auto* buttons = new QHBoxLayout;
-    tidy_button = new QPushButton(QStringLiteral("Tidy reading time"), page);
-    untidy_button = new QPushButton(QStringLiteral("Put back the time as counted"), page);
+    tidy_button = new QPushButton(QStringLiteral("Recalculate reading time"), page);
+    untidy_button = new QPushButton(QStringLiteral("Restore original times"), page);
     buttons->addWidget(tidy_button);
     buttons->addWidget(untidy_button);
     buttons->addStretch(1);
@@ -588,7 +572,7 @@ void SettingsWindow::TidyReading(bool undo) {
         self->tidy_button->setEnabled(true);
         self->untidy_button->setEnabled(true);
         if (undo) {
-            self->tidy_note->setText(QStringLiteral("The time as counted is back in %1 sessions.").arg(report.sessions));
+            self->tidy_note->setText(QStringLiteral("Restored %1 sessions").arg(report.sessions));
         } else {
             self->tidy_note->setText(Home::TidyReportText(report));
         }
@@ -609,9 +593,9 @@ QString TidyReportText(const ReaderApp::TidyReport& report) {
         return per_hour ? locale.toString(static_cast<qint64>(*per_hour)) + QStringLiteral("/h") : QStringLiteral("–");
     };
     if (report.sessions == 0) {
-        return QStringLiteral("No session to tidy.");
+        return QStringLiteral("No sessions to recalculate");
     }
-    return QStringLiteral("%1 sessions looked at, %2 shortened: %3 → %4 (%5 → %6 characters an hour).")
+    return QStringLiteral("%1 sessions checked, %2 shortened: %3 → %4 (%5 → %6 characters/hour)")
         .arg(report.sessions)
         .arg(report.changed)
         .arg(minutes(report.before_ms), minutes(report.after_ms), speed(report.before_ms), speed(report.after_ms));
@@ -623,20 +607,18 @@ QString TidyReportText(const ReaderApp::TidyReport& report) {
 QWidget* SettingsWindow::TextServerTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Every line read, sent as it comes to a WebSocket, as texthooker pages "
-                                          "and sentence-mining tools expect (ws://127.0.0.1:6677 by default). It runs while a "
-                                          "game with a script plays; nothing a page sends is acted on."),
+    layout->addWidget(Note(QStringLiteral("Send lines to texthooker pages over WebSocket."),
                            page));
     auto& settings = ReaderUi::ReaderSession::Instance().Settings();
     auto* form = new QFormLayout;
-    hook_on = new QCheckBox(QStringLiteral("Send the text to a WebSocket"), page);
+    hook_on = new QCheckBox(QStringLiteral("Text server"), page);
     hook_on->setChecked(settings.TextHookEnabled());
     form->addRow(QString(), hook_on);
     hook_port = new QSpinBox(page);
     hook_port->setRange(1024, 65535);
     hook_port->setValue(settings.TextHookPort());
     form->addRow(QStringLiteral("Port"), hook_port);
-    hook_lan = new QCheckBox(QStringLiteral("Other devices on the network too (no password: anyone there can read it)"), page);
+    hook_lan = new QCheckBox(QStringLiteral("Allow other devices (no password)"), page);
     hook_lan->setChecked(settings.TextHookLan());
     form->addRow(QString(), hook_lan);
     layout->addLayout(form);
@@ -667,9 +649,9 @@ void SettingsWindow::StoreTextServer() {
         }
     }
     const QString address = session.TextHookAddress();
-    hook_note->setText(!hook_on->isChecked()  ? QStringLiteral("Off.")
+    hook_note->setText(!hook_on->isChecked()  ? QStringLiteral("Off")
                        : !address.isEmpty() ? QStringLiteral("Listening: %1").arg(address)
-                                             : QStringLiteral("On: ws://%1:%2 while a game with a script plays.")
+                                             : QStringLiteral("ws://%1:%2 (while playing)")
                                                    .arg(hook_lan->isChecked() ? QStringLiteral("<this computer>") : QStringLiteral("127.0.0.1"))
                                                    .arg(hook_port->value()));
 }

@@ -48,7 +48,7 @@ bool LineSource::Start(const QString& by_, const QString& id_, const QString& ti
     Stop();
     if (by_ == QStringLiteral("websocket")) {
         if (!client.Open(address)) {
-            error = QStringLiteral("\"%1\" is no WebSocket address (ws://host:port)").arg(address);
+            error = QStringLiteral("Not a WebSocket address: %1").arg(address);
             return false;
         }
     } else if (by_ == QStringLiteral("clipboard")) {
@@ -56,7 +56,7 @@ bool LineSource::Start(const QString& by_, const QString& id_, const QString& ti
         clipboard_seen = QGuiApplication::clipboard()->text();
         clipboard_poll.start();
     } else {
-        error = QStringLiteral("Lines cannot be read by \"%1\"").arg(by_);
+        error = QStringLiteral("Unknown source: %1").arg(by_);
         return false;
     }
     by = by_;

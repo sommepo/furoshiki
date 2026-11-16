@@ -60,7 +60,7 @@ ControllerScreen::ControllerScreen(QWidget* over, Look look_, ControllerMap::Sto
         }
         if (learning >= 0 && now - learn_since >= LearnWait) {
             Stop();
-            Say(QStringLiteral("Nothing pressed: as it was"));
+            Say(QStringLiteral("No button pressed. Unchanged"));
         }
         update();
     });
@@ -101,8 +101,8 @@ QString ControllerScreen::HandName(const QString& input) const {
 QString ControllerScreen::GameName(const QString& id) const {
     static const QHash<QString, QString> words{{QStringLiteral("up"), QStringLiteral("Up")}, {QStringLiteral("down"), QStringLiteral("Down")},
                                                {QStringLiteral("left"), QStringLiteral("Left")}, {QStringLiteral("right"), QStringLiteral("Right")},
-                                               {QStringLiteral("l3"), QStringLiteral("Left stick, pressed")},
-                                               {QStringLiteral("r3"), QStringLiteral("Right stick, pressed")}};
+                                               {QStringLiteral("l3"), QStringLiteral("Left stick click")},
+                                               {QStringLiteral("r3"), QStringLiteral("Right stick click")}};
     QString name = words.value(id);
     if (name.isEmpty()) {
         name = ControllerMap::PadOf(ConsoleKey()).LabelOf(id);
@@ -253,7 +253,7 @@ void ControllerScreen::Pressed(const QString& input, bool down, bool from_pad) {
             return;
         }
         if (pressed == nullptr || pressed->back > 0) {
-            wizard_note = QStringLiteral("A game's button needs one that can be held, not a back button");
+            wizard_note = QStringLiteral("Game buttons can't use back buttons");
             wizard_since = clock.elapsed();
             return;
         }
@@ -269,7 +269,7 @@ void ControllerScreen::Pressed(const QString& input, bool down, bool from_pad) {
             const Line line = lines[learning];
             Stop();
             if (!ControllerMap::AssignGame(store, line.id, input, ConsoleKey())) {
-                Say(QStringLiteral("A game's button needs one that can be held, not a back button"));
+                Say(QStringLiteral("Game buttons can't use back buttons"));
                 return;
             }
             Say(QStringLiteral("%1 on %2").arg(line.label, name));
@@ -280,7 +280,7 @@ void ControllerScreen::Pressed(const QString& input, bool down, bool from_pad) {
         const QString before = ControllerMap::ActionOn(store, input, ConsoleKey());
         Stop();
         if (!ControllerMap::Assign(store, action, input, ConsoleKey())) {
-            Say(QStringLiteral("%1 needs a button it can hold, not a back button").arg(action.label));
+            Say(QStringLiteral("%1 can't use a back button").arg(action.label));
             return;
         }
         QString was;
@@ -290,7 +290,7 @@ void ControllerScreen::Pressed(const QString& input, bool down, bool from_pad) {
             }
         }
         Say(was.isEmpty() ? QStringLiteral("%1 on %2").arg(action.label, name)
-                          : QStringLiteral("%1 on %2 · it was %3's").arg(action.label, name, was));
+                          : QStringLiteral("%1 set to %2 (was %3)").arg(action.label, name, was));
         lit_at.insert(input, clock.elapsed());
         return;
     }
@@ -336,7 +336,7 @@ void ControllerScreen::Key(int key) {
     if (learning >= 0) {
         if (key == Qt::Key_Escape) {
             Stop();
-            Say(QStringLiteral("As it was"));
+            Say(QStringLiteral("Unchanged"));
         }
         return;
     }
@@ -371,7 +371,7 @@ void ControllerScreen::Key(int key) {
     case Qt::Key_Delete:
         if (lines[row].kind == Line::Game) {
             ControllerMap::ClearGame(store, lines[row].id, ConsoleKey());
-            Say(QStringLiteral("%1 is its own button again").arg(lines[row].label));
+            Say(QStringLiteral("%1 reset").arg(lines[row].label));
             break;
         }
         ControllerMap::Clear(store, ActionAt(row), ConsoleKey());
@@ -436,7 +436,7 @@ void ControllerScreen::mousePressEvent(QMouseEvent* event) {
     }
     if (learning >= 0) {
         Stop();
-        Say(QStringLiteral("As it was"));
+        Say(QStringLiteral("Unchanged"));
         update();
         return;
     }
@@ -637,7 +637,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     const bool asking = !wizard_steps.isEmpty();
     if (!asking) {
         // The wizard's way in: every button of the tab's console asked for in turn.
-        const QString setup = QStringLiteral("START  SET UP EVERY BUTTON");
+        const QString setup = QStringLiteral("START  MAP ALL BUTTONS");
         const double w = QFontMetricsF(small).horizontalAdvance(setup) + 24;
         const QRectF button(Right - w, 32, w, 24);
         p.setPen(QPen(look.ink, 1));
@@ -667,7 +667,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     }
     if (!console.isEmpty() && !asking) {
         const bool own = ControllerMap::HasOwn(store, console);
-        const QString same = own ? QStringLiteral("Y  SAME AS ALL CONSOLES") : QStringLiteral("SAME AS ALL CONSOLES");
+        const QString same = own ? QStringLiteral("Y  RESET TO ALL CONSOLES") : QStringLiteral("ALL CONSOLES");
         const double w = QFontMetricsF(tab_face).horizontalAdvance(same);
         p.setPen(own ? look.ink : look.muted);
         p.drawText(QPointF(Right - w, 102), same);
@@ -691,7 +691,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
         p.setPen(look.muted);
         p.drawText(QPointF(ListLeft, 190), QStringLiteral("%1 / %2  ·  %3").arg(wizard_at + 1).arg(wizard_steps.size()).arg(consoles.value(tab).name.toUpper()));
         p.setFont(look.font(1, 20, 0));
-        p.drawText(QPointF(ListLeft, 250), QStringLiteral("Press your button for"));
+        p.drawText(QPointF(ListLeft, 250), QStringLiteral("Press a button for"));
         p.setFont(look.font(0, 58, 0.01));
         p.setPen(look.ink);
         p.drawText(QRectF(ListLeft, 268, Right - ListLeft, 90), Qt::AlignLeft | Qt::AlignVCenter, GameName(id));
@@ -795,7 +795,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
         if (!bindings.isEmpty() && bindings.first().inherited && !console.isEmpty() && !own_default) {
             p.setFont(number_face);
             p.setPen(look.muted);
-            p.drawText(QRectF(chip_right - 140, y, 140, RowH), Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("ALL CONSOLES'"));
+            p.drawText(QRectF(chip_right - 140, y, 140, RowH), Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("ALL CONSOLES"));
         }
         hits.append({line, 1, i});
         hits.append({learn, 2, i});
@@ -812,10 +812,10 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
         p.drawText(QRectF(Left, 656, 640, 28), Qt::AlignVCenter | Qt::AlignLeft, notice);
     }
     p.setPen(look.muted);
-    const QString keys = asking ? QStringLiteral("EVERY BUTTON IS THE WIZARD'S UNTIL IT ENDS   ·   WAIT TO PASS ONE OVER")
-                         : learning >= 0 ? QStringLiteral("ANY BUTTON  LEARNT   ·   ESC OR A CLICK  AS IT WAS")
-                         : console.isEmpty() ? QStringLiteral("A  LEARN   ·   X  CLEAR   ·   L1 R1  CONSOLE   ·   B  BACK")
-                                             : QStringLiteral("A  LEARN   ·   X  CLEAR   ·   Y  SAME AS ALL CONSOLES   ·   L1 R1  CONSOLE   ·   B  BACK");
+    const QString keys = asking ? QStringLiteral("WAIT TO SKIP A BUTTON")
+                         : learning >= 0 ? QStringLiteral("PRESS ANY BUTTON   ·   ESC OR CLICK  CANCEL")
+                         : console.isEmpty() ? QStringLiteral("A  CHANGE   ·   X  CLEAR   ·   L1 R1  CONSOLE   ·   B  BACK")
+                                             : QStringLiteral("A  CHANGE   ·   X  CLEAR   ·   Y  RESET   ·   L1 R1  CONSOLE   ·   B  BACK");
     p.drawText(QRectF(Left + 640, 656, Right - Left - 640, 28), Qt::AlignVCenter | Qt::AlignRight, keys);
 }
 

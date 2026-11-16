@@ -53,7 +53,7 @@ QString Sha256(const QString& file) {
 
 void Check(QObject* context, const QString& files, std::function<void(const Offer&, const QString&)> done) {
     if (files.isEmpty()) {
-        done({}, QStringLiteral("no Files page is known"));
+        done({}, QStringLiteral("No update server set up"));
         return;
     }
     Services::Ask(context, files + QStringLiteral("/downloads/data/index.json"), QByteArray(), QString(), 15,
@@ -74,7 +74,7 @@ void Take(QObject* context, const Offer& offer, std::function<void(const QString
     QObject::connect(curl, &QProcess::errorOccurred, context, [curl, done](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
             curl->deleteLater();
-            done(QStringLiteral("curl could not be started"));
+            done(QStringLiteral("couldn't start curl"));
         }
     });
     QObject::connect(curl, &QProcess::finished, context, [curl, offer, program, fetched, done](int code, QProcess::ExitStatus status) {
@@ -82,25 +82,25 @@ void Take(QObject* context, const Offer& offer, std::function<void(const QString
         curl->deleteLater();
         if (status != QProcess::NormalExit || code != 0) {
             QFile::remove(fetched);
-            done(said.isEmpty() ? QStringLiteral("the build could not be fetched") : said);
+            done(said.isEmpty() ? QStringLiteral("download failed") : said);
             return;
         }
         // Only the very file the index names goes in the program's place.
         if (Sha256(fetched) != offer.sha256) {
             QFile::remove(fetched);
-            done(QStringLiteral("what was fetched is not the build the Files page names"));
+            done(QStringLiteral("downloaded file doesn't match"));
             return;
         }
         const QString aside = program + QStringLiteral(".old");
         QFile::remove(aside);
         if (!QFile::rename(program, aside)) {
             QFile::remove(fetched);
-            done(QStringLiteral("the program's file could not be moved aside"));
+            done(QStringLiteral("couldn't replace the program file"));
             return;
         }
         if (!QFile::rename(fetched, program)) {
             QFile::rename(aside, program); // as it was
-            done(QStringLiteral("the new program could not be put in place"));
+            done(QStringLiteral("couldn't install the update"));
             return;
         }
         QFile::setPermissions(program, QFile::permissions(aside));

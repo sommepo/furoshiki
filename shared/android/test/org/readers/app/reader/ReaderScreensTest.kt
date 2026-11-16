@@ -147,7 +147,7 @@ class ReaderScreensTest {
     @Test
     fun statisticsSayWhenThereIsNothingYet() {
         val activity = Robolectric.buildActivity(ReaderStatsActivity::class.java).setup().get()
-        TestSupport.await("empty message") { text(activity).contains("No reading recorded yet.") }
+        TestSupport.await("empty message") { text(activity).contains("No reading yet") }
     }
 
     @Test
@@ -233,7 +233,7 @@ class ReaderScreensTest {
         // Back from the dictionaries' screen with one installed: that step says it is done.
         installDictionary()
         controller.pause().resume()
-        assertTrue(text(activity), text(activity).contains("Dictionaries: done"))
+        assertTrue(text(activity), text(activity).contains("Dictionaries: Done"))
         activity.findViewById<Button>(R.id.reader_start_done).performClick()
         assertTrue(activity.isFinishing)
 
@@ -333,9 +333,9 @@ class ReaderScreensTest {
         assertEquals("Settings", heading(activity))
         assertEquals(
             listOf(
-                "Statistics", "Game scripts", "Settings", "Find a setting", "Reading", "Popup",
+                "Statistics", "Game scripts", "Settings", "Search settings", "Reading", "Popup",
                 "Dictionaries", "Cards", "Sources", "Controller"
-            ) + listOfNotNull("Save sync".takeIf { org.readers.app.BuildConfig.READER_SAVE_SYNC }) + listOf("CRT picture") +
+            ) + listOfNotNull("Save sync".takeIf { org.readers.app.BuildConfig.READER_SAVE_SYNC }) + listOf("CRT filter") +
                 listOfNotNull(context.getString(R.string.reader_pref_category_console).takeIf { Console.CONSOLE_PAGE }),
             entries(page.preferenceScreen).map { it.title.toString() }
         )
@@ -383,7 +383,7 @@ class ReaderScreensTest {
         )
         // The few most changed are shown; the rest stand behind "More".
         assertEquals(6, controller.preferenceScreen.initialExpandedChildrenCount)
-        assertTrue(text(activity), text(activity).contains("Press once instead of holding"))
+        assertTrue(text(activity), text(activity).contains("Toggle instead of hold"))
 
         activity.onBackPressedDispatcher.onBackPressed()
         settingsPage(activity)
@@ -497,7 +497,7 @@ class ReaderScreensTest {
 
             val install = TestSupport.find(root(activity), android.widget.Button::class.java) { it.text == "Install" }!!
             install.performClick()
-            TestSupport.await("installed") { text(activity).contains("Installed the script of 作り話.") && text(activity).contains("$id · Installed") }
+            TestSupport.await("installed") { text(activity).contains("Installed script for 作り話") && text(activity).contains("$id · Installed") }
             val file = java.io.File(context.getExternalFilesDir(null), "reader/profiles/$id.lua")
             assertTrue(file.readBytes().contentEquals(madeUp))
             assertTrue(fetched.contains("https://example.invalid/scripts/$id.lua"))
@@ -537,7 +537,7 @@ class ReaderScreensTest {
         assertTrue(shown, shown.contains("作り話 (A Made-up Game)"))
         assertTrue(shown, shown.contains("The story's text and choices"))
         assertTrue(shown, shown.contains("${Console.Test.GAME}, disc version 1.001"))
-        assertTrue(shown, shown.contains("book badge in the game list"))
+        assertTrue(shown, shown.contains("Games need a script"))
         ReaderCatalog.forget()
     }
 
@@ -592,7 +592,7 @@ class ReaderScreensTest {
         val activity = Robolectric.buildActivity(ReaderBacklogActivity::class.java, intent).setup().get()
         TestSupport.await("empty backlog message") {
             TestSupport.find(root(activity), TextView::class.java) {
-                it.text.toString() == "Nothing read yet in this game." && it.visibility == View.VISIBLE
+                it.text.toString() == "No lines yet" && it.visibility == View.VISIBLE
             } != null
         }
     }

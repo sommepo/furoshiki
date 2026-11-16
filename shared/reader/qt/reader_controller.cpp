@@ -133,7 +133,7 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
     connect(&session, &ReaderSession::ProfileStatusChanged, this, [this] {
         const ProfileStatus& status = ReaderSession::Instance().Profile();
         if (!status.error.isEmpty()) {
-            Notify(tr("Text profile: %1").arg(status.error));
+            Notify(tr("Script: %1").arg(status.error));
         }
         cursor->SetArmed(ReaderSession::Instance().IsActive() && status.loaded);
         UpdateMenu();
@@ -252,22 +252,22 @@ void ReaderController::BuildMenu() {
         RunDialog([](QWidget* parent) { RunGameScriptsDialog(parent); });
     });
     menu->addSeparator();
-    action_sentence_card = add(tr("Make a &card of the sentence"),
+    action_sentence_card = add(tr("Add &sentence card"),
                                QStringLiteral("reader_sentence_card"), [this] { MineSentence(); });
     action_backlog = add(tr("&Backlog…"), QStringLiteral("reader_backlog"), [this] {
         RunDialog([](QWidget* parent) { RunBacklogDialog(parent); });
     });
-    action_word_card = add(tr("Make a card of the &word looked up"), QStringLiteral("reader_word_card"), [this] {
+    action_word_card = add(tr("Add &word card"), QStringLiteral("reader_word_card"), [this] {
         if (!lookups->MineShown()) {
-            Notify(tr("Look a word up first"));
+            Notify(tr("Look up a word first"));
         }
     });
-    action_undo_card = add(tr("Take the last card &back"), QStringLiteral("reader_undo_card"),
+    action_undo_card = add(tr("&Undo last card"), QStringLiteral("reader_undo_card"),
                            [this] { lookups->UndoLast(); });
 #ifndef READER_NO_EXPLAIN // a published Furoshiki has no Explain
-    action_explain = add(tr("&Explain this line…"), QStringLiteral("reader_explain"), [this] {
+    action_explain = add(tr("&Explain line…"), QStringLiteral("reader_explain"), [this] {
         if (!ReaderSession::Instance().Current()) {
-            Notify(tr("No line has been read yet"));
+            Notify(tr("No lines yet"));
             return;
         }
         RunDialog([](QWidget* parent) { RunExplainDialog(parent); });
@@ -284,10 +284,10 @@ void ReaderController::BuildMenu() {
         RunDialog([](QWidget* parent) { RunAnkiSetupDialog(parent); });
     });
     // A game's own choice comes before the general one in the settings.
-    menu_card_audio = menu->addMenu(tr("&Line audio on this game's cards"));
+    menu_card_audio = menu->addMenu(tr("Card &audio for this game"));
     auto* audio_group = new QActionGroup(menu_card_audio);
-    const QStringList audio_names{QString(), tr("Always add it"), tr("Ask for each card"),
-                                  tr("Never add it")};
+    const QStringList audio_names{QString(), tr("Always"), tr("Ask each time"),
+                                  tr("Never")};
     for (int index = 0; index < audio_names.size(); ++index) {
         QAction* action = menu_card_audio->addAction(audio_names.at(index));
         action->setCheckable(true);
@@ -310,7 +310,7 @@ void ReaderController::BuildMenu() {
         });
     }
     // What the running game's profile offers to do in the game (reader.action).
-    menu_game_actions = menu->addMenu(tr("In &this game"));
+    menu_game_actions = menu->addMenu(tr("&This game"));
     menu_game_actions->setObjectName(QStringLiteral("reader_game_actions"));
     add(tr("Reader s&ettings…"), QStringLiteral("reader_settings"), [this] {
         if (SettingsPages()) {
@@ -334,7 +334,7 @@ void ReaderController::BuildMenu() {
     });
     // The game stands still and what it shows stays up, with every word still to be looked
     // up: for text that does not wait (a cutscene's lines).
-    action_pause_game = menu->addAction(tr("Pause the &game, to look words up"));
+    action_pause_game = menu->addAction(tr("Pause &game"));
     action_pause_game->setObjectName(QStringLiteral("reader_pause_game"));
     action_pause_game->setCheckable(true);
     connect(action_pause_game, &QAction::triggered, this, [this](bool paused) {
@@ -360,7 +360,7 @@ void ReaderController::BuildMenu() {
     // For someone who read this far on another copy of the game: the game is run at full
     // speed with ○ pressed over and over until its next choice, and what it shows on the way
     // is not read (reader/core/next_choice.h). Any press of the game's buttons stops it.
-    action_next_choice = menu->addAction(tr("Go on to the &next choice"));
+    action_next_choice = menu->addAction(tr("Skip to &next choice"));
     action_next_choice->setObjectName(QStringLiteral("reader_next_choice"));
     action_next_choice->setCheckable(true);
     connect(action_next_choice, &QAction::triggered, this, [this] {
@@ -388,12 +388,12 @@ void ReaderController::BuildMenu() {
         RunDialog([](QWidget* parent) { RunProgressDialog(parent); });
     });
     action_reload_profile =
-        add(tr("&Reload text profile"), QStringLiteral("reader_reload_profile"), [this] {
+        add(tr("&Reload script"), QStringLiteral("reader_reload_profile"), [this] {
             ReaderBridge::ReloadProfile();
             Games::Forget();
-            Notify(tr("Text profile reloaded"));
+            Notify(tr("Script reloaded"));
         });
-    add(tr("Open the game &scripts folder"), QStringLiteral("reader_profiles_folder"), [] {
+    add(tr("Open &scripts folder"), QStringLiteral("reader_profiles_folder"), [] {
         QDesktopServices::openUrl(QUrl::fromLocalFile(ReaderBridge::UserProfileDirectory()));
     });
     // Not in the menu: for the development control channel, after it changed a setting.
@@ -428,11 +428,11 @@ void ReaderController::UpdateMenu() {
     if (!active) {
         text = tr("No game is running");
     } else if (status.loaded) {
-        text = tr("Reading %1").arg(session.GameTitle());
+        text = tr("Now playing: %1").arg(session.GameTitle());
     } else if (!status.error.isEmpty()) {
-        text = tr("Text profile failed: %1").arg(status.error.left(80));
+        text = tr("Script error: %1").arg(status.error.left(80));
     } else {
-        text = tr("No text profile for this game (%1)").arg(session.GameKey());
+        text = tr("No script for this game (%1)").arg(session.GameKey());
     }
     action_status->setText(text);
     // What was read today, in the entry that opens the statistics.
@@ -463,8 +463,8 @@ void ReaderController::UpdateMenu() {
     const std::optional<CardAudio> said =
         ReaderApp::ReaderSettings::CardAudioOfValue(Games::AudioOf(session.GameKey()));
     card_audio_actions.at(0)->setText(
-        said ? tr("As set for this game (%1)").arg(audio_name(*said))
-             : tr("As in Reader settings (%1)").arg(audio_name(session.Settings().CardAudioGeneral())));
+        said ? tr("This game (%1)").arg(audio_name(*said))
+             : tr("Default (%1)").arg(audio_name(session.Settings().CardAudioGeneral())));
     const std::optional<CardAudio> own = session.Settings().CardAudioOf(session.GameKey());
     const int chosen =
         !own ? 0 : *own == CardAudio::Always ? 1 : *own == CardAudio::Ask ? 2 : 3;
@@ -699,11 +699,8 @@ void ReaderController::FirstStart() {
     QAction* save_sync = menu->findChild<QAction*>(QStringLiteral("reader_save_sync"));
     if (save_sync != nullptr && !settings.SaveSyncAsked()) {
         if (wants(Settings::KeySaveSyncAsked, tr("Save sync"),
-                  tr("Keep each game's saves the same on your other devices?"),
-                  tr("A computer of yours keeps the saves (a home server, or the reader app on a "
-                     "computer that keeps them), and every device fetches the newest before a "
-                     "game starts. The reading statistics go there too.\n\nAt any time: "
-                     "Reader > Save sync…"),
+                  tr("Sync saves across your devices?"),
+                  tr("You can change this later in Reader > Save sync."),
                   tr("Set up save sync…"))) {
             save_sync->trigger();
         }
@@ -720,21 +717,19 @@ void ReaderController::FirstStart() {
             QMessageBox box{main_window};
             box.setIcon(QMessageBox::Question);
             box.setWindowTitle(tr("Dictionaries"));
-            box.setText(tr("Get a dictionary?"));
-            box.setInformativeText(tr("Words are looked up in the dictionaries you install. Jitendex "
-                                      "(free, 39 MB) is fetched and installed for you; or choose "
-                                      "Yomitan dictionaries of your own."));
-            QPushButton* get = box.addButton(tr("Get Jitendex"), QMessageBox::AcceptRole);
-            QPushButton* own = box.addButton(tr("Choose my own…"), QMessageBox::ActionRole);
+            box.setText(tr("Download a dictionary?"));
+            box.setInformativeText(tr("Jitendex is free (39 MB). You can also use your own Yomitan dictionaries."));
+            QPushButton* get = box.addButton(tr("Download Jitendex"), QMessageBox::AcceptRole);
+            QPushButton* own = box.addButton(tr("Choose files…"), QMessageBox::ActionRole);
             box.addButton(tr("Later"), QMessageBox::RejectRole);
             box.setDefaultButton(get);
             box.exec();
             if (box.clickedButton() == get) {
                 QString problem;
                 if (FetchStarterDictionary(main_window, &problem)) {
-                    Notify(tr("Jitendex is installed"));
+                    Notify(tr("Jitendex installed"));
                 } else if (!problem.isEmpty()) {
-                    Notify(tr("No dictionary yet: %1").arg(problem));
+                    Notify(tr("Couldn't install dictionary: %1").arg(problem));
                     RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
                 }
             } else if (box.clickedButton() == own) {
@@ -748,13 +743,10 @@ void ReaderController::FirstStart() {
         } else if (const QString chosen = SetUpAnkiByItself(); !chosen.isEmpty()) {
             // Anki was open: its mining deck and note type are taken, and said.
             settings.SetValue(Settings::KeySetupAnkiAsked, true);
-            Notify(tr("Cards go to %1 (Reader > Anki setup changes it)").arg(chosen));
+            Notify(tr("Cards will be added to %1").arg(chosen));
         } else if (wants(Settings::KeySetupAnkiAsked, tr("Anki"),
-                         tr("Make Anki cards from what you read?"),
-                         tr("A word you looked up becomes a card in Anki, with its line, a "
-                            "picture of the game and the line's sound. Anki needs its "
-                            "AnkiConnect add-on for that, and has to be open.\n\nAt any time: "
-                            "Reader > Anki setup…"),
+                         tr("Set up Anki cards?"),
+                         tr("Requires Anki with the AnkiConnect add-on."),
                          tr("Set up Anki…"))) {
             RunDialog([](QWidget* parent) { RunAnkiSetupDialog(parent); });
         }
@@ -1120,7 +1112,7 @@ void ReaderController::LookUp(const PresentedLine& presented, int offset, const 
 void ReaderController::MineSentence() {
     auto& session = ReaderSession::Instance();
     if (!session.Current()) {
-        Notify(tr("No line has been read yet"));
+        Notify(tr("No lines yet"));
         return;
     }
     session.NoteInteraction();
@@ -1308,8 +1300,7 @@ void ReaderController::GoOn() {
 
 void ReaderController::PickAnswer(int answer) {
     if (!Reader::Engine::Instance().Cursor()) {
-        Notify(tr("This game's answers are picked with the controller: its script does not say "
-                  "where the cursor is"));
+        Notify(tr("Use the controller to choose answers in this game"));
         return;
     }
     pick_answer = answer;

@@ -170,7 +170,7 @@ int Run(int argc, char** argv) {
     }
     // --lines ID: a title read from lines (line_titles.h), as its file among the apps' says.
     if (const int lines = arguments.indexOf(QStringLiteral("--lines")); lines >= 0 && lines + 1 < arguments.size()) {
-        QString error = QStringLiteral("No title read from lines has the ID %1").arg(arguments[lines + 1]);
+        QString error = QStringLiteral("No game with ID %1").arg(arguments[lines + 1]);
         bool read = false;
         for (const Home::Lines::Title& title : Home::Lines::Load(Home::SharedFolder()).titles) {
             if (title.id == arguments[lines + 1].toUpper()) {

@@ -429,18 +429,18 @@ void SteamPad::SetTuning(const Bridge::Tuning& tuning) {
 QString SteamPad::Describe() const {
 #if defined(_WIN32)
     if (d->steam_runs.load()) {
-        return QStringLiteral("Steam is running and plays the controller itself: these settings wait until it is closed.");
+        return QStringLiteral("Close Steam to use these settings.");
     }
     if (d->controllers.load() == 0) {
-        return QStringLiteral("No Steam Controller found. With one connected, its pads work here as they will in a game.");
+        return QStringLiteral("No Steam Controller found.");
     }
-    QString text = QStringLiteral("Steam Controller connected: try the pads here, a slider is felt as it moves.");
+    QString text = QStringLiteral("Steam Controller connected.");
     if (d->pulses_failed.load() > 0 && d->pulses_sent.load() == 0) {
-        text += QStringLiteral(" The controller refuses the ticks (%1 tried).").arg(d->pulses_failed.load());
+        text += QStringLiteral(" Haptics unavailable (%1 tries).").arg(d->pulses_failed.load());
     }
     return text;
 #else
-    return QStringLiteral("On Windows the Steam Controller's pads work here too; on this system its own bridge plays it.");
+    return QStringLiteral("Steam Controller settings apply in games.");
 #endif
 }
 

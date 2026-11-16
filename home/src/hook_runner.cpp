@@ -78,12 +78,12 @@ bool Runner::Start(const Plan& plan_, QString& error) {
     if (plan.engine == Engine::Agent) {
         const QString inject = FridaInject(plan.shared);
         if (inject.isEmpty()) {
-            error = QStringLiteral("Frida's frida-inject is not here: it comes in hooks beside the program");
+            error = QStringLiteral("frida-inject not found in the hooks folder");
             return false;
         }
         QFile host(QStringLiteral(":/hooks/agent_host.js"));
         if (!host.open(QIODevice::ReadOnly)) {
-            error = QStringLiteral("This build has no host for Agent's scripts");
+            error = QStringLiteral("Agent scripts aren't supported in this build");
             return false;
         }
         storage = Agent::LoadStorage(plan.shared, plan.title, plan.pid);
@@ -95,7 +95,7 @@ bool Runner::Start(const Plan& plan_, QString& error) {
         QDir().mkpath(QFileInfo(file).path());
         QSaveFile out(file);
         if (!out.open(QIODevice::WriteOnly) || out.write(bundle.toUtf8()) <= 0 || !out.commit()) {
-            error = QStringLiteral("The script's bundle could not be written to %1").arg(file);
+            error = QStringLiteral("Couldn't save script to %1").arg(file);
             return false;
         }
         // QuickJS, as Agent runs its scripts.
@@ -104,14 +104,14 @@ bool Runner::Start(const Plan& plan_, QString& error) {
     } else if (plan.engine == Engine::Textractor) {
         command = TextractorCommand(plan.shared, plan.is32);
         if (command.isEmpty()) {
-            error = QStringLiteral("Textractor is not fetched yet");
+            error = QStringLiteral("Textractor isn't downloaded yet");
             return false;
         }
         input = TextractorCommands(plan.pid, plan.codes);
     } else {
         command = LunaCommand(plan.shared);
         if (command.isEmpty()) {
-            error = QStringLiteral("LunaHook is not fetched yet, or Furoshiki's host for it is not beside the program");
+            error = QStringLiteral("LunaHook isn't installed");
             return false;
         }
         command << QString::number(plan.pid) << (plan.is32 ? QStringLiteral("32") : QStringLiteral("64"));

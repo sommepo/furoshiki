@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
         const auto missing = [&](const QString& path) {
             return Home::CoreSession::MissingGame(path.toStdString());
         };
-        CHECK(missing(folder.filePath(QStringLiteral("no-such-game.iso"))).find("not there") != std::string::npos);
+        CHECK(missing(folder.filePath(QStringLiteral("no-such-game.iso"))).find("not found") != std::string::npos);
         CHECK(!missing(QString()).empty());
         CHECK(missing(QStringLiteral("game.test")).empty());
         CHECK(missing(QStringLiteral("PCSG00488")).empty());
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
         CHECK(missing(linked).empty());
         CHECK(there.setPermissions(QFileDevice::Permissions{}));
         if (!QFileInfo(there.fileName()).isReadable()) { // not as root, who reads everything
-            CHECK(missing(there.fileName()).find("cannot be read") != std::string::npos);
+            CHECK(missing(there.fileName()).find("Couldn't read") != std::string::npos);
         }
         there.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 #endif

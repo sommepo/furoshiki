@@ -74,7 +74,7 @@ SettingsWindow::SettingsWindow(QWidget* parent, PlaySettings& play_, const QList
                                QString popup_folder_, HomeWindow* home_, Hooks hooks_)
     : QDialog(parent), play{play_}, consoles{consoles_}, popup_folder{std::move(popup_folder_)}, home{home_},
       hooks{std::move(hooks_)} {
-    setWindowTitle(QStringLiteral("Furoshiki settings"));
+    setWindowTitle(QStringLiteral("Settings"));
     setWindowFlag(Qt::WindowContextHelpButtonHint, false);
     resize(980, 680);
     tabs = new QTabWidget(this);
@@ -96,7 +96,7 @@ SettingsWindow::SettingsWindow(QWidget* parent, PlaySettings& play_, const QList
     auto* layout = new QVBoxLayout(this);
     layout->addWidget(tabs);
     auto* foot = new QHBoxLayout;
-    close->setToolTip(QStringLiteral("Changes count at once, as on the pages; F2 opens this window."));
+    close->setToolTip(QStringLiteral("Changes apply immediately (F2)"));
 #ifndef HOME_PUBLIC
     auto* feedback = new QPushButton(QStringLiteral("Send feedback…"), this);
     connect(feedback, &QPushButton::clicked, this, [this] {
@@ -150,7 +150,7 @@ void SettingsWindow::ShowTab(const QString& name) {
             tabs->setCurrentIndex(i);
             // One editor, opened from its row of the settings pages: the other tabs are rows there.
             tabs->tabBar()->hide();
-            setWindowTitle(name == QStringLiteral("Popup") ? QStringLiteral("The popup") : name);
+            setWindowTitle(name);
         }
     }
 }
@@ -161,14 +161,14 @@ void SettingsWindow::FillLayers(QComboBox* chooser) {
     chooser->clear();
     chooser->addItem(QStringLiteral("All consoles"), QStringList{});
     for (const PlayConsole& console : consoles) {
-        chooser->addItem(QStringLiteral("Only %1").arg(console.name), QStringList{console.key});
+        chooser->addItem(QStringLiteral("%1").arg(console.name), QStringList{console.key});
     }
     QString console, game, title;
     if (hooks.playing) {
         hooks.playing(console, game, title);
     }
     if (!console.isEmpty() && !game.isEmpty()) {
-        chooser->addItem(QStringLiteral("Only this game: %1").arg(title.isEmpty() ? game : title),
+        chooser->addItem(QStringLiteral("%1").arg(title.isEmpty() ? game : title),
                          QStringList{console, game});
     }
 }
@@ -204,9 +204,9 @@ void SettingsWindow::AddSettingRow(QFormLayout* form, const PlaySetting& setting
     const QString label = setting.label.isEmpty() ? CommonLabel(setting.key) : setting.label;
     const bool own = play.IsSet(setting.key, layer.console, layer.game);
     const QString next = Next(setting, layer);
-    const QString same = layer.console.isEmpty() ? QStringLiteral("As each console has it (%1)")
-                         : layer.game.isEmpty()  ? QStringLiteral("Same as all consoles (%1)")
-                                                 : QStringLiteral("Same as its console (%1)");
+    const QString same = layer.console.isEmpty() ? QStringLiteral("Default (%1)")
+                         : layer.game.isEmpty()  ? QStringLiteral("All consoles (%1)")
+                                                 : QStringLiteral("Console setting (%1)");
     const QString key = setting.key;
     if (setting.kind == PlaySetting::Number) {
         auto* box = new QSpinBox(this);
@@ -283,7 +283,7 @@ QWidget* SettingsWindow::PopupTab() {
     top->addLayout(design_form, 2);
     auto* export_style = new QPushButton(QStringLiteral("Export…"), page);
     auto* import_style = new QPushButton(QStringLiteral("Import…"), page);
-    export_style->setToolTip(QStringLiteral("The popup's style as one file, which the Android apps read too"));
+    export_style->setToolTip(QStringLiteral("Popup style file (works with Android)"));
     top->addWidget(export_style);
     top->addWidget(import_style);
     settings_page = new QWidget(page);
@@ -303,9 +303,7 @@ QWidget* SettingsWindow::PopupTab() {
         preview->setMinimumSize(380, 320);
         right_layout->addWidget(preview, 1);
     } else {
-        auto* none = new QLabel(QStringLiteral("No preview here: this build or this computer has no web engine for the "
-                                               "popup page (WebView2 on Windows, Qt WebEngine on Linux), so the popup is "
-                                               "drawn classic."),
+        auto* none = new QLabel(QStringLiteral("Preview not available on this computer."),
                                 right);
         none->setWordWrap(true);
         right_layout->addWidget(none, 1);
@@ -325,7 +323,7 @@ QWidget* SettingsWindow::PopupTab() {
         auto& settings = ReaderUi::ReaderSession::Instance().Settings();
         const QJsonObject style = PopupStyle::Export(play, popup_folder, layer.console, layer.game,
                                                      [&settings](const QString& key) { return settings.Value(key).toString(); });
-        const QString file = QFileDialog::getSaveFileName(this, QStringLiteral("Export the popup style"),
+        const QString file = QFileDialog::getSaveFileName(this, QStringLiteral("Export popup style"),
                                                           popup_folder + QStringLiteral("/popup-style.json"),
                                                           QStringLiteral("Popup style (*.json)"));
         if (file.isEmpty()) {
@@ -333,11 +331,11 @@ QWidget* SettingsWindow::PopupTab() {
         }
         QSaveFile out(file);
         if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(style).toJson()) < 0 || !out.commit()) {
-            QMessageBox::warning(this, windowTitle(), QStringLiteral("The style could not be written."));
+            QMessageBox::warning(this, windowTitle(), QStringLiteral("Couldn't save the style."));
         }
     });
     connect(import_style, &QPushButton::clicked, this, [this] {
-        const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Import a popup style"), popup_folder,
+        const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Import popup style"), popup_folder,
                                                           QStringLiteral("Popup style (*.json)"));
         if (file.isEmpty()) {
             return;
@@ -349,7 +347,7 @@ QWidget* SettingsWindow::PopupTab() {
                                                   QFileInfo(file).completeBaseName().remove(QStringLiteral("-popup-style")),
                                                   layer.console, layer.game);
         if (!failed.isEmpty()) {
-            QMessageBox::warning(this, windowTitle(), QStringLiteral("Not imported: %1").arg(failed));
+            QMessageBox::warning(this, windowTitle(), QStringLiteral("Couldn't import: %1").arg(failed));
             return;
         }
         if (hooks.popup_files_changed) {
@@ -403,7 +401,7 @@ void ShowColour(QPushButton* button, const QString& value) {
     button->setProperty("value", value);
     if (value.isEmpty()) {
         button->setText(QString::fromUtf8(LooksOwn));
-        button->setToolTip(QStringLiteral("Default; click to choose a colour"));
+        button->setToolTip(QStringLiteral("Default · Click to choose"));
         button->setStyleSheet({});
         return;
     }
@@ -411,7 +409,7 @@ void ShowColour(QPushButton* button, const QString& value) {
     const QColor colour = QColor::fromString(value);
     button->setText({});
     button->setToolTip(colour.alpha() == 255 ? colour.name()
-                                             : QStringLiteral("%1, %2% seen").arg(colour.name()).arg(colour.alpha() * 100 / 255));
+                                             : QStringLiteral("%1, %2% opacity").arg(colour.name()).arg(colour.alpha() * 100 / 255));
     button->setStyleSheet(QStringLiteral("QPushButton { background: %1; border: 1px solid #888; border-radius: 3px; min-height: 1.4em; }")
                               .arg(colour.name(QColor::HexArgb)));
 }
@@ -438,13 +436,13 @@ QWidget* SettingsWindow::CustomiserPanel(QWidget* parent) {
     auto* middle = new QHBoxLayout;
     design_elements = new QListWidget(box);
     design_elements->setFixedWidth(180);
-    auto* shows = new QListWidgetItem(QStringLiteral("What it shows"), design_elements);
+    auto* shows = new QListWidgetItem(QStringLiteral("Show"), design_elements);
     shows->setData(Qt::UserRole, QStringLiteral("settings"));
     for (const PopupDesign::Element& element : PopupDesign::Elements()) {
         auto* item = new QListWidgetItem(element.label, design_elements);
         item->setData(Qt::UserRole, element.id);
     }
-    auto* order = new QListWidgetItem(QStringLiteral("Order of things"), design_elements);
+    auto* order = new QListWidgetItem(QStringLiteral("Order"), design_elements);
     order->setData(Qt::UserRole, QStringLiteral("order"));
     middle->addWidget(design_elements);
     auto* scroll = new QScrollArea(box);
@@ -511,13 +509,13 @@ QWidget* SettingsWindow::CustomiserPanel(QWidget* parent) {
             return;
         }
         bool ok = false;
-        QString name = QInputDialog::getText(this, QStringLiteral("Rename the design"), QStringLiteral("Its name:"), QLineEdit::Normal, design.name, &ok).trimmed();
+        QString name = QInputDialog::getText(this, QStringLiteral("Rename design"), QStringLiteral("Name:"), QLineEdit::Normal, design.name, &ok).trimmed();
         name.replace(QRegularExpression(QStringLiteral("[^\\w\\-]+")), QStringLiteral("-"));
         if (!ok || name.isEmpty() || name == design.name || name == QStringLiteral("none")) {
             return;
         }
         if (PopupDesign::Load(popup_folder, name)) {
-            QMessageBox::warning(this, windowTitle(), QStringLiteral("A design is called %1 already.").arg(name));
+            QMessageBox::warning(this, windowTitle(), QStringLiteral("A design named %1 already exists.").arg(name));
             return;
         }
         const QString was = design.name;
@@ -535,7 +533,7 @@ QWidget* SettingsWindow::CustomiserPanel(QWidget* parent) {
     });
     connect(design_remove, &QPushButton::clicked, this, [this] {
         if (design.name.isEmpty() ||
-            QMessageBox::question(this, windowTitle(), QStringLiteral("Delete the design %1?").arg(PopupDesign::Shown(design.name, design.base))) != QMessageBox::Yes) {
+            QMessageBox::question(this, windowTitle(), QStringLiteral("Delete %1?").arg(PopupDesign::Shown(design.name, design.base))) != QMessageBox::Yes) {
             return;
         }
         PopupDesign::Remove(popup_folder, design.name);
@@ -574,7 +572,7 @@ void SettingsWindow::LoadDesign() {
     design = found ? *found : PopupDesign::Design{QString(), base, {}, {}, {}};
     design_loaded = true;
     if (design_title) {
-        design_title->setText(design.name.isEmpty() ? QStringLiteral("%1, as it is: change anything to make it yours").arg(PopupDesign::Shown(base, {}))
+        design_title->setText(design.name.isEmpty() ? QStringLiteral("%1 (built-in). Edit to make a copy.").arg(PopupDesign::Shown(base, {}))
                                                     : PopupDesign::Shown(design.name, base));
         design_rename->setEnabled(!design.name.isEmpty());
         design_remove->setEnabled(!design.name.isEmpty());
@@ -674,9 +672,9 @@ void SettingsWindow::FillInspector() {
             });
             return widget;
         };
-        form->addRow(QStringLiteral("A word's blocks"), list(PopupDesign::Blocks(), design.entry_order, false));
-        form->addRow(QStringLiteral("Its headline"), list(PopupDesign::HeadParts(), design.head_order, true));
-        auto* note = new QLabel(QStringLiteral("Or drag them in the preview."), inspector);
+        form->addRow(QStringLiteral("Entry sections"), list(PopupDesign::Blocks(), design.entry_order, false));
+        form->addRow(QStringLiteral("Headword"), list(PopupDesign::HeadParts(), design.head_order, true));
+        auto* note = new QLabel(QStringLiteral("You can also drag them in the preview."), inspector);
         note->setEnabled(false);
         form->addRow(note);
         return;
@@ -690,7 +688,7 @@ void SettingsWindow::FillInspector() {
             auto* row = new QHBoxLayout;
             auto* reset = new QToolButton(inspector);
             reset->setText(QStringLiteral("↺"));
-            reset->setToolTip(QStringLiteral("Back to default"));
+            reset->setToolTip(QStringLiteral("Reset"));
             const auto set = [this, key](const QJsonValue& value) {
                 PopupDesign::Design& edited = EditedDesign();
                 if (value.isNull() || value.isUndefined()) {
@@ -781,7 +779,7 @@ void SettingsWindow::FillInspector() {
             form->addRow(property.label, row);
         }
         if (!element.size.isEmpty()) {
-            auto* note = new QLabel(QStringLiteral("Drag its corner in the preview to size it."), inspector);
+            auto* note = new QLabel(QStringLiteral("Drag the corner in the preview to resize."), inspector);
             note->setEnabled(false);
             form->addRow(note);
         }
@@ -897,7 +895,7 @@ QWidget* SettingsWindow::ConsolesTab() {
     folders_layout->addWidget(folders_list, 1);
     auto* folder_buttons = new QVBoxLayout;
     auto* add_folder = new QPushButton(QStringLiteral("Add…"), folders_box);
-    auto* forget_folder = new QPushButton(QStringLiteral("Forget"), folders_box);
+    auto* forget_folder = new QPushButton(QStringLiteral("Remove"), folders_box);
     folder_buttons->addWidget(add_folder);
     folder_buttons->addWidget(forget_folder);
     folder_buttons->addStretch(1);
@@ -918,7 +916,7 @@ QWidget* SettingsWindow::ConsolesTab() {
         }
     };
     connect(add_folder, &QPushButton::clicked, this, [this, change_folders] {
-        const QString folder = QFileDialog::getExistingDirectory(this, QStringLiteral("A folder of %1 games").arg(console_layer->currentText().remove(QStringLiteral("Only "))));
+        const QString folder = QFileDialog::getExistingDirectory(this, QStringLiteral("Choose %1 games folder").arg(console_layer->currentText().remove(QStringLiteral("Only "))));
         if (!folder.isEmpty()) {
             change_folders([&folder](QStringList& folders) {
                 if (!folders.contains(folder)) {
@@ -978,7 +976,7 @@ void SettingsWindow::FillConsoleRows() {
         }
     }
     if (keys.isEmpty()) {
-        console_form->addRow(new QLabel(QStringLiteral("No console's core is here: their settings come with them."), this));
+        console_form->addRow(new QLabel(QStringLiteral("No emulator cores loaded."), this));
     }
     filling = false;
 }
@@ -1012,17 +1010,16 @@ QWidget* SettingsWindow::LookTab() {
     fuzz->setCurrentIndex(std::max(0, fuzz->findData(home->ChosenFuzz())));
     connect(fuzz, &QComboBox::currentIndexChanged, this, [this, fuzz](int) { home->ChooseFuzz(fuzz->currentData().toString()); });
     form->addRow(QStringLiteral("Fuzz"), fuzz);
-    auto* motion = new QCheckBox(QStringLiteral("The orbs turn and spring, the glow breathes"), page);
+    auto* motion = new QCheckBox(QStringLiteral(""), page);
     motion->setChecked(home->ChosenMotion());
     connect(motion, &QCheckBox::toggled, this, [this](bool on) { home->ChooseMotion(on); });
-    form->addRow(QStringLiteral("Moving cursor"), motion);
+    form->addRow(QStringLiteral("Animated cursor"), motion);
     // Furoshiki 3's shelf asks the study tracker what was read of each title (docs/furoshiki-3.md).
     auto* tracker = new QLineEdit(home->TrackerUrl(), page);
-    tracker->setPlaceholderText(QStringLiteral("http://…:8788 (empty: this device's own figures)"));
+    tracker->setPlaceholderText(QStringLiteral("http://…:8788"));
     connect(tracker, &QLineEdit::editingFinished, this, [this, tracker] { home->SetTrackerUrl(tracker->text().trimmed()); });
     form->addRow(QStringLiteral("Study tracker"), tracker);
-    form->addRow(new QLabel(QStringLiteral("The reader's own settings (dictionaries, Anki, the text size of the popup…) are "
-                                           "in the Reader menu over a game."),
+    form->addRow(new QLabel(QStringLiteral("More settings are in the Reader menu during a game."),
                             page));
     return page;
 }

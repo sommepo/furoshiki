@@ -90,9 +90,9 @@ QString CommonLabel(const QString& key) {
     static const QList<QPair<QString, QString>> labels{
         {QStringLiteral("picture.resolution"), QStringLiteral("Internal resolution")},
         {QStringLiteral("picture.renderer"), QStringLiteral("Renderer")},
-        {QStringLiteral("picture.aspect"), QStringLiteral("Shape of the picture")},
+        {QStringLiteral("picture.aspect"), QStringLiteral("Aspect ratio")},
         {QStringLiteral("picture.vsync"), QStringLiteral("Vertical sync")},
-        {QStringLiteral("picture.frame_limit"), QStringLiteral("At the console's own speed")},
+        {QStringLiteral("picture.frame_limit"), QStringLiteral("Limit frame rate")},
         {QStringLiteral("sound.volume"), QStringLiteral("Volume")},
     };
     for (const auto& [name, label] : labels) {

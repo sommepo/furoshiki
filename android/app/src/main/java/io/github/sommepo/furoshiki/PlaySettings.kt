@@ -158,10 +158,10 @@ class PlaySettings(private val file: File) {
                     "from",
                     when {
                         here -> ""
-                        resolved.from == Layer.CONSOLE -> "Same as its console"
-                        resolved.from == Layer.ALL -> "Same as all consoles"
-                        console.isEmpty() -> "As each console has it"
-                        else -> "The console's own"
+                        resolved.from == Layer.CONSOLE -> "Console setting"
+                        resolved.from == Layer.ALL -> "All consoles"
+                        console.isEmpty() -> "Per console"
+                        else -> "Default"
                     },
                 )
             )

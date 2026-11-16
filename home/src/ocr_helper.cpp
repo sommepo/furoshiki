@@ -260,12 +260,12 @@ void OcrHelper::Poll() {
         return;
     }
     if (!Runs()) {
-        Finish(false, QStringLiteral("the OCR helper stopped as it started: see %1").arg(QDir::toNativeSeparators(log_file)));
+        Finish(false, QStringLiteral("OCR helper stopped on launch. See %1").arg(QDir::toNativeSeparators(log_file)));
         return;
     }
     if (QDateTime::currentMSecsSinceEpoch() - started_at > StartMs) {
         Stop();
-        Finish(false, QStringLiteral("the OCR helper did not answer at %1 within %2 s: see %3")
+        Finish(false, QStringLiteral("OCR helper didn't respond at %1 within %2 s. See %3")
                           .arg(address).arg(StartMs / 1000).arg(QDir::toNativeSeparators(log_file)));
         return;
     }

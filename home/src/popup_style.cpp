@@ -85,12 +85,12 @@ QList<PlaySetting> Settings(const QString& folder) {
     theme.choices.append(QStringLiteral("classic"));
     PlaySetting mark;
     mark.key = QStringLiteral("popup.mark_unknown");
-    mark.label = QStringLiteral("Mark words not in Anki");
+    mark.label = QStringLiteral("Highlight words not in Anki");
     mark.kind = PlaySetting::Switch;
     mark.default_value = QStringLiteral("1");
     PlaySetting lookups;
     lookups.key = QStringLiteral("popup.lookups");
-    lookups.label = QStringLiteral("Times looked up");
+    lookups.label = QStringLiteral("Lookup count");
     lookups.kind = PlaySetting::Choice;
     lookups.default_value = QStringLiteral("count");
     lookups.choices = {QStringLiteral("count"), QStringLiteral("where"), QStringLiteral("off")};
@@ -118,12 +118,12 @@ QList<PlaySetting> Settings(const QString& folder) {
     };
     PlaySetting hide;
     hide.key = QStringLiteral("popup.hide_tags");
-    hide.label = QStringLiteral("Leave out grammar tags");
+    hide.label = QStringLiteral("Hide grammar tags");
     hide.kind = PlaySetting::Switch;
     hide.default_value = QStringLiteral("0");
     PlaySetting portrait;
     portrait.key = QStringLiteral("popup.portrait");
-    portrait.label = QStringLiteral("A name's picture");
+    portrait.label = QStringLiteral("Character portraits");
     portrait.kind = PlaySetting::Choice;
     portrait.default_value = QStringLiteral("small");
     portrait.choices = {QStringLiteral("small"), QStringLiteral("large"), QStringLiteral("off")};
@@ -197,7 +197,7 @@ QString Import(const QJsonObject& style, PlaySettings& play, const QString& fold
                const QString& console, const QString& game) {
     if (style.value(QStringLiteral("kind")).toString() != QStringLiteral("reader-popup-style") ||
         style.value(QStringLiteral("format")).toInt() != 1) {
-        return QStringLiteral("not a popup style file");
+        return QStringLiteral("Not a popup style file");
     }
     const QString theme = style.value(QStringLiteral("theme")).toString();
     if (!theme.isEmpty() && SettingOf(folder, QStringLiteral("popup.theme")).choices.contains(theme)) {
@@ -242,13 +242,13 @@ QString Import(const QJsonObject& style, PlaySettings& play, const QString& fold
             design.base = style.value(QStringLiteral("theme")).toString();
         }
         if (!PopupDesign::Save(folder, design)) {
-            return QStringLiteral("its design could not be written to %1").arg(folder);
+            return QStringLiteral("Couldn't save design to %1").arg(folder);
         }
         play.Set(QStringLiteral("popup.design"), design.name, console, game);
     } else {
         play.Set(QStringLiteral("popup.design"), QStringLiteral("none"), console, game);
     }
-    return play.Save() ? QString() : QStringLiteral("the settings could not be written to %1").arg(play.File());
+    return play.Save() ? QString() : QStringLiteral("Couldn't save settings to %1").arg(play.File());
 }
 
 } // namespace Home::PopupStyle

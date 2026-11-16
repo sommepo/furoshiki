@@ -269,7 +269,7 @@ function drawMap() {
   const layer = $('map-layer');
   layer.hidden = !console;
   $('map-same').disabled = !map.own;
-  $('map-layer-text').textContent = map.own ? map.tabs[map.tab].name + ' has its own' : 'As all consoles';
+  $('map-layer-text').textContent = map.own ? 'Custom for ' + map.tabs[map.tab].name : 'Same as All consoles';
 
   // The input wizard has the side to itself: one button asked for at a time.
   const wizard = map.wizard;
@@ -328,7 +328,7 @@ function drawMap() {
     const learn = document.createElement('button');
     learn.type = 'button';
     learn.className = 'learn';
-    learn.textContent = learning ? 'Cancel' : 'Learn';
+    learn.textContent = learning ? 'Cancel' : 'Set';
     learn.onclick = event => {
       event.stopPropagation();
       map.at = index;
@@ -348,7 +348,7 @@ function drawMap() {
   all.forEach((one, index) => {
     if (one.pad) {
       // The console's own buttons: which button of the controller in the hand presses each.
-      if (!index) head(console ? map.tabs[map.tab].name + '’s buttons' : 'Game buttons');
+      if (!index) head(console ? map.tabs[map.tab].name + ' buttons' : 'Game buttons');
       const shown = padShown(one.pad);
       row(index, {
         cls: ' game' + (shown.changed ? ' bound changed' : '') + (!shown.own && console && shown.changed ? ' inherited' : ''),
@@ -375,7 +375,7 @@ function drawMap() {
       // The settings of the controller that are no button's: the pointer's speed, touch play...
       const more = document.createElement('li');
       more.className = 'map-row more' + (map.at === index ? ' on' : '');
-      more.innerHTML = '<i class="dot"></i><span class="name">Pointer speed, touch controls, second display</span><span class="where"></span><span class="chip"></span><span></span>';
+      more.innerHTML = '<i class="dot"></i><span class="name">More controller settings</span><span class="where"></span><span class="chip"></span><span></span>';
       const open = document.createElement('button');
       open.type = 'button';
       open.className = 'learn';
@@ -401,14 +401,14 @@ function drawMap() {
 function drawFootLine() {
   const foot = $('map-foot');
   if (map.wizard) {
-    foot.textContent = 'Every button is the wizard\'s until it ends  ·  Wait, or Skip, to pass one over';
+    foot.textContent = 'Press each button in turn  ·  Skip to leave one as is';
     return;
   }
   if (map.learning) {
-    foot.textContent = 'Press the button  ·  B twice, or wait, to cancel';
+    foot.textContent = 'Press a button  ·  B twice to cancel';
     return;
   }
-  foot.textContent = ['Start  Set up every button', 'A  Learn', 'X  Clear', consoleKey() ? 'Y  Same as all consoles' : '', 'L R  Console', 'B  Back']
+  foot.textContent = ['Start  Set up all buttons', 'A  Set', 'X  Clear', consoleKey() ? 'Y  Reset to default' : '', 'L R  Console', 'B  Back']
     .filter(Boolean).join('    ');
 }
 
@@ -482,15 +482,15 @@ function learnt(code) {
   if (!inputOf(code)) return refuse('Not a controller button');
   if (learning.pad) {
     // A game button: the controller's button that presses it from now on (the two swap).
-    if (!host.assignPad(learning.pad, code, consoleKey())) return refuse('Not this button');
+    if (!host.assignPad(learning.pad, code, consoleKey())) return refuse('Can\'t use this button');
     stopLearning();
     readMap();
     drawMap();
     fresh($('map-rows').querySelector('.map-row.on'), 'fresh-card');
     return;
   }
-  if (learning.action === 'pointer' && !POINTER_BUTTONS.has(code)) return refuse('The pointer needs a shoulder, trigger, stick, Select or Start');
-  if (!host.assignButton(learning.action, code, consoleKey())) return refuse('Not this button');
+  if (learning.action === 'pointer' && !POINTER_BUTTONS.has(code)) return refuse('Use a shoulder, trigger, stick, Select or Start');
+  if (!host.assignButton(learning.action, code, consoleKey())) return refuse('Can\'t use this button');
   stopLearning();
   readMap();
   drawMap();
@@ -575,7 +575,7 @@ function wizardPress(code, down) {
   wizard.held.add(code);
   if (busy) return;
   if (!inputOf(code)) {
-    wizard.note = 'Not a button a game can have';
+    wizard.note = 'Not a game button';
     armWizard();
     drawMap();
     return;

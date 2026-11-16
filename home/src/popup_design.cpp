@@ -243,54 +243,54 @@ const QList<Element>& Elements() {
     static const QList<Element> all = [] {
         const QList<QPair<QString, QString>> fonts = Fonts();
         QList<Element> list;
-        list.append({QStringLiteral("popup"), QStringLiteral("The popup"), QStringLiteral(".popup"), QStringLiteral("popup.size"),
-                     {Colour("popup.ground", "Ground"), Colour("popup.text", "Text"), Colour("popup.dim", "Quieter text"),
-                      Colour("popup.accent", "Accent"), Colour("popup.edge", "Edge"), Size("popup.edge_width", "Edge width", 0, 6, 1),
-                      Colour("popup.top", "Rule along the top"), Size("popup.radius", "Corners", 0, 28, 6),
-                      Size("popup.pad_x", "Room at the sides", 0, 40, 10), Size("popup.pad_y", "Room above and below", 0, 40, 8),
-                      Choice("popup.font", "Type", fonts), Size("popup.size", "Text size", 9, 22, 13, 0.5),
+        list.append({QStringLiteral("popup"), QStringLiteral("Popup"), QStringLiteral(".popup"), QStringLiteral("popup.size"),
+                     {Colour("popup.ground", "Background"), Colour("popup.text", "Text"), Colour("popup.dim", "Secondary text"),
+                      Colour("popup.accent", "Accent"), Colour("popup.edge", "Border"), Size("popup.edge_width", "Border width", 0, 6, 1),
+                      Colour("popup.top", "Top border"), Size("popup.radius", "Corners", 0, 28, 6),
+                      Size("popup.pad_x", "Horizontal padding", 0, 40, 10), Size("popup.pad_y", "Vertical padding", 0, 40, 8),
+                      Choice("popup.font", "Font", fonts), Size("popup.size", "Text size", 9, 22, 13, 0.5),
                       Number("popup.line", "Line height", 100, 220, 140, 5, "%"), Size("popup.shadow", "Shadow", 0, 40, 0)}});
         list.append({QStringLiteral("headword"), QStringLiteral("Headword"), QStringLiteral(".headword"), QStringLiteral("headword.size"),
                      {Size("headword.size", "Size", 12, 56, 22), Number("headword.weight", "Weight", 300, 900, 600, 100, ""),
-                      Colour("headword.colour", "Colour"), Choice("headword.font", "Type", fonts), Toggle("headword.furigana", "Furigana over it"),
+                      Colour("headword.colour", "Colour"), Choice("headword.font", "Font", fonts), Toggle("headword.furigana", "Furigana"),
                       Number("headword.furigana_size", "Furigana size", 30, 80, 50, 2, "%"),
-                      Choice("headword.unknown", "A word not in Anki", {{QStringLiteral("tint"), QStringLiteral("Tinted")},
+                      Choice("headword.unknown", "Words not in Anki", {{QStringLiteral("tint"), QStringLiteral("Tinted")},
                                                                        {QStringLiteral("underline"), QStringLiteral("Underlined")},
-                                                                       {QStringLiteral("colour"), QStringLiteral("In the accent")},
-                                                                       {QStringLiteral("none"), QStringLiteral("Not marked")}})}});
+                                                                       {QStringLiteral("colour"), QStringLiteral("Accent colour")},
+                                                                       {QStringLiteral("none"), QStringLiteral("None")}})}});
         list.append({QStringLiteral("reading"), QStringLiteral("Reading"), QStringLiteral(".head > .reading"), QStringLiteral("reading.size"),
-                     {Toggle("reading.show", "Shown beside it"), Size("reading.size", "Size", 8, 24, 11, 0.5), Colour("reading.colour", "Colour")}});
+                     {Toggle("reading.show", "Show"), Size("reading.size", "Size", 8, 24, 11, 0.5), Colour("reading.colour", "Colour")}});
         list.append({QStringLiteral("pitch"), QStringLiteral("Pitch and inflection"), QStringLiteral(".pitch, .reasons"), QStringLiteral("pitch.size"),
-                     {Toggle("pitch.show", "Shown"), Size("pitch.size", "Size", 8, 20, 11, 0.5), Colour("pitch.colour", "Colour")}});
+                     {Toggle("pitch.show", "Show"), Size("pitch.size", "Size", 8, 20, 11, 0.5), Colour("pitch.colour", "Colour")}});
         list.append({QStringLiteral("frequencies"), QStringLiteral("Frequencies"), QStringLiteral(".tags.frequencies, .tag.frequency"), QStringLiteral("frequencies.size"),
-                     {Toggle("frequencies.show", "Shown"), Toggle("frequencies.names", "Their lists' names"), Size("frequencies.size", "Size", 8, 20, 11, 0.5),
-                      Colour("frequencies.colour", "Figures' colour")}});
+                     {Toggle("frequencies.show", "Show"), Toggle("frequencies.names", "Dictionary names"), Size("frequencies.size", "Size", 8, 20, 11, 0.5),
+                      Colour("frequencies.colour", "Number colour")}});
         list.append({QStringLiteral("tags"), QStringLiteral("Tags"), QStringLiteral(".tag"), QStringLiteral("tags.size"),
-                     {Size("tags.size", "Size", 8, 20, 11, 0.5), Colour("tags.colour", "Text"), Colour("tags.ground", "Ground"), Colour("tags.edge", "Edge"),
-                      Size("tags.radius", "Corners", 0, 12, 3), Size("tags.pad", "Room inside", 0, 12, 4), Size("tags.glow", "Glow", 0, 16, 0),
+                     {Size("tags.size", "Size", 8, 20, 11, 0.5), Colour("tags.colour", "Text"), Colour("tags.ground", "Background"), Colour("tags.edge", "Border"),
+                      Size("tags.radius", "Corners", 0, 12, 3), Size("tags.pad", "Padding", 0, 12, 4), Size("tags.glow", "Glow", 0, 16, 0),
                       Toggle("tags.capitals", "Small capitals")}});
         list.append({QStringLiteral("lookups"), QStringLiteral("Times looked up"), QStringLiteral(".lookups"), QStringLiteral("lookups.size"),
-                     {Toggle("lookups.show", "Shown"), Size("lookups.size", "Size", 8, 18, 11, 0.5)}});
+                     {Toggle("lookups.show", "Show"), Size("lookups.size", "Size", 8, 18, 11, 0.5)}});
         list.append({QStringLiteral("dictionary"), QStringLiteral("Dictionary names"), QStringLiteral(".dictionary-name"), QStringLiteral("dictionary.size"),
-                     {Toggle("dictionary.show", "Shown"), Size("dictionary.size", "Size", 8, 18, 11, 0.5), Colour("dictionary.colour", "Colour"),
-                      Toggle("dictionary.rule", "A rule under each")}});
+                     {Toggle("dictionary.show", "Show"), Size("dictionary.size", "Size", 8, 18, 11, 0.5), Colour("dictionary.colour", "Colour"),
+                      Toggle("dictionary.rule", "Divider")}});
         list.append({QStringLiteral("glosses"), QStringLiteral("Meanings"), QStringLiteral(".glosses, .gloss, .sense, .senses"), QStringLiteral("glosses.size"),
-                     {Size("glosses.size", "Size", 9, 26, 13, 0.5), Colour("glosses.colour", "Colour"), Choice("glosses.font", "Type", fonts),
-                      Size("glosses.spacing", "Room between senses", 0, 12, 1),
-                      Choice("glosses.separator", "Between meanings", {{QStringLiteral("bar"), QStringLiteral("|")}, {QStringLiteral("dot"), QStringLiteral("·")},
+                     {Size("glosses.size", "Size", 9, 26, 13, 0.5), Colour("glosses.colour", "Colour"), Choice("glosses.font", "Font", fonts),
+                      Size("glosses.spacing", "Definition spacing", 0, 12, 1),
+                      Choice("glosses.separator", "Separator", {{QStringLiteral("bar"), QStringLiteral("|")}, {QStringLiteral("dot"), QStringLiteral("·")},
                                                                        {QStringLiteral("slash"), QStringLiteral("/")}, {QStringLiteral("semicolon"), QStringLiteral(";")},
-                                                                       {QStringLiteral("comma"), QStringLiteral(",")}, {QStringLiteral("lines"), QStringLiteral("A line each")}}),
-                      Toggle("numbers.show", "Numbers"), Colour("numbers.colour", "Numbers' colour"), Toggle("grammar.show", "Grammar tags")}});
-        list.append({QStringLiteral("forms"), QStringLiteral("Other forms"), QStringLiteral(".forms"), QString(), {Toggle("forms.show", "Shown")}});
-        list.append({QStringLiteral("card"), QStringLiteral("A name's card"), QStringLiteral(".name-card"), QStringLiteral("card.portrait"),
-                     {Size("card.portrait", "Picture", 30, 160, 54), Size("card.name_size", "Name size", 12, 36, 18), Toggle("card.romaji", "Romaji"),
-                      Toggle("card.also", "Other names"), Toggle("card.about", "About them")}});
+                                                                       {QStringLiteral("comma"), QStringLiteral(",")}, {QStringLiteral("lines"), QStringLiteral("New line")}}),
+                      Toggle("numbers.show", "Numbers"), Colour("numbers.colour", "Number colour"), Toggle("grammar.show", "Grammar tags")}});
+        list.append({QStringLiteral("forms"), QStringLiteral("Other forms"), QStringLiteral(".forms"), QString(), {Toggle("forms.show", "Show")}});
+        list.append({QStringLiteral("card"), QStringLiteral("Name card"), QStringLiteral(".name-card"), QStringLiteral("card.portrait"),
+                     {Size("card.portrait", "Portrait", 30, 160, 54), Size("card.name_size", "Name size", 12, 36, 18), Toggle("card.romaji", "Romaji"),
+                      Toggle("card.also", "Other names"), Toggle("card.about", "Description")}});
         list.append({QStringLiteral("buttons"), QStringLiteral("Card buttons"), QStringLiteral(".card-buttons, .card"), QStringLiteral("buttons.size"),
-                     {Size("buttons.size", "Size", 16, 44, 24), Colour("buttons.colour", "Sign"), Colour("buttons.ground", "Ground"), Colour("buttons.edge", "Edge"),
+                     {Size("buttons.size", "Size", 16, 44, 24), Colour("buttons.colour", "Icon"), Colour("buttons.ground", "Background"), Colour("buttons.edge", "Border"),
                       Size("buttons.radius", "Corners", 0, 22, 4),
                       Choice("buttons.side", "Side", {{QStringLiteral("left"), QStringLiteral("Left")}, {QStringLiteral("right"), QStringLiteral("Right")}})}});
-        list.append({QStringLiteral("entries"), QStringLiteral("Between words"), QStringLiteral(".entry"), QString(),
-                     {Toggle("entries.rule", "A rule"), Colour("entries.rule_colour", "Its colour"), Size("entries.gap", "Room", 0, 30, 6)}});
+        list.append({QStringLiteral("entries"), QStringLiteral("Entry dividers"), QStringLiteral(".entry"), QString(),
+                     {Toggle("entries.rule", "Divider"), Colour("entries.rule_colour", "Colour"), Size("entries.gap", "Spacing", 0, 30, 6)}});
         return list;
     }();
     return all;
@@ -309,8 +309,8 @@ const Property* PropertyOf(const QString& key) {
 
 const QList<QPair<QString, QString>>& Blocks() {
     static const QList<QPair<QString, QString>> blocks{
-        {QStringLiteral("head"), QStringLiteral("Headline")},   {QStringLiteral("lookups"), QStringLiteral("Times looked up")},
-        {QStringLiteral("card"), QStringLiteral("Name's card")}, {QStringLiteral("senses"), QStringLiteral("Meanings")},
+        {QStringLiteral("head"), QStringLiteral("Header")},   {QStringLiteral("lookups"), QStringLiteral("Times looked up")},
+        {QStringLiteral("card"), QStringLiteral("Name card")}, {QStringLiteral("senses"), QStringLiteral("Meanings")},
         {QStringLiteral("forms"), QStringLiteral("Other forms")}, {QStringLiteral("buttons"), QStringLiteral("Card buttons")}};
     return blocks;
 }

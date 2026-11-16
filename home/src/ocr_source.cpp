@@ -67,7 +67,7 @@ ReaderUi::ReadingSource::About OcrSource::Describe() const {
 bool OcrSource::Start(const Lines::Title& title_, const Lines::Helper& helper, QString& error) {
     Stop();
     if (Lines::CleanHelperAddress(helper.address).isEmpty()) {
-        error = QStringLiteral("No OCR helper's address is set: Settings, OCR helper");
+        error = QStringLiteral("OCR helper not set up");
         return false;
     }
     if (title_.window.isEmpty() || !title_.area.isValid()) {
@@ -111,7 +111,7 @@ QString OcrSource::Status() const {
     if (!running) {
         return {};
     }
-    return window_there ? client.Status() : QStringLiteral("the window \"%1\" is not open").arg(title.window);
+    return window_there ? client.Status() : QStringLiteral("Window \"%1\" isn't open").arg(title.window);
 }
 
 void OcrSource::Tick() {

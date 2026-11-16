@@ -10,16 +10,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
-import android.view.SurfaceView
 import android.widget.Toast
-import io.github.sommepo.furoshiki.GameNative
 import io.github.sommepo.furoshiki.R
 import io.github.sommepo.furoshiki.Services
-import io.github.sommepo.furoshiki.reader.Console
-import io.github.sommepo.furoshiki.reader.ReaderNative
 import io.github.sommepo.furoshiki.reader.ReaderSession
 import io.github.sommepo.furoshiki.reader.model.TextLine
-import io.github.sommepo.furoshiki.reader.ui.ReaderHost
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.Executors
@@ -36,11 +31,13 @@ import org.json.JSONObject
  * (ReaderOverlay, a line [TextLine.isFromPicture]).
  *
  * Never on the emulator's thread: the copies are the display's (PixelCopy, as a card's picture is
- * taken), the rest on a thread of its own, one read at a time.
+ * taken, or the screen's capture for a game another app plays), the rest on a thread of its own,
+ * one read at a time.
  */
 class OcrSource(
     private val activity: Activity,
-    private val surface: SurfaceView,
+    /** Where the pictures come from: the game's surface, or the screen's capture ([OcrFrames]). */
+    val frames: OcrFrames,
     private val gameId: String,
     /** Whether the game is in front and playing now: nothing is looked at otherwise. */
     private val running: () -> Boolean,
@@ -136,9 +133,9 @@ class OcrSource(
             main.postDelayed(this, LOOK_MS)
             if (scripted == null && ReaderSession.profileStatus.loaded) scripted = true
             if (!wanted() || !running() || !ReaderSession.isActive || reading) return
-            val picture = pictureRect() ?: return
-            ReaderHost.copyFrame(surface, LOOK_WIDTH) { bitmap ->
-                if (bitmap == null) return@copyFrame
+            val picture = frames.picture() ?: return
+            frames.copy(LOOK_WIDTH) { bitmap ->
+                if (bitmap == null) return@copy
                 val now = SystemClock.uptimeMillis()
                 val look = game.always
                 worker.execute {
@@ -157,26 +154,11 @@ class OcrSource(
         }
     }
 
-    /** The game's picture on the surface (its pixels): the upper screen of a console with two. */
-    private fun pictureRect(): Rect? {
-        val width = surface.width
-        val height = surface.height
-        if (width <= 0 || height <= 0) return null
-        if (Console.TWO_SCREENS) {
-            val rects = runCatching { GameNative.screenRects() }.getOrNull() ?: return null
-            if (rects[2] <= 0 || rects[3] <= 0) return null
-            return Rect(rects[0], rects[1], rects[0] + rects[2], rects[1] + rects[3])
-        }
-        val values = runCatching { ReaderNative.pictureRect(width, height) }.getOrNull()
-        if (values == null || values.size < 6 || values[4] <= values[2] || values[5] <= values[3]) return Rect(0, 0, width, height)
-        return Rect(values[2], values[3], values[4], values[5])
-    }
-
     /** The areas' look in a copy of the surface [bitmap] ([picture] in the surface's pixels). */
     private fun signature(bitmap: Bitmap, picture: Rect, look: List<OcrArea>): OcrSignature {
         val whole = pixels(bitmap)
-        val scaleX = bitmap.width.toFloat() / surface.width.coerceAtLeast(1)
-        val scaleY = bitmap.height.toFloat() / surface.height.coerceAtLeast(1)
+        val scaleX = bitmap.width.toFloat() / frames.width.coerceAtLeast(1)
+        val scaleY = bitmap.height.toFloat() / frames.height.coerceAtLeast(1)
         return OcrSignature.joined(look.map { area ->
             OcrSignature.of(
                 whole,
@@ -199,14 +181,14 @@ class OcrSource(
     /** A copy of the whole picture, then [look] read in it. Main thread. */
     private fun copyAndRead(look: List<OcrArea>, asked: Boolean) {
         if (reading || stopped || look.isEmpty()) return
-        val picture = pictureRect() ?: return
+        val picture = frames.picture() ?: return
         reading = true
         // Where the game's sound is as the line is read: a card's audio from there.
-        val audio = runCatching { ReaderNative.audioPosition() }.getOrDefault(-1L)
-        ReaderHost.copyFrame(surface, FULL_WIDTH) { bitmap ->
+        val audio = frames.audioPosition()
+        frames.copy(FULL_WIDTH) { bitmap ->
             if (bitmap == null) {
                 reading = false
-                return@copyFrame
+                return@copy
             }
             worker.execute {
                 try {
@@ -235,8 +217,8 @@ class OcrSource(
      * the other, from the top, as one line, each character's place made a place in the game's picture.
      */
     fun read(bitmap: Bitmap, picture: Rect, look: List<OcrArea>): OcrRead {
-        val scaleX = bitmap.width.toFloat() / surface.width.coerceAtLeast(1)
-        val scaleY = bitmap.height.toFloat() / surface.height.coerceAtLeast(1)
+        val scaleX = bitmap.width.toFloat() / frames.width.coerceAtLeast(1)
+        val scaleY = bitmap.height.toFloat() / frames.height.coerceAtLeast(1)
         val left = picture.left * scaleX
         val top = picture.top * scaleY
         val width = picture.width() * scaleX
@@ -308,7 +290,9 @@ class OcrSource(
             .put("seq", sequence).put("frame", 0).put("audio", audio).put("channel", TextLine.CHANNEL_DIALOGUE)
             .put("speaker", "").put("text", text).put("ruby", JSONArray()).put("id", OcrText.sourceId(text))
             .put("meta", meta)
-        if (placesOf(read) != null) line.put("window", WINDOW)
+        val places = placesOf(read)
+        if (places != null) line.put("window", WINDOW)
+        Log.i("Furoshiki", "OCR: a line of ${text.codePointCount(0, text.length)} characters, ${read.boxes?.size ?: 0} places" + if (places == null) " (not placed)" else "")
         ReaderSession.onNativeEvent(line.toString())
         place(read)
     }

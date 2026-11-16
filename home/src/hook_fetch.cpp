@@ -184,7 +184,7 @@ Kit KitOf(const QString& key) {
         return {key, QStringLiteral("LunaHook (LunaTranslator %1)").arg(LunaVersion), Address(key), QStringLiteral("67 MB"), QStringLiteral("HIllya51, GPL-3.0")};
     }
     if (key == QStringLiteral("luna-tables")) {
-        return {key, QStringLiteral("LunaHook's games on emulators"), Address(key), QStringLiteral("0.5 MB"), QStringLiteral("HIllya51 and contributors, GPL-3.0")};
+        return {key, QStringLiteral("LunaHook emulator tables"), Address(key), QStringLiteral("0.5 MB"), QStringLiteral("HIllya51 and contributors, GPL-3.0")};
     }
     return {};
 }
@@ -244,30 +244,30 @@ bool Fetch::Start(const QString& key_, const QString& shared_) {
         // Four files of LunaHook's source and its licence, each fetched as it is.
         QDir().mkpath(work + QStringLiteral("/files"));
         for (const QString& name : {QStringLiteral("ppsspp_1.cpp"), QStringLiteral("PCSX2_1.cpp"), QStringLiteral("vita3k_1.cpp"), QStringLiteral("yuzu_1.cpp")}) {
-            steps.append({QStringLiteral("Fetching LunaHook's %1").arg(name), QStringLiteral("curl"),
+            steps.append({QStringLiteral("Downloading LunaHook %1").arg(name), QStringLiteral("curl"),
                           {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
                            work + QStringLiteral("/files/") + name, kit.from + u'/' + name}});
         }
-        steps.append({QStringLiteral("Fetching LunaTranslator's licence"), QStringLiteral("curl"),
+        steps.append({QStringLiteral("Downloading licence"), QStringLiteral("curl"),
                       {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
                        work + QStringLiteral("/files/LICENSE"), kit.from.section(QStringLiteral("/src/"), 0, 0) + QStringLiteral("/LICENSE")}});
         Next();
         return true;
     }
-    steps.append({QStringLiteral("Fetching %1").arg(kit.name), QStringLiteral("curl"),
+    steps.append({QStringLiteral("Downloading %1").arg(kit.name), QStringLiteral("curl"),
                   {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"), got, kit.from}});
     if (key == QStringLiteral("scripts")) {
         QDir().mkpath(work + QStringLiteral("/scripts"));
-        steps.append({QStringLiteral("Unpacking the scripts"), QString(), {got, work + QStringLiteral("/scripts")}}); // here, by Unzip
+        steps.append({QStringLiteral("Extracting scripts"), QString(), {got, work + QStringLiteral("/scripts")}}); // here, by Unzip
     } else if (key == QStringLiteral("frida")) {
         QFile::remove(got + QStringLiteral(".xz"));
         steps[0].arguments[6] = got + QStringLiteral(".xz");
-        steps.append({QStringLiteral("Unpacking frida-inject"), QStringLiteral("xz"), {QStringLiteral("-d"), QStringLiteral("-f"), got + QStringLiteral(".xz")}});
+        steps.append({QStringLiteral("Extracting frida-inject"), QStringLiteral("xz"), {QStringLiteral("-d"), QStringLiteral("-f"), got + QStringLiteral(".xz")}});
     } else {
         QDir().mkpath(work + QStringLiteral("/files"));
         QStringList arguments{QStringLiteral("-xf"), got, QStringLiteral("-C"), work + QStringLiteral("/files")};
         arguments += key == QStringLiteral("textractor") ? TextractorMembers() : LunaMembers();
-        steps.append({QStringLiteral("Unpacking %1").arg(kit.name), QStringLiteral("tar"), arguments});
+        steps.append({QStringLiteral("Extracting %1").arg(kit.name), QStringLiteral("tar"), arguments});
     }
     Next();
     return true;
@@ -308,11 +308,11 @@ bool Fetch::Finish(QString& why) {
     };
     if (key == QStringLiteral("scripts")) {
         if (!QFileInfo(work + QStringLiteral("/scripts/libLoader.js")).isFile()) {
-            why = QStringLiteral("What was fetched is not the scripts: it has no libLoader.js");
+            why = QStringLiteral("Download isn't a script package");
             return false;
         }
         if (!swap(work + QStringLiteral("/scripts"), ScriptsFolder(shared))) {
-            why = QStringLiteral("The scripts could not be put in %1").arg(ScriptsFolder(shared));
+            why = QStringLiteral("Couldn't save scripts to %1").arg(ScriptsFolder(shared));
             return false;
         }
         QFile out(hooks + QStringLiteral("/scripts.json"));
@@ -325,14 +325,14 @@ bool Fetch::Finish(QString& why) {
     }
     if (key == QStringLiteral("luna-tables")) {
         if (!QFileInfo(work + QStringLiteral("/files/ppsspp_1.cpp")).isFile()) {
-            why = QStringLiteral("What was fetched is not LunaHook's tables");
+            why = QStringLiteral("Download isn't a LunaHook table");
             return false;
         }
         if (!swap(work + QStringLiteral("/files"), hooks + QStringLiteral("/luna-tables"))) {
-            why = QStringLiteral("LunaHook's tables could not be put in %1").arg(hooks);
+            why = QStringLiteral("Couldn't save LunaHook tables to %1").arg(hooks);
             return false;
         }
-        why = QStringLiteral("LunaHook's tables fetched");
+        why = QStringLiteral("LunaHook tables downloaded");
         return true;
     }
     if (key == QStringLiteral("frida")) {
@@ -340,11 +340,11 @@ bool Fetch::Finish(QString& why) {
         QDir().mkpath(folder);
         QFile::remove(file);
         if (!QFile::rename(work + QStringLiteral("/download"), file)) {
-            why = QStringLiteral("frida-inject could not be put in %1").arg(folder);
+            why = QStringLiteral("Couldn't save frida-inject to %1").arg(folder);
             return false;
         }
         QFile::setPermissions(file, QFile::permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeUser);
-        why = QStringLiteral("Frida %1 fetched").arg(FridaVersion);
+        why = QStringLiteral("Frida %1 downloaded").arg(FridaVersion);
         return true;
     }
     const QString folder = hooks + (key == QStringLiteral("textractor") ? QStringLiteral("/textractor-") + TextractorVersion : QStringLiteral("/luna-") + LunaVersion);

@@ -332,9 +332,9 @@ Setup Snapshot() {
     const ReaderApp::ReaderSettings& settings = session.Settings();
     Setup setup;
     if (settings.AnkiTransport() != QStringLiteral("ankiconnect")) {
-        setup.problem = Miner::tr("Cards are switched off under Reader → Anki setup.");
+        setup.problem = Miner::tr("Anki cards are off (Reader → Anki setup)");
     } else if (settings.AnkiConnectUrl().trimmed().isEmpty()) {
-        setup.problem = Miner::tr("Anki is not set up yet: see Reader → Anki setup.");
+        setup.problem = Miner::tr("Anki isn't set up (Reader → Anki setup)");
     }
     static const QRegularExpression between(QStringLiteral("[\\s,;]+"));
     setup.addresses = settings.AnkiConnectUrl().split(between, Qt::SkipEmptyParts);
@@ -551,7 +551,7 @@ Miner::Outcome Queue(const Setup& setup, CardContext card, const QByteArray& pic
     job.insert(QStringLiteral("fields"), fields);
     QSaveFile out(QueueFolder() + QLatin1Char('/') + stamp + QStringLiteral(".json"));
     if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(job).toJson(QJsonDocument::Compact)) < 0 || !out.commit()) {
-        return Failed(Miner::tr("Anki is not reachable, and the card could not be kept for later."));
+        return Failed(Miner::tr("Couldn't reach Anki or save the card for later"));
     }
     return Miner::Outcome{Miner::Outcome::Kind::Queued, {}, {}};
 }
@@ -742,8 +742,7 @@ void Miner::Mine(const PresentedLine& presented, const std::optional<LookupResul
         return;
     }
     if (!setup.Complete()) {
-        callback(Failed(tr("Anki is not set up yet: choose a deck and a note type under "
-                           "Reader → Anki setup.")));
+        callback(Failed(tr("Anki isn't set up (Reader → Anki setup)")));
         return;
     }
     auto& session = ReaderSession::Instance();

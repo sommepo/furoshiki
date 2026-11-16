@@ -248,6 +248,10 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startGame(path: String, console: String, game: String) {
+        if (console == io.github.sommepo.furoshiki.companion.AppTitles.CONSOLE) {
+            startCompanion(path, game)
+            return
+        }
         startActivity(
             HomeScreen.apart(
                 this,
@@ -255,6 +259,56 @@ class HomeActivity : AppCompatActivity() {
                     .putExtra(GameActivity.EXTRA_CONSOLE, console).putExtra(GameActivity.EXTRA_GAME, game)
             )
         )
+    }
+
+    /**
+     * A title another app plays: Furoshiki on the second display as its companion, which asks for
+     * the screen and then starts the app on this one (companion/CompanionActivity); on a device
+     * with one display, on this one, over the game.
+     */
+    private fun startCompanion(path: String, game: String) {
+        val lower = LowerActivity.live?.display?.displayId
+            ?: getSystemService(android.hardware.display.DisplayManager::class.java)
+                .getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+                .firstOrNull { it.displayId != android.view.Display.DEFAULT_DISPLAY }?.displayId
+        val list = io.github.sommepo.furoshiki.companion.AppTitles.list(this)
+        val title = (0 until list.length()).map { list.getJSONObject(it) }.firstOrNull { it.optString("id") == game }?.optString("title").orEmpty()
+        val intent = Intent(this, io.github.sommepo.furoshiki.companion.CompanionActivity::class.java)
+            .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_PATH, path)
+            .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_GAME, game)
+            .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_TITLE, title)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // A device with one display: the companion on it, over the game (CompanionActivity).
+        if (lower == null) startActivity(intent)
+        else startActivity(intent, android.app.ActivityOptions.makeBasic().setLaunchDisplayId(lower).toBundle())
+    }
+
+    /** *Add a title*: its name, for a game [label] ([app], from its [activity]) plays. */
+    private fun askTitle(app: String, activity: String, label: String) {
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+        val name = android.widget.EditText(themed).apply {
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        }
+        val box = android.widget.FrameLayout(themed).apply {
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(name)
+        }
+        androidx.appcompat.app.AlertDialog.Builder(themed)
+            .setTitle(R.string.add_title_name)
+            .setMessage(label)
+            .setView(box)
+            .setPositiveButton(R.string.add_title_add) { _, _ ->
+                val title = name.text.toString().trim()
+                if (title.isNotEmpty()) {
+                    val entry = io.github.sommepo.furoshiki.companion.AppTitles.add(this, title, app, activity, label)
+                    callPage("Front.added(" + org.json.JSONObject.quote(entry.optString("path")) + ")")
+                }
+            }
+            .setNegativeButton(R.string.add_title_cancel, null)
+            .show()
+        name.requestFocus()
     }
 
     /**
@@ -609,6 +663,9 @@ class HomeActivity : AppCompatActivity() {
                     // Not looked through yet.
                 }
             }
+            // The titles other apps play (Add a title), read as their companion.
+            val apps = io.github.sommepo.furoshiki.companion.AppTitles.list(this@HomeActivity)
+            for (i in 0 until apps.length()) list.put(apps.get(i))
             val read = database.gameTotals().associateBy { it.game }
             for (i in 0 until list.length()) {
                 val game = list.getJSONObject(i)
@@ -656,7 +713,18 @@ class HomeActivity : AppCompatActivity() {
         fun scan() = this@HomeActivity.scan()
 
         @JavascriptInterface
-        fun play(path: String, console: String, game: String) = startGame(path, console, game)
+        fun play(path: String, console: String, game: String) = runOnUiThread { startGame(path, console, game) }
+
+        /** *Add a title*: a game [label] plays, its name asked for here. */
+        @JavascriptInterface
+        fun addTitle(app: String, activity: String, label: String) = runOnUiThread { askTitle(app, activity, label) }
+
+        /** A title added for another app, taken off the shelf (what was read of it stays). */
+        @JavascriptInterface
+        fun forgetTitle(id: String) {
+            io.github.sommepo.furoshiki.companion.AppTitles.remove(this@HomeActivity, id)
+            callPage("Front.reload()")
+        }
 
         /** The game in play behind the page as `{path, console, game}`, or empty. */
         @JavascriptInterface

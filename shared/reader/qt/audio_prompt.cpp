@@ -86,7 +86,7 @@ AudioPrompt::AudioPrompt(QWidget* parent) : QWidget(parent, PromptFlags()) {
     setAttribute(Qt::WA_ShowWithoutActivating);
     setFocusPolicy(Qt::NoFocus);
     // Signs, no words: what each does is its tooltip and its name for a screen reader.
-    setAccessibleName(tr("Add the line's audio to the card?"));
+    setAccessibleName(tr("Add audio to card?"));
     listen = new QPushButton(this);
     keep = new QPushButton(this);
     drop = new QPushButton(this);

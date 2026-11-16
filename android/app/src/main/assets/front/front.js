@@ -17,6 +17,9 @@ const LOOKS = {
   'PlayStation Vita': ['Vita', '#3f6fb0'],
   'PlayStation 2': ['PS2', '#2f4f7a'],
   'Dreamcast': ['DC', '#d9752b'],
+  // A title another app plays (Add game, read as its companion): the system's key stays
+  // "Another app" (AppTitles.SYSTEM); the third is the name the page shows for it.
+  'Another app': ['Other apps', '#5d6b5a', 'Other apps'],
 };
 
 const made_up = {
@@ -263,7 +266,7 @@ function makePages() {
   if (consoles.size > 1) pages.push({key: 'console:*', tab: 'All', head: 'Library', sub: 'All titles', shelf: true, rows: gameRows(state.games)});
   for (const [system, games] of consoles) {
     const look = LOOKS[system] || [system, ''];
-    pages.push({key: 'console:' + system, tab: look[0], head: 'Library', sub: system, shelf: true, rows: gameRows(games)});
+    pages.push({key: 'console:' + system, tab: look[0], head: 'Library', sub: look[2] || system, shelf: true, rows: gameRows(games)});
   }
   if (pages.length === 0) pages.push(libraryWithoutGames());
   pages.push(statisticsPage());
@@ -308,9 +311,9 @@ function pickOrder() {
   const chosen = orderKeys();
   const labels = ['Done', ...keys.map(key => {
     const at = chosen.findIndex(([one]) => one === key);
-    return at < 0 ? ORDERS[key][0] : `${at + 1}  ·  ${ORDERS[key][0]}${chosen[at][1] ? '  ·  the other way round' : ''}`;
+    return at < 0 ? ORDERS[key][0] : `${at + 1}  ·  ${ORDERS[key][0]}${chosen[at][1] ? '  ·  Reversed' : ''}`;
   })];
-  pick('Shelf order', labels, 0, at => {
+  pick('Sort by', labels, 0, at => {
     if (at === 0) return;
     const key = keys[at - 1];
     const index = chosen.findIndex(([one]) => one === key);
@@ -354,13 +357,52 @@ function gameRows(games) {
     open() { setStage(true); },
     id: game.path,
     game,
-    pin() { host.pin?.(game.path, game.console, game.id, game.title); say('Asked the launcher for a shortcut'); },
-    also: 'Its settings',
+    pin() { host.pin?.(game.path, game.console, game.id, game.title); say('Adding to home screen'); },
+    also: 'Game settings',
     alsoAct() {
-      setScope({console: game.console, game: game.id, name: 'Only this game: ' + game.title, tag: 'Game'});
+      setScope({console: game.console, game: game.id, name: game.title, tag: 'Game'});
       goTo(state.pages.findIndex(one => one.key === 'consoles'));
     },
+    // A title another app plays: which app, and a way off the shelf instead of a console's settings.
+    ...(game.console === 'app' ? {
+      about: 'Plays in ' + (game.via || 'another app'),
+      also: 'Remove from library',
+      alsoAct() {
+        pick('Remove ' + game.title + ' from library?', ['Remove', 'Cancel'], 1, at => {
+          if (at === 0) host.forgetTitle?.(game.id);
+        });
+      },
+    } : {}),
   }));
+}
+
+/**
+ * Add a title: a game another app plays (GameNative, Winlator…). Furoshiki stands on the second
+ * display beside it, reading the screen by OCR, as with a console's game that has no script.
+ */
+function addTitle() {
+  if (!host.addTitle) return;
+  let apps = [];
+  try { apps = JSON.parse(host.apps()); } catch (error) { console.error(error); }
+  if (!apps.length) { say('No apps found'); return; }
+  // The apps that play games first.
+  const plays = app => /gamenative|winlator|mobox|gamehub|steam/i.test(app.package + ' ' + app.label) ? 2
+    : /emu|retroarch|game/i.test(app.package + ' ' + app.label) ? 1 : 0;
+  apps.sort((a, b) => plays(b) - plays(a));
+  pick('Add game  ·  Choose app', apps.map(app => app.label), 0, at => {
+    const app = apps[at];
+    if (app) host.addTitle(app.package, app.activity, app.label);
+  });
+}
+
+/** The row that adds one, where the device has the second display the companion stands on. */
+function addTitleRows() {
+  if (!host.addTitle) return [];
+  return [{
+    title: 'Add game', id: 'add-title', go: 'Add',
+    about: 'From another app, like GameNative',
+    act() { addTitle(); },
+  }];
 }
 
 /** Plays a game. Another in play behind the page (the home screen) is asked about first. */
@@ -371,7 +413,8 @@ function play(game) {
     return;
   }
   const other = state.games.find(one => one.path === playing.path);
-  pick((other?.title || 'Another game') + ' is in play', ['Go back to it', 'End it and start this one'], 0, at => {
+  const running = other ? shelfName(other) : 'Another game';
+  pick(running + ' is running', ['Resume ' + running, 'Quit and start ' + shelfName(game)], 0, at => {
     if (at === 0) host.play(playing.path, playing.console, playing.game);
     else host.play(game.path, game.console, game.id);
   });
@@ -387,7 +430,7 @@ function appsPage() {
     act() { host.openApp(app.package, app.activity); },
     also: 'App info', alsoAct() { host.system('app:' + app.package); },
   }));
-  if (!rows.length) rows.push({title: 'No other apps', about: 'Apps installed on this device are listed here.', id: 'none'});
+  if (!rows.length) rows.push({title: 'No apps', about: '', id: 'none'});
   return {key: 'apps', tab: 'Apps', head: 'Apps', sub: '', rows};
 }
 
@@ -401,20 +444,20 @@ function systemPage() {
     step(direction) { change(direction); readStatus(); rebuild(); },
   });
   const rows = [
-    dial('Volume', 'volume', 'Left and right turn it down and up.', 'sound', direction => host.volume(direction)),
+    dial('Volume', 'volume', '', 'sound', direction => host.volume(direction)),
     status.dim
-      ? dial('Brightness', 'brightness', 'Left and right dim and brighten the screen.', 'display', direction => host.brightness(direction))
-      : {title: 'Brightness', side: percent(status.brightness), value: percent(status.brightness), about: 'Android asks once before an app may change the brightness.', go: 'Allow', act() { host.system('dim'); }, id: 'brightness'},
-    open('Wi-Fi', status.wifi ? 'Connected' : 'Not connected', 'Networks, on Android\'s own page.', 'wifi'),
-    open('Bluetooth', '', 'Controllers and headphones.', 'bluetooth'),
-    open('Battery', percent(status.battery ?? -1) + (status.charging ? '  ·  charging' : ''), 'What uses it, on Android\'s own page.', 'battery'),
+      ? dial('Brightness', 'brightness', '', 'display', direction => host.brightness(direction))
+      : {title: 'Brightness', side: percent(status.brightness), value: percent(status.brightness), about: 'Needs permission', go: 'Allow', act() { host.system('dim'); }, id: 'brightness'},
+    open('Wi-Fi', status.wifi ? 'Connected' : 'Not connected', '', 'wifi'),
+    open('Bluetooth', '', '', 'bluetooth'),
+    open('Battery', percent(status.battery ?? -1) + (status.charging ? '  ·  Charging' : ''), '', 'battery'),
     ...(status.storage || []).map(one => ({
-      ...open(one.name + ' storage', size(one.free) + ' free', 'Of ' + size(one.total) + '.', 'storage'), id: 'storage:' + one.name,
+      ...open(one.name + ' storage', size(one.free) + ' free', size(one.total) + ' total', 'storage'), id: 'storage:' + one.name,
     })),
-    open('Date and time', new Date().toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}), 'The clock and the time zone.', 'date'),
-    open('Notifications', '', 'What Android has to tell, pulled down over the page.', 'notifications', 'Show'),
-    open('Quick settings', '', 'Android\'s own switches: aeroplane mode, casting, the rest.', 'quick', 'Show'),
-    open('Android settings', '', 'Everything else of the device.', 'android'),
+    open('Date & time', new Date().toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}), '', 'date'),
+    open('Notifications', '', '', 'notifications', 'Show'),
+    open('Quick settings', '', '', 'quick', 'Show'),
+    open('Android settings', '', '', 'android'),
   ];
   return {key: 'system', tab: 'System', head: 'System', sub: '', rows};
 }
@@ -424,14 +467,14 @@ function libraryWithoutGames() {
   return {
     key: 'library', tab: 'Library', head: 'Library', sub: '', art: '', fill: 8,
     rows: access ? [{
-      title: 'Look for games again',
-      about: 'Games with a script are listed by themselves, from a folder called Games or Reader Games on the device or its card, or any folder added under Settings.',
-      go: 'Look',
-      act() { host.scan(); say('Looking through the folders'); },
+      title: 'Scan for games',
+      about: '',
+      go: 'Scan',
+      act() { host.scan(); say('Scanning for games…'); },
       id: 'scan',
-    }] : [{
-      title: 'Allow access to your games',
-      about: 'Furoshiki reads games where they are, on the device and its card. Android asks once: allow all files access for Furoshiki.',
+    }, ...addTitleRows()] : [{
+      title: 'Allow file access',
+      about: 'Needed to find your games',
       go: 'Allow',
       act() { host.askAccess(); },
       id: 'access',
@@ -444,13 +487,13 @@ function statisticsPage() {
   const rows = [
     {title: 'Today', side: stats.today.text || '', file: '統計', figures: figuresOf(stats.today), id: 'today', bars: stats.days},
     {title: 'All games', side: stats.total.text || '', file: '統計', figures: figuresOf(stats.total), id: 'total', bars: stats.days},
-    {title: 'Days with reading', side: number(stats.daysRead), value: number(stats.daysRead), file: '統計', id: 'days', about: 'Days on which something was read on this device.'},
-    {title: 'Games begun', side: `${(stats.games || []).filter(game => game.chars > 0).length} of ${state.games.length}`,
-      value: String((stats.games || []).filter(game => game.chars > 0).length), file: '統計', id: 'begun', about: 'Games with something read, of the games on the shelves.'},
+    {title: 'Reading days', side: number(stats.daysRead), value: number(stats.daysRead), file: '統計', id: 'days', about: ''},
+    {title: 'Games started', side: `${(stats.games || []).filter(game => game.chars > 0).length} of ${state.games.length}`,
+      value: String((stats.games || []).filter(game => game.chars > 0).length), file: '統計', id: 'begun', about: ''},
     // The games by what was read of them, the most first.
     ...(stats.games || []).slice().sort((a, b) => (b.chars || 0) - (a.chars || 0))
       .map((game, i) => ({title: game.title, side: playTime(game.activeMs), file: '統計', figures: figuresOf(game), id: 'game' + i})),
-    {title: 'Sessions and days', about: 'Every session and day, a session taken out, the statistics written to a file.', file: '統計', go: 'Open', act() { host.open('statistics'); }, id: 'open'},
+    {title: 'History', about: 'Sessions, export', file: '統計', go: 'Open', act() { host.open('statistics'); }, id: 'open'},
   ];
   return {key: 'statistics', tab: 'Statistics', head: 'Statistics', sub: '', rows};
 }
@@ -470,12 +513,11 @@ function pickScope() {
   const choices = [{label: 'All consoles', scope: {console: '', game: '', name: 'All consoles', tag: 'All'}}];
   for (const one of consoles) {
     const short = LOOKS[one.system]?.[0] || one.short;
-    choices.push({label: 'Only ' + short, scope: {console: one.key, game: '', name: 'Only ' + short, tag: short}});
+    choices.push({label: short, scope: {console: one.key, game: '', name: short, tag: short}});
   }
   const game = state.lastGame;
   if (game) {
-    const name = 'Only this game: ' + game.title;
-    choices.push({label: name, scope: {console: game.console, game: game.id, name, tag: 'Game'}});
+    choices.push({label: game.title, scope: {console: game.console, game: game.id, name: game.title, tag: 'Game'}});
   }
   const now = choices.findIndex(one => one.scope.console === state.scope.console && one.scope.game === state.scope.game);
   pick('Settings for', choices.map(one => one.label), Math.max(now, 0), at => setScope(choices[at].scope));
@@ -517,7 +559,7 @@ function settingRow(setting) {
     value: setting.shown, go: setting.kind === 0 ? 'Switch' : 'Change', act: change, step, id: setting.key,
   };
   if (setting.set) {
-    row.also = game ? 'Use its console\'s value' : console ? 'Use the shared value' : 'Use each console\'s own';
+    row.also = game ? 'Use console setting' : 'Reset to default';
     row.alsoAct = () => write('');
   }
   return row;
@@ -526,7 +568,7 @@ function settingRow(setting) {
 function consolesPage() {
   const scope = state.scope;
   const rows = [{
-    title: 'Settings for', side: scope.game ? 'This game' : scope.name, about: scope.name + '. A game takes these as it starts.', value: scope.tag,
+    title: 'Settings for', side: scope.name, about: '', value: scope.tag,
     go: 'Choose', act: pickScope, id: 'scope',
   }];
   let settings = [];
@@ -574,13 +616,13 @@ function pick(title, labels, at, chosen) {
 /** A title looked for by a part of its name: what is typed lists the games that hold it. */
 function findTitle() {
   state.picking = {slider: true};
-  $('pick-title').textContent = 'Find a title';
+  $('pick-title').textContent = 'Search games';
   const list = $('pick-rows');
   list.textContent = '';
   const line = document.createElement('li');
   const field = document.createElement('input');
   field.type = 'search';
-  field.placeholder = 'A part of its name';
+  field.placeholder = 'Game name';
   line.append(field);
   list.append(line);
   const show = () => {
@@ -645,14 +687,13 @@ function ocrRows() {
   const where = ocr.address || ocr.named;
   return [
     {
-      title: 'OCR engine', id: 'ocr-engine', go: 'Change', side: (ocr.chosen ? '' : 'Default · ') + using, value: using,
-      about: 'A game no script reads is read from its picture. '
-        + (ocr.using === 'service' ? 'Its text area is sent to ' + where + '.' : ocr.using === 'device' ? 'On this device: nothing is sent anywhere.' : 'This build has no engine of its own, and no service is known.'),
+      title: 'OCR engine', id: 'ocr-engine', go: 'Change', side: using + (ocr.chosen ? '' : ' (default)'), value: using,
+      about: ocr.using === 'service' ? where || '' : '',
       act() { host.pickOcrEngine(); },
     },
     {
-      title: 'OCR service', id: 'ocr-service', go: 'Type', side: where || 'Not set', value: where ? 'Set' : 'None',
-      about: (ocr.address ? 'Typed here' : ocr.named ? 'Named by your home server' : 'Your home server\'s, or the OCR helper on a computer') + (ocr.token ? ', with a token.' : '.'),
+      title: 'OCR service', id: 'ocr-service', go: 'Edit', side: where || 'Not set', value: where ? 'Set' : 'None',
+      about: !ocr.address && ocr.named ? 'From home server' : '',
       act() { host.typeOcrService(); },
     },
   ];
@@ -671,7 +712,7 @@ function wideRow() {
   const set = value => { host.setWide(value); rebuild(); };
   return [{
     title: 'Widescreen', id: 'wide', go: 'Change', side: said(wide.value), value: said(wide.value),
-    about: 'The games that have a recipe drawn wide, never stretched, from their next start. For: ' + wide.consoles.join(', ') + '.',
+    about: wide.consoles.join(', '),
     act() { pick('Widescreen', wide.choices.map(said), wide.choices.indexOf(wide.value), at => set(wide.choices[at])); },
     step(direction) { set(wide.choices[(wide.choices.indexOf(wide.value) + direction + wide.choices.length) % wide.choices.length]); },
   }];
@@ -682,12 +723,11 @@ function updateRow() {
   let update = null;
   try { update = JSON.parse(host.update?.() || 'null'); } catch (e) { /* none */ }
   if (!update) return [];
-  const said = !update.version ? 'Not known' : update.newer ? update.version + ' is there' : 'Up to date';
+  const said = !update.version ? 'Unknown' : update.newer ? update.version + ' available' : 'Up to date';
   return [{
-    title: 'Update', id: 'update', side: `${update.mine}  ·  ${said}`, value: update.mine, go: update.newer ? 'Get it' : 'Ask again',
-    about: update.newer ? 'A newer build is on your home server\'s Files page. The browser fetches it and Android asks before it is installed.'
-      : 'This build against the newest on your home server\'s Files page.',
-    act() { if (update.newer) host.openUpdate(update.url); else { host.askServices(); say('Asking the home server'); } },
+    title: 'Update', id: 'update', side: `${update.mine}  ·  ${said}`, value: update.mine, go: update.newer ? 'Download' : 'Check now',
+    about: '',
+    act() { if (update.newer) host.openUpdate(update.url); else { host.askServices(); say('Checking for updates…'); } },
   }];
 }
 
@@ -700,26 +740,49 @@ function developerPage() {
   const count = Object.keys(labels()).length;
   const rows = [
     {
-      title: 'Rename labels', id: 'rename', side: renaming ? 'On' : 'Off', value: renaming ? 'On' : 'Off', go: 'Switch',
-      about: 'While this is on, the key of any row of any page asks what the row is to be called; this page\'s name row renames a page.',
+      title: 'Rename labels', id: 'rename', side: renaming ? 'On' : 'Off', value: renaming ? 'On' : 'Off', go: renaming ? 'Turn off' : 'Turn on',
+      about: '',
       act() { state.renaming = !renaming; rebuild(); },
     },
     {
-      title: 'Copy my labels', id: 'copy', side: count ? count + ' renamed' : 'None', go: 'Copy',
-      about: 'Puts them on the clipboard as the file has them ("Page/Name": "label"), for the next build to carry.',
+      title: 'Copy labels', id: 'copy', side: count ? count + ' renamed' : 'None', go: 'Copy',
+      about: '',
       act() { host.copyLabels(); say('Copied'); },
     },
     {
-      title: 'Put every label back', id: 'clear', go: 'Put back', about: 'Every row is called what it was built as.',
+      title: 'Reset labels', id: 'clear', go: 'Reset', about: '',
       act() { host.setLabel('', ''); rebuild(); },
     },
     ...(renaming ? state.pages.filter(one => !one.shelf).map(one => ({
-      title: 'Page: ' + (one.name || one.head), id: 'page:' + one.key, go: 'Rename', about: 'What this page is called at the foot and the head.',
+      title: 'Page: ' + (one.name || one.head), id: 'page:' + one.key, go: 'Rename', about: '',
       act() { host.askLabel('Page/' + (one.name || one.head), one.head); },
     })) : []),
   ];
   return {key: 'developer', tab: 'Developer', head: 'Developer', sub: '', rows: rows.map(row => ({file: '開発', ...row}))};
 }
+
+/**
+ * Rows whose built-in title changed (2026-11-15, plain app wording), by their new title: a label
+ * saved under the old "Page/Title" key still applies. A label set from now on is kept under the new one.
+ */
+const FORMER_TITLES = {
+  'Scan for games': 'Look for games again',
+  'Allow file access': 'Allow access to your games',
+  'Add game': 'Add a title',
+  'Reading days': 'Days with reading',
+  'Games started': 'Games begun',
+  'History': 'Sessions and days',
+  'Date & time': 'Date and time',
+  'No apps': 'No other apps',
+  'Shortcut buttons': 'Buttons in a game',
+  'CRT filter': 'CRT picture',
+  'Search settings': 'Find a setting',
+  'Home server': 'Home server services',
+  'Search games': 'Find a title',
+  'Sort by': 'Shelf order',
+  'Show games': 'Games shown',
+  'Add folder': 'Add a game folder',
+};
 
 /** The pages' rows called what the user called them, and, while renaming, their key asking for a name. */
 function applyLabels(pages) {
@@ -732,6 +795,8 @@ function applyLabels(pages) {
     if (one.key === 'developer') continue;
     for (const row of one.rows) {
       const key = one.name + '/' + row.title;
+      const former = FORMER_TITLES[row.title];
+      if (former && !mine[key] && mine[one.name + '/' + former]) mine[key] = mine[one.name + '/' + former];
       if (state.renaming) {
         const now = mine[key] || row.title;
         row.go = 'Rename';
@@ -750,17 +815,17 @@ function settingsPage() {
   const home = host.homeScreen?.();
   const homeRow = home ? [{
     title: 'Home screen', id: 'home',
-    side: {on: 'Furoshiki', waiting: 'Not chosen yet', off: 'Off'}[home], value: {on: 'On', waiting: 'Choose', off: 'Off'}[home],
-    about: 'Furoshiki as this device\'s home screen, for a handheld: the shelf at the Home key and when the device starts, the other apps and the device\'s settings on pages of their own, a second display always in use.'
-      + (home === 'waiting' ? ' Android still has another home app: choose Furoshiki there.' : ''),
-    go: {on: 'Switch off', waiting: 'Choose', off: 'Switch on'}[home],
+    side: {on: 'On', waiting: 'Not set', off: 'Off'}[home], value: {on: 'On', waiting: 'Choose', off: 'Off'}[home],
+    about: home === 'waiting' ? 'Choose Furoshiki as your home app' : '',
+    go: {on: 'Turn off', waiting: 'Choose', off: 'Turn on'}[home],
     act() { if (home === 'waiting') host.system('home'); else host.setHomeScreen(home === 'off'); },
-    ...(home === 'waiting' ? {also: 'Switch off', alsoAct() { host.setHomeScreen(false); }} : {}),
+    ...(home === 'waiting' ? {also: 'Turn off', alsoAct() { host.setHomeScreen(false); }} : {}),
   }] : [];
   const rows = [
     ...homeRow,
+    ...addTitleRows(),
     {
-      title: 'Theme', side: theme.name, about: 'Kon, Mono, Paper or Solarized: the themes Furoshiki has on a computer.', value: theme.name, go: 'Change', id: 'look',
+      title: 'Theme', side: theme.name, about: '', value: theme.name, go: 'Change', id: 'look',
       act() {
         const keys = Object.keys(state.themes).sort((a, b) => state.themes[a].order - state.themes[b].order);
         state.theme = keys[(keys.indexOf(state.theme) + 1) % keys.length];
@@ -769,74 +834,74 @@ function settingsPage() {
         rebuild();
       },
     },
-    {title: 'Icon', side: host.icon(), about: 'The icon on your home screen. Your launcher may take a moment to change it.', value: host.icon(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
+    {title: 'Icon', side: host.icon(), about: '', value: host.icon(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
     // The reader's settings, by the pages Furoshiki has on a computer; each shows its few most
     // changed and keeps the rest behind More.
-    open('Reading', 'The game\'s text, the reading panel, the session line.', 'settings:READING'),
-    open('Popup', 'The dictionary popup\'s look and size.', 'settings:POPUP'),
-    open('Dictionaries', 'Import the dictionaries words are looked up in.', 'dictionaries'),
-    open('Cards', 'Anki: where cards go, their picture and audio.', 'settings:CARDS'),
-    open('Sources', 'The clipboard, the text server.', 'settings:SOURCES'),
+    open('Reading', 'Text panel, furigana, session info', 'settings:READING'),
+    open('Popup', 'Theme, size', 'settings:POPUP'),
+    open('Dictionaries', 'Yomitan dictionaries', 'dictionaries'),
+    open('Cards', 'Anki, screenshot, audio', 'settings:CARDS'),
+    open('Sources', 'Clipboard, text server', 'settings:SOURCES'),
     ...ocrRows(),
     // What each button does, for all consoles or each (map.js); the pointer's speed and the rest from there.
-    {title: 'Controller', about: 'What each button does, for all consoles or for each.', go: 'Open', act() { openMap(); }, id: 'controller'},
+    {title: 'Controller', about: 'Button mapping', go: 'Open', act() { openMap(); }, id: 'controller'},
     ...(host.pickActionKeys ? [{
-      title: 'Buttons in a game', id: 'action-keys', go: 'Choose',
+      title: 'Shortcut buttons', id: 'action-keys', go: 'Choose',
       side: actionKeysText(), value: String(actionKeysCount() || 'None'),
-      about: 'A button of the controller for pause, the reading timer, a card, the backlog' + (host.services ? ', Explain, the guide' : '') + ' and the menus: the keys of the second screen, without looking down.',
+      about: '',
       act() { host.pickActionKeys(); },
     }] : []),
     ...wideRow(),
-    open('CRT picture', 'The games shown as on a tube, with its sliders.', 'crt'),
-    open('Find a setting', 'Every setting, by its name.', 'settings'),
-    ...(host.saveSync?.() ? [open('Save sync', 'Each game\'s save the same on your other devices.', 'settings:SAVE_SYNC')] : []),
+    open('CRT filter', '', 'crt'),
+    open('Search settings', '', 'settings'),
+    ...(host.saveSync?.() ? [open('Save sync', '', 'settings:SAVE_SYNC')] : []),
     ...(host.trackerAddress ? [{
-      title: 'Study tracker', id: 'tracker', go: 'Type', side: host.trackerAddress() || 'Not set', value: state.tracker ? 'On' : 'Off',
-      about: 'Where your study tracker is asked what was read of each title on every device. '
-        + (state.tracker ? 'It answered ' + new Date(state.tracker.at).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) + '.' : 'It has not answered yet.'),
+      title: 'Study tracker', id: 'tracker', go: 'Edit', side: host.trackerAddress() || 'Not set', value: state.tracker ? 'On' : 'Off',
+      about: state.tracker ? 'Last synced ' + new Date(state.tracker.at).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})
+        : host.trackerAddress() ? 'Not connected' : '',
       act() { host.askTrackerAddress(); },
     }] : []),
     ...updateRow(),
     ...(host.services ? [{
-      title: 'Home server services', id: 'services', go: 'Ask again', side: servicesText(), value: servicesText() ? 'Known' : 'None',
-      about: 'The study tracker, Explain and the guides are found through the home server this device is paired with.',
-      act() { host.askServices(); say('Asking the home server'); },
+      title: 'Home server', id: 'services', go: 'Refresh', side: servicesText(), value: servicesText() ? 'Connected' : 'None',
+      about: '',
+      act() { host.askServices(); say('Checking home server…'); },
     }] : []),
     {
       title: 'RetroAchievements', side: host.achievementsUser?.() || 'Off', value: host.achievementsUser?.() || 'Off',
-      about: 'Your login, for the cores that have achievements (the Dreamcast\'s).', go: 'Log in', id: 'achievements',
+      about: '', go: 'Log in', id: 'achievements',
       act() { host.achievementsLogin?.(); },
     },
     {
-      title: 'Find a title', about: 'Any game on any shelf, by a part of its name.', go: 'Find', id: 'find',
+      title: 'Search games', about: '', go: 'Search', id: 'find',
       act() { findTitle(); },
     },
     {
-      title: 'Shelf order', side: orderText(), value: ORDERS[orderKeys()[0]?.[0] || 'last'][0], go: 'Change', id: 'order',
-      about: 'How every shelf stands: ' + orderText() + '. Several keys may be chosen, the first counting most.',
+      title: 'Sort by', side: orderText(), value: ORDERS[orderKeys()[0]?.[0] || 'last'][0], go: 'Change', id: 'order',
+      about: '',
       act: pickOrder,
     },
     {
-      title: 'Games shown', side: host.allGames?.() ? 'All' : 'With a script', value: host.allGames?.() ? 'All' : 'Read',
-      about: 'Only the games a script reads, or every game the cores can play (those without a script are read by OCR: Menu, Text area for OCR).', go: 'Switch', id: 'all',
-      act() { host.setAllGames?.(!host.allGames?.()); say('Looking through the folders'); rebuild(); },
+      title: 'Show games', side: host.allGames?.() ? 'All games' : 'With scripts only', value: host.allGames?.() ? 'All' : 'Scripted',
+      about: '', go: 'Change', id: 'all',
+      act() { host.setAllGames?.(!host.allGames?.()); say('Scanning for games…'); rebuild(); },
     },
     {
-      title: 'Game scripts', about: 'The scripts games are read with, from each console\'s published list: install, update, your own.',
+      title: 'Game scripts', about: '',
       go: 'Open', id: 'scripts',
       act() {
         const consoles = JSON.parse(host.consoles());
         if (!consoles.length) { host.open('scripts'); return; }
         const names = consoles.map(one => LOOKS[one.system]?.[0] || one.short);
-        pick('Game scripts for', names, 0, at => host.openScripts(consoles[at].key));
+        pick('Choose console', names, 0, at => host.openScripts(consoles[at].key));
       },
     },
-    {title: 'Add a game folder', about: 'Games are looked for in this folder too.', go: 'Choose', act() { host.addFolder(); }, id: 'add'},
+    {title: 'Add folder', about: '', go: 'Add', act() { host.addFolder(); }, id: 'add'},
     ...folders.map(folder => ({
-      title: folder, about: 'Games are looked for here. Take it off the list with the button.', go: 'Remove', id: folder,
+      title: folder, about: 'Game folder', go: 'Remove', id: folder,
       act() { host.removeFolder(folder); Front.reload(); },
     })),
-    {title: 'Look for games again', about: 'Goes through the folders again.', go: 'Look', act() { host.scan(); say('Looking through the folders'); }, id: 'scan'},
+    {title: 'Scan for games', about: '', go: 'Scan', act() { host.scan(); say('Scanning for games…'); }, id: 'scan'},
   ];
   return {key: 'settings', tab: 'Settings', head: 'Settings', sub: '', rows: rows.map(row => ({file: '設定', ...row}))};
 }
@@ -1004,7 +1069,7 @@ function drawCard() {
   head.append(where, current.shelf ? current.sub : current.head);
   $('file').textContent = current.shelf
     ? `${String(chosenIndex() + 1).padStart(2, '0')}／${String(current.rows.length).padStart(2, '0')}  ·  ${row?.file || ''}`
-      + (row?.from ? '  ·  ' + row.from : '') + (row?.game && state.playing?.path === row.game.path ? '  ·  In play' : '')
+      + (row?.from ? '  ·  ' + row.from : '') + (row?.game && state.playing?.path === row.game.path ? '  ·  Now playing' : '')
     : `${String(chosenIndex() + 1).padStart(2, '0')}／${String(current.rows.length).padStart(2, '0')}`;
   $('title').textContent = row?.title || '';
   $('sub').textContent = row?.about || '';
@@ -1088,33 +1153,33 @@ function drawStage() {
   $('stage-own').textContent = row.about || '';
   $('stage-go').textContent = row.go;
   const day = lastDay(game);
-  $('stage-last').textContent = day ? 'Last read  ' + dayText(day) : 'Not read yet';
+  $('stage-last').textContent = day ? 'Last read  ' + dayText(day) : 'Not started';
   showFar($('stage-far'), shareOf(game));
   $('stage-log').hidden = true;
 
   const facts = $('stage-facts');
   facts.textContent = '';
   const short = LOOKS[game.system]?.[0] || game.system || '';
-  facts.append(fact('Read by', game.script === false ? `Core  ·  ${short}  ·  played, not read` : `Core  ·  ${short}`));
+  facts.append(fact('Console', game.script === false ? `${short}  ·  No script` : short));
   if (tracked) {
     facts.append(fact('Read', tracked.total > 0
       ? `${number(tracked.read)} of ${number(tracked.total)} characters  ·  ${Math.round(100 * tracked.read / tracked.total)}%`
       : `${number(tracked.read)} characters`, 'Study tracker'));
     if (tracked.hours > 0) {
-      facts.append(fact('Time', [playTime(tracked.hours * 3.6e6), tracked.speed > 0 ? number(tracked.speed) + ' an hour' : '',
+      facts.append(fact('Time', [playTime(tracked.hours * 3.6e6), tracked.speed > 0 ? number(tracked.speed) + '/h' : '',
         tracked.sessions > 0 ? tracked.sessions + ' sessions' : ''].filter(Boolean).join('  ·  ')));
     }
-    const jiten = [tracked.difficulty > 0 ? 'Difficulty ' + tracked.difficulty.toFixed(2) : '', tracked.unique > 0 ? number(tracked.unique) + ' different words' : '',
+    const jiten = [tracked.difficulty > 0 ? 'Difficulty ' + tracked.difficulty.toFixed(2) : '', tracked.unique > 0 ? number(tracked.unique) + ' unique words' : '',
       tracked.coverage > 0 ? Math.round(tracked.coverage) + '% known' : ''].filter(Boolean);
     if (jiten.length) facts.append(fact('Jiten', jiten.join('  ·  ')));
   }
   if (game.chars > 0) {
     const hours = (game.activeMs || 0) / 3.6e6;
-    const here = [number(game.chars) + ' characters', playTime(game.activeMs), hours > .05 ? number(Math.round(game.chars / hours)) + ' an hour' : ''].filter(Boolean).join('  ·  ');
-    facts.append(fact(tracked ? 'Here' : 'Read', here, 'This device'));
+    const here = [number(game.chars) + ' characters', playTime(game.activeMs), hours > .05 ? number(Math.round(game.chars / hours)) + '/h' : ''].filter(Boolean).join('  ·  ');
+    facts.append(fact(tracked ? 'This device' : 'Read', here, tracked ? '' : 'This device'));
   }
   const other = state.elsewhere?.[game.id];
-  if (other && other.day > (game.last || '')) facts.append(fact('Elsewhere', `${other.device}  ·  ${dayText(other.day)}`));
+  if (other && other.day > (game.last || '')) facts.append(fact('Last played on', `${other.device}  ·  ${dayText(other.day)}`));
   // The guides are the dev line's: they come with the home server's services (host.services).
   if (record?.guide && host.services) facts.append(fact('Guide', record.guide.replace(/-/g, ' ')));
   let reading = {days: [], lines: 0};
@@ -1129,10 +1194,10 @@ function drawStage() {
       bar.style.height = Math.max(6, Math.round(one.chars * 100 / most)) + '%';
       bars.append(bar);
     }
-    facts.append(fact('30 days', bars, `Most ${number(most)} a day`));
+    facts.append(fact('30 days', bars, `Best day ${number(most)}`));
   }
   if (reading.lines > 0) {
-    facts.append(fact('Log', `${number(reading.lines)} lines on this device`));
+    facts.append(fact('Log', `${number(reading.lines)} lines`));
     $('stage-log').hidden = false;
   }
   // Its people: as the game writes them, and how they are said.
@@ -1264,6 +1329,17 @@ const Front = {
     }
     readStatus();
     rebuild();
+  },
+  /** A title just added (Add a title): on its shelf, in hand. */
+  added(path) {
+    Front.reload();
+    const game = state.games.find(one => one.path === path);
+    if (!game) return;
+    const at = state.pages.findIndex(one => one.key === 'console:' + game.system);
+    if (at < 0) return;
+    state.chosen[state.pages[at].key] = game.path;
+    goTo(at);
+    say(game.title + ' added');
   },
   /** The Home key with the page in front: the shelf, at the game in play or at its first. */
   home() {
@@ -1502,7 +1578,7 @@ if (LOWER) {
   // In a plain browser: something to look at.
   if (!window.FuroshikiHost) {
     Lower.show(JSON.stringify({theme: {}, head: 'PlayStation Portable', shelf: true, file: '01／03  ·  ULJM05887', title: 'STEINS;GATE', sub: '', value: '',
-      figures: [['Characters', '184,220'], ['Play Time', '7h03m'], ['Last Read', '2026/11/01']], go: 'Continue', also: 'Its settings', cover: 'covers/steins-gate.psp.jpg', far: .2,
+      figures: [['Characters', '184,220'], ['Play Time', '7h03m'], ['Last Read', '2026/11/01']], go: 'Continue', also: 'Game settings', cover: 'covers/steins-gate.psp.jpg', far: .2,
       tabs: ['PSP', 'PS2', 'Statistics', 'Consoles', 'Settings'], page: 0, steps: false, at: 0, count: 3}));
   }
 } else {

@@ -137,11 +137,20 @@ it the title in hand with the buttons to play it and the consoles' pages.
 
 <p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="The AYN Thor's two displays: the shelf with Wish Room's cover above, and below it Wish Room's figures, Continue, and the consoles' pages as buttons"></p>
 
-In a game, tap a word in its text and the popup opens beside it. The lower display is a
-trackpad for the pointer, with the line shown large above a row of keys: pause the game, pause
-the reading figures, a card, the backlog and the menu.
+In a game the lower display is for looking words up, in one of two ways:
 
-<p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: 完璧 looked up in the message window (かんぺき, perfect; complete; flawless); below, the lower display's trackpad, the line, and the keys Pause, Pause stats, Card, Log and Menu"></p>
+- **Trackpad.** Move the pointer over the game's own text from the lower display. The word under
+  the pointer is looked up, and the popup opens over the game.
+
+  <p align="center"><img src="home/publish/media/thor-trackpad.jpg" width="760" alt="STEINS;GATE on the AYN Thor: the pointer on 送 in the message window opens 送る, おくる, to send, over the game; the lower display is a trackpad, with the keys Pause, Pause timer, Card, Log, Line and Menu"></p>
+
+- **Line.** Press **Line** to show the line under the trackpad as well. Tap a word in it, and the
+  popup opens on the lower display, leaving the game clear.
+
+  <p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: the line shown on the lower display under the trackpad, 直接 tapped there opening 直接, ちょくせつ, direct; the Line key lit"></p>
+
+The buttons along the bottom pause the game or the reading timer, add a card, and open the
+backlog and the menu.
 
 ## Supported games
 
