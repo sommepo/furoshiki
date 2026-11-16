@@ -101,11 +101,10 @@ you press Ctrl+Shift+R (a menu, a status screen).
 
 ## On Android
 
-The same shelf, cores, scripts and lookups, by touch or with a controller. Tap a word in the
-game's text to look it up. On-screen buttons and a stick where the device has none, and a menu
+Tap a word in the game's text to look it up. On-screen buttons and a stick where the device has none, and a menu
 over the game with savestate slots, disc change, fast forward, skip to the next choice, patches
 and cheat codes. A game can be pinned to the home screen. On a handheld with two displays the
-second one is a trackpad, or a 3DS game's lower screen.
+second one is a trackpad, or a 3/DS game's lower screen.
 
 On the **AYN Thor**, Furoshiki can be the home screen of both displays: the shelf above, and below
 it the title in hand with the buttons to play it and the consoles' pages.
