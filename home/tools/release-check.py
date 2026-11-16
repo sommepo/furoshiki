@@ -95,9 +95,10 @@ def check_binary(name: str, data: bytes, personal) -> tuple[list, int]:
         if program and WEBSOCKET in text:
             problems.append(f"{name}: the text server built in (its WebSocket handshake)")
         # A script's name in the app's code is an example of one (Console.kt); a resource's
-        # name in a native program is a file built in.
+        # name in a native program is a file built in. A script is named by its game's ID, four
+        # characters at least: "1.lua" is machine code or two strings side by side, not a file.
         if program:
-            if not name.endswith(".dex") and re.fullmatch(rb"[A-Za-z0-9_.-]+\.(lua|charset)", text):
+            if not name.endswith(".dex") and re.fullmatch(rb"[A-Za-z0-9_.-]{4,}\.(lua|charset)", text):
                 problems.append(f"{name}: a game script or character table built in: {text.decode()}")
             if text in PRIVATE_SOUNDS:
                 problems.append(f"{name}: the maintainer's recorded sound built in: {text.decode()}")

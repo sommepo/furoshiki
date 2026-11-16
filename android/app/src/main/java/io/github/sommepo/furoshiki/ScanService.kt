@@ -26,6 +26,21 @@ class ScanService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val key = intent?.getStringExtra(EXTRA_CONSOLE).orEmpty()
+        // One console a process: its core stays loaded for good. A look at another console sent
+        // here before this process went (two pages looking at once, or a look asked for again
+        // while the last went on) would have that core say what the other's files are, and the
+        // other's list would be written from them (the Thor, 2026-11-15: Dreamcast discs on the
+        // 3DS's list, PS2 discs on the PlayStation's, consoles' lists emptied). It is handed back.
+        synchronized(ScanService) {
+            if (claimed != null) {
+                if (claimed != key) {
+                    Log.w("Furoshiki", "$key: this look's process has $claimed's core, the look is asked again")
+                    sendBroadcast(Intent(Places.SCANNED).setPackage(packageName).putExtra(EXTRA_CONSOLE, key).putExtra(EXTRA_AGAIN, true))
+                }
+                return START_NOT_STICKY
+            }
+            claimed = key
+        }
         Thread({
             try {
                 scan(key)
@@ -91,14 +106,16 @@ class ScanService : Service() {
                     found.put(entry)
                 }
         }
-        // Nothing at all found where the last look found games whose files are still there: the
-        // storage was not ready yet (just after the device starts) or the core could not say what
-        // its files are. The list stands as it was, rather than the console going from the shelf
-        // until the next look (the user, 2026-11-14: the Dreamcast and the PS2 gone after a restart).
-        if (found.length() == 0 && (stillThere(key) || !foldersReady())) {
-            Log.w("Furoshiki", "$key: no game found, its last list kept")
+        // The user, 2026-11-14: the Dreamcast and the PS2 gone from the shelf after a restart.
+        // An empty look keeps the last list only while the games could not be looked at: a card
+        // not mounted yet (the Thor's, just after it starts) or folders not readable yet. Folders
+        // that could be read with nothing in them for this core: none (a list another core once
+        // wrote here, the Thor's 3DS list of Dreamcast discs, does not stay because its files do).
+        val kept = found.length() == 0 && (onMissingVolume(key) || !foldersReady())
+        if (kept) {
+            Log.w("Furoshiki", "$key: no game found while its games could not be looked at, its last list kept")
         } else {
-            save(key, oneEntryAGame(found))
+            save(key, oneEntryAGame(JSONArray(found.toString())))
         }
         // The list stands; what art it lacks comes after, as the network may be slow or absent.
         sendBroadcast(Intent(Places.SCANNED).setPackage(packageName).putExtra(EXTRA_LISTED, true))
@@ -111,23 +128,21 @@ class ScanService : Service() {
                 fetched = true
             }
         }
-        if (fetched) save(key, found)
+        // As listed: a game of several discs one entry (it was saved disc by disc here before).
+        if (fetched && !kept) save(key, oneEntryAGame(found))
     }
 
     /** Whether every game folder can be read: just after the device starts the storage may not be. */
     private fun foldersReady(): Boolean = Places.gameFolders(this).all { it.isDirectory && it.listFiles() != null }
 
     /**
-     * Whether the console's last list has a game whose file is still there, or on a card not
-     * mounted yet: the Thor's SD card comes some time after the device starts, and its games
-     * looked gone until then (the user, 2026-11-14).
+     * Whether the console's last list has a game on a card not mounted yet: the Thor's SD card
+     * comes some time after the device starts, and its games looked gone until then (the user,
+     * 2026-11-14).
      */
-    private fun stillThere(key: String): Boolean = runCatching {
+    private fun onMissingVolume(key: String): Boolean = runCatching {
         val last = JSONArray(Places.gamesFile(this, key).readText())
-        (0 until last.length()).any { at ->
-            val path = last.getJSONObject(at).optString("path")
-            File(path).isFile || volumeMissing(path)
-        }
+        (0 until last.length()).any { at -> volumeMissing(last.getJSONObject(at).optString("path")) }
     }.getOrDefault(false)
 
     /** A path on a storage volume (/storage/<id>/…) that is not there or not readable yet. */
@@ -150,6 +165,13 @@ class ScanService : Service() {
 
         /** On [Places.SCANNED]: the page may show the list, and the look at this console goes on. */
         const val EXTRA_LISTED = "listed"
+
+        /** On [Places.SCANNED]: this console was not looked at (its process had another's core): again, later. */
+        const val EXTRA_AGAIN = "again"
+
+        /** The console this process looks at, the only one its core may be: set by the first look. */
+        @Volatile
+        private var claimed: String? = null
         private const val BROADCAST_MS = 300L
 
         /** Long enough after its last broadcast for a scan's process to have gone. */

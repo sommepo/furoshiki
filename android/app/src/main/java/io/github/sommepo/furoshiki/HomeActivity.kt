@@ -50,15 +50,27 @@ class HomeActivity : AppCompatActivity() {
     private val database by lazy { ReaderDatabase(applicationContext) }
     private val labelsFile by lazy { java.io.File(filesDir, "labels.json") }
 
-    /** The consoles still to be looked through, one at a time. */
-    private val scanning = ArrayDeque<String>()
-
     private val scanned = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             callPage("Front.reload()")
+            if (intent.getBooleanExtra(ScanService.EXTRA_LISTED, false)) return
+            val key = intent.getStringExtra(ScanService.EXTRA_CONSOLE).orEmpty()
+            // A console handed back (the process it went to had another's core) is looked at again.
+            if (intent.getBooleanExtra(ScanService.EXTRA_AGAIN, false)) {
+                if (key.isNotEmpty() && key !in Scans.queue) Scans.queue.addFirst(key)
+                // Ours: asked again once the process that refused it has gone.
+                if (Scans.inFlight == key && Scans.owner === this@HomeActivity) {
+                    Scans.inFlight = null
+                    page.postDelayed({ scanNext() }, ScanService.GONE_MS * 3)
+                }
+                return
+            }
+            // Only the page that started this look goes on with the next: every page hears it.
+            if (Scans.inFlight != key || Scans.owner !== this@HomeActivity) return
             // The next console's core is for a new process: a service started now would go to
             // the one that is about to end.
-            if (!intent.getBooleanExtra(ScanService.EXTRA_LISTED, false)) page.postDelayed({ scanNext() }, ScanService.GONE_MS)
+            Scans.inFlight = null
+            page.postDelayed({ scanNext() }, ScanService.GONE_MS)
         }
     }
 
@@ -343,6 +355,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        // This page's look goes on in the next page that asks for one (scan()).
+        if (Scans.owner === this) {
+            Scans.owner = null
+            Scans.inFlight = null
+        }
         if (!moved) unregisterReceiver(scanned)
         super.onDestroy()
     }
@@ -494,16 +511,57 @@ class HomeActivity : AppCompatActivity() {
         lower = null
     }
 
+    /**
+     * The look through the consoles, one at a time, shared by every copy of the page in this
+     * process (the home screen's and the app's may both be there): two looks at once sent two
+     * consoles to one scan process. A look asked for while one goes on comes after it.
+     */
+    private object Scans {
+        val queue = ArrayDeque<String>()
+        var inFlight: String? = null
+        var owner: HomeActivity? = null
+        var again = false
+    }
+
     private fun scan() {
-        if (!hasAccess() || scanning.isNotEmpty()) return
+        if (!hasAccess()) return
+        if (Scans.inFlight != null) {
+            Scans.again = true
+            return
+        }
+        // A look left half done by a page that has gone: this one goes on with it.
+        if (Scans.queue.isNotEmpty()) {
+            Scans.again = true
+            scanNext()
+            return
+        }
         startService(Intent(this, AppSetupService::class.java))
-        scanning.addAll(Places.CORES.keys)
+        Scans.queue.addAll(Places.CORES.keys)
         scanNext()
     }
 
     private fun scanNext() {
-        val key = scanning.removeFirstOrNull() ?: return
+        val key = Scans.queue.removeFirstOrNull()
+        if (key == null) {
+            Scans.owner = null
+            if (Scans.again) {
+                Scans.again = false
+                scan()
+            }
+            return
+        }
+        Scans.inFlight = key
+        Scans.owner = this
         startService(Intent(this, ScanService::class.java).putExtra(ScanService.EXTRA_CONSOLE, key))
+        // A look whose process never answers (it died) does not hold the others up.
+        val started = key
+        page.postDelayed({
+            if (Scans.inFlight == started && Scans.owner === this) {
+                android.util.Log.w("Furoshiki", "$started: no answer from its look, the next console")
+                Scans.inFlight = null
+                scanNext()
+            }
+        }, SCAN_AT_MOST_MS)
     }
 
     private fun hasAccess() = Environment.isExternalStorageManager()
@@ -605,6 +663,9 @@ class HomeActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_OFFERED = "getting_started_offered"
+
+        /** How long one console's look may take before the next is looked at anyway. */
+        private const val SCAN_AT_MOST_MS = 120_000L
 
         /** The page while it is in front: what the second display's own page talks to. */
         @Volatile
