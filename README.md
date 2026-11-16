@@ -3,30 +3,26 @@
 <h1 align="center">Furoshiki</h1>
 
 <p align="center"><b>A game launcher with sentence mining built in, for Japanese games.</b><br>
-Hover a word in the game's own text and its entry opens beside it. One key makes the Anki card.</p>
+OCR and texthooking with overlay on Android and Windows.</p>
 
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
 
 Furoshiki is a game launcher for Windows and Android: one library for your Japanese games, with
 the emulators built in, and the tools for reading them (a dictionary popup, Anki cards, a
-backlog) in the same program. There is no second window to keep beside the game and nothing to
-copy and paste.
+backlog) in the same program.
 
-**It is designed around the games it supports.** Each [supported game](#supported-games) has a
+**It is designed around a handful of specific games.** Each [supported game](#supported-games) has a
 script written for it that reads its text straight from the game's memory, along with where
-every character sits on the screen. That is what makes the picture above possible: the words you
-point at are the game's own, the lookup is instant, and nothing is guessed from a screenshot.
+every character sits on the screen. 
 
-**Anything else can still be played and read**, by more general means: a text hook or OCR for PC
-games, or lines sent from another tool. These work with far more games and are less exact. They
+**Anything else can still be played and read** - a text hook or OCR for PC
+games, or lines sent from another tool. They
 are described [further down](#games-without-a-script).
 
-- **Lookups are instant.** A Yomitan-style popup opens next to the word, with deinflection, your
+- **Lookups are instant.** A dictionary popup opens next to the word, your
   own Yomitan dictionaries and each game's character names.
-- **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki, with the
-  lines before it as context if you want them.
-- **One launcher for all of it.** Seven consoles are built in as cores, as in RetroArch: one
-  library, one set of settings, the same reading tools everywhere.
+- **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki.
+- **One launcher for all of it.** Seven consoles are built in as cores, and their settings are divided and shared as desired.
 
 <p align="center"><img src="home/publish/media/lookup-remember11-2.gif" width="760" alt="Remember11: ポケット, 手, 差し入れて and 取り出す looked up one after another"></p>
 
@@ -44,16 +40,9 @@ A console game without a script still plays in Furoshiki, and can be read by OCR
 
 ## Games without a script
 
-**A console game without a script is read by OCR** of the game's own picture, on Windows and on
-Android. When no script loads, Furoshiki watches the game's text area (the lower third, or boxes
-you draw over the text) and reads it once it has changed and stood still. The line it reads is
-placed over the game's own text, so you point at or tap a word there as you would with a script.
-On Android the OCR runs on the device itself (meikiocr); nothing is sent anywhere.
+Furoshiki supports OCR on Android and Windows, and text hooks on Windows.
 
 <p align="center"><img src="home/publish/media/thor-ocr.jpg" width="760" alt="Persona 4 (Japan), a game with no script, on the AYN Thor: its text box read by OCR, and 難易度 tapped in the game's own text opens なんいど, degree of difficulty"></p>
-
-OCR is less exact than a script (it can misread a character, and it has no speakers or furigana),
-but it works with any game.
 
 For PC games and other sources, on Windows:
 
@@ -80,15 +69,11 @@ Screen AI, which all read on your computer, or Google Lens, which sends each tex
 A game can have several text boxes, read together as one line, and boxes that are read only when
 you press Ctrl+Shift+R (a menu, a status screen).
 
-## The shelf
+## Layout
 
-Every title stands as a spine with its box art. The one in hand opens to its cover, what you have
-read of it and the one key that plays it.
 
 <p align="center"><img src="home/publish/media/shelf.gif" width="760" alt="The shelf: moving along the spines, each title opening to its cover and its reading figures"></p>
 
-Type and hairlines, in four themes: Kon, Paper, Mono and Solarized. Android has the same look,
-laid out for phones, folding phones and handhelds with two displays.
 
 <p align="center"><img src="home/publish/media/themes.jpg" width="760" alt="The same shelf in Kon, Paper, Mono and Solarized"></p>
 
@@ -97,30 +82,20 @@ laid out for phones, folding phones and handhelds with two displays.
 - **Cards**: the sentence, a screenshot and the audio, trimmed to the voice. A card of several
   lines from the backlog, a card of just the word (Ctrl+W), and the last card taken back (Ctrl+Z).
   Cards go to Anki through AnkiConnect on Windows and to AnkiDroid on Android.
-- **Backlog** of everything read, with each line's speaker where the game names one.
-- **Names**: each supported game comes with its characters' names and readings, looked up before
-  the general dictionaries.
+- **Backlog** of everything read including character names.
+- **Names**: each supported game comes with its characters' names and readings.
 - **The popup** has a design page with a live preview, and an opacity slider so the game shows
-  through it.
-- **Reading figures** for each title: characters read, time, and characters an hour.
-- **A controller is enough**: a button turns the sticks into the pointer, and on a Steam
-  Controller the trackpad always points.
+  through it. The Windows popup is highly customisable.
+- **Stats** for each title: characters read, time, and characters an hour.
+- **Controller support**: Furoshiki was developed with a Steam Controller, which is the easiest way to use the pointer. You can also map a hotkey to activating a pointer on screen you can control with the sticks instead.
 
 ## The picture
 
-- **A CRT effect** for every console but the Vita, with sliders and ready-made looks: scan lines,
-  the phosphor's pattern, curved glass and a glow that spreads off what is bright. On Windows with
+- **A CRT effect** for some consoles, with sliders and ready-made looks. Scan lines,
+  the phosphor's pattern, curved glass, etc. On Windows with
   an HDR screen the lit phosphor can shine brighter than white (Dreamcast, PSP and PS2).
-- **Widescreen** (16:9, 21:9, 32:9) for the PS2 games that have a checked recipe: the 3D is drawn
-  wide and the 2D keeps its shape. Nothing is ever stretched.
 - Upscaling and each core's own picture settings, for all consoles, one console or one game.
 
-## Settings
-
-By what they are for: Reading, Popup, Cards, Sources, Consoles, Controller, Keys. Each page shows
-the few rows most people change, with the rest behind *More*. `/` finds a setting by name, a
-small square marks what you changed, and Backspace puts it back. Keyboard, controller or mouse
-alone is enough for all of it.
 
 <p align="center"><img src="home/publish/media/settings.png" width="760" alt="The Reading page of the settings"></p>
 
