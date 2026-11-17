@@ -483,6 +483,23 @@ class CursorModeTest {
     }
 
     @Test
+    fun theShouldersTurnThePopupsTabsAndTheGameGetsNeither() {
+        installDictionary()
+        showInGame()
+        hold()
+        bringCursorTo(scaleX(300f), scaleY(201f)) // in the text box, on no character
+        pass(100)
+        centreOf(5).let { (x, y) -> bringCursorTo(x, y) }
+        pass(200)
+        val popup = awaitPopup("weather")
+        // L1 and R1 are the popup's while it is open (its tabs: PopupKeys), the game hears neither.
+        assertTrue(org.readers.app.reader.ui.PopupKeys.onKey(android.view.KeyEvent.KEYCODE_BUTTON_R1, true))
+        assertTrue(org.readers.app.reader.ui.PopupKeys.onKey(android.view.KeyEvent.KEYCODE_BUTTON_R1, false))
+        assertTrue(org.readers.app.reader.ui.PopupKeys.onKey(android.view.KeyEvent.KEYCODE_BUTTON_L1, true))
+        assertEquals(View.VISIBLE, popup.visibility)
+    }
+
+    @Test
     fun thePopupClosesWhenLeftAloneAndIfWantedWhenTheCursorLeaves() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         installDictionary()

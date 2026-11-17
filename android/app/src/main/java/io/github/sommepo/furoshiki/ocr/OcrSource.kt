@@ -48,6 +48,16 @@ class OcrSource(
     private val watch = OcrWatch()
     private val backoff = OcrBackoff()
 
+    /**
+     * Where a layer of the app's own lies over the picture now, as parts (0 to 1) of [frames]: a
+     * capture of the screen holds it (an app's companion). Those parts are left out of the look
+     * for a change, and the text is not read while one of them lies over it.
+     */
+    var drawn: () -> List<android.graphics.RectF> = { emptyList() }
+
+    /** The text has begun to change: the game moved on (an app's companion closes its popup). */
+    var onChanged: () -> Unit = {}
+
     /** This game's record; read again when it is changed. */
     var game: OcrGame = areas.of(gameId)
         private set
@@ -65,6 +75,9 @@ class OcrSource(
     private var reading = false // a read in flight (main thread sets, worker clears)
     private var sequence = 0L
     private var lastText = ""
+
+    /** What was read as the newest line, its places among it. */
+    private var lastRead: OcrRead? = null
     private var placed = false
 
     private var settings = OcrSettings.read(activity)
@@ -138,20 +151,65 @@ class OcrSource(
                 if (bitmap == null) return@copy
                 val now = SystemClock.uptimeMillis()
                 val look = game.always
+                val over = drawn()
+                val hidden = if (over.isEmpty()) null else hiddenCells(picture, look, over)
                 worker.execute {
                     val verdict = try {
-                        watch.see(signature(bitmap, picture, look), now)
+                        watch.see(signature(bitmap, picture, look), now, hidden)
                     } finally {
                         bitmap.recycle()
                     }
                     when (verdict) {
-                        OcrWatch.Verdict.CHANGED -> main.post { clearPlacement() }
-                        OcrWatch.Verdict.READ -> main.post { if (backoff.mayAsk(SystemClock.uptimeMillis())) copyAndRead(look, asked = false) else watch.forget() }
+                        // Something in the area moves (a bobbing mark, a character behind the text): the
+                        // places and the popup stay until a reading says the text itself is other
+                        // (the maintainer, 2026-11-17: lookups "very very intermittently" on a still line).
+                        OcrWatch.Verdict.CHANGED -> Unit
+                        OcrWatch.Verdict.READ -> main.post {
+                            when {
+                                // The app's own marks lie over the text: read once they are gone.
+                                hidden?.any { it } == true && overText(picture, look) -> watch.forget()
+                                backoff.mayAsk(SystemClock.uptimeMillis()) -> copyAndRead(look, asked = false)
+                                else -> watch.forget()
+                            }
+                        }
                         OcrWatch.Verdict.WAIT -> Unit
                     }
                 }
             }
         }
+    }
+
+    /** The cells of the areas' look (as [signature] lays them) that one of [over] lies on. */
+    private fun hiddenCells(picture: Rect, look: List<OcrArea>, over: List<android.graphics.RectF>): BooleanArray {
+        val columns = OcrSignature.COLUMNS
+        val rows = OcrSignature.ROWS
+        val hidden = BooleanArray(columns * rows * look.size)
+        val width = frames.width.coerceAtLeast(1).toFloat()
+        val height = frames.height.coerceAtLeast(1).toFloat()
+        look.forEachIndexed { index, area ->
+            val left = (picture.left + area.x * picture.width()) / width
+            val top = (picture.top + area.y * picture.height()) / height
+            val right = (picture.left + area.right * picture.width()) / width
+            val bottom = (picture.top + area.bottom * picture.height()) / height
+            for (row in 0 until rows) {
+                val y0 = top + (bottom - top) * row / rows
+                val y1 = top + (bottom - top) * (row + 1) / rows
+                for (column in 0 until columns) {
+                    val x0 = left + (right - left) * column / columns
+                    val x1 = left + (right - left) * (column + 1) / columns
+                    if (over.any { it.left < x1 && it.right > x0 && it.top < y1 && it.bottom > y0 }) {
+                        hidden[index * columns * rows + row * columns + column] = true
+                    }
+                }
+            }
+        }
+        return hidden
+    }
+
+    /** Whether one of the app's own layers lies over the text areas now. */
+    private fun overText(picture: Rect, look: List<OcrArea>): Boolean {
+        val over = drawn()
+        return over.isNotEmpty() && hiddenCells(picture, look, over).any { it }
     }
 
     /** The areas' look in a copy of the surface [bitmap] ([picture] in the surface's pixels). */
@@ -239,6 +297,7 @@ class OcrSource(
                         OcrText.clean(deviceEngine().read(pixels), pixels.width, pixels.height)
                     }
                     OcrEngine.SERVICE -> service().read(jpeg(part))
+                    OcrEngine.LENS -> OcrText.clean(GoogleLens.read(png(part), part.width, part.height), part.width, part.height, "glens")
                 }
             } finally {
                 if (part !== bitmap) part.recycle()
@@ -267,6 +326,8 @@ class OcrSource(
     @Synchronized
     private fun deviceEngine(): MeikiOcr = device ?: deviceEngineFor(activity).also { device = it }
 
+    private fun png(bitmap: Bitmap): ByteArray = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+
     private fun jpeg(bitmap: Bitmap): ByteArray = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }.toByteArray()
 
     // ---- To the reading session ----
@@ -276,14 +337,25 @@ class OcrSource(
         val text = read.text.trim()
         if (text.isEmpty() || !OcrText.hasJapanese(text)) {
             if (asked) say(activity.getString(R.string.ocr_nothing))
+            else if (placed) {
+                // The text is gone from the area: nothing of it is pointed at any more.
+                clearPlacement()
+                lastText = ""
+                onChanged()
+            }
             return
         }
-        // The same text again (a window shut and opened on it, a cursor that blinked): not a new line.
-        if (text == lastText && !asked) {
-            place(read)
+        // The same text again (a window shut and opened on it, a cursor that blinked, a character
+        // read a little otherwise): not a new line. Its places are those of the line as it was
+        // read, where the reading differs, so that each still lies on its own character.
+        if (!asked && OcrText.sameText(text, lastText)) {
+            place(if (text == lastText) read else lastRead ?: read)
             return
         }
+        // Another text: the popup over the one before closes.
+        if (lastText.isNotEmpty()) onChanged()
         lastText = text
+        lastRead = read
         sequence++
         val meta = JSONObject().put(TextLine.META_SOURCE, TextLine.SOURCE_OCR).put("engine", read.engine)
         val line = JSONObject()

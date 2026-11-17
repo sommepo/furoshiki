@@ -95,6 +95,10 @@ class HomeActivity : AppCompatActivity() {
         }
         page = WebView(this)
         page.setBackgroundColor(android.graphics.Color.BLACK)
+        // No grey veil over the whole page once a key is pressed: Android's default focus highlight
+        // on a focused view without its own (the maintainer, 2026-11-17: "washed out" after a press,
+        // and it stayed). The page draws its own cursor.
+        page.defaultFocusHighlightEnabled = false
         page.settings.javaScriptEnabled = true
         page.settings.allowFileAccess = true
         page.settings.domStorageEnabled = true
@@ -185,9 +189,10 @@ class HomeActivity : AppCompatActivity() {
         val settings = io.github.sommepo.furoshiki.ocr.OcrSettings.read(this)
         val device = io.github.sommepo.furoshiki.ocr.OcrSource.deviceAvailable(this)
         val choices = listOfNotNull(
-            "" to (if (io.github.sommepo.furoshiki.ocr.OcrSettings.dev) "Default: the OCR service where one is known, else this device" else "Default: this device"),
-            "service" to "The OCR service (your home server, or the OCR helper on a computer)",
-            ("device" to "This device (nothing is sent anywhere)").takeIf { device },
+            "" to (if (io.github.sommepo.furoshiki.ocr.OcrSettings.dev) "Default: the OCR service where one is known, else meikiocr" else "Default: meikiocr"),
+            ("device" to "meikiocr (on this device, nothing is sent anywhere)").takeIf { device },
+            "lens" to "Google Lens (best reading; each text area is sent to Google)",
+            "service" to "OCR service (the OCR helper on a computer, or your home server)",
         )
         androidx.appcompat.app.AlertDialog.Builder(themed)
             .setTitle("OCR engine")
@@ -400,6 +405,7 @@ class HomeActivity : AppCompatActivity() {
     private val steam by lazy { io.github.sommepo.furoshiki.steam.SteamUsb(this, steamInput) }
 
     override fun onPause() {
+        keepShelfTheme()
         AudioFocus.give(this)
         steamInput.releaseAll()
         steam.stop()
@@ -411,6 +417,25 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private var scriptsOpened = false
+
+    /**
+     * The page's theme, kept for the reader: the popup takes its look unless the user chose one
+     * (ReaderSettings.popupTheme). Read from the page as it leaves the front (a game is next).
+     */
+    private fun keepShelfTheme() {
+        if (!::page.isInitialized) return
+        page.evaluateJavascript(
+            "(function(){try{return (typeof state!=='undefined'&&state.theme)||localStorage.getItem('look')}catch(e){return null}})()"
+        ) { said ->
+            val theme = runCatching { org.json.JSONTokener(said).nextValue() as? String }.getOrNull()
+            if (!theme.isNullOrEmpty() && theme.matches(Regex("[a-z0-9-]{1,32}"))) {
+                val settings = ReaderSettings(this)
+                if (settings.shelfTheme != theme) {
+                    settings.preferences.edit().putString(ReaderSettings.KEY_SHELF_THEME, theme).apply()
+                }
+            }
+        }
+    }
 
     /** The reader's first questions, once, when there are games to read: never over a game. */
     private fun offerGettingStarted() {
@@ -447,6 +472,7 @@ class HomeActivity : AppCompatActivity() {
         override fun onCreate(state: Bundle?) {
             super.onCreate(state)
             view.setBackgroundColor(android.graphics.Color.BLACK)
+            view.defaultFocusHighlightEnabled = false
             view.settings.javaScriptEnabled = true
             view.settings.allowFileAccess = true
             view.isVerticalScrollBarEnabled = false
@@ -460,6 +486,28 @@ class HomeActivity : AppCompatActivity() {
 
         fun tell(json: String) {
             if (json.isNotEmpty()) view.evaluateJavascript("if (window.Lower) Lower.show(${org.json.JSONObject.quote(json)})", null)
+        }
+
+        // One shelf over both displays (the maintainer, 2026-11-17: "i need the menu experience to
+        // be one entire thing"): a touch here gives Android's keys to this display, so the
+        // controller's buttons and sticks are handed to the shelf, and the shelf takes the keys
+        // back a moment after the finger lifts.
+        override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean = this@HomeActivity.dispatchKeyEvent(event)
+
+        override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean =
+            if (event.source and android.view.InputDevice.SOURCE_CLASS_JOYSTICK != 0) this@HomeActivity.dispatchGenericMotionEvent(event)
+            else super.dispatchGenericMotionEvent(event)
+
+        override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+            val taken = super.dispatchTouchEvent(event)
+            if (event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+                view.postDelayed({
+                    if (!this@HomeActivity.hasWindowFocus()) runCatching {
+                        getSystemService(android.app.ActivityManager::class.java).moveTaskToFront(taskId, 0)
+                    }
+                }, 250)
+            }
+            return taken
         }
     }
 
@@ -718,7 +766,7 @@ class HomeActivity : AppCompatActivity() {
             for (key in Places.CORES.keys) {
                 try {
                     // One entry a game, its discs as one, also in a list made before that was so.
-                    val found = ScanService.oneEntryAGame(JSONArray(Places.gamesFile(this@HomeActivity, key).readText()))
+                    val found = ScanService.oneEntryAGame(JSONArray(Places.gamesFile(this@HomeActivity, key).readText()), ScanService.records(this@HomeActivity))
                     for (i in 0 until found.length()) list.put(found.get(i))
                 } catch (_: Exception) {
                     // Not looked through yet.
@@ -916,6 +964,13 @@ class HomeActivity : AppCompatActivity() {
 
         // ---- OCR: the engine a game without a script is read with (ocr/OcrSettings) ----
 
+        /** The IDs (upper case) of the games read by OCR with an area set: their spine carries glasses. */
+        @JavascriptInterface
+        fun ocrSet(): String {
+            val areas = io.github.sommepo.furoshiki.ocr.OcrAreas(java.io.File(filesDir, "ocr-areas.json"))
+            return JSONArray(areas.games().filter { id -> areas.of(id).let { it.on && it.areas.isNotEmpty() } }).toString()
+        }
+
         /** `{chosen, using, address, named, token, device}`: the choice, what it comes to now, the service's address typed and named. */
         @JavascriptInterface
         fun ocr(): String {
@@ -1105,7 +1160,16 @@ class HomeActivity : AppCompatActivity() {
             // One page of the reader's settings: "settings:READING", by its section's name.
             if (screen.startsWith("settings:")) {
                 val section = ReaderSettingsActivity.Section.values().firstOrNull { it.name == screen.substringAfter(':') } ?: return
-                startActivity(HomeScreen.apart(this@HomeActivity, ReaderSettingsActivity.intent(this@HomeActivity, section)))
+                // The popup's settings on the second display: the popup as they make it, on the first.
+                if (section == ReaderSettingsActivity.Section.POPUP && secondDisplay() != null) runOnUiThread {
+                    runCatching {
+                        startActivity(
+                            Intent(this@HomeActivity, PopupPreviewActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            android.app.ActivityOptions.makeBasic().setLaunchDisplayId(display?.displayId ?: 0).toBundle()
+                        )
+                    }
+                }
+                startOnLower(HomeScreen.apart(this@HomeActivity, ReaderSettingsActivity.intent(this@HomeActivity, section)))
                 return
             }
             val activity = when (screen) {
@@ -1117,7 +1181,58 @@ class HomeActivity : AppCompatActivity() {
                 "statistics" -> ReaderStatsActivity::class.java
                 else -> return
             }
-            startActivity(HomeScreen.apart(this@HomeActivity, Intent(this@HomeActivity, activity)))
+            startOnLower(HomeScreen.apart(this@HomeActivity, Intent(this@HomeActivity, activity)))
+        }
+
+        /**
+         * A page of settings: on a device with two displays, on the second one, where settings are
+         * changed (the maintainer's choice of 2026-11-17, 4A: "settings live on the lower screen
+         * only"); the first keeps the shelf. On one display, as before.
+         */
+        private fun startOnLower(intent: Intent) = runOnUiThread { startOnLowerNow(intent) }
+
+        private fun startOnLowerNow(intent: Intent) {
+            val lower = LowerActivity.live?.display?.displayId ?: this@HomeActivity.lower?.display?.displayId
+                ?: getSystemService(android.hardware.display.DisplayManager::class.java)
+                    .getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION).firstOrNull()?.displayId
+            if (lower == null || lower == display?.displayId) {
+                startActivity(intent)
+                return
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            // The second display's own page is a window over every activity there: it steps
+            // aside while the page of settings is open, and comes back when that page is left.
+            val target = intent.component?.className
+            this@HomeActivity.lower?.let { page ->
+                page.hide()
+                // The page of settings may run in another of the app's processes: its task is
+                // watched (the app's own tasks), and once it is gone the shelf comes back.
+                val tasks = getSystemService(android.app.ActivityManager::class.java)
+                val main = android.os.Handler(android.os.Looper.getMainLooper())
+                var seen = false
+                var waited = 0
+                val watch = object : Runnable {
+                    override fun run() {
+                        waited++
+                        val open = runCatching {
+                            tasks.appTasks.any { it.taskInfo.baseActivity?.className == target || it.taskInfo.topActivity?.className == target }
+                        }.getOrDefault(false)
+                        if (open) seen = true
+                        if (open || (!seen && waited < 20)) {
+                            main.postDelayed(this, 500)
+                            return
+                        }
+                        // Back to the shelf: its second display's page again (made anew if the shelf
+                        // let it go meanwhile), and the shelf in front, so the controller works it.
+                        if (this@HomeActivity.lower === page) runCatching { page.show() }
+                        else if (this@HomeActivity.lower == null) showLower()
+                        runCatching { tasks.moveTaskToFront(taskId, 0) }
+                    }
+                }
+                main.postDelayed(watch, 500)
+            }
+            runCatching { startActivity(intent, android.app.ActivityOptions.makeBasic().setLaunchDisplayId(lower).toBundle()) }
+                .onFailure { this@HomeActivity.lower?.show(); startActivity(intent) }
         }
     }
 }

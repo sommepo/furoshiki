@@ -56,8 +56,9 @@ object LowerKeys {
             val view = TextView(context).apply {
                 text = key.label.uppercase()
                 typeface = Typeface.MONOSPACE
-                textSize = 11f
-                letterSpacing = .12f
+                // A row of many keys (the DS and 3DS, with HIDE) in smaller, closer letters, each word on one line.
+                textSize = if (keys.size > 8) 10f else 11f
+                letterSpacing = if (keys.size > 8) .04f else .12f
                 gravity = Gravity.CENTER
                 maxLines = 2
                 setOnClickListener {

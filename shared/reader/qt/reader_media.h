@@ -147,11 +147,14 @@ public:
     /**
      * Adds a card for `presented`, about `word` when one was looked up (its place in the line
      * is [first, last]). Where the card's audio is to be asked about, `question` is put
-     * first (without one the audio is added). The callback runs on the main thread.
+     * first (without one the audio is added). `with_audio`: with the line's audio (true) or
+     * without (false), whatever the settings say (the popup's two pluses); none: as they say.
+     * The callback runs on the main thread.
      */
     void Mine(const ReaderApp::PresentedLine& presented,
               const std::optional<ReaderApp::LookupResult>& word, int first, int last,
-              AudioQuestion question, std::function<void(const Outcome&)> callback);
+              AudioQuestion question, std::function<void(const Outcome&)> callback,
+              std::optional<bool> with_audio = std::nullopt);
     /**
      * What this computer's copy of the deck (ReaderApp::AnkiIndex) says about `word` at once,
      * without asking Anki: whether a card made from it now would be one Anki has, by the note

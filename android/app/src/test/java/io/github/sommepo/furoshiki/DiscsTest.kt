@@ -57,4 +57,26 @@ class DiscsTest {
         assertEquals("/g/Aconcagua (Japan) (Disc 1).cue", aconcagua.getString("path"))
         assertEquals(2, aconcagua.getInt("discs"))
     }
+
+    @Test
+    fun discsNamedAlikeAreOneGameOnlyWhenTheirIdsAreOneTitles() {
+        fun entry(name: String, id: String, title: String) =
+            JSONObject().put("path", "/g/$name").put("title", title).put("id", id)
+        val found = JSONArray()
+            .put(entry("Grisaia (Japan) (Disc 2).iso", "ULJM06233", "Grisaia (Disc 2)"))
+            .put(entry("Grisaia (Japan) (Disc 1).iso", "ULJM06232", "Grisaia (Disc 1)"))
+            .put(entry("Da Capo (Japan) (Disc 1).iso", "ULJM05718", "D.C.P.S. (Disc 1)"))
+            .put(entry("Da Capo (Japan) (Disc 2).iso", "ULJM05719", "D.C.II P.S. (Disc 2)"))
+        val records = mapOf("ULJM06232" to "grisaia", "ULJM06233" to "grisaia", "ULJM05718" to "da-capo", "ULJM05719" to "da-capo-ii")
+        val listed = ScanService.oneEntryAGame(found, records)
+        assertEquals(3, listed.length())
+        val grisaia = listed.getJSONObject(0)
+        assertEquals("/g/Grisaia (Japan) (Disc 1).iso", grisaia.getString("path"))
+        assertEquals(
+            listOf("/g/Grisaia (Japan) (Disc 1).iso", "/g/Grisaia (Japan) (Disc 2).iso"),
+            ScanService.discsOf(listed, "/g/Grisaia (Japan) (Disc 1).iso"),
+        )
+        // Each Da Capo disc is a game: started as it is, with no other disc.
+        assertEquals(listOf("/g/Da Capo (Japan) (Disc 2).iso"), ScanService.discsOf(listed, "/g/Da Capo (Japan) (Disc 2).iso"))
+    }
 }

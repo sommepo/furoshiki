@@ -15,6 +15,9 @@ is not on either disc as a part of its own**. The script of the whole game is in
 program (it is in memory from the start, every route's scenes in it). Disc 2 started first
 says 「DISC1をセットして下さい。」. In PPSSPP that is *Swap UMD* in the pause menu, once the
 game asks.
+In Furoshiki (since 2026-11-17) the two discs are one entry, always started on disc 1; when the
+game asks for disc 2 (it permits a disc change) the core puts it in by itself
+(`libretro/libretro.cpp`), and the menu's *Change disc* can do it by hand.
 
 **The two programs are one program built twice**: the two `EBOOT.BIN`s differ, but the code
 in memory is the same word for word and so are the places of everything a profile reads

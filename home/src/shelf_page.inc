@@ -636,6 +636,8 @@ void HomeWindow::SetShelfTheme(const QString& key, bool keep) {
     look->text = values.value(QStringLiteral("text")).toString(QStringLiteral("ZenKakuGothicNew-Bold.ttf"));
     look->mono = values.value(QStringLiteral("mono")).toString(QStringLiteral("IBMPlexMono-Medium.ttf"));
     shelf_look = look;
+    // The popup takes the shelf's look unless one was chosen (its theme "auto", the default).
+    ReaderApp::ReaderSettings::SetPopupThemeDefault(ReaderApp::ReaderSettings::PopupThemeOfShelf(chosen));
     if (keep) {
         QSettings().setValue(QStringLiteral("shelf/theme"), chosen);
     }

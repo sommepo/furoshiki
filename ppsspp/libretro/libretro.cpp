@@ -28,6 +28,7 @@
 #include "Core/ConfigValues.h"
 #include "Core/Core.h"
 #include "Core/HLE/sceCtrl.h"
+#include "Core/HLE/sceUmd.h" // Reader fork: discs (disk control)
 #include "Core/HLE/sceUtility.h"
 #include "Core/HLE/__sceAudio.h"
 #include "Core/HW/MemoryStick.h"
@@ -1513,6 +1514,154 @@ static void retro_check_backend(void)
    }
 }
 
+// Reader fork: discs (2026-11-17), a game on two UMDs as Grisaia no Kajitsu is.
+// libretro's disk control over PPSSPP's own "Swap UMD" (__UmdReplace): the frontend opens the
+// tray, picks a disc, closes it; the disc is put in as it closes. The game's first file is disc 0.
+
+static std::mutex g_umd_mutex;
+static std::vector<std::string> g_umd_paths;
+static unsigned g_umd_index = 0;
+static unsigned g_umd_in = 0; // the disc PPSSPP has now
+static bool g_umd_ejected = false;
+
+static std::string UmdLabel(const std::string &path)
+{
+   std::string name = path.substr(path.find_last_of("/\\") + 1);
+   const size_t dot = name.find_last_of('.');
+   return dot == std::string::npos ? name : name.substr(0, dot);
+}
+
+static bool UmdSetEjectState(bool ejected)
+{
+   std::string swap;
+   {
+      std::lock_guard<std::mutex> lock(g_umd_mutex);
+      if (!ejected && g_umd_index != g_umd_in && g_umd_index < g_umd_paths.size() && !g_umd_paths[g_umd_index].empty())
+         swap = g_umd_paths[g_umd_index];
+   }
+   if (!swap.empty())
+   {
+      if (!Memory::base)
+         return false;
+      if (useEmuThread)
+         EmuThreadPause();
+      __UmdReplace(Path(swap));
+      if (useEmuThread)
+         EmuThreadStart();
+      std::lock_guard<std::mutex> lock(g_umd_mutex);
+      g_umd_in = g_umd_index;
+   }
+   g_umd_ejected = ejected;
+   return true;
+}
+
+static bool UmdGetEjectState(void) { return g_umd_ejected; }
+static unsigned UmdGetImageIndex(void) { return g_umd_index; }
+
+static bool UmdSetImageIndex(unsigned index)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   if (!g_umd_ejected || index >= g_umd_paths.size())
+      return false;
+   g_umd_index = index;
+   return true;
+}
+
+static unsigned UmdGetNumImages(void)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   return (unsigned)g_umd_paths.size();
+}
+
+static bool UmdReplaceImageIndex(unsigned index, const struct retro_game_info *info)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   if (index >= g_umd_paths.size() || index == g_umd_in)
+      return false;
+   if (info == nullptr || info->path == nullptr)
+      g_umd_paths.erase(g_umd_paths.begin() + index);
+   else
+      g_umd_paths[index] = info->path;
+   return true;
+}
+
+static bool UmdAddImageIndex(void)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   g_umd_paths.emplace_back();
+   return true;
+}
+
+static bool UmdGetImagePath(unsigned index, char *path, size_t len)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   if (index >= g_umd_paths.size() || g_umd_paths[index].empty() || len == 0)
+      return false;
+   snprintf(path, len, "%s", g_umd_paths[index].c_str());
+   return true;
+}
+
+static bool UmdGetImageLabel(unsigned index, char *label, size_t len)
+{
+   std::lock_guard<std::mutex> lock(g_umd_mutex);
+   if (index >= g_umd_paths.size() || g_umd_paths[index].empty() || len == 0)
+      return false;
+   snprintf(label, len, "%s", UmdLabel(g_umd_paths[index]).c_str());
+   return true;
+}
+
+static bool g_umd_permit_seen = false;
+
+// A game that asks for its next disc (it permits a disc change, sceUmdReplacePermit: what makes
+// PPSSPP's own Swap UMD appear) is given it: Grisaia starts only from disc 1, installs from it,
+// then asks for disc 2. Once each time it asks, and only for the disc after the one in.
+static void UmdAutoSwap()
+{
+   const bool permit = getUMDReplacePermit();
+   const bool asked = permit && !g_umd_permit_seen;
+   g_umd_permit_seen = permit;
+   if (!asked)
+      return;
+   {
+      std::lock_guard<std::mutex> lock(g_umd_mutex);
+      const unsigned next = g_umd_in + 1;
+      if (g_umd_ejected || next >= g_umd_paths.size() || g_umd_paths[next].empty())
+         return;
+      g_umd_index = next;
+   }
+   INFO_LOG(Log::sceIo, "Reader fork: the game asks for another disc; disc %u put in", g_umd_index + 1);
+   UmdSetEjectState(false);
+}
+
+static void UmdStart(const char *path)
+{
+   {
+      std::lock_guard<std::mutex> lock(g_umd_mutex);
+      g_umd_paths.assign(1, path ? path : "");
+      g_umd_index = 0;
+      g_umd_in = 0;
+      g_umd_ejected = false;
+      g_umd_permit_seen = false;
+   }
+   unsigned version = 0;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION, &version) && version >= 1)
+   {
+      static retro_disk_control_ext_callback ext = {
+         UmdSetEjectState, UmdGetEjectState, UmdGetImageIndex, UmdSetImageIndex, UmdGetNumImages,
+         UmdReplaceImageIndex, UmdAddImageIndex, nullptr, UmdGetImagePath, UmdGetImageLabel,
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE, &ext);
+   }
+   else
+   {
+      static retro_disk_control_callback plain = {
+         UmdSetEjectState, UmdGetEjectState, UmdGetImageIndex, UmdSetImageIndex, UmdGetNumImages,
+         UmdReplaceImageIndex, UmdAddImageIndex,
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &plain);
+   }
+}
+
 bool retro_load_game(const struct retro_game_info *game)
 {
    retro_pixel_format fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_XRGB8888;
@@ -1540,6 +1689,7 @@ bool retro_load_game(const struct retro_game_info *game)
    CoreParameter coreParam   = {};
    coreParam.enableSound     = true;
    coreParam.fileToStart     = Path(game->path);
+   UmdStart(game->path); // Reader fork: the game's discs
    coreParam.startBreak      = false;
    coreParam.headLess        = true;  // really?
    coreParam.graphicsContext = ctx;
@@ -1748,6 +1898,8 @@ void retro_run(void)
          unserialize_data = NULL;
       }
    }
+
+   UmdAutoSwap(); // Reader fork: the next disc, when the game asks for it
 
    // TODO: This seems dubious.
    if (softwareRenderInitHack)

@@ -167,7 +167,9 @@ reader_core_info MakeInfo() {
     // Since 2026-10-24: CWCheat codes through the libretro build's cheats (the host hands them
     // over); one controller; save sync's moments (the game's SAVEDATA folders, as PPSSPP Reader
     // keeps them: the saves folder is the memory stick).
-    info.features = READER_CORE_HAS_CODES | READER_CORE_HAS_SAVE_SYNC;
+    // Since 2026-11-17 discs: a game on two UMDs (Grisaia no Kajitsu) changes them through
+    // libretro's disk control, PPSSPP's own Swap UMD (libretro/libretro.cpp).
+    info.features = READER_CORE_HAS_CODES | READER_CORE_HAS_SAVE_SYNC | READER_CORE_HAS_DISCS;
     info.port_count = 1;
     return info;
 }

@@ -10,7 +10,12 @@ dictionary layout presets to make the dictionary quality rival Hachidori") `sola
 `solarized-light`, `glass` (see-through, two thirds solid by itself), `dense` (everything run on
 in lines, after Nazeka), `kuro` (a black sheet at 85 %, a block per dictionary, after JL),
 `shoin` (a ruled serif page, senses numbered in the margin), `ookii` (large type) and `kumihan`
-(組版: type and hairlines only, one accent), and since 2026-11-10 `kon` (Furoshiki 3's Kon: cream on indigo, a vermilion rule along the top and for the word not yet known). The new ones are set, not decorated (the maintainer,
+(組版: type and hairlines only, one accent), and since 2026-11-10 `kon` (Furoshiki 3's Kon: cream on indigo; since 2026-11-17 the maintainer's own Kon of their Z13, "kon-mine", for every app: a white headword in Gothic with its furigana at 64 %, the word not yet known as a tint, white accent and top edge, card buttons 24, frequencies 12.5).
+**Which look by default** (since 2026-11-17): `auto`, the look of the app's home theme: Kon →
+`kon`, Solarized → `solarized-dark`, Paper → `paper`, Mono → `kumihan`; the console's colours in
+an app without one. A look the user chose wins. Android keeps the home page's theme as
+`reader_shelf_theme` (HomeActivity reads it from the page as it leaves the front);
+Furoshiki on a computer from its shelf theme (`ReaderSettings::SetPopupThemeDefault`). The new ones are set, not decorated (the maintainer,
 2026-11-09: a refined, typographic look): hierarchy by size, weight and tracked small capitals,
 hairlines where a box would be, and **every colour a variable** (`--ground`, `--text`, `--dim`,
 `--accent`, `--rule`), so the user's own CSS re-colours a whole look in one `:root { … }`. A look
@@ -51,6 +56,45 @@ After any change here: `tools/popup.py inc` (and `tools/popup.py check` says whe
                  "forms": ["客"] } ],
   "message": { "text": "No entry for …", "dictionaries": false } }
 ```
+
+## Tabs by kind (since 2026-11-17)
+
+The maintainer's choice ("Tabs by kind", with the buttons marked subtly): the results are grouped
+into **WORDS, GRAMMAR, KANJI, NAMES**, a tab each with its count, only the kinds that have
+results, and no tab row for one kind. The popup opens on the best match's kind (the first
+entry's first sense). Each sense says its dictionary's `kind` (`"word"`, `"grammar"`, `"kanji"`;
+a sense with `"name": true` is a name); an entry is in every tab it has senses of, with those
+senses only (its card buttons in each). The rule for a dictionary's kind, the same on both
+platforms (`DictionaryKinds.kt`, `PopupModel::KindOf`): the kind the user gave it (Android's
+dictionaries page: a tap on its name; `reader_dictionary_kinds`, a JSON object title → kind);
+the running game's names dictionary: names; its title: `grammar|文法|文型|語法|DOJG|Bunpro` →
+grammar, `JMnedict|人名` → names, `kanji|漢字|字典` → kanji for an entry of one character (a
+compound there is a word); else words.
+
+- **A grammar or a character dictionary keeps its own layout**: its sense has `"content"`, the
+  glossary whole (Yomitan's strings, `{"type":"text"}` and structured content), which the page
+  builds element by element from a list of what may be there (`.sc` > `.sc-div`, `.sc-table`,
+  `.sc-ruby`...; `data` as `data-sc-*`, a few `style` properties, never `url(...)`, links lead
+  nowhere, no pictures): formation boxes, example sentences and tables as the dictionary set
+  them, a plain string's lines as its lines. Compact (`look.compact`) is for words only.
+- **A character** is laid out as a character dictionary: the glyph large, then rows (meaning,
+  on, kun, strokes · grade · JLPT, parts). From a kanji bank the entry has `"kanji"`:
+  `{character, meanings, onyomi, kunyomi, stats: {strokes, grade, jlpt, freq}, parts}` and no
+  card buttons. **The importers skip kanji banks** today (Android and desktop): no engine
+  returns such an entry yet, the page is ready for one. A term dictionary of characters
+  (kind kanji) is shown as the glyph with its own layout beside it.
+- **The card buttons** are two since then: `add` (the card without the line's audio) and
+  `addAudio` (with it), both saying `{"type": "add", "index", "audio": false|true}`; the book as
+  before. `labels.addAudio` is the second's label.
+- **A controller's buttons**, marked like the legend on a key cap and only while a controller
+  is the input (`Reader.setPad(true)`, or `"pad": true` in the model; Android's `PopupKeys`
+  knows: a controller's button or stick last, not a finger): a small **L** and **R** at the ends
+  of the tab row, **△** on the card without audio and **○** on the one with it, in the look's
+  dim colour (`.popup.pad .key-mark`). Never on touch or a mouse.
+- `Reader.tab(±1)` goes to the next tab or the one before, round the row (Android: R1 and L1,
+  `PopupKeys`); a tab is also clicked. The page says `{"type": "tab", "kind"}`. `Reader.kinds(entries)`
+  gives `{tabs: [{kind, count}], first}` (for tests). The desktop's popup gets no controller
+  buttons today, so it has no L1/R1 and never shows the marks.
 
 An entry from the running game's names dictionary (a dictionary whose `furoshikiScope` has
 the game: `docs/titles.md`) has `"name": true`, and so has each of its senses; the page tags it
@@ -153,7 +197,11 @@ game never enters it.
 | `.dictionary-name[data-dictionary]` | a dictionary's name where several have senses |
 | `.senses` > `.sense[data-dictionary]` > `.number`, `.tag[data-category="part-of-speech"]`, `.glosses` > `.gloss`, `.notes` | the senses |
 | `.forms` > `.tag[data-category="forms"]`, `.form` | other spellings |
-| `.card-buttons` > `.card.add`, `.card.book` (`data-state`) | the card buttons, at the foot of their entry |
+| `.card-buttons` > `.card.add`, `.card.addAudio`, `.card.book` (`data-state`) | the card buttons, at the foot of their entry |
+| `.tabs` > `.tab[data-kind]` (`.on`) > `.tab-name`, `.tab-count`; `.popup.tabbed[data-tab]` | the tabs by kind |
+| `.key-mark` (`.left`, `.right` in the tabs; in a `.card`), shown under `.popup.pad` | a controller's button |
+| `.entry[data-kind]`, `.sense[data-kind]`, `.sense.laid-out` > `.sc` > `.sc-definition` > `.sc-<tag>[data-sc-*]` | a dictionary's own layout (grammar, characters) |
+| `.kanji` > `.glyph`, `.kanji-rows` > `dt[data-row]`, `dd[data-row]` (`meaning`, `on`, `kun`, `strokes`, `parts`, `reading`); `.kanji-side` | a character |
 | `.message`, `.link` | a message instead of words |
 
 Variables the console's look sets (`base.css`): `--text`, `--dim`, `--accent`, `--ground`,

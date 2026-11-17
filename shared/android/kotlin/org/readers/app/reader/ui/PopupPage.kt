@@ -72,6 +72,46 @@ class PopupPage(context: Context, private val onMessage: (JSONObject) -> Unit) :
     }
 
     companion object {
+        /**
+         * On a device the popup keeps the sizes it had before themes drew it (the maintainer,
+         * 2026-11-17: "popup is now too big by default. frequencies too big, labels too big. the
+         * size of the one before was fine"): every theme's colours and lines, the base sizes,
+         * small labels. And every look compact (the maintainer, the same day: "frequencies not in
+         * pills, a bit smaller, way less empty space"): tight spacing, frequencies as plain words,
+         * the card's keys at the top right of their entry rather than on a row of their own.
+         * Applied after the theme; the user's own CSS still comes after it.
+         */
+        const val DEVICE_CSS = """
+.popup { font-size: calc(13px * var(--scale)); line-height: 1.35;
+  padding: calc(5px * var(--scale)) calc(8px * var(--scale)) calc(5px * var(--scale)) calc(8px * var(--scale)); }
+.popup .tabs { margin-bottom: calc(2px * var(--scale)); }
+.popup .entry { padding: calc(2px * var(--scale)) 0 calc(3px * var(--scale)); margin: 0; }
+.popup .entry + .entry { padding-top: calc(4px * var(--scale)); margin-top: 0; }
+.popup .entry:not(.kanji) { padding-right: calc(58px * var(--scale)); }
+.popup .head { gap: 0 0.5em; }
+.popup .headword { font-size: calc(17px * var(--scale)); line-height: 1.45; }
+.popup .tag, .popup .tag.frequency, .popup .reasons, .popup .pitch, .popup .lookups, .popup .dictionary-name,
+.popup .romaji, .popup .more, .popup .reading, .popup .number {
+  font-size: calc(9.5px * var(--scale)); letter-spacing: 0.04em; }
+.popup .lookups { margin: 0; }
+.popup .tags { gap: 0 0.5em; }
+.popup .tag.frequency, .popup .tag.frequency .tag-name, .popup .tag.frequency .tag-value {
+  background: none; border: none; box-shadow: none; padding: 0; border-radius: 0; }
+.popup .tag.frequency .tag-value { letter-spacing: 0.02em; }
+.popup .dictionary-name { margin: calc(2px * var(--scale)) 0 0; padding: 0; border: none; }
+.popup .senses { margin: 0; }
+.popup .sense { margin: 0; padding-top: 0; padding-bottom: 0; line-height: 1.35; }
+.popup .forms { margin-top: calc(1px * var(--scale)); }
+.popup .card-buttons { position: absolute; top: calc(3px * var(--scale)); right: 0; margin: 0; gap: calc(4px * var(--scale)); order: 0; }
+.popup .card { width: calc(22px * var(--scale)); height: calc(22px * var(--scale)); }
+.popup .name-card { margin: calc(2px * var(--scale)) 0; gap: calc(8px * var(--scale)); }
+.popup .name-card .portrait { width: calc(48px * var(--scale)); }
+.popup[data-portrait="large"] .name-card .portrait { width: calc(72px * var(--scale)); }
+.popup .who-name { font-size: calc(15px * var(--scale)); line-height: 1.6; }
+.popup .about { margin-top: calc(2px * var(--scale)); font-size: calc(12px * var(--scale)); line-height: 1.35; }
+.popup .also { margin-top: calc(2px * var(--scale)); }
+"""
+
         private const val PAGE = "file:///android_asset/reader/popup/popup.html"
         private const val THEMES = "reader/popup/themes/"
 

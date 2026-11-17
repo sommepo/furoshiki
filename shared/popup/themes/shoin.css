@@ -18,7 +18,7 @@
 .entry + .entry { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 8px; }
 .head { gap: 0 0.9em; }
 .headword { font-size: calc(26px * var(--scale)); font-weight: 600; letter-spacing: 0.05em; }
-.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.14em; font-size: 0.4em; }
+.headword rt { display: revert; color: var(--dim); letter-spacing: 0.14em; font-size: 0.4em; }
 .reading { display: none; }
 .reasons { color: var(--dim); font-style: italic; }
 .pitch { color: var(--dim); }

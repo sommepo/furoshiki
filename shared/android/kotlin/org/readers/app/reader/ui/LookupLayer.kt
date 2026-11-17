@@ -188,6 +188,10 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // A finger on the popup (reading on, scrolling) is somebody using it.
         if (isOpen && popupContains(event.x, event.y)) keepOpen()
+        // A finger is the input now: the popup shows no controller's buttons.
+        if (event.actionMasked == MotionEvent.ACTION_DOWN && event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER) {
+            PopupKeys.inputFrom(pad = false)
+        }
         return super.dispatchTouchEvent(event)
     }
 
@@ -261,6 +265,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     val wordRow: Area? get() = if (isOpen) anchor?.keepClear else null
 
     init {
+        PopupKeys.add(this) // a controller works the popup while it is open
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         scrim.visibility = GONE
         addView(scrim, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -270,7 +275,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
             close()
             onOpenDictionaries()
         }
-        popup.onAdd = { result -> mine(result) }
+        popup.onAdd = { result, audio -> mine(result, audio) }
         popup.onLayoutChanged = { if (isOpen) position() }
         popup.onShowNotes = { result -> showNotes(result) }
         // What a box offers can change after the popup was placed, and its size with it.
@@ -481,6 +486,9 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 popup.textScale = settings.popupScale
                 popup.theme = settings.popupTheme
                 popup.userCss = settings.popupCss
+                popup.dictionaryKinds = settings.dictionaryKinds
+                // Marked with the controller's buttons only while a controller is the input.
+                popup.pad = PopupKeys.padInUse
                 popup.look = settings.popupLook.apply { if (!nameCards) put("cards", false) }
                 popup.cardCorner = LookupPopupView.Corner.of(settings.cardCorner)
                 when {
@@ -593,14 +601,30 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     }
 
     /** A card of the open popup's word, as its first plus makes it (a button put on it). */
-    fun mineWord(): Boolean {
+    fun mineWord(audio: Boolean? = null): Boolean {
         val pin = pinned ?: return false
         if (!isOpen) return false
-        mine(pin.word)
+        mine(pin.word, audio)
         return true
     }
 
-    private fun mine(result: LookupResult) {
+    /** Another tab of the open popup (PopupKeys: R1 and L1). */
+    fun tab(step: Int) {
+        if (isOpen) popup.tab(step)
+    }
+
+    /** The controller became the input, or touch did: the open popup's marks follow. */
+    fun padChanged(pad: Boolean) {
+        popup.pad = pad
+    }
+
+    /** A step through the open popup (PopupKeys: the left stick). */
+    fun scrollBy(dy: Int) {
+        if (isOpen) popup.scrollBy(dy)
+    }
+
+    /** [audio]: with the line's audio (true), without (false), or as the settings say (null). */
+    private fun mine(result: LookupResult, audio: Boolean? = null) {
         val pin = pinned ?: return
         val request = token
         val range = pin.offset until pin.offset + result.matchedText.length
@@ -614,7 +638,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         }
         popup.setCardState(result, LookupPopupView.CardState.WORKING)
         countLookup()
-        miner.mine(pin.presented, result, range, wordQuestion(result)) { outcome ->
+        miner.mine(pin.presented, result, range, if (audio == null) wordQuestion(result) else null, audio) { outcome ->
             report(context, outcome)
             if (request != token) return@mine
             val known = when (outcome) {

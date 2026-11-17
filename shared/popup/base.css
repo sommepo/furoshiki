@@ -93,6 +93,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .card.book { color: var(--book); border-color: color-mix(in srgb, var(--book) 63%, transparent); }
 .card:active, .card.pressed { background: var(--box-pressed); }
 .card svg { width: 60%; height: 60%; display: block; }
+.card.addAudio svg { width: 64%; height: 64%; }
 .card[data-state="working"] { opacity: 0.4; }
 .card[data-state="checking"] svg { animation: reader-turn 0.9s linear infinite; }
 .card[data-state="away"] svg { opacity: 0.6; }
@@ -134,3 +135,78 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .entry.all .more { display: none; }
 .more { font-size: calc(11px * var(--scale)); text-decoration: none; opacity: 0.9; }
 .popup.no-tags .sense .tag[data-category="part-of-speech"] { display: none; }
+
+/* ---- Tabs by kind (words, grammar, kanji, names), each with its count; none for one kind ---- */
+.tabs {
+  display: flex; align-items: stretch; gap: 0;
+  margin: 0 0 calc(5px * var(--scale));
+  border-bottom: 1px solid var(--edge);
+  position: relative;
+}
+.tab {
+  cursor: pointer; color: var(--dim);
+  font-size: calc(10.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase;
+  padding: calc(3px * var(--scale)) calc(8px * var(--scale)) calc(4px * var(--scale));
+  white-space: nowrap;
+}
+.tab .tab-count { margin-left: 0.5em; font-feature-settings: "tnum" 1; opacity: 0.8; }
+.tab.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+/* ---- The controller's buttons, marked like the legend on a key cap: only with a controller ---- */
+.key-mark { display: none; }
+.popup.pad .key-mark {
+  display: grid; place-items: center; pointer-events: none;
+  /* A small filled cap in the popup's own text colour, the legend cut out in its ground: seen at
+     a glance on any theme, but quieter than the buttons it sits on. */
+  min-width: calc(14px * var(--scale)); height: calc(14px * var(--scale)); padding: 0 calc(3px * var(--scale));
+  border-radius: calc(7px * var(--scale)); box-sizing: border-box;
+  background: var(--text); color: var(--ground, #000);
+  font: 700 calc(9.5px * var(--scale)) / 1 var(--font); letter-spacing: 0; text-transform: none;
+  opacity: 0.88;
+}
+.popup.pad .tabs .key-mark { align-self: center; margin: 0 calc(4px * var(--scale)); }
+.popup.pad .tabs .key-mark.right { margin-left: auto; }
+.popup.pad .card { overflow: visible; }
+.popup.pad .card .key-mark {
+  position: absolute; right: calc(-6px * var(--scale)); bottom: calc(-6px * var(--scale));
+  box-shadow: 0 0 0 calc(1.5px * var(--scale)) var(--ground, #000);
+}
+/* ---- A dictionary's own layout (grammar, characters): as it set it, in the popup's colours ---- */
+.sense.laid-out { list-style: none; }
+.sense.unnumbered { padding-left: 0; }
+.sc { white-space: pre-line; margin: calc(2px * var(--scale)) 0 0; }
+.sc-definition + .sc-definition { margin-top: calc(6px * var(--scale)); }
+.sc .sc-ul, .sc .sc-ol { margin: 0.15em 0; padding-left: 1.4em; white-space: normal; }
+.sc .sc-li { white-space: pre-line; }
+.sc .sc-table { border-collapse: collapse; margin: 0.3em 0; white-space: normal; font-size: 0.95em; }
+.sc .sc-td, .sc .sc-th { border: 1px solid var(--edge); padding: 0.1em 0.45em; vertical-align: top; text-align: left; }
+.sc .sc-th { color: var(--dim); font-weight: 600; }
+.sc .sc-rt { color: var(--dim); }
+.sc .sc-summary { cursor: pointer; color: var(--dim); }
+.sc .sc-img { color: var(--dim); }
+/* What grammar dictionaries mark (DOJG, Bunpro, 日本語文型辞典 and others): their formation boxes
+   and example sentences. */
+.sc [data-sc-content="formation"], .sc [data-sc-content="structure"], .sc [data-sc-class="formation"] {
+  border: 1px solid var(--edge); border-radius: 3px; padding: 0.2em 0.5em; margin: 0.3em 0; display: block;
+}
+.sc [data-sc-content="example-sentence"], .sc [data-sc-content="examples"], .sc [data-sc-content="example"] {
+  border-left: 2px solid var(--edge); padding-left: 0.6em; margin: 0.25em 0; display: block; color: color-mix(in srgb, var(--text) 88%, transparent);
+}
+.sc [data-sc-content="example-sentence-b"], .sc [data-sc-content="translation"] { color: var(--dim); }
+/* ---- A character, as a character dictionary sets it out ---- */
+.kanji { display: grid; grid-template-columns: auto 1fr; gap: 0 calc(12px * var(--scale)); align-items: start; margin: calc(2px * var(--scale)) 0; }
+.kanji .glyph { font-size: calc(54px * var(--scale)); line-height: 1.05; font-weight: 400; }
+.kanji-rows { display: grid; grid-template-columns: auto 1fr; gap: calc(1px * var(--scale)) calc(10px * var(--scale)); margin: calc(2px * var(--scale)) 0 0; }
+.kanji-rows dt { color: var(--dim); font-size: calc(9.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.25em; }
+.kanji-rows dd { margin: 0; }
+.kanji-side { min-width: 0; }
+
+/* Where color-mix is not known (the Thor's WebView 109): a color-mix with var() in it is only found
+   wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
+   here instead of before it. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .popup { background: var(--ground); }
+  .entry.unknown .headword { background: rgba(127, 127, 127, 0.25); box-shadow: none; }
+  .tag.name { border-color: var(--accent); }
+  .card { border-color: var(--edge); }
+  .about, .sc [data-sc-content="example-sentence"] { color: var(--text); }
+}

@@ -296,7 +296,8 @@ void LookupPopup::ShowResults(const QList<LookupResult>& results,
         for (int i = 0; i < results.size(); ++i) {
             const bool counted = i < history.size() && history.at(i).count > 0;
             model.append(ReaderApp::PopupModel::Entry(
-                results.at(i), counted ? HistoryLine(history.at(i), with_where) : QString()));
+                results.at(i), counted ? HistoryLine(history.at(i), with_where) : QString(),
+                ReaderSession::Instance().Settings().DictionaryKinds()));
         }
         ShowOnPage(model, {});
     }
@@ -456,6 +457,7 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
         {QStringLiteral("game"), ReaderSession::Instance().GameKey()},
         {QStringLiteral("labels"),
          QJsonObject{{QStringLiteral("add"), tr("Add to Anki")},
+                     {QStringLiteral("addAudio"), tr("Add to Anki with audio")},
                      {QStringLiteral("book"), tr("In Anki · Show note")},
                      {QStringLiteral("forms"), tr("forms")},
                      {QStringLiteral("more"), tr("more")},
@@ -490,14 +492,20 @@ void LookupPopup::OnPageMessage(const QJsonObject& message) {
                               qRound(box.value(QStringLiteral("w")).toDouble()),
                               qRound(box.value(QStringLiteral("h")).toDouble()));
             const int at = box.value(QStringLiteral("index")).toInt();
-            (box.value(QStringLiteral("kind")).toString() == QStringLiteral("book") ? web_book : web_add)
-                .insert(at, place);
+            // The first plus (without the line's audio) is the word's plus; the second has its own.
+            const QString kind = box.value(QStringLiteral("kind")).toString();
+            if (kind == QStringLiteral("book")) {
+                web_book.insert(at, place);
+            } else if (kind == QStringLiteral("add")) {
+                web_add.insert(at, place);
+            }
         }
         web_layout = true;
         emit LayoutChanged();
     } else if (type == QStringLiteral("add")) {
         if (GetCardState(index) != CardState::Working) {
-            emit AddRequested(index);
+            const QJsonValue audio = message.value(QStringLiteral("audio"));
+            emit AddRequested(index, audio.isBool() ? (audio.toBool() ? 1 : 0) : -1);
         }
     } else if (type == QStringLiteral("book")) {
         emit NotesRequested(index);
@@ -898,7 +906,7 @@ void LookupPopup::mouseReleaseEvent(QMouseEvent* event) {
         if (same) {
             if (kind == KindAdd) {
                 if (GetCardState(index) != CardState::Working) {
-                    emit AddRequested(index);
+                    emit AddRequested(index, -1);
                 }
             } else if (kind == KindBook) {
                 emit NotesRequested(index);

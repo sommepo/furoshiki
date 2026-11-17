@@ -15,7 +15,7 @@ import org.readers.app.reader.ReaderSettings
  *     "look": { "opacity": 85, "radius": -1, "compact": 2, "hideTags": false, "portrait": "small" } }
  */
 object PopupStyle {
-    private val THEMES = listOf("console") + ReaderSettings.POPUP_THEMES + "classic"
+    private val THEMES = listOf(ReaderSettings.POPUP_THEME_AUTO, "console") + ReaderSettings.POPUP_THEMES + "classic"
     private val LOOKUPS = listOf("count", "where", "off")
 
     fun export(settings: ReaderSettings): JSONObject = JSONObject()

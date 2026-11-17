@@ -99,6 +99,8 @@ class Miner(context: Context) {
         word: LookupResult?,
         wordRange: IntRange?,
         question: AudioQuestion? = null,
+        /** With the line's audio (true) or without (false), whatever the settings say; null: as they say. */
+        withLineAudio: Boolean? = null,
         callback: (Outcome) -> Unit
     ) {
         val (client, problem) = client()
@@ -114,10 +116,11 @@ class Miner(context: Context) {
 
         val media = mediaOverride ?: ReaderSession.media
         val isCurrent = ReaderSession.current?.backlogId == presented.backlogId
-        val audio = settings.cardAudioFor(
-            ReaderSession.gameKey,
-            ReaderCatalog.cardAudio(context, ReaderSession.gameKey)
-        )
+        val audio = when (withLineAudio) {
+            true -> ReaderSettings.CardAudio.ALWAYS
+            false -> ReaderSettings.CardAudio.NEVER
+            null -> settings.cardAudioFor(ReaderSession.gameKey, ReaderCatalog.cardAudio(context, ReaderSession.gameKey))
+        }
         val wantsPicture = CardBuilder.needsScreenshot(templates.values) && media != null
         val wantsAudio = audio != ReaderSettings.CardAudio.NEVER &&
             CardBuilder.needsAudio(templates.values) && media != null &&

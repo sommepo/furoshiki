@@ -550,7 +550,7 @@ QWidget* SettingsWindow::CustomiserPanel(QWidget* parent) {
 QString SettingsWindow::PopupBase() const {
     const Layer layer = LayerOf(popup_layer);
     const QList<PlaySetting> settings = PopupStyle::Settings(popup_folder);
-    const QString theme = play.Value(settings.first(), layer.console, layer.game).value;
+    const QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(play.Value(settings.first(), layer.console, layer.game).value);
     return theme == QStringLiteral("classic") ? QStringLiteral("console") : theme;
 }
 
@@ -838,8 +838,8 @@ void SettingsWindow::ShowPreview() {
         }
         return settings.Value(QString::fromLatin1(key)).toString();
     };
-    QString theme = value("reader_popup_theme");
-    if (theme.isEmpty() || theme == QStringLiteral("classic")) {
+    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(value("reader_popup_theme"));
+    if (theme == QStringLiteral("classic")) {
         theme = QStringLiteral("console"); // the classic popup is drawn without the page: the page in its colours
     }
     const QString mark = value("reader_popup_mark_unknown");

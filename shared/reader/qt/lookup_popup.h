@@ -134,7 +134,8 @@ public:
     [[nodiscard]] int MaxWidth() const;
 
 signals:
-    void AddRequested(int index);
+    /// A card of the `index`th word: `audio` 1 with the line's audio, 0 without, -1 as the settings say.
+    void AddRequested(int index, int audio);
     void NotesRequested(int index);
     void DictionariesRequested();
     /// The page laid the popup out anew (its height may have changed), or its engine failed

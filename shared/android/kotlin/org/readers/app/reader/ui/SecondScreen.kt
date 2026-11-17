@@ -49,6 +49,18 @@ class SecondScreen(
     /** What lies over the overlay there, along its foot: an app's own keys. Null from it: nothing. */
     var over: ((Context) -> View?)? = null
 
+    /**
+     * What lies over the whole of that display, above the reader's overlay, where [under] is a
+     * console's lower screen: an app's own controls in a corner (they take only their own taps).
+     */
+    var corner: ((Context) -> View?)? = null
+
+    /**
+     * A finger lifted on that display. Android gives the keys to the display touched last, which
+     * is not the game's: the app takes them back here (else the controller works nothing).
+     */
+    var touched: (() -> Unit)? = null
+
     /** True while the second display is the reader's. */
     val active: Boolean get() = pad != null
 
@@ -98,12 +110,20 @@ class SecondScreen(
         if (!started || activity.isFinishing || activity.isDestroyed) return
         val wanted = choose()
         val current = pad
-        if (current?.display?.displayId == wanted?.displayId) return
+        // A window the system closed by itself (it closes a second display's window when that
+        // display changes: seen on the Thor as a game was paused, 2026-11-17) is made again.
+        if (current?.display?.displayId == wanted?.displayId && current?.isShowing != false) return
         release(notify = false)
         val host = host
         if (wanted != null && host != null) {
             try {
-                pad = Pad(activity, wanted, host, under, over).also { it.show() }
+                pad = Pad(activity, wanted, host, under, over, corner, { touched?.invoke() }).also { made ->
+                    made.setOnDismissListener {
+                        // Not one this class let go of (release() forgets it first): the system's.
+                        if (pad === made) Handler(Looper.getMainLooper()).postDelayed({ if (pad === made) update() }, 300)
+                    }
+                    made.show()
+                }
             } catch (e: WindowManager.InvalidDisplayException) {
                 // The display went away meanwhile; the listener hears of it.
                 Log.warning("[Reader] The second display could not be used: ${e.message}")
@@ -133,8 +153,16 @@ class SecondScreen(
         display: Display,
         private val host: ReaderOverlay.Host,
         private val under: ((Context) -> View)?,
-        private val over: ((Context) -> View?)? = null
+        private val over: ((Context) -> View?)? = null,
+        private val corner: ((Context) -> View?)? = null,
+        private val lifted: () -> Unit = {}
     ) : Presentation(context, display) {
+
+        override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+            val taken = super.dispatchTouchEvent(event)
+            if (event.actionMasked == android.view.MotionEvent.ACTION_UP) lifted()
+            return taken
+        }
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
@@ -157,6 +185,9 @@ class SecondScreen(
                 ReaderOverlay(context, host, secondary = true),
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             )
+            corner?.invoke(context)?.let {
+                stage.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            }
             root.addView(stage, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             over?.invoke(context)?.let {
                 root.addView(it, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

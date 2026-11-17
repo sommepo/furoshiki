@@ -115,7 +115,7 @@ class ScanService : Service() {
         if (kept) {
             Log.w("Furoshiki", "$key: no game found while its games could not be looked at, its last list kept")
         } else {
-            save(key, oneEntryAGame(JSONArray(found.toString())))
+            save(key, oneEntryAGame(JSONArray(found.toString()), records(this)))
         }
         // The list stands; what art it lacks comes after, as the network may be slow or absent.
         sendBroadcast(Intent(Places.SCANNED).setPackage(packageName).putExtra(EXTRA_LISTED, true))
@@ -129,7 +129,7 @@ class ScanService : Service() {
             }
         }
         // As listed: a game of several discs one entry (it was saved disc by disc here before).
-        if (fetched && !kept) save(key, oneEntryAGame(found))
+        if (fetched && !kept) save(key, oneEntryAGame(found, records(this)))
     }
 
     /** Whether every game folder can be read: just after the device starts the storage may not be. */
@@ -180,15 +180,18 @@ class ScanService : Service() {
 
         /**
          * A game on several discs as one entry (the user, 2026-11-13): its first disc's, under its
-         * title without "(Disc N)", with how many discs it has. The game is given the rest as it
-         * starts (GameActivity, [Discs]).
+         * title without "(Disc N)", with how many discs it has and their files in order (`paths`),
+         * which the game is given as it starts (GameActivity). Discs named alike are one game only
+         * when their IDs are one title's ([records]: game ID to its title record, titles.json):
+         * Grisaia's two discs are one game, Da Capo I&II's two discs two games (2026-11-17).
          */
-        fun oneEntryAGame(found: JSONArray): JSONArray {
+        fun oneEntryAGame(found: JSONArray, records: Map<String, String> = emptyMap()): JSONArray {
             val groups = LinkedHashMap<String, MutableList<JSONObject>>()
             for (i in 0 until found.length()) {
                 val entry = found.getJSONObject(i)
                 val path = entry.optString("path")
-                val key = if (Discs.number(File(path).name) != null) Discs.groupKey(path) else "one:$path"
+                val id = entry.optString("id")
+                val key = if (Discs.number(File(path).name) != null) Discs.groupKey(path) + "\u0000" + (records[id] ?: id) else "one:$path"
                 groups.getOrPut(key) { ArrayList() }.add(entry)
             }
             val out = JSONArray()
@@ -197,12 +200,34 @@ class ScanService : Service() {
                     out.put(entries[0])
                     continue
                 }
-                val first = entries.minBy { Discs.number(File(it.optString("path")).name) ?: Int.MAX_VALUE }
+                val ordered = entries.sortedBy { Discs.number(File(it.optString("path")).name) ?: Int.MAX_VALUE }
+                val first = ordered[0]
                 first.put("title", Discs.withoutDisc(first.optString("title")))
                 first.put("discs", entries.size)
+                first.put("paths", JSONArray(ordered.map { it.optString("path") }))
                 out.put(first)
             }
             return out
+        }
+
+        /** Each game ID's title record (the app's titles.json, tools/titles-index.py), or none. */
+        fun records(context: android.content.Context): Map<String, String> = runCatching {
+            val all = JSONObject(context.assets.open("front/titles.json").bufferedReader().use { it.readText() })
+            all.keys().asSequence().associateWith { all.getJSONObject(it).optString("key", it) }
+        }.getOrDefault(emptyMap())
+
+        /**
+         * The discs of the game listed at [path] in [listed] (a console's list), in order: its
+         * `paths`, or only [path] for a game on one disc and for a disc that is a game of its own.
+         */
+        fun discsOf(listed: JSONArray, path: String): List<String> {
+            for (i in 0 until listed.length()) {
+                val entry = listed.optJSONObject(i) ?: continue
+                val paths = entry.optJSONArray("paths") ?: continue
+                val all = List(paths.length()) { paths.getString(it) }
+                if (path in all) return all
+            }
+            return listOf(path)
         }
     }
 }

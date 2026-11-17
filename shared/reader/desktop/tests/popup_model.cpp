@@ -6,6 +6,7 @@
 #include "reader/desktop/glossary.h"
 #include "reader/desktop/names.h"
 #include "reader/desktop/popup_model.h"
+#include "reader/desktop/settings.h"
 #include "reader/desktop/tests/test_util.h"
 
 using namespace ReaderApp;
@@ -132,4 +133,54 @@ TEST_CASE("PopupModel: a name of the running game is a card", "[reader][popup][n
     name.glossary_json = Q(u"[\"真宮寺 是清（しんぐうじ これきよ）\"]");
     result.entries = {name};
     REQUIRE_FALSE(PopupModel::Entry(result, {}).contains(QStringLiteral("card")));
+}
+
+TEST_CASE("PopupModel: each sense says its dictionary's kind, for the popup's tabs", "[reader][popup]") {
+    const auto kind = [](const QString& dictionary, const QString& expression = QStringLiteral("x"), bool scoped = false) {
+        TermEntry entry = Sense(dictionary, {}, QStringLiteral("[]"));
+        entry.expression = expression;
+        entry.scoped = scoped;
+        return PopupModel::KindOf(entry);
+    };
+    REQUIRE(kind(Q(u"日本語文法辞典(全集)")) == QStringLiteral("grammar"));
+    REQUIRE(kind(QStringLiteral("Dictionary of Japanese Grammar")) == QStringLiteral("grammar"));
+    REQUIRE(kind(QStringLiteral("JMnedict")) == QStringLiteral("name"));
+    REQUIRE(kind(QStringLiteral("JMdict")) == QStringLiteral("word"));
+    REQUIRE(kind(Q(u"漢字辞典"), Q(u"位")) == QStringLiteral("kanji"));
+    REQUIRE(kind(Q(u"漢字辞典"), Q(u"位置")) == QStringLiteral("word"));
+    REQUIRE(kind(Q(u"名前 · Game"), Q(u"紅莉栖"), true) == QStringLiteral("name"));
+    // The user's kind wins.
+    TermEntry other = Sense(Q(u"大辞林"), {}, QStringLiteral("[]"));
+    REQUIRE(PopupModel::KindOf(other, {{Q(u"大辞林"), QStringLiteral("grammar")}}) == QStringLiteral("grammar"));
+
+    // A grammar dictionary's sense carries its glossary whole, as the dictionary laid it out.
+    LookupResult result;
+    result.expression = Q(u"くらい");
+    result.entries = {
+        Sense(QStringLiteral("JMdict"), QStringLiteral("prt"), QStringLiteral(R"(["about"])")),
+        Sense(QStringLiteral("Bunpro"), {},
+              QStringLiteral(R"([{"type":"structured-content","content":{"tag":"div","data":{"content":"formation"},"content":"N + くらい"}}])")),
+    };
+    const QJsonArray senses = PopupModel::Senses(result);
+    REQUIRE(senses.size() == 2);
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("kind")).toString() == QStringLiteral("word"));
+    REQUIRE_FALSE(senses.at(0).toObject().contains(QStringLiteral("content")));
+    REQUIRE(senses.at(1).toObject().value(QStringLiteral("kind")).toString() == QStringLiteral("grammar"));
+    REQUIRE(senses.at(1).toObject().value(QStringLiteral("content")).toArray().at(0).toObject()
+                .value(QStringLiteral("type")).toString() == QStringLiteral("structured-content"));
+}
+
+TEST_CASE("ReaderSettings: the popup's look follows the shelf's theme unless chosen", "[reader][popup]") {
+    REQUIRE(ReaderSettings::PopupThemeOfShelf(QStringLiteral("kon")) == QStringLiteral("kon"));
+    REQUIRE(ReaderSettings::PopupThemeOfShelf(QStringLiteral("solarized")) == QStringLiteral("solarized-dark"));
+    REQUIRE(ReaderSettings::PopupThemeOfShelf(QStringLiteral("paper")) == QStringLiteral("paper"));
+    REQUIRE(ReaderSettings::PopupThemeOfShelf(QStringLiteral("mono")) == QStringLiteral("kumihan"));
+    REQUIRE(ReaderSettings::PopupThemeOfShelf(QString()) == QStringLiteral("console"));
+    ReaderSettings::SetPopupThemeDefault(QStringLiteral("kon"));
+    REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("auto")) == QStringLiteral("kon"));
+    REQUIRE(ReaderSettings::ResolvePopupTheme(QString()) == QStringLiteral("kon"));
+    REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("glass")) == QStringLiteral("glass"));
+    REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("console")) == QStringLiteral("console"));
+    ReaderSettings::SetPopupThemeDefault(QStringLiteral("console"));
+    REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("auto")) == QStringLiteral("console"));
 }

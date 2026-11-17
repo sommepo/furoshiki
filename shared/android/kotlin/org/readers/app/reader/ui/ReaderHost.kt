@@ -26,9 +26,11 @@ class ReaderHost(
     private val activity: Activity,
     private val secondaryActive: () -> Boolean,
     /** Called before one of the reader's screens is opened over the game. */
-    private val onLeaving: () -> Unit = {}
+    private val onLeaving: () -> Unit = {},
+    /** The backlog shown by the app itself, not as a screen of its own (an app's companion). */
+    private val backlog: (() -> Unit)? = null,
 ) : ReaderOverlay.Host {
-    override fun openBacklog() = open(ReaderBacklogActivity::class.java)
+    override fun openBacklog() = backlog?.invoke() ?: open(ReaderBacklogActivity::class.java)
 
     override fun openStatistics() = open(ReaderStatsActivity::class.java)
 
@@ -115,12 +117,10 @@ class ReaderHost(
         val settings = ReaderSettings(activity)
         fun toggle(label: Int, on: Boolean): String =
             (if (on) "\u2713  " else "     ") + activity.getString(label)
+        // No sentence card or backlog here (the maintainer, 2026-11-17): the controller's shortcuts
+        // and the LOG key under the trackpad have them.
         val entries = listOf<Pair<String, () -> Unit>>(
-            activity.getString(R.string.reader_mine_sentence) to {
-                ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD)
-            },
             activity.getString(R.string.reader_statistics) to { openStatistics() },
-            activity.getString(R.string.reader_backlog) to { openBacklog() },
             activity.getString(R.string.reader_dictionaries) to { openDictionaries() },
             activity.getString(R.string.reader_anki_setup) to { openAnkiSetup() },
             activity.getString(R.string.reader_card_audio_game) to { chooseCardAudio() },

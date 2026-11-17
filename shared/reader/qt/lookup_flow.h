@@ -150,7 +150,8 @@ private:
      * once, does not count; nor does the same word in the same line again.
      */
     void CountLookup();
-    void Mine(int index);
+    /// A card of the popup's `index`th word: `audio` with the line's audio or without, or as the settings say.
+    void Mine(int index, std::optional<bool> audio = std::nullopt);
     void ShowNotes(int index);
     void Report(const Miner::Outcome& outcome);
     void Position();

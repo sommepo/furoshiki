@@ -74,7 +74,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         AWAY
     }
 
-    var onAdd: ((result: LookupResult) -> Unit)? = null
+    /** A card of [result]: [audio] with the line's audio (true), without (false), or as the settings say (null). */
+    var onAdd: ((result: LookupResult, audio: Boolean?) -> Unit)? = null
     var onShowNotes: ((result: LookupResult) -> Unit)? = null
     var onOpenDictionaries: (() -> Unit)? = null
 
@@ -83,6 +84,26 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** A word not in Anki gets a soft tint behind its headword. */
     var markUnknown = true
+
+    /** The kinds the user gave dictionaries, by title (ReaderSettings.dictionaryKinds): the page's tabs. */
+    var dictionaryKinds: Map<String, String> = emptyMap()
+
+    /**
+     * A controller is the input: the page marks its buttons (L and R by the tabs, △ and ○ on the
+     * card buttons). Never on touch.
+     */
+    var pad = false
+        set(value) {
+            if (field == value) return
+            field = value
+            page?.call("Reader.setPad($value)")
+        }
+
+    /** The next tab of the page (1) or the one before (-1): a controller's R1 and L1. */
+    fun tab(step: Int) {
+        val page = page ?: return
+        if (scroll.visibility == GONE) page.call("Reader.tab(${if (step < 0) -1 else 1})")
+    }
 
     /** The look's own settings as the page takes them (ReaderSettings.popupLook); the classic popup has none. */
     var look: JSONObject? = null
@@ -157,6 +178,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             it.setStyle("console", PopupPage.consoleCss(context))
             it.setStyle("theme", PopupPage.themeCss(context, theme))
+            it.setStyle("device", PopupPage.DEVICE_CSS)
             if (userCss.isNotEmpty()) it.setStyle("user", userCss)
             page = it
         }
@@ -179,6 +201,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         alpha = 0f
         val labels = JSONObject()
             .put("add", context.getString(R.string.reader_lookup_add))
+            .put("addAudio", context.getString(R.string.reader_lookup_add_audio))
             .put("book", context.getString(R.string.reader_lookup_in_deck))
             .put("dictionaries", context.getString(R.string.reader_lookup_open_dictionaries))
             .put("more", context.getString(R.string.reader_lookup_more))
@@ -190,6 +213,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             entries, message, cardCorner.name.lowercase(), allowDuplicates, markUnknown, textScale,
             Console.APP_KEY, org.readers.app.reader.ReaderSession.gameKey, labels, look
         )
+        model.put("pad", pad)
         page.call("Reader.show($model)")
     }
 
@@ -217,7 +241,9 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             }
 
             "add" -> shownResults.getOrNull(index)?.let { result ->
-                if (cardState(result) != CardState.WORKING) onAdd?.invoke(result)
+                // The page's two pluses say which: with the line's audio or without.
+                val audio = if (message.has("audio")) message.optBoolean("audio") else null
+                if (cardState(result) != CardState.WORKING) onAdd?.invoke(result, audio)
             }
 
             "book" -> shownResults.getOrNull(index)?.let { onShowNotes?.invoke(it) }
@@ -381,6 +407,12 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     fun scrollTo(y: Int) = scroll.scrollTo(0, y)
 
+    /** A step through the popup, the page's or the views' (a controller's stick). */
+    fun scrollBy(dy: Int) {
+        val page = page
+        if (page != null && scroll.visibility == GONE) page.call("Reader.scrollBy($dy)") else scroll.scrollBy(0, dy)
+    }
+
     /**
      * Shows the words found. With [history] (one per result, from the reader database), a quiet
      * line under each headword says how often it was looked up before; [withWhere] adds when
@@ -395,7 +427,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         if (page() != null) {
             val model = JSONArray()
             for ((index, result) in results.withIndex()) {
-                model.put(PopupModel.entry(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }))
+                model.put(PopupModel.entry(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, dictionaryKinds))
             }
             showOnPage(model, null)
         }
@@ -494,7 +526,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         }
 
         val add = box(R.drawable.ic_reader_add, R.string.reader_lookup_add, ReaderStyle.POPUP_SIGN, corner)
-        add.setOnClickListener { onAdd?.invoke(result) }
+        add.setOnClickListener { onAdd?.invoke(result, null) }
         val book = box(R.drawable.ic_reader_open_book, R.string.reader_lookup_in_deck, ReaderStyle.POPUP_BOOK_SIGN, corner)
         book.setOnClickListener { onShowNotes?.invoke(result) }
         val actions = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }

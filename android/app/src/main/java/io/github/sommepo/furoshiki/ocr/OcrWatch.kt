@@ -103,8 +103,17 @@ class OcrWatch(
     private var movingSince = -1L
     private var toldChanged = false
 
-    /** A look at the area at [now] (milliseconds, any clock that only goes forward). */
-    fun see(signature: OcrSignature, now: Long): Verdict {
+    /**
+     * A look at the area at [now] (milliseconds, any clock that only goes forward). The cells
+     * [hidden] says (a layer of the app's own lies over them in the picture) count as unchanged.
+     */
+    fun see(signature: OcrSignature, now: Long, hidden: BooleanArray? = null): Verdict {
+        if (hidden != null) {
+            val was = read ?: last
+            if (was != null && was.cells.size == signature.cells.size) {
+                for (i in hidden.indices) if (hidden[i]) signature.cells[i] = was.cells[i]
+            }
+        }
         val before = last
         last = signature
         if (before == null || signature.changedShare(before) > stillChange) {

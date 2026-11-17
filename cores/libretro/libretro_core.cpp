@@ -2600,12 +2600,17 @@ int32_t DiscInsert(int32_t index) {
 }
 
 int32_t DiscAdd(const char* path) {
-    if (!g_thread.joinable() || path == nullptr || !g_has_discs || g_disc.add_image_index == nullptr ||
-        g_disc.replace_image_index == nullptr) {
+    if (!g_thread.joinable() || path == nullptr) {
         return -1;
     }
     const int32_t index = static_cast<int32_t>(g_disc_count.load());
+    // Whether the core has discs is known once it has loaded the game, on the game's thread,
+    // after this may be asked (Android gives a game its other discs as it starts): asked there.
     RunLater([file = std::string(path)] {
+        if (!g_has_discs || g_disc.add_image_index == nullptr || g_disc.replace_image_index == nullptr) {
+            Log(READER_CORE_LOG_ERROR, "libretro: the core takes no other disc: " + file);
+            return;
+        }
         retro_game_info game{};
         game.path = file.c_str();
         if (g_disc.add_image_index()) {

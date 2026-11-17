@@ -23,12 +23,15 @@ import java.util.concurrent.atomic.AtomicBoolean
 import org.readers.app.R
 import org.readers.app.reader.dict.DictionaryImporter
 import org.readers.app.reader.dict.DictionaryInfo
+import org.readers.app.reader.dict.DictionaryKinds
+import org.readers.app.reader.ReaderSettings
 import org.readers.app.reader.dict.DictionaryStore
 import org.readers.app.reader.dict.SharedDictionaries
 
 /**
  * Installed dictionaries: import Yomitan archives, choose their order (the first is shown first
- * in lookups), switch them on and off, delete them. A folder of the device's own storage can be
+ * in lookups), switch them on and off, delete them, and say which tab of the popup their entries
+ * are in (a tap on the name: words, grammar, kanji, names; automatic by [DictionaryKinds]'s rule). A folder of the device's own storage can be
  * the Readers folder that every reader app is given: what is put in it is imported here (and
  * in each other reader app) when this screen opens, each file once.
  */
@@ -149,12 +152,16 @@ class DictionaryManagerActivity : ReaderScreen() {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, dp(8f), 0, dp(8f))
             }
-            val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            val text = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setOnClickListener { chooseKind(info) }
+            }
             text.addView(body(info.title))
             text.addView(
                 note(
                     getString(R.string.reader_dict_entry_counts, info.termCount, info.metaCount) +
-                        if (info.revision.isNotEmpty()) " · ${info.revision}" else ""
+                        (if (info.revision.isNotEmpty()) " · ${info.revision}" else "") +
+                        " · " + kindName(kindOf(info))
                 )
             )
             row.addView(text, LinearLayout.LayoutParams(0, WRAP, 1f))
@@ -180,6 +187,40 @@ class DictionaryManagerActivity : ReaderScreen() {
             )
             list.addView(row)
         }
+    }
+
+    private fun kindName(kind: String): String = getString(
+        when (kind) {
+            DictionaryKinds.GRAMMAR -> R.string.reader_dict_kind_grammar
+            DictionaryKinds.KANJI -> R.string.reader_dict_kind_kanji
+            DictionaryKinds.NAME -> R.string.reader_dict_kind_name
+            else -> R.string.reader_dict_kind_word
+        }
+    )
+
+    /** The kind the popup gives [info]'s entries: the user's, or what its title says. */
+    private fun kindOf(info: DictionaryInfo): String =
+        ReaderSettings(this).dictionaryKinds[info.title]
+            ?: (if (info.scope.isNotEmpty()) DictionaryKinds.NAME else DictionaryKinds.ofTitle(info.title))
+            ?: DictionaryKinds.WORD
+
+    /** Which tab of the popup [info]'s entries are in: automatic, or a kind chosen here. */
+    private fun chooseKind(info: DictionaryInfo) {
+        val settings = ReaderSettings(this)
+        val chosen = settings.dictionaryKinds
+        val automatic = (if (info.scope.isNotEmpty()) DictionaryKinds.NAME else DictionaryKinds.ofTitle(info.title)) ?: DictionaryKinds.WORD
+        val values = listOf<String?>(null) + DictionaryKinds.ALL
+        val names = values.map { if (it == null) getString(R.string.reader_dict_kind_auto, kindName(automatic)) else kindName(it) }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.reader_dict_kind)
+            .setSingleChoiceItems(names.toTypedArray(), values.indexOf(chosen[info.title])) { dialog, which ->
+                settings.preferences.edit()
+                    .putString(ReaderSettings.KEY_DICTIONARY_KINDS, DictionaryKinds.with(chosen, info.title, values[which]))
+                    .apply()
+                dialog.dismiss()
+                reload()
+            }
+            .show()
     }
 
     private fun icon(drawable: Int, description: Int, enabled: Boolean, action: () -> Unit) =

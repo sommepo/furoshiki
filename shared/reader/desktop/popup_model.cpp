@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Readers contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <QJsonDocument>
 #include <QRegularExpression>
 #include "reader/desktop/glossary.h"
 #include "reader/desktop/names.h"
@@ -12,7 +13,41 @@ bool IsFormsList(const TermEntry& entry) {
     return entry.definition_tags.split(u' ').contains(QStringLiteral("forms"));
 }
 
-QJsonArray Senses(const LookupResult& result) {
+QString KindOfTitle(const QString& title) {
+    static const QRegularExpression grammar{QStringLiteral("grammar|文法|文型|語法|dojg|bunpro"),
+                                            QRegularExpression::CaseInsensitiveOption};
+    static const QRegularExpression names{QStringLiteral("jmnedict|人名"), QRegularExpression::CaseInsensitiveOption};
+    static const QRegularExpression kanji{QStringLiteral("kanji|漢字|字典"), QRegularExpression::CaseInsensitiveOption};
+    if (grammar.match(title).hasMatch()) {
+        return QStringLiteral("grammar");
+    }
+    if (names.match(title).hasMatch()) {
+        return QStringLiteral("name");
+    }
+    if (kanji.match(title).hasMatch()) {
+        return QStringLiteral("kanji");
+    }
+    return {};
+}
+
+QString KindOf(const TermEntry& entry, const QHash<QString, QString>& kinds) {
+    static const QStringList known{QStringLiteral("word"), QStringLiteral("grammar"), QStringLiteral("kanji"),
+                                   QStringLiteral("name")};
+    if (const QString chosen = kinds.value(entry.dictionary); known.contains(chosen)) {
+        return chosen;
+    }
+    if (entry.scoped) {
+        return QStringLiteral("name");
+    }
+    const QString by_title = KindOfTitle(entry.dictionary);
+    if (by_title == QStringLiteral("kanji")) {
+        // One character (one code point) is a character; a compound in such a dictionary is a word.
+        return entry.expression.toUcs4().size() == 1 ? by_title : QStringLiteral("word");
+    }
+    return by_title.isEmpty() ? QStringLiteral("word") : by_title;
+}
+
+QJsonArray Senses(const LookupResult& result, const QHash<QString, QString>& kinds) {
     QList<const TermEntry*> shown;
     QStringList dictionaries;
     for (const TermEntry& entry : result.entries) {
@@ -67,6 +102,15 @@ QJsonArray Senses(const LookupResult& result) {
             }
         }
         sense.insert(QStringLiteral("dictionary"), entry->dictionary);
+        const QString kind = KindOf(*entry, kinds);
+        sense.insert(QStringLiteral("kind"), kind);
+        if (kind == QStringLiteral("grammar") || kind == QStringLiteral("kanji")) {
+            // The glossary whole, as the dictionary laid it out: the page builds it element by element.
+            const QJsonDocument laid = QJsonDocument::fromJson(entry->glossary_json.toUtf8());
+            if (laid.isArray()) {
+                sense.insert(QStringLiteral("content"), laid.array());
+            }
+        }
         if (entry->scoped) {
             sense.insert(QStringLiteral("name"), true);
         }
@@ -110,7 +154,7 @@ QStringList Forms(const LookupResult& result) {
     return out;
 }
 
-QJsonObject Entry(const LookupResult& result, const QString& history) {
+QJsonObject Entry(const LookupResult& result, const QString& history, const QHash<QString, QString>& kinds) {
     QJsonArray pitches;
     for (const PitchAccent& pitch : result.pitches) {
         QStringList positions;
@@ -129,7 +173,7 @@ QJsonObject Entry(const LookupResult& result, const QString& history) {
                       {QStringLiteral("reasons"), QJsonArray::fromStringList(result.reasons)},
                       {QStringLiteral("pitches"), pitches},
                       {QStringLiteral("frequencies"), frequencies},
-                      {QStringLiteral("senses"), Senses(result)},
+                      {QStringLiteral("senses"), Senses(result, kinds)},
                       {QStringLiteral("forms"), QJsonArray::fromStringList(Forms(result))},
                       {QStringLiteral("state"), QStringLiteral("add")},
                       {QStringLiteral("unknown"), false}};

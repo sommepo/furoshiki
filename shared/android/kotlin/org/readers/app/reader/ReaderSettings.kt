@@ -51,11 +51,26 @@ class ReaderSettings(context: Context) {
     val popupHideOnCursorExit get() = preferences.getBoolean(KEY_POPUP_HIDE_ON_EXIT, true)
 
     /**
-     * The popup's look: "console" (the first value: the popup page in the console's colours),
-     * one of [POPUP_THEMES] ("furoshiki", "yomitan-dark", "paper"...), or "classic" (drawn as before the page).
+     * The popup's look: "console" (the popup page in the console's colours), one of
+     * [POPUP_THEMES] ("furoshiki", "yomitan-dark", "paper"...), or "classic" (drawn as before the
+     * page). Unless the user chose one ("auto", the first value and the default since
+     * 2026-11-17), the look of the home page's theme ([shelfTheme], [popupThemeOfShelf]).
      */
-    val popupTheme: String get() = preferences.getString(KEY_POPUP_THEME, "console")
-        .let { value -> if (value == "classic" || value in POPUP_THEMES) value!! else "console" }
+    val popupTheme: String get() = when (val value = preferences.getString(KEY_POPUP_THEME, POPUP_THEME_AUTO)) {
+        "classic", "console" -> value
+        in POPUP_THEMES -> value!!
+        else -> popupThemeOfShelf(shelfTheme)
+    }
+
+    /**
+     * The theme of the app's home page (Furoshiki's shelf: "kon", "solarized", "paper", "mono"), as
+     * the page last had it (HomeActivity keeps it); null in an app without one.
+     */
+    val shelfTheme: String? get() = preferences.getString(KEY_SHELF_THEME, null)
+
+    /** The kinds the user gave dictionaries, by title (DictionaryKinds): the popup's tabs. */
+    val dictionaryKinds: Map<String, String> get() =
+        org.readers.app.reader.dict.DictionaryKinds.parse(preferences.getString(KEY_DICTIONARY_KINDS, null))
 
     /** How solid the popup's ground is, 20 to 100 %; 0: as its look has it. 90 by default (2026-11-15). */
     val popupOpacity: Int get() = preferences.getInt(KEY_POPUP_OPACITY, POPUP_OPACITY_DEFAULT).coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
@@ -426,6 +441,23 @@ class ReaderSettings(context: Context) {
         const val WORD_MARK_WEAK_DEFAULT = 0xFFD08700.toInt()
         const val WORD_MARK_NEW_DEFAULT = 0xFFA566EF.toInt()
         const val KEY_POPUP_THEME = "reader_popup_theme"
+        /** The popup theme's value for "the home page's theme's look" (the default). */
+        const val POPUP_THEME_AUTO = "auto"
+        const val KEY_SHELF_THEME = "reader_shelf_theme"
+        const val KEY_DICTIONARY_KINDS = "reader_dictionary_kinds"
+
+        /**
+         * The popup's look for a home page theme: Kon's own Kon, Solarized's dark Solarized, Paper's
+         * paper, and Mono's Kumihan (type and hairlines on near-black); the console's colours for
+         * none (an app without a home page). The desktop has the same (ReaderSettings::PopupThemeOfShelf).
+         */
+        fun popupThemeOfShelf(shelf: String?): String = when (shelf) {
+            "kon" -> "kon"
+            "solarized" -> "solarized-dark"
+            "paper" -> "paper"
+            "mono" -> "kumihan"
+            else -> "console"
+        }
         const val KEY_POPUP_CSS = "reader_popup_css"
         const val KEY_POPUP_OPACITY = "reader_popup_opacity"
         const val POPUP_OPACITY_DEFAULT = 90
@@ -435,7 +467,7 @@ class ReaderSettings(context: Context) {
         const val KEY_POPUP_PORTRAIT = "reader_popup_portrait"
         /** The looks the page has besides the console's own colours (shared/popup/themes). */
         val POPUP_THEMES = listOf("furoshiki", "yomitan-dark", "paper", "paper-dark", "solarized-dark", "solarized-light",
-            "glass", "dense", "kuro", "shoin", "ookii", "kumihan", "kon")
+            "glass", "dense", "kuro", "shoin", "kumihan", "kon")
         const val KEY_POPUP_LOOKUPS = "reader_popup_lookups"
         const val KEY_CURSOR_BUTTON = "reader_cursor_button"
         const val KEY_CURSOR_TOGGLE = "reader_cursor_toggle"

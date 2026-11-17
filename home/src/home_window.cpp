@@ -54,6 +54,7 @@
 #include "choice_picker.h"
 #include "services.h"
 #include "look_paint.h"
+#include "reader/desktop/settings.h" // the popup's look follows the shelf's (SetShelfTheme)
 
 #ifdef _WIN32
 #include <windows.h>

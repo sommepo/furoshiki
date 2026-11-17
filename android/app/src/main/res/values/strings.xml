@@ -102,6 +102,7 @@
     <string name="companion_key_area">Area</string>
     <string name="companion_key_game">Game</string>
     <string name="companion_key_end">Quit</string>
+    <string name="companion_backlog_close">Close</string>
     <string name="companion_key_allow">Allow</string>
     <string name="companion_key_over">Overlay</string>
     <string name="companion_allow_over">Allow Furoshiki to appear on top, then come back</string>

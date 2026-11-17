@@ -41,6 +41,9 @@ object ReaderGlue : ReaderNative.Frontend {
     /** The app's keys for the second display, when it wants them there (GameActivity sets it before attach). */
     var lowerKeys: ((Context) -> View?)? = null
 
+    /** On a console of two screens: the reader's icon in the lower screen's corner, the keys behind it (GameActivity). */
+    var lowerCorner: ((Context) -> View?)? = null
+
     /** The game ended, or never started, by itself. GameActivity goes back to the page. */
     var stoppedByItself: (() -> Unit)? = null
 
@@ -63,12 +66,16 @@ object ReaderGlue : ReaderNative.Frontend {
         ReaderNative.attachOnce()
         HoverCursor.holdSticks = { held -> ReaderNative.holdSticks(held) }
         val secondScreen = SecondScreen(activity) { overlay?.refresh() }
-        val readerHost = ReaderHost(activity, secondaryActive = { secondScreen.active })
+        // One of the reader's own screens over the game (the backlog, the settings): the second display stays.
+        val readerHost = ReaderHost(activity, secondaryActive = { secondScreen.active }, onLeaving = { covered = true })
         secondScreen.host = readerHost
+        secondScreen.touched = { refocus?.invoke() }
         // The app's keys along the foot of the second display (LowerKeys), where a game leaves it free.
         if (!Console.TWO_SCREENS) secondScreen.over = { context -> lowerKeys?.invoke(context) }
         if (Console.TWO_SCREENS) {
             secondScreen.under = { context -> lowerScreen(context) }
+            // The lower screen is the game's: the keys wait behind the reader's icon in its corner.
+            secondScreen.corner = { context -> lowerCorner?.invoke(context) }
             ScreenTextLayer.geometryOf = { secondary, width, height -> twoScreens(secondary, width, height) }
             surface.setOnTouchListener { _, event -> second?.active != true && fingerOnLower(event) }
         } else if (Console.KEY == "psvita" || Console.KEY == "switch") {
@@ -97,6 +104,7 @@ object ReaderGlue : ReaderNative.Frontend {
 
     fun onResume() {
         resumed = true
+        covered = false
         update()
     }
 
@@ -113,20 +121,40 @@ object ReaderGlue : ReaderNative.Frontend {
         overlay?.let { host?.showMenu(it) }
     }
 
+    /** Gives the keys back to the game's display after a touch on the second one (GameActivity). */
+    var refocus: (() -> Unit)? = null
+
+    /**
+     * One of the reader's own screens is over the game (the backlog, the settings): the game is not
+     * in front, but the second display keeps its trackpad and keys (the maintainer, 2026-11-17: the
+     * backlog and the settings "should not disappear the bottom screen").
+     */
+    private var covered = false
+
+    /** The game held still for reading (GameActivity's PAUSE) or behind its menu: the reader stays in front. */
+    var held = false
+        set(value) {
+            field = value
+            update()
+        }
+
     private fun update() {
-        val front = resumed && ReaderSession.isActive && ReaderNative.inGame()
-        if (front == inFront) return
+        // A game held still for reading (the second display's PAUSE) is still in front: the
+        // core no longer says it is in its game then, and the second display went with it
+        // (the maintainer, 2026-11-17: PAUSE "bumped me out to the menu").
+        val front = resumed && ReaderSession.isActive && (ReaderNative.inGame() || held)
+        val keepSecond = front || (covered && ReaderSession.isActive && activity?.isFinishing == false)
+        if (front == inFront) {
+            if (keepSecond) second?.start() else second?.stop()
+            return
+        }
         inFront = front
         overlay?.visibility = if (front) View.VISIBLE else View.GONE
         // Back from the settings: the on-screen buttons as they are set now.
         activity?.let { overlay?.touchButtonsAlways = ReaderSettings(it).touchButtons }
         ReaderSession.setReading(front)
-        if (front) {
-            second?.start()
-        } else {
-            HoverCursor.cancel()
-            second?.stop()
-        }
+        if (!front) HoverCursor.cancel()
+        if (keepSecond) second?.start() else second?.stop()
     }
 
     // ---- A console with two screens ----

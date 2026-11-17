@@ -295,7 +295,7 @@ body.lower #title { font-size: calc(28 * var(--s)); -webkit-line-clamp: 3; }
 body.lower #sub { font-size: calc(14 * var(--s)); -webkit-line-clamp: 4; }
 /* One row of keys, always: the one that acts wide, the others beside it. */
 body.lower #card .keys { grid-column: 1 / 3; grid-row: 3; display: flex; flex-wrap: nowrap; gap: calc(10 * var(--s)); margin: 0; }
-body.lower #go { flex: 1 1 auto; min-width: 0; min-height: calc(68 * var(--s)); padding: 0 calc(20 * var(--s)); font-size: calc(15 * var(--s)); }
+body.lower #go { flex: 1 0 auto; min-width: max-content; min-height: calc(68 * var(--s)); padding: 0 calc(20 * var(--s)); font-size: calc(15 * var(--s)); }
 body.lower #also { flex: 0 1 auto; min-width: 0; min-height: calc(68 * var(--s)); padding: 0 calc(16 * var(--s)); font-size: calc(11 * var(--s)); }
 body.lower #before, body.lower #after {
   display: block; flex: 0 0 calc(68 * var(--s)); min-height: calc(68 * var(--s));
@@ -661,3 +661,68 @@ body.lower .lrow:active { background: color-mix(in srgb, var(--ink) 14%, transpa
 body.lower #tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 body.lower:not(.listed) #sub { display: none; }
 body.lower #figures { overflow: hidden; }
+
+/* ---- 2026-11-17, the maintainer's choice (1A): the shelves down the side, on both displays ---- */
+#add-game { display: none; }
+#tabs .sep { flex: none; display: block; height: 1px; background: var(--rule); }
+/* The first display of two: the shelf, its consoles and pages down the right. */
+body.two #sheet { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); column-gap: calc(26 * var(--s)); }
+body.two #head { grid-column: 1 / 3; }
+body.two #main { grid-column: 1; grid-row: 2; }
+body.two #foot {
+  grid-column: 2; grid-row: 2; flex-direction: column; align-items: stretch; gap: calc(6 * var(--s));
+  width: calc(178 * var(--s)); padding: calc(22 * var(--s)) 0 calc(14 * var(--s)) calc(14 * var(--s));
+  border-top: 0; border-left: 1px solid var(--rule);
+}
+body.two .lr { padding-left: calc(12 * var(--s)); font-size: calc(9 * var(--s)); }
+body.two #tabs { flex: 1 1 auto; flex-direction: column; gap: calc(2 * var(--s)); overflow-x: hidden; overflow-y: auto; }
+body.two #tabs button {
+  text-align: left; min-height: calc(36 * var(--s)); padding: 0 calc(12 * var(--s));
+  border-bottom: 0; border-left: 2px solid transparent;
+}
+body.two #tabs button.on { border-left-color: var(--accent); background: var(--raised); }
+body.two #tabs .sep { margin: calc(8 * var(--s)) calc(12 * var(--s)); }
+/* The second display: the same rail at the left, for a thumb, and Add a game at its foot. */
+body.lower #sheet { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); padding-left: 0; column-gap: calc(26 * var(--s)); }
+body.lower #head { grid-column: 2; }
+body.lower #main { grid-column: 2; grid-row: 2; }
+body.lower #foot {
+  grid-column: 1; grid-row: 1 / 3; flex-direction: column; align-items: stretch; gap: 0;
+  width: calc(168 * var(--s)); margin: calc(-20 * var(--s)) 0 calc(-12 * var(--s)); padding: calc(14 * var(--s)) 0 calc(14 * var(--s));
+  border-top: 0; border-right: 1px solid var(--rule); background: color-mix(in srgb, var(--ground) 72%, #000);
+}
+body.lower #tabs { display: flex; flex: 1 1 auto; flex-direction: column; flex-wrap: nowrap; gap: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; }
+body.lower #tabs button {
+  flex: none; text-align: left; min-height: calc(31 * var(--s)); padding: 0 calc(16 * var(--s));
+  font-size: calc(10.5 * var(--s)); letter-spacing: .14em; color: var(--muted); white-space: nowrap;
+  border: 0; border-left: calc(4 * var(--s)) solid transparent; background: none;
+}
+body.lower #tabs button.on { color: var(--ink); background: var(--raised); border-left-color: var(--accent); }
+body.lower #tabs .sep { margin: calc(7 * var(--s)) calc(16 * var(--s)); }
+body.lower #add-game {
+  display: block; flex: none; margin: calc(10 * var(--s)) calc(12 * var(--s)) 0; min-height: calc(46 * var(--s));
+  background: var(--accent); color: var(--ground); font: 500 calc(11.5 * var(--s)) var(--mono); letter-spacing: .16em; text-transform: uppercase;
+}
+body.lower #add-game[hidden] { display: none; }
+body.lower #add-game:active { transform: scale(.97); }
+
+/* How a title is read, in its spine's corner: its script (a tick), OCR with an area (glasses), or
+   OCR still to set up (a question mark). Small, in the theme's own colours. */
+#main.shelf .row { position: relative; }
+.row .mark {
+  position: absolute; top: calc(6 * var(--s)); right: calc(5 * var(--s)); z-index: 2;
+  width: calc(17 * var(--s)); height: calc(17 * var(--s)); border-radius: 50%;
+  display: grid; place-items: center; font: 600 calc(10 * var(--s)) / 1 var(--mono); font-style: normal;
+}
+.row .mark svg { width: 74%; height: 74%; }
+.row .mark.script svg { width: 64%; height: 64%; }
+.row .mark.script { background: color-mix(in srgb, var(--ink) 16%, transparent); color: var(--ink); }
+.row .mark.ocr { background: var(--ink); color: var(--ground); }
+.row .mark.unset { background: var(--accent); color: var(--ground); }
+#main:not(.shelf) .row .mark { display: none; }
+
+
+/* A page of rows with the pages' rail in hand (front.js, setInList): the row is not marked, the
+ * page's tab is. A or left takes the rows. */
+body.rail #main:not(.shelf) .row.on::before { opacity: .25; animation: none; }
+body.rail #main:not(.shelf) .row.on, body.rail #main:not(.shelf) .row.on .no, body.rail #main:not(.shelf) .row.on .side { color: inherit; }

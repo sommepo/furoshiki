@@ -10,7 +10,7 @@
 .popup { border: 1px solid #586e75; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45); }
 .entry + .entry { border-top-color: #073642; }
 .headword { color: #eee8d5; font-weight: 700; font-size: calc(20px * var(--scale)); }
-.headword rt { display: ruby-text; color: #839496; }
+.headword rt { display: revert; color: #839496; }
 .reading { display: none; }
 .reasons { color: #cb4b16; }
 .pitch { color: #6c71c4; }

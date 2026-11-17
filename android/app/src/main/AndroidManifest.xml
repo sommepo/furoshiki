@@ -8,6 +8,8 @@
     <!-- The Steam Controller read over USB by Furoshiki itself (steam/). -->
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
+    <!-- The game takes the controller back after a touch on the second display (GameActivity). -->
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -567,6 +569,15 @@
             android:foregroundServiceType="mediaProjection" />
         <service android:name=".ScanService" android:process=":scan" android:exported="false" />
 
+        <!-- The popup as its settings make it, over the shelf while they are changed on the second
+             display (PopupPreviewActivity); in the settings page's process, to hear its changes. -->
+        <activity
+            android:name=".PopupPreviewActivity"
+            android:process=":game"
+            android:taskAffinity="${applicationId}.preview"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Furoshiki.Preview" />
         <activity
             android:name=".reader.ui.ReaderSettingsActivity"
             android:process=":game"

@@ -100,7 +100,7 @@ abstract class ReaderScreen : AppCompatActivity() {
         layoutParams = LinearLayout.LayoutParams(MATCH, dp(heightDp))
     }
 
-    protected companion object {
+    companion object {
         const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
         const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
     }

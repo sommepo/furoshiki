@@ -205,11 +205,8 @@ function statusWords(status) {
 }
 
 function readStatus() {
-  if (host.homeScreen?.() !== 'on') {
-    state.status = null;
-  } else {
-    try { state.status = JSON.parse(host.status()); } catch (error) { console.error(error); }
-  }
+  // The battery and the network in the head, as the home screen or not.
+  try { state.status = host.status ? JSON.parse(host.status()) : null; } catch (error) { console.error(error); }
   $('status').textContent = statusWords(state.status);
 }
 
@@ -274,12 +271,9 @@ function makePages() {
   // The device's home screen has the device's own pages too.
   if (host.homeScreen?.() === 'on') pages.push(appsPage(), systemPage());
   pages.push(settingsPage());
-  if (host.labels) {
-    // The Developer page names the pages before it, so it is made from them.
-    state.pages = pages;
-    pages.push(developerPage());
-    applyLabels(pages);
-  }
+  // The names given to rows (program/labels.json, the desktop's Developer page) still apply; the
+  // Developer page itself is not on Android (the maintainer, 2026-11-17: "remove developer settings").
+  if (host.labels) applyLabels(pages);
   state.pages = pages;
   if (state.page >= pages.length) state.page = 0;
 }
@@ -337,7 +331,13 @@ function gameRows(games) {
     return 0;
   };
   const sorted = games.slice().sort((a, b) => by(a, b) || shelfName(a).localeCompare(shelfName(b), 'ja'));
+  // How each is read (the maintainer, 2026-11-17): a script (a tick), OCR with an area set
+  // (glasses), or nothing yet (a question mark: OCR to set up).
+  let ocrSet = new Set();
+  try { ocrSet = new Set(JSON.parse(host.ocrSet?.() || '[]')); } catch (e) { /* none */ }
+  const readBy = game => game.script === true ? 'script' : ocrSet.has(String(game.id).toUpperCase()) ? 'ocr' : 'unset';
   return sorted.map(game => ({
+    read: readBy(game),
     // Its English name, as the desktop's shelf sets it; its own name under it where that is another.
     title: shelfName(game),
     about: shelfName(game) !== game.title ? game.title : '',
@@ -683,7 +683,7 @@ function actionKeysText() {
 function ocrRows() {
   if (!host.ocr) return [];
   const ocr = JSON.parse(host.ocr());
-  const using = {service: 'OCR service', device: 'This device'}[ocr.using] || 'None';
+  const using = {service: 'OCR service', device: 'meikiocr', lens: 'Google Lens'}[ocr.using] || 'None';
   const where = ocr.address || ocr.named;
   return [
     {
@@ -837,7 +837,7 @@ function settingsPage() {
     {title: 'Icon', side: host.icon(), about: '', value: host.icon(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
     // The reader's settings, by the pages Furoshiki has on a computer; each shows its few most
     // changed and keeps the rest behind More.
-    open('Reading', 'Text panel, furigana, session info', 'settings:READING'),
+    open('Reading', 'Text panel, furigana, stats in the corner', 'settings:READING'),
     open('Popup', 'Theme, size', 'settings:POPUP'),
     open('Dictionaries', 'Yomitan dictionaries', 'dictionaries'),
     open('Cards', 'Anki, screenshot, audio', 'settings:CARDS'),
@@ -903,7 +903,58 @@ function settingsPage() {
     })),
     {title: 'Scan for games', about: '', go: 'Scan', act() { host.scan(); say('Scanning for games…'); }, id: 'scan'},
   ];
-  return {key: 'settings', tab: 'Settings', head: 'Settings', sub: '', rows: rows.map(row => ({file: '設定', ...row}))};
+  return groupedSettings(rows.map(row => ({file: '設定', ...row})));
+}
+
+/**
+ * The settings by kind rather than one long list (the maintainer, 2026-11-17: "categorised
+ * instead of one big list"): the page lists Search settings and the groups, a group opens its
+ * rows, and its first row or B goes back. A row is put in its group by its id.
+ */
+const SETTING_GROUPS = [
+  {key: 'library', title: 'Library', ids: ['add-title', 'find', 'order', 'all', 'scripts', 'add', 'scan']},
+  {key: 'reading', title: 'Reading', ids: ['settings:READING', 'settings:POPUP', 'dictionaries', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
+  {key: 'cards', title: 'Cards', ids: ['settings:CARDS', 'tracker']},
+  {key: 'controls', title: 'Controls', ids: ['controller', 'action-keys']},
+  {key: 'display', title: 'Display', ids: ['look', 'icon', 'wide', 'crt', 'home']},
+  {key: 'accounts', title: 'Accounts', ids: ['settings:SAVE_SYNC', 'services', 'achievements', 'update']},
+];
+
+function groupedSettings(rows) {
+  const groupOf = row => row.about === 'Game folder' ? 'library'
+    : SETTING_GROUPS.find(group => group.ids.includes(row.id))?.key || (row.id === 'settings' ? '' : 'library');
+  const open = SETTING_GROUPS.find(group => group.key === state.settingsGroup);
+  if (open) {
+    const back = {title: '‹  Settings', id: 'group-back', about: '', go: 'Back', file: '設定', act() { closeSettingsGroup(); }};
+    return {key: 'settings', tab: 'Settings', head: 'Settings  ·  ' + open.title, sub: '',
+      rows: [back, ...rows.filter(row => groupOf(row) === open.key)]};
+  }
+  const top = rows.filter(row => groupOf(row) === '');
+  const groups = SETTING_GROUPS.map(group => {
+    const inside = rows.filter(row => groupOf(row) === group.key);
+    return inside.length ? {
+      title: group.title, id: 'group:' + group.key, file: '設定', go: 'Open',
+      side: String(inside.length), about: inside.map(row => row.title).join(', '),
+      act() { openSettingsGroup(group.key, inside[0]?.id); },
+    } : null;
+  }).filter(Boolean);
+  return {key: 'settings', tab: 'Settings', head: 'Settings', sub: '', rows: [...top, ...groups]};
+}
+
+function openSettingsGroup(key, first) {
+  state.settingsGroup = key;
+  state.chosen.settings = first;
+  setInList(true);
+  state.arriving = true;
+  rebuild();
+}
+
+function closeSettingsGroup() {
+  const was = state.settingsGroup;
+  state.settingsGroup = null;
+  state.chosen.settings = 'group:' + was;
+  state.arriving = true;
+  rebuild();
 }
 
 // ---- Drawing ----
@@ -932,6 +983,12 @@ function showCover(path) {
 /** A picture's address: a file on the device by its path, or one the build carries (covers/…, spines/…). */
 const pictureSource = path => path.startsWith('/') ? 'file://' + path.split('/').map(encodeURIComponent).join('/') : path;
 
+/** Whether a page of rows has its rows in hand (else the pages' rail): body.rail marks the latter. */
+function setInList(on) {
+  state.inList = !!on;
+  if (!LOWER) document.body.classList.toggle('rail', !on && !page()?.shelf);
+}
+
 function chosenIndex() {
   const current = page();
   const id = state.chosen[current.key];
@@ -943,6 +1000,8 @@ function drawFoot() {
   const tabs = $('tabs');
   tabs.textContent = '';
   state.pages.forEach((one, index) => {
+    // The shelves, then a rule, then the pages (Statistics, Consoles, Settings).
+    if (index > 0 && !one.shelf && state.pages[index - 1].shelf) tabs.append(Object.assign(document.createElement('i'), {className: 'sep'}));
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = one.tab;
@@ -1039,6 +1098,15 @@ function rowElement(row, index, on) {
   band.className = 'band';
   if (row.band) band.style.setProperty('--band', row.band);
   item.append(no, name, side, band);
+  if (row.read) {
+    const mark = document.createElement('i');
+    mark.className = 'mark ' + row.read;
+    mark.title = {script: 'Read by its script', ocr: 'Read by OCR', unset: 'Set up OCR to read it'}[row.read];
+    mark.innerHTML = row.read === 'ocr'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="6.5" cy="14" r="3.6"/><circle cx="17.5" cy="14" r="3.6"/><path d="M10.1 14h3.8M2.9 14 4.4 8M21.1 14 19.6 8"/></svg>'
+      : row.read === 'script' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 10 18 19.5 6.5"/></svg>' : '?';
+    item.append(mark);
+  }
   if (row.game) {
     // Japanese stands upright in the text face; Latin letters lie along the spine in the display face.
     name.classList.toggle('latin', !hasJapanese(row.title));
@@ -1223,6 +1291,7 @@ function drawStage() {
 }
 
 function draw() {
+  if (!LOWER) document.body.classList.toggle('rail', !state.inList && !page().shelf);
   drawFoot();
   drawRows();
   drawCard();
@@ -1242,7 +1311,8 @@ function mirror() {
     head: current.shelf ? current.sub : current.head, shelf: !!current.shelf,
     file: $('file').textContent, title: row?.title || '', sub: row?.about || '', value: current.shelf ? '' : row?.value || '',
     figures: row?.figures || [], go: row?.act ? row.go || '' : '', also: row?.also || '', cover: current.shelf ? row?.cover || '' : '',
-    tabs: state.pages.map(one => one.tab), page: state.page, steps: !!row?.step,
+    tabs: state.pages.map(one => one.tab), shelves: state.pages.map(one => !!one.shelf), page: state.page, steps: !!row?.step,
+    add: !!host.addTitle,
     at: chosenIndex(), count: current.rows.length, far: current.shelf ? row?.far ?? -1 : -1,
     // A page of settings: its rows too, each a key for a finger on the second display.
     rows: current.shelf ? null : current.rows.map(one => ({title: one.title || '', value: one.value || ''})),
@@ -1260,7 +1330,16 @@ function rebuild() {
 function goTo(index) {
   const before = state.page;
   state.stage = false;
+  // A page of rows comes with the pages' rail in hand: up and down go on along it (the maintainer,
+  // 2026-11-17: down at Statistics "just moves down through the stats page"). A or left takes the
+  // rows in hand, B gives them back.
+  setInList(false);
   state.page = (index + state.pages.length) % state.pages.length;
+  // Another page: the settings' group it had open is shut.
+  if (state.page !== before && state.settingsGroup) {
+    state.settingsGroup = null;
+    makePages();
+  }
   if (page().shelf) state.lastShelf = page().key;
   state.arriving = state.page !== before;
   document.documentElement.style.setProperty('--dir', index >= before ? '1' : '-1');
@@ -1280,6 +1359,7 @@ function choose(index, tapped) {
     (row.open || row.act)?.();
     return;
   }
+  if (!current.shelf) setInList(true);
   const moved = state.chosen[current.key] !== row.id && index !== chosenIndex();
   document.documentElement.style.setProperty('--dir', index >= chosenIndex() ? '1' : '-1');
   state.chosen[current.key] = row.id;
@@ -1362,6 +1442,12 @@ const Front = {
     if (kind === 'home') { Front.home(); return; }
     if (kind === 'go') page().rows[index]?.act?.();
     else if (kind === 'also') page().rows[index]?.alsoAct?.();
+    else if (kind === 'add') addTitle();
+    else if (kind === 'askalso') {
+      // A long press on the title in hand (the second display): its second key, asked first.
+      const row = page().rows[index];
+      if (row?.alsoAct) pick(row.title, [row.also, 'Cancel'], 1, at => { if (at === 0) row.alsoAct(); });
+    }
     else if (kind === 'tab') goTo(Number(value));
     else if (kind === 'pick') {
       // A row tapped on the second display: in hand, and done if it was in hand already.
@@ -1414,6 +1500,26 @@ const Front = {
       else if (name === 'PageUp' || name === 'PageDown') goTo(state.page + (name === 'PageUp' ? -1 : 1));
       return;
     }
+    if (!current.shelf && !state.inList) {
+      // The rail in hand: along the pages, or into this one's rows.
+      if (name === 'ArrowUp' || name === 'ArrowDown' || name === 'PageUp' || name === 'PageDown') {
+        goTo(state.page + (name === 'ArrowUp' || name === 'PageUp' ? -1 : 1));
+      } else if ((name === 'Enter' || name === 'ArrowLeft') && current.rows.length) {
+        setInList(true);
+      } else if (name === 'Escape' && host.homeScreen?.() === 'on') {
+        Front.home();
+      }
+      return;
+    }
+    if (current.key === 'settings' && state.settingsGroup && name === 'Escape') {
+      // B in a group of settings: back to the groups.
+      closeSettingsGroup();
+      return;
+    }
+    if (!current.shelf && name === 'Escape') {
+      setInList(false);
+      return;
+    }
     const step = current.rows[index]?.step;
     if (step && (name === 'ArrowLeft' || name === 'ArrowRight')) {
       step(name === 'ArrowLeft' ? -1 : 1);
@@ -1428,10 +1534,11 @@ const Front = {
     } else if (name === 'ArrowUp' || name === 'ArrowDown') {
       const next = index + (name === 'ArrowUp' ? -1 : 1);
       if (next >= 0 && next < current.rows.length) choose(next, false);
-    } else if (name === 'ArrowLeft' || name === 'PageUp') {
-      goTo(state.page - 1);
-    } else if (name === 'ArrowRight' || name === 'PageDown') {
-      goTo(state.page + 1);
+    } else if (name === 'PageUp' || name === 'PageDown') {
+      goTo(state.page + (name === 'PageUp' ? -1 : 1));
+    } else if (name === 'ArrowRight' && !current.shelf) {
+      // Back to the pages' rail, which lies to the right.
+      setInList(false);
     } else if (name === 'Enter') {
       const row = current.rows[index];
       (row?.open || row?.act)?.();
@@ -1522,7 +1629,8 @@ const Lower = {
     also.hidden = !shown.also;
     also.textContent = shown.also;
     // Before and after, for a finger: along the shelf, or a setting's value down and up.
-    $('before').hidden = $('after').hidden = shown.count < 2 && !shown.steps;
+    // Only a setting's value down and up: a title is chosen on the first display (or its tabs here).
+    $('before').hidden = $('after').hidden = !shown.steps;
     $('before').dataset.what = shown.steps ? 'step:-1' : 'row:-1';
     $('after').dataset.what = shown.steps ? 'step:1' : 'row:1';
     showCover(shown.cover);
@@ -1547,6 +1655,7 @@ const Lower = {
     const tabs = $('tabs');
     tabs.textContent = '';
     shown.tabs.forEach((label, index) => {
+      if (index > 0 && shown.shelves && !shown.shelves[index] && shown.shelves[index - 1]) tabs.append(Object.assign(document.createElement('i'), {className: 'sep'}));
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = label;
@@ -1554,6 +1663,11 @@ const Lower = {
       button.onclick = () => host.remote('tab:' + index);
       tabs.append(button);
     });
+    tabs.querySelector('.on')?.scrollIntoView({block: 'nearest'});
+    $('add-game').hidden = !shown.add;
+    // Removing a title is kept behind a long press on it, not a key beside Continue.
+    Lower.removeBehindPress = shown.shelf && /remove/i.test(shown.also || '');
+    if (Lower.removeBehindPress) also.hidden = true;
   },
 };
 window.Lower = Lower;
@@ -1574,6 +1688,10 @@ if (LOWER) {
   if (!window.FuroshikiHost) Lower.tell(null, location.hash.includes('away'));
   $('go').onclick = () => host.remote('go');
   $('also').onclick = () => host.remote('also');
+  $('add-game').onclick = () => host.remote('add');
+  let pressed = 0;
+  $('card').addEventListener('pointerdown', () => { pressed = setTimeout(() => { if (Lower.removeBehindPress) host.remote('askalso'); }, 650); });
+  for (const end of ['pointerup', 'pointercancel', 'pointerleave']) $('card').addEventListener(end, () => clearTimeout(pressed));
   for (const id of ['before', 'after']) $(id).onclick = () => host.remote($(id).dataset.what);
   // In a plain browser: something to look at.
   if (!window.FuroshikiHost) {

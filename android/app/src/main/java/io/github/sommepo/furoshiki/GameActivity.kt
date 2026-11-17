@@ -29,6 +29,7 @@ import io.github.sommepo.furoshiki.reader.Routes
 import io.github.sommepo.furoshiki.reader.ReaderSession
 import io.github.sommepo.furoshiki.reader.ReaderSettings
 import java.io.File
+import org.json.JSONArray
 import kotlin.concurrent.thread
 import kotlin.math.abs
 
@@ -61,15 +62,19 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
         path = intent.getStringExtra(EXTRA_PATH).orEmpty()
-        // A game on several discs (Discs): started on the disc it was left on, the others given to it.
-        discPaths = Discs.of(path)
-        if (discPaths.size > 1) {
-            getSharedPreferences("home", MODE_PRIVATE).getString(KEY_DISC + Discs.groupKey(path), null)
-                ?.takeIf { it in discPaths && File(it).isFile }?.let { path = it }
-            discPaths = listOf(path) + discPaths.filter { it != path }
-        }
         gameId = intent.getStringExtra(EXTRA_GAME).orEmpty()
         val key = intent.getStringExtra(EXTRA_CONSOLE).orEmpty()
+        // A game on several discs (its list's entry, ScanService.oneEntryAGame): started on the disc
+        // it was left on, else its first, the others given to it for the menu's "Change disc". A
+        // PSP game always on its first: Grisaia starts from disc 1 only ("set disc 1" from disc 2),
+        // and its core puts disc 2 in as the game asks for it (ppsspp/libretro/libretro.cpp).
+        discPaths = runCatching { ScanService.discsOf(JSONArray(Places.gamesFile(this, key).readText()), path) }
+            .getOrDefault(listOf(path)).filter { File(it).isFile }.ifEmpty { listOf(path) }
+        if (discPaths.size > 1) {
+            path = getSharedPreferences(DISC_PREFS, MODE_PRIVATE).getString(KEY_DISC + Discs.groupKey(path), null)
+                ?.takeIf { it in discPaths && key != FIRST_DISC_ONLY } ?: discPaths[0]
+            discPaths = listOf(path) + discPaths.filter { it != path }
+        }
         HomeScreen.setPlaying(this, path, key, gameId)
         Console.use(key)
         // The controller's buttons as this console has them (the mapping screen's layer, ButtonMap).
@@ -112,6 +117,16 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         // The services this device's home server names (Explain's), where none is known yet.
         if (!Explain.offered(this)) thread(name = "Services") { runCatching { Services.ask(applicationContext) } }
         ReaderGlue.lowerKeys = { context -> lowerKeys(context) }
+        ReaderGlue.lowerCorner = { context -> lowerCorner(context) }
+        // A touch on the second display took the controller there (to Android's launcher under
+        // the keys): the game's task to the front again, a moment after, so its display has them.
+        ReaderGlue.refocus = {
+            window.decorView.postDelayed({
+                if (!leaving && !hasWindowFocus()) runCatching {
+                    getSystemService(android.app.ActivityManager::class.java).moveTaskToFront(taskId, 0)
+                }
+            }, 250)
+        }
         ReaderGlue.attach(this, surface)
         ReaderGlue.setAppControls { x, y ->
             (menuButton.visibility == android.view.View.VISIBLE &&
@@ -191,7 +206,10 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         if (!started || discPaths.size < 2) return
         val now = GameNative.discCurrent()
         val disc = discPaths.getOrNull(now) ?: return
-        getSharedPreferences("home", MODE_PRIVATE).edit().putString(KEY_DISC + Discs.groupKey(disc), disc).apply()
+        // Written now, in a file of the game's process alone: the process is ended as the game is
+        // quit (an apply() never reached the disk), and the home page's process keeps "home" in
+        // memory and writes it back whole.
+        getSharedPreferences(DISC_PREFS, MODE_PRIVATE).edit().putString(KEY_DISC + Discs.groupKey(disc), disc).commit()
     }
 
     /**
@@ -268,6 +286,9 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     /** The game stands still behind a menu, while the app is not in front, and while it is held for reading. */
     private fun applyPause() {
         if (coreReady) GameNative.pause(!resumedNow || inMenu || held)
+        // Behind the game's menu the core no longer says it is in its game: the second display
+        // stays all the same (the maintainer, 2026-11-17: the menu "should not disappear the bottom screen").
+        ReaderGlue.held = held || inMenu
     }
 
     /** Held still by the second display's key, with the reader going on: for looking words up at leisure. */
@@ -293,6 +314,49 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         return LowerKeys.view(context, keyList())
     }
 
+    /**
+     * On a console of two screens (the DS, the 3DS) the second display is the game's lower screen,
+     * so the keys can't take a strip of their own there: the reader's icon sits in its upper right
+     * corner and brings them down over the screen's top; HIDE puts them away (the maintainer,
+     * 2026-11-17: "i want the reader icon on the bottom screen bottom corner"). Taps elsewhere are
+     * the game's.
+     */
+    private fun lowerCorner(context: android.content.Context): android.view.View {
+        val density = context.resources.displayMetrics.density
+        val layer = FrameLayout(context)
+        val icon = android.widget.ImageView(context).apply {
+            setImageResource(R.drawable.ic_reader_open_book)
+            imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            val pad = (9 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            alpha = .6f
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(0x88000000.toInt())
+            }
+            contentDescription = getString(R.string.drawer_show)
+        }
+        lateinit var keys: android.view.View
+        // Shown and put away at once: on the second display a closing slide was left standing (seen).
+        fun show(open: Boolean) {
+            keys.visibility = if (open) android.view.View.VISIBLE else android.view.View.GONE
+            icon.visibility = if (open) android.view.View.GONE else android.view.View.VISIBLE
+            layer.invalidate()
+        }
+        keys = LowerKeys.view(context, keyList() + LowerKeys.Key(getString(R.string.drawer_hide)) { show(false) })
+        keys.visibility = android.view.View.GONE
+        icon.setOnClickListener { show(true) }
+        // Along the top, where they leave the reader's line at the foot in sight (the maintainer: "the
+        // line is hidden by the bar"); the icon in the top corner, in the band above the picture.
+        layer.addView(keys, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP))
+        val side = (36 * density).toInt()
+        layer.addView(icon, FrameLayout.LayoutParams(side, side, android.view.Gravity.TOP or android.view.Gravity.END).apply {
+            val margin = (4 * density).toInt()
+            setMargins(margin, margin, margin, margin)
+        })
+        return layer
+    }
+
     /** The keys, as the second display has them along its foot and one display in its drawer. */
     private fun keyList(): List<LowerKeys.Key> {
         val settings = ReaderSettings(this)
@@ -300,7 +364,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             listOfNotNull(
                 LowerKeys.Key(getString(R.string.lower_key_pause), { held }) { act("pause") },
                 LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }) { act("stats") },
-                LowerKeys.Key(getString(R.string.lower_key_card)) { act("card") },
                 LowerKeys.Key(getString(R.string.lower_key_log)) { act("log") },
                 // The line shown always (on), or only where the game's own text can't be pointed at:
                 // the second display then the trackpad alone.
@@ -310,7 +373,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 LowerKeys.Key(getString(R.string.lower_key_explain)) { act("explain") }.takeIf { Explain.offered(this) },
                 LowerKeys.Key(getString(R.string.lower_key_read)) { act("ocr_now") }.takeIf { ocr?.active == true },
                 LowerKeys.Key(getString(R.string.lower_key_guide), { guide?.shown == true }) { act("guide") }.takeIf { guide?.offered() == true },
-                LowerKeys.Key(getString(R.string.lower_key_done)) { act("guide_done") }.takeIf { guide?.offered() == true },
                 LowerKeys.Key(getString(R.string.lower_key_menu)) { act("menu") },
             )
         )
@@ -455,23 +517,21 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         applyPause()
         // Eden has no savestates.
         val states = Console.KEY != "switch"
-        val discs = if (GameNative.features() and 2 != 0) GameNative.discCount() else 0
+        // Not here by the maintainer's word (2026-11-17, from the Thor): cheat codes, changing the
+        // disc, the OCR text area and hiding the second display's keys.
         val items = listOfNotNull(
             getString(R.string.game_menu_resume) to {},
             getString(R.string.game_menu_reader) to { ReaderGlue.showMenu() },
             (getString(R.string.game_menu_explain) to { explain() }).takeIf { Explain.offered(this) },
             (getString(R.string.game_menu_ocr_now) to { ocr?.readNow() }).takeIf { ocr?.active == true },
-            getString(R.string.game_menu_ocr_setup) to { setUpOcr() },
             (getString(R.string.game_menu_save) to { pickState(save = true) }).takeIf { states },
             (getString(R.string.game_menu_load) to { pickState(save = false) }).takeIf { states },
-            (getString(R.string.game_menu_disc) to { pickDisc(discs) }).takeIf { discs > 1 },
             getString(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) to { setFast(!fast) },
             (getString(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice) to {
                 NextChoice.toggle()
             }).takeIf { Console.HAS_NEXT_CHOICE },
             (getString(R.string.game_menu_routes) to { Routes.show(this) }).takeIf { Routes.offer() != null },
             (getString(R.string.game_menu_patches) to { pickPatches() }).takeIf { GameNative.features() and 32 != 0 },
-            (getString(R.string.game_menu_codes) to { typeCodes() }).takeIf { GameNative.features() and 64 != 0 },
             (getString(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide) to {
                 guide?.toggle()
             }).takeIf { guide?.offered() == true },
@@ -482,10 +542,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                     inMenu = false
                     applyPause()
                 }
-            },
-            getString(if (LowerKeys.wanted(this)) R.string.game_menu_lower_keys_off else R.string.game_menu_lower_keys_on) to {
-                LowerKeys.want(this, !LowerKeys.wanted(this))
-                Toast.makeText(this, R.string.game_menu_lower_keys_next, Toast.LENGTH_SHORT).show()
             },
             getString(R.string.game_menu_home) to { leave() },
         )
@@ -726,6 +782,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     private fun leave() {
         if (leaving) return
         leaving = true
+        keepDisc() // while the core still says which disc is in: it is stopped below, before onPause
         guide?.hide()
         ocr?.stop()
         var gone = false
@@ -867,6 +924,8 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // An open popup is modal: its buttons (and Back, which closes it) before anything else.
+        if (io.github.sommepo.furoshiki.reader.ui.PopupKeys.isOpen && ReaderGlue.onKey(event)) return true
         if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
             event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
         ) {
@@ -957,6 +1016,9 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
         private const val KEY_PAD_MAP = "pad_map"
         private const val KEY_DISC = "disc:"
+        private const val DISC_PREFS = "discs"
+        /** The console whose games always start on their first disc (above). */
+        private const val FIRST_DISC_ONLY = "psp"
 
         /**
          * The old "Buttons" dialog of the game's menu kept one map for every console ("home",

@@ -35,6 +35,8 @@ class LowerActivity : Activity() {
         super.onCreate(state)
         view = WebView(this)
         view.setBackgroundColor(android.graphics.Color.BLACK)
+        // No grey veil once a key is pressed (Android's default focus highlight): HomeActivity.
+        view.defaultFocusHighlightEnabled = false
         view.settings.javaScriptEnabled = true
         view.settings.allowFileAccess = true
         view.isVerticalScrollBarEnabled = false
@@ -110,6 +112,15 @@ class LowerActivity : Activity() {
     // A key that comes here after all goes where it would have gone.
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         HomeActivity.front?.dispatchKeyEvent(event) ?: super.dispatchKeyEvent(event)
+
+    // The sticks, the triggers and a d-pad that is a hat come as motion, not keys: they go to the
+    // shelf too, so that a touch here never leaves the controller working only this display (the
+    // maintainer, 2026-11-17: "i need the menu experience to be one entire thing").
+    override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean {
+        val joystick = event.source and android.view.InputDevice.SOURCE_CLASS_JOYSTICK != 0
+        return (if (joystick) HomeActivity.front?.dispatchGenericMotionEvent(event) else null)
+            ?: super.dispatchGenericMotionEvent(event)
+    }
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() = Unit

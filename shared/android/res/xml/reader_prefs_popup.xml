@@ -7,7 +7,7 @@
 
     <ListPreference
         app:key="reader_popup_theme"
-        app:defaultValue="console"
+        app:defaultValue="auto"
         app:entries="@array/reader_popup_theme_entries"
         app:entryValues="@array/reader_popup_theme_values"
         app:title="@string/reader_pref_popup_theme"

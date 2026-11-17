@@ -69,6 +69,10 @@ Screen AI, which all read on your computer, or Google Lens, which sends each tex
 A game can have several text boxes, read together as one line, and boxes that are read only when
 you press Ctrl+Shift+R (a menu, a status screen).
 
+On Android, OCR runs on the device with meikiocr (the default, nothing sent anywhere), or with
+Google Lens, the best reading of the three, which sends each text area to Google. The engine is
+chosen in Settings, *OCR engine*.
+
 ## Layout
 
 
@@ -102,8 +106,7 @@ you press Ctrl+Shift+R (a menu, a status screen).
 ## On Android
 
 Tap a word in the game's text to look it up. On-screen buttons and a stick where the device has none, and a menu
-over the game with savestate slots, disc change, fast forward, skip to the next choice, patches
-and cheat codes. A game can be pinned to the home screen. On a handheld with two displays the
+over the game with savestate slots, fast forward, skip to the next choice and patches. A game can be pinned to the home screen. On a handheld with two displays the
 second one is a trackpad, or a 3/DS game's lower screen.
 
 On the **AYN Thor**, Furoshiki can be the home screen of both displays: the shelf above, and below

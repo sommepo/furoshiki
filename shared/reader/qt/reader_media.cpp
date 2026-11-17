@@ -735,7 +735,7 @@ void Miner::Forget() {
 
 void Miner::Mine(const PresentedLine& presented, const std::optional<LookupResult>& word,
                  int first, int last, AudioQuestion question,
-                 std::function<void(const Outcome&)> callback) {
+                 std::function<void(const Outcome&)> callback, std::optional<bool> audio_chosen) {
     const Setup setup = Snapshot();
     if (!setup.problem.isEmpty()) {
         callback(Failed(setup.problem));
@@ -751,9 +751,10 @@ void Miner::Mine(const PresentedLine& presented, const std::optional<LookupResul
     const bool is_current = session.Current() && session.Current()->backlog_id == id;
     const QStringList templates = setup.templates.values();
     using CardAudio = ReaderApp::ReaderSettings::CardAudio;
-    const CardAudio audio = session.Settings().CardAudioFor(
-        session.GameKey(),
-        ReaderApp::ReaderSettings::CardAudioOfValue(Games::AudioOf(session.GameKey())));
+    const CardAudio audio = audio_chosen ? (*audio_chosen ? CardAudio::Always : CardAudio::Never)
+                                       : session.Settings().CardAudioFor(
+                                             session.GameKey(),
+                                             ReaderApp::ReaderSettings::CardAudioOfValue(Games::AudioOf(session.GameKey())));
     const bool wants_picture = ReaderApp::CardBuilder::NeedsScreenshot(templates) && media;
     const bool wants_audio = audio != CardAudio::Never &&
                              ReaderApp::CardBuilder::NeedsAudio(templates) && media &&

@@ -79,8 +79,9 @@ QList<PlaySetting> Settings(const QString& folder) {
     theme.key = QStringLiteral("popup.theme");
     theme.label = QStringLiteral("Popup theme");
     theme.kind = PlaySetting::Choice;
-    theme.default_value = QStringLiteral("console");
-    theme.choices = {QStringLiteral("console")};
+    // "auto" (since 2026-11-17): the look of the shelf's theme (ReaderSettings::PopupThemeOfShelf).
+    theme.default_value = QStringLiteral("auto");
+    theme.choices = {QStringLiteral("auto"), QStringLiteral("console")};
     theme.choices += ReaderApp::ReaderSettings::PopupThemes();
     theme.choices.append(QStringLiteral("classic"));
     PlaySetting mark;
@@ -150,7 +151,8 @@ std::optional<QString> Layered(const PlaySettings& play, const QString& folder, 
         // What the page draws over the look: the design's own stylesheet where it is made over the
         // look in use there, else nothing (the user's CSS of before is no longer drawn: designs
         // took its place, 2026-11-10). Never the reader's own setting: a design is the program's.
-        const QString theme = play.Value(SettingOf(folder, QStringLiteral("popup.theme")), console, game).value;
+        const QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(
+            play.Value(SettingOf(folder, QStringLiteral("popup.theme")), console, game).value);
         const auto chosen = PopupDesign::Load(folder, resolved.value);
         return chosen && chosen->base == theme ? PopupDesign::Css(*chosen) : QString();
     }

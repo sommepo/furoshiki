@@ -1254,7 +1254,8 @@ void ReaderSettingsDialog(QWidget* parent) {
     QSpinBox* scale_box = spin(look, Tr("Popup text size"), Settings::KeyPopupScale, settings.PopupScale(), 60, 200,
          QStringLiteral(" %"));
     QComboBox* theme_box = choice(look, Tr("Popup theme"), Settings::KeyPopupTheme,
-           {{Tr("Console colours"), QStringLiteral("console")},
+           {{Tr("Match home theme"), QStringLiteral("auto")},
+            {Tr("Console colours"), QStringLiteral("console")},
             {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
             {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
             {Tr("Paper"), QStringLiteral("paper")},
@@ -1269,7 +1270,12 @@ void ReaderSettingsDialog(QWidget* parent) {
             {Tr("Kumihan"), QStringLiteral("kumihan")},
             {Tr("Kon (indigo)"), QStringLiteral("kon")},
             {Tr("Classic"), QStringLiteral("classic")}},
-           settings.PopupTheme());
+           // "auto" (the default) stays itself here: the look of Furoshiki's shelf theme.
+           [&settings] {
+               const QString chosen = settings.Value(Settings::KeyPopupTheme).toString();
+               return chosen.isEmpty() || ReaderApp::ReaderSettings::ResolvePopupTheme(chosen) != chosen
+                          ? QStringLiteral("auto") : chosen;
+           }());
     QSpinBox* opacity_box = spin(look, Tr("Popup opacity"), Settings::KeyPopupOpacity, settings.PopupOpacity(), 0, 100,
          Tr(" % (0: default)"));
     QSpinBox* radius_box = spin(look, Tr("Corner radius"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
@@ -1318,7 +1324,7 @@ void ReaderSettingsDialog(QWidget* parent) {
             return QString::fromUtf8(QJsonDocument(QJsonArray{text}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
         };
         const auto show = [=, &settings] {
-            QString theme = theme_box->currentData().toString();
+            QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(theme_box->currentData().toString());
             if (theme == QStringLiteral("classic")) {
                 theme = QStringLiteral("console");
             }

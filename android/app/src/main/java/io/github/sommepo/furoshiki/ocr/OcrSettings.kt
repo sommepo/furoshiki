@@ -13,7 +13,10 @@ enum class OcrEngine(val id: String) {
     SERVICE("service"),
 
     /** meikiocr on this device ([MeikiOcr]), with nothing sent anywhere. */
-    DEVICE("device");
+    DEVICE("device"),
+
+    /** Google Lens ([GoogleLens]), asked from this device: each text area read is sent to Google. */
+    LENS("lens");
 
     companion object {
         fun of(id: String): OcrEngine? = values().firstOrNull { it.id == id }
@@ -63,6 +66,7 @@ data class OcrSettings(val engine: String = "", val address: String = "", val to
         fun choose(chosen: String, dev: Boolean, serviceKnown: Boolean, deviceAvailable: Boolean): OcrEngine? {
             val wanted = OcrEngine.of(chosen) ?: if (dev && serviceKnown) OcrEngine.SERVICE else OcrEngine.DEVICE
             return when {
+                wanted == OcrEngine.LENS -> OcrEngine.LENS
                 wanted == OcrEngine.SERVICE && serviceKnown -> OcrEngine.SERVICE
                 wanted == OcrEngine.DEVICE && deviceAvailable -> OcrEngine.DEVICE
                 deviceAvailable -> OcrEngine.DEVICE

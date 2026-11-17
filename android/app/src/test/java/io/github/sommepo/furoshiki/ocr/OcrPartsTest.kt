@@ -192,6 +192,9 @@ class OcrPartsTest {
         assertEquals(OcrEngine.DEVICE, choose("service", false, false, true))
         assertEquals(OcrEngine.SERVICE, choose("device", false, true, false))
         assertEquals(OcrEngine.SERVICE, choose("", false, true, false))
+        // Google Lens, chosen, is asked from the device whatever else there is.
+        assertEquals(OcrEngine.LENS, choose("lens", false, false, false))
+        assertEquals(OcrEngine.LENS, choose("lens", true, true, true))
         assertNull(choose("", true, false, false))
     }
 
@@ -244,6 +247,17 @@ class OcrPartsTest {
         )
         assertEquals(listOf("一行目です", "ふたつめ"), upright.lines.map { it.text })
         assertEquals(OcrRead(emptyList()).text, OcrText.clean(emptyList(), 10, 10).text)
+        // A game's mark just past the end of a row, read as a line of its own between the rows, is
+        // left out; the last row's own tail too (Paranormasight's hand: っ, のこ).
+        val marked = OcrText.clean(
+            listOf(
+                line("お待ちしておりました。", 20, 100, 20),
+                line("っ", 245, 112, 18),
+                line("よくぞお越しくださいました。のこ", 20, 130, 20),
+            ),
+            600, 200
+        )
+        assertEquals("お待ちしておりました。よくぞお越しくださいました。", marked.text)
     }
 
     @Test
@@ -253,5 +267,57 @@ class OcrPartsTest {
         assertTrue(OcrText.sourceId("x").startsWith("ocr:"))
         assertTrue(OcrText.hasJapanese("abc。あ"))
         assertFalse(OcrText.hasJapanese("12:00 HP"))
+    }
+
+    @Test
+    fun strayAfterASentenceIsDropped() {
+        fun kept(text: String): String {
+            var glyphs = text.map { it.toString() }
+            while (OcrText.strayAfterEnd(glyphs)) glyphs = glyphs.dropLast(1)
+            return glyphs.joinToString("")
+        }
+        org.junit.Assert.assertEquals("お聞きくださいませ。", kept("お聞きくださいませ。4"))
+        org.junit.Assert.assertEquals("ございます。", kept("ございます。。、"))
+        org.junit.Assert.assertEquals("「はい」", kept("「はい」1"))
+        org.junit.Assert.assertEquals("ＦＩＬＥ38", kept("ＦＩＬＥ38"))
+        org.junit.Assert.assertEquals("第3話", kept("第3話"))
+        org.junit.Assert.assertEquals("ませ。", kept("ませ。・"))
+        org.junit.Assert.assertEquals("ませ。", kept("ませ。ー"))
+        org.junit.Assert.assertEquals("「はい。」", kept("「はい。」"))
+        org.junit.Assert.assertEquals("本当？！", kept("本当？！"))
+        org.junit.Assert.assertTrue(OcrText.sameText("……お待ちしておりました。っよくぞお越しくださいました。", "……お待ちしておりました。つよくぞお越しくださいました。"))
+        org.junit.Assert.assertTrue(OcrText.sameText("……お待ちしておりました。よくぞお越しくださいました。", "……お待ちしておりました。つよくぞお越しくださいました。"))
+        org.junit.Assert.assertFalse(OcrText.sameText("はい。", "いいえ。"))
+        org.junit.Assert.assertFalse(OcrText.sameText("まず こちらのゲームですが", "まず こちらのゲームですがオートセーブに対応しております。"))
+        fun last(text: String) = text.map { it.toString() }.let { it.dropLast(OcrText.afterLastEnd(it)) }.joinToString("")
+        org.junit.Assert.assertEquals("ました。", last("ました。のこ"))
+        org.junit.Assert.assertEquals("ました。", last("ました。・人"))
+        org.junit.Assert.assertEquals("「はい。」", last("「はい。」"))
+        org.junit.Assert.assertEquals("それは", last("それは"))
+        org.junit.Assert.assertEquals("はい。それで、彼は", last("はい。それで、彼は"))
+    }
+
+    @Test
+    fun googleLensAnswerRead() {
+        val w = GoogleLens.Proto
+        fun word(text: String, cx: Float, width: Float) = GoogleLens.Proto.Writer().string(2, text).string(3, " ")
+            .message(4, GoogleLens.Proto.Writer().message(1, GoogleLens.Proto.Writer().float(1, cx).float(2, 0.5f).float(3, width).float(4, 0.4f)))
+        val line = GoogleLens.Proto.Writer().message(1, word("お待ち", 0.2f, 0.3f)).message(1, word("しました。", 0.6f, 0.5f))
+        val answer = GoogleLens.Proto.Writer().message(2, GoogleLens.Proto.Writer().message(3, GoogleLens.Proto.Writer().message(1,
+            GoogleLens.Proto.Writer().message(1, GoogleLens.Proto.Writer().message(2, line))))).toByteArray()
+        val lines = GoogleLens.lines(answer, 1000, 100)
+        assertEquals(1, lines.size)
+        assertEquals("お待ちしました。", lines[0].text)
+        assertEquals(8, lines[0].glyphs.size)
+        // The first word, 300 pixels wide from 50, shared among its three characters.
+        assertEquals(50, lines[0].glyphs[0].left)
+        assertEquals(150, lines[0].glyphs[1].left)
+        assertEquals(30, lines[0].glyphs[0].top)
+        assertEquals("お待ちしました。", OcrText.clean(lines, 1000, 100, "glens").text)
+        // The request carries the picture and its size where Lens looks for them.
+        val request = GoogleLens.request(byteArrayOf(1, 2, 3), 640, 120)
+        val image = w.message(w.message(request, 1)!!, 3)!!
+        assertEquals(listOf<Byte>(1, 2, 3), w.message(w.message(image, 1)!!, 1)!!.toList())
+        assertEquals(640L, w.varint(w.message(image, 3)!!, 1))
     }
 }

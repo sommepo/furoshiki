@@ -20,7 +20,7 @@
 .entry + .entry { border-top: 1px solid var(--rule); padding-top: calc(10px * var(--scale)); }
 .head { gap: 0 0.9em; align-items: baseline; }
 .headword { font-size: calc(26px * var(--scale)); font-weight: 500; letter-spacing: 0.02em; line-height: 1.7; }
-.headword rt { display: ruby-text; font-size: 0.4em; color: var(--dim); letter-spacing: 0.12em; }
+.headword rt { display: revert; font-size: 0.4em; color: var(--dim); letter-spacing: 0.12em; }
 .reading { display: none; }
 .reasons, .pitch, .lookups, .tag, .dictionary-name, .romaji, .more {
   font-size: calc(10px * var(--scale)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim);

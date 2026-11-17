@@ -74,6 +74,7 @@
     <!-- Lookup -->
     <string name="reader_lookup_close">Close</string>
     <string name="reader_lookup_add">Add to Anki</string>
+    <string name="reader_lookup_add_audio">Add to Anki with audio</string>
     <string name="reader_lookup_in_deck">View in Anki</string>
     <string name="reader_lookup_no_dictionaries">No dictionaries installed</string>
     <string name="reader_lookup_open_dictionaries">Open dictionaries</string>
@@ -140,6 +141,13 @@
     <string name="reader_dict_imported">%1$s: %2$d terms, %3$d frequency or pitch entries</string>
     <string name="reader_dict_failed">Import failed: %1$s</string>
     <string name="reader_dict_delete">Delete</string>
+    <!-- A dictionary's kind: which tab of the popup its entries are in (DictionaryKinds). -->
+    <string name="reader_dict_kind">Show in popup tab</string>
+    <string name="reader_dict_kind_auto">Automatic (%1$s)</string>
+    <string name="reader_dict_kind_word">Words</string>
+    <string name="reader_dict_kind_grammar">Grammar</string>
+    <string name="reader_dict_kind_kanji">Kanji</string>
+    <string name="reader_dict_kind_name">Names</string>
     <string name="reader_dict_delete_confirm">Delete “%1$s”?</string>
     <string name="reader_dict_move_up">Move up</string>
     <string name="reader_dict_move_down">Move down</string>
@@ -240,8 +248,8 @@
     <string name="reader_pref_stats_paused">Pause statistics</string>
     <string name="reader_pref_stats_paused_summary"></string>
     <string name="reader_pref_idle_minutes">Idle timeout (minutes)</string>
-    <string name="reader_pref_session_hud">Session info</string>
-    <string name="reader_pref_session_hud_summary"></string>
+    <string name="reader_pref_session_hud">Stats in the corner</string>
+    <string name="reader_pref_session_hud_summary">Characters, speed and time over the game</string>
     <string name="reader_pref_stats_style">Session info style</string>
     <string-array name="reader_stats_style_entries">
         <item>Paper</item>
@@ -330,6 +338,7 @@
     <string name="reader_pref_word_mark">Highlight looked-up word</string>
     <string name="reader_pref_popup_theme">Popup theme</string>
     <string-array name="reader_popup_theme_entries">
+        <item>Match home theme</item>
         <item>Console colours</item>
         <item>Furoshiki glass</item>
         <item>Yomitan dark</item>
@@ -341,12 +350,12 @@
         <item>Dense</item>
         <item>Kuro</item>
         <item>Shoin</item>
-        <item>Ookii (large text)</item>
         <item>Kumihan</item>
         <item>Kon</item>
         <item>Classic</item>
     </string-array>
     <string-array name="reader_popup_theme_values" translatable="false">
+        <item>auto</item>
         <item>console</item>
         <item>furoshiki</item>
         <item>yomitan-dark</item>
@@ -358,7 +367,6 @@
         <item>dense</item>
         <item>kuro</item>
         <item>shoin</item>
-        <item>ookii</item>
         <item>kumihan</item>
         <item>kon</item>
         <item>classic</item>

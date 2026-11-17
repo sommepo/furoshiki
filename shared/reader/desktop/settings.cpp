@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <QJsonDocument>
 #include <QRegularExpression>
 #include <QRandomGenerator>
 #include <QSettings>
@@ -25,6 +26,7 @@ const QString ReaderSettings::KeyPopupHideOnExit = QStringLiteral("reader_popup_
 const QString ReaderSettings::KeyPopupMarkUnknown = QStringLiteral("reader_popup_mark_unknown");
 const QString ReaderSettings::KeyPopupLookups = QStringLiteral("reader_popup_lookups");
 const QString ReaderSettings::KeyPopupTheme = QStringLiteral("reader_popup_theme");
+const QString ReaderSettings::KeyDictionaryKinds = QStringLiteral("reader_dictionary_kinds");
 const QString ReaderSettings::KeyPopupCss = QStringLiteral("reader_popup_css");
 const QString ReaderSettings::KeyPopupOpacity = QStringLiteral("reader_popup_opacity");
 const QString ReaderSettings::KeyPopupRadius = QStringLiteral("reader_popup_radius");
@@ -246,8 +248,19 @@ QString ReaderSettings::PopupCss() const {
     return String(KeyPopupCss, {});
 }
 QString ReaderSettings::PopupTheme() const {
-    const QString value = String(KeyPopupTheme, QStringLiteral("console"));
-    return value == QStringLiteral("classic") || PopupThemes().contains(value) ? value : QStringLiteral("console");
+    return ResolvePopupTheme(String(KeyPopupTheme, QStringLiteral("auto")));
+}
+QHash<QString, QString> ReaderSettings::DictionaryKinds() const {
+    static const QStringList known{QStringLiteral("word"), QStringLiteral("grammar"), QStringLiteral("kanji"),
+                                   QStringLiteral("name")};
+    QHash<QString, QString> out;
+    const QJsonObject kinds = QJsonDocument::fromJson(String(KeyDictionaryKinds, {}).toUtf8()).object();
+    for (auto it = kinds.begin(); it != kinds.end(); ++it) {
+        if (known.contains(it.value().toString())) {
+            out.insert(it.key(), it.value().toString());
+        }
+    }
+    return out;
 }
 int ReaderSettings::PopupOpacity() const {
     const int value = Int(KeyPopupOpacity, 90, 0, 100); // 90 by default since 2026-11-15

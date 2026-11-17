@@ -136,8 +136,20 @@ class CompanionActivity : Activity() {
         root.addView(keys, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         setContentView(root)
 
-        // Over the game, the capture holds Furoshiki's own layer: nothing is looked at while it draws.
-        ocr = OcrSource(this, frames, gameId) { frames.capturing && !setting && !ended && above?.drawsOverGame != true }
+        // Over the game, the capture holds Furoshiki's own layer: what it draws (the popup, the word's
+        // mark, the cursor) is left out of the look, so the game moving on is seen with the popup
+        // open; the popup then closes, and the new line is read once nothing lies over it (the
+        // maintainer, 2026-11-17, Paranormasight: the popup stayed over the next line).
+        ocr = OcrSource(this, frames, gameId) { frames.capturing && !setting && !ended }.also { source ->
+            source.drawn = {
+                val layer = above
+                val width = layer?.width ?: 0
+                val height = layer?.height ?: 0
+                if (layer == null || width <= 0 || height <= 0) emptyList()
+                else layer.drawnAreas().map { android.graphics.RectF(it.left / width, it.top / height, it.right / width, it.bottom / height) }
+            }
+            source.onChanged = { if (above?.popupOpen == true) ReaderSession.dispatch(ReaderSession.Command.CLOSE_POPUP) }
+        }
         frames.onChanged = { capturing ->
             showKeys()
             say()
@@ -146,7 +158,10 @@ class CompanionActivity : Activity() {
                 if (!launched) startGame()
             }
         }
-        over = oneScreen || getSharedPreferences("game", MODE_PRIVATE).getBoolean(KEY_OVER, true)
+        val saved = getSharedPreferences("game", MODE_PRIVATE)
+        over = oneScreen || saved.getBoolean(KEY_OVER, true)
+        // The line below by itself (it was the way that was not over the game, before 2026-11-17).
+        line = !oneScreen && saved.getBoolean(KEY_LINE, !over)
         applyWay()
         say()
         showKeys()
@@ -170,15 +185,27 @@ class CompanionActivity : Activity() {
 
     private var over = false
 
+    /**
+     * The line read, large on this display, a tap on a word looking it up here: a switch of its own
+     * beside *Over game* (the maintainer, 2026-11-17: "the text on bottom should be a separate
+     * toggle"; one key had cycled through the line, the layer and nothing). With both off, OCR
+     * still counts what is read.
+     */
+    private var line = false
+
+    /** One of the reader's own screens (the backlog...) opened here: the game is given the keys back after. */
+    private var ownScreen = false
+
     /** Builds this display's overlay, and the main display's layer when reading over the game. */
     private fun applyWay() {
         if (over && !android.provider.Settings.canDrawOverlays(this)) over = false
+        closeBacklog()
         stage.removeAllViews()
         removeAbove()
-        // Over the game: no second screen holds the panel, the main display's layer does (and
-        // hides it while the text read has its places); this one is the trackpad alone. With one
-        // display this page, when it is in front, shows the line as the second display would.
-        val host = ReaderHost(this, { !over })
+        // The line on this display when its switch is on; else the main display's layer holds the
+        // panel (and hides it while the text read has its places), this one the trackpad alone. With
+        // one display this page, when it is in front, shows the line as the second display would.
+        val host = ReaderHost(this, { line }, onLeaving = { ownScreen = true }, backlog = { showBacklog(true) })
         stage.addView(
             ReaderOverlay(this, if (oneScreen) ReaderHost(this, { true }) else host, secondary = true),
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -336,6 +363,76 @@ class CompanionActivity : Activity() {
         showKeys()
     }
 
+    // ---- The backlog, in this window ----
+
+    private var backlog: android.view.View? = null
+    private var backlogView: io.github.sommepo.furoshiki.reader.ui.BacklogView? = null
+
+    /**
+     * The backlog over this display's trackpad, in this window: a screen of its own on the second
+     * display would take the keys from the game (GameNative pauses then, and the keys were left
+     * with no window: "isn't responding"; seen 2026-11-17). *Close* or LOG again puts it away.
+     */
+    private fun showBacklog(shown: Boolean) {
+        if (!shown) {
+            closeBacklog()
+            showKeys()
+            return
+        }
+        if (backlog != null) return
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+        val view = io.github.sommepo.furoshiki.reader.ui.BacklogView(themed, gameId, searchable = false) {}
+        val density = resources.displayMetrics.density
+        val sheet = LinearLayout(themed).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSurface, Color.BLACK))
+            isClickable = true
+        }
+        val close = TextView(themed).apply {
+            text = getString(R.string.companion_backlog_close).uppercase()
+            setTextColor(0xFFECE5D3.toInt())
+            typeface = Typeface.MONOSPACE
+            letterSpacing = .12f
+            gravity = Gravity.CENTER
+            val pad = (12 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            setOnClickListener { showBacklog(false) }
+        }
+        sheet.addView(close, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        sheet.addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        stage.addView(sheet, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        backlog = sheet
+        backlogView = view
+        showKeys()
+    }
+
+    private fun closeBacklog() {
+        backlogView?.release()
+        backlogView = null
+        backlog?.let { stage.removeView(it) }
+        backlog = null
+    }
+
+    /** The *Line* key: the line read on this display, or not. */
+    private fun toggleLine() {
+        line = !line
+        getSharedPreferences("game", MODE_PRIVATE).edit().putBoolean(KEY_LINE, line).apply()
+        applyWay()
+        showKeys()
+    }
+
+    /**
+     * Once the game plays, this display never takes the controller from it: its window is not
+     * focusable, so a tap here (the trackpad, a key) leaves the keys and the window's focus with the
+     * game. Before, a tap took them, the game (GameNative) paused as it lost the focus, and the next
+     * button brought it back by starting its app again (the maintainer, 2026-11-17: "pressing a
+     * seems to pause the game on top after tapping the bottom").
+     */
+    private fun leaveFocusToGame() {
+        if (oneScreen) return
+        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+    }
+
     override fun onStart() {
         super.onStart()
         ReaderSession.setReading(true)
@@ -358,6 +455,15 @@ class CompanionActivity : Activity() {
     override fun onResume() {
         super.onResume()
         ocr?.reload()
+        if (launched && !oneScreen) {
+            leaveFocusToGame()
+            // Back from the settings or the statistics, which took the keys: the game is given them
+            // back (the backlog is shown here, in this window, so as not to take them at all).
+            if (ownScreen) {
+                ownScreen = false
+                frontGame()
+            }
+        }
         if (waitingForLayer && android.provider.Settings.canDrawOverlays(this)) {
             // One display, back from Android's page with the layer allowed: now the capture.
             waitingForLayer = false
@@ -387,6 +493,7 @@ class CompanionActivity : Activity() {
         removeAbove()
         HoverCursor.armed = armedBefore
         ScreenTextLayer.geometryOf = geometryBefore
+        closeBacklog()
         HoverCursor.refresh()
         ocr?.stop()
         ScreenCapture.stop(this)
@@ -415,9 +522,40 @@ class CompanionActivity : Activity() {
         }
     }
 
+    /**
+     * A touch on this display took the controller from the game (Android gives the keys to the
+     * display touched last), and its B button then closed this page (the maintainer, 2026-11-17,
+     * GameNative: "button presses after setting up OCR made the bottom screen go back"). The game
+     * is brought to the front again a moment after, as the shelf does from its second display.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus || !launched || oneScreen || ended) return
+        window.decorView.postDelayed({ if (hasWindowFocus() && !ended) frontGame() }, 350)
+    }
+
+    /** A controller's buttons are the game's, never this page's (no B closing it meanwhile). */
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        val pad = event.source and (android.view.InputDevice.SOURCE_GAMEPAD or android.view.InputDevice.SOURCE_JOYSTICK) != 0
+        if (!oneScreen && (pad || android.view.KeyEvent.isGamepadButton(event.keyCode))) {
+            if (event.action == android.view.KeyEvent.ACTION_DOWN && event.repeatCount == 0 && launched) frontGame()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    /** The game's app to the front of the main display again, as it is (no new start). */
+    private fun frontGame() {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            .setComponent(ComponentName(app, appActivity))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        runCatching { startActivity(intent, ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()) }
+    }
+
     /** The game's app on the main display, in front there. */
     private fun startGame() {
         launched = true
+        leaveFocusToGame()
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             .setComponent(ComponentName(app, appActivity))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
@@ -440,11 +578,11 @@ class CompanionActivity : Activity() {
         keys.removeAllViews()
         val list = if (frames.capturing) listOf(
             LowerKeys.Key(getString(R.string.companion_key_over), { over }) { toggleWay() }.takeIf { !oneScreen },
+            LowerKeys.Key(getString(R.string.lower_key_line), { line }) { toggleLine() }.takeIf { !oneScreen },
             LowerKeys.Key(getString(R.string.lower_key_read)) { ocr?.readNow() },
             LowerKeys.Key(getString(R.string.companion_key_area)) { setUpArea() },
             LowerKeys.Key(getString(R.string.lower_key_stats)) { ReaderSession.toggleStatsPaused() },
-            LowerKeys.Key(getString(R.string.lower_key_card)) { ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD) },
-            LowerKeys.Key(getString(R.string.lower_key_log)) { ReaderSession.dispatch(ReaderSession.Command.BACKLOG) },
+            LowerKeys.Key(getString(R.string.lower_key_log), { backlog != null }) { showBacklog(backlog == null) },
             LowerKeys.Key(getString(R.string.companion_key_game)) { startGame() },
             LowerKeys.Key(getString(R.string.companion_key_end)) { finish() },
         ).filterNotNull() else listOf(
@@ -469,7 +607,11 @@ class CompanionActivity : Activity() {
                 this, bitmap, whole, source.game,
                 read = { areas -> source.read(bitmap, whole, areas) },
                 onSave = { source.setGame(it) },
-                onClosed = { setting = false },
+                onClosed = {
+                    setting = false
+                    // The box took the keys: the game has them again.
+                    if (!oneScreen) frontGame()
+                },
             ).show()
         }
     }
@@ -480,6 +622,7 @@ class CompanionActivity : Activity() {
         const val EXTRA_TITLE = "title"
         private const val ASK_CAPTURE = 41
         private const val KEY_OVER = "companion_over"
+        private const val KEY_LINE = "companion_line"
         private const val FOLLOW_MS = 200L
     }
 }

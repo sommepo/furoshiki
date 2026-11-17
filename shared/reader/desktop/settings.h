@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <QHash>
 #include <QJsonObject>
 #include <QString>
 #include <QStringList>
@@ -94,9 +95,51 @@ public:
     /// What the popup says of how often a word was looked up: "off", "count" (the first
     /// value) or "where" (with when and in which game first).
     [[nodiscard]] QString PopupLookups() const;
-    /// The popup's look: "console" (the first value: the popup page in the console's colours),
-    /// "furoshiki", "yomitan-dark", "paper", "paper-dark", or "classic" (drawn as before the page).
+    /// The popup's look: "console" (the popup page in the console's colours), "furoshiki",
+    /// "yomitan-dark", "paper", "paper-dark"..., or "classic" (drawn as before the page). Unless
+    /// one was chosen ("auto", the default since 2026-11-17), the look of the program's shelf
+    /// theme (SetPopupThemeDefault; "console" in an app without a shelf).
     [[nodiscard]] QString PopupTheme() const;
+    // These four are here in the header, as PopupThemes is: Furoshiki's pages use them without
+    // the reader's library.
+    /// `value` as a look: "auto" and anything unknown are the shelf's look (PopupThemeDefault).
+    [[nodiscard]] static QString ResolvePopupTheme(const QString& value) {
+        if (value == QStringLiteral("classic") || value == QStringLiteral("console") || PopupThemes().contains(value)) {
+            return value;
+        }
+        return PopupThemeDefault();
+    }
+    /// The look a shelf theme gives the popup: kon → kon, solarized → solarized-dark, paper →
+    /// paper, mono → kumihan; "console" otherwise. Android has the same (popupThemeOfShelf).
+    [[nodiscard]] static QString PopupThemeOfShelf(const QString& shelf) {
+        if (shelf == QStringLiteral("kon")) {
+            return QStringLiteral("kon");
+        }
+        if (shelf == QStringLiteral("solarized")) {
+            return QStringLiteral("solarized-dark");
+        }
+        if (shelf == QStringLiteral("paper")) {
+            return QStringLiteral("paper");
+        }
+        if (shelf == QStringLiteral("mono")) {
+            return QStringLiteral("kumihan");
+        }
+        return QStringLiteral("console");
+    }
+    /// The look "auto" stands for: Furoshiki sets it from its shelf theme.
+    static void SetPopupThemeDefault(const QString& theme) {
+        PopupThemeDefaultHeld() = theme == QStringLiteral("console") || PopupThemes().contains(theme) ? theme : QStringLiteral("console");
+    }
+    [[nodiscard]] static QString PopupThemeDefault() {
+        return PopupThemeDefaultHeld();
+    }
+    /// The kinds the user gave dictionaries, by title ("word", "grammar", "kanji", "name"): the
+    /// popup's tabs (PopupModel::KindOf). A JSON object in reader_dictionary_kinds.
+    [[nodiscard]] QHash<QString, QString> DictionaryKinds() const;
+    [[nodiscard]] static QString& PopupThemeDefaultHeld() {
+        static QString theme{QStringLiteral("console")};
+        return theme;
+    }
     /// The looks the page has besides the console's own colours, in the order they are offered.
     /// (Here in the header: Furoshiki's page lists them without the reader's library.)
     [[nodiscard]] static const QStringList& PopupThemes() {
@@ -286,6 +329,7 @@ public:
     static const QString KeyPopupMarkUnknown;
     static const QString KeyPopupLookups;
     static const QString KeyPopupTheme;
+    static const QString KeyDictionaryKinds;
     static const QString KeyPopupCss;
     static const QString KeyPopupOpacity;
     static const QString KeyPopupRadius;

@@ -518,6 +518,8 @@ class ReaderOverlay(
                 // The cursor stayed where it was and a new text came under it: nobody pointed
                 // at what is there now.
                 pointed = false
+                restX = HoverCursor.x
+                restY = HoverCursor.y
                 removeCallbacks(hoverLookup)
                 hovered = null
                 resting = null
@@ -748,6 +750,10 @@ class ReaderOverlay(
 
     /** When the player last moved the cursor or clicked with it (see [drawCursor]). */
     private var cursorMoved = 0L
+
+    /** Where the cursor stood as a new text came under it: it points at that text once it leaves here. */
+    private var restX = Float.NaN
+    private var restY = Float.NaN
     private val redraw = Runnable { invalidate() }
 
     /** The shape of the second display's trackpad. */
@@ -821,8 +827,33 @@ class ReaderOverlay(
      * layer (an app's companion, its OCR) waits meanwhile, so as not to read the reader's own marks.
      */
     val drawsOverGame: Boolean
-        get() = !secondary && (lookups.isOpen ||
-            cursorOn && (!HoverCursor.always || SystemClock.uptimeMillis() - cursorMoved < CURSOR_IDLE_MS))
+        get() = !secondary && (lookups.isOpen || cursorDrawn)
+
+    private val cursorDrawn: Boolean
+        get() = cursorOn && (!HoverCursor.always || SystemClock.uptimeMillis() - cursorMoved < CURSOR_IDLE_MS)
+
+    /** Whether the popup is open now. */
+    val popupOpen: Boolean get() = lookups.isOpen
+
+    /**
+     * Where this layer draws over the game now, in its own pixels: the popup, the word's mark and
+     * the cursor. What reads the game from a capture of the screen leaves these parts out, so it can
+     * go on looking while the popup is open and see the game move on under it (an app's companion).
+     */
+    fun drawnAreas(): List<Area> {
+        if (secondary) return emptyList()
+        val out = ArrayList<Area>()
+        lookups.popupArea()?.let { popup ->
+            out += Area(popup.left + lookups.left, popup.top + lookups.top, popup.right + lookups.left, popup.bottom + lookups.top)
+        }
+        val pad = dp(6f).toFloat()
+        for (mark in screenText.marks) out += Area(mark.left - pad, mark.top - pad, mark.right + pad, mark.bottom + pad)
+        if (cursorDrawn) {
+            val reach = dp(28f).toFloat()
+            out += Area(HoverCursor.x - reach, HoverCursor.y - reach, HoverCursor.x + reach, HoverCursor.y + reach)
+        }
+        return out
+    }
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val dimPaint = Paint().apply { color = ReaderStyle.TRACKPAD_DIM }
@@ -852,6 +883,8 @@ class ReaderOverlay(
                 // it has not been pointed anywhere this time.
                 pointed = cursorHome
                 if (!secondary) homeCursor()
+                restX = HoverCursor.x
+                restY = HoverCursor.y
             } else {
                 trackpad = emptyList()
                 removeCallbacks(hoverLookup)
@@ -860,8 +893,10 @@ class ReaderOverlay(
             }
             showPadHint(remind = false)
             invalidate()
-        } else if (on && !placing && !pointed) {
-            // Moved by the player: from here on, what it rests on was pointed at.
+        } else if (on && !placing && !pointed && (HoverCursor.x != restX || HoverCursor.y != restY)) {
+            // Moved by the player: from here on, what it rests on was pointed at. Only a move counts:
+            // the cursor told again where it stands (back from the backlog over another app's game)
+            // left a popup opening by itself on the next line's word (seen 2026-11-17).
             pointed = true
             hovered = null
         }

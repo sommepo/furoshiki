@@ -77,6 +77,40 @@ object OcrText {
     private fun kanaOnly(text: String): Boolean =
         text.isNotEmpty() && text.codePoints().allMatch { it in 0x3040..0x30FF || it == 0x30FC || Character.isWhitespace(it) }
 
+    /** How a sentence ends. */
+    private const val ENDS = "。！？!?」』…）)"
+
+    /**
+     * Whether the last of [glyphs] is not text but stands after a sentence's end: a digit or a Latin
+     * letter, ・ or ー (a game's animated mark read as one: Paranormasight's hand came out as 4, 1,
+     * ・ and ー, and one line was several), or a stop again (。。、).
+     */
+    fun strayAfterEnd(glyphs: List<String>): Boolean {
+        if (glyphs.size < 2) return false
+        val last = glyphs.last()
+        val before = glyphs[glyphs.size - 2]
+        if (before.isEmpty() || before.last() !in ENDS) return false
+        // What may close a line after its end: a quote's end, a mark of a question or of feeling.
+        if (last.isEmpty() || last.all { it in "」』）)！？!?…" }) return false
+        // Words (kana, kanji) stay, but for the long-vowel mark, which a word never ends a line on
+        // after a stop; anything else (a digit, a letter, ・, ー, a stop again) is the game's mark.
+        return last == "ー" || last.none { Character.isLetter(it) && it.code >= 0x3000 && it != 'ー' }
+    }
+
+    /**
+     * How many of the last row's [glyphs] stand after its last sentence's end and are not text: the
+     * text read is whole, so nothing but a closing mark follows its last 。！？ (Paranormasight's
+     * hand came out as ・人 and のこ too). A few at most; none where a closing mark is among them.
+     */
+    fun afterLastEnd(glyphs: List<String>): Int {
+        val end = glyphs.indexOfLast { it.isNotEmpty() && it.last() in "。！？!?" }
+        if (end < 0) return 0
+        val after = glyphs.size - 1 - end
+        if (after !in 1..3) return 0
+        if (glyphs.drop(end + 1).any { glyph -> glyph.any { it in "」』）)…！？!?" } }) return 0
+        return after
+    }
+
     /** What a game draws after its text and is not text: the mark that asks for a button. */
     private const val TRAILING = "▼▽▾▿♥♡★☆◆◇■□●○◎→↓⏎⤵ 　"
 
@@ -86,7 +120,7 @@ object OcrText {
      * standing right of a wider column), lines without Japanese dropped, gaps closed, the mark after
      * the text taken off; upright columns from the right, else rows from the top.
      */
-    fun clean(lines: List<MeikiOcr.Line>, width: Int, height: Int): OcrRead {
+    fun clean(lines: List<MeikiOcr.Line>, width: Int, height: Int, engine: String = "meikiocr"): OcrRead {
         class Box(val line: MeikiOcr.Line) {
             val left = line.glyphs.minOf { it.left }
             val top = line.glyphs.minOf { it.top }
@@ -110,16 +144,28 @@ object OcrText {
                     }
             }
         }
+        // The game's mark after its text, read as a line of its own (one or two characters lying just
+        // past the end of a full row, beside it): Paranormasight's bobbing hand came out as っ or つ
+        // between the rows, and one line was read anew every few seconds.
+        val marks = kept.filter { short ->
+            !short.line.upright && short.line.glyphs.size <= 2 && kept.any { row ->
+                row !== short && !row.line.upright && row.line.glyphs.size >= 4 &&
+                    short.left >= row.right - row.thick * 0.5f && short.left <= row.right + row.thick * 1.5f &&
+                    Math.abs((short.top + short.bottom) / 2f - (row.top + row.bottom) / 2f) <= row.thick * 1.5f
+            }
+        }
         val ordered = if (kept.isNotEmpty() && kept.all { it.line.upright }) {
             kept.sortedByDescending { it.right }
         } else {
             kept.sortedWith(compareBy({ Math.round(it.top.toFloat() / maxOf(it.bottom - it.top, 1)) }, { it.left }))
         }
         val out = ArrayList<OcrLine>()
-        for (box in ordered) {
-            if (!hasJapanese(box.line.text)) continue
+        val lastRow = ordered.indexOfLast { hasJapanese(it.line.text) && it !in marks }
+        for ((index, box) in ordered.withIndex()) {
+            if (!hasJapanese(box.line.text) || box in marks) continue
             var glyphs = box.line.glyphs.filter { glyph -> glyph.text.isNotBlank() }
-            while (glyphs.isNotEmpty() && glyphs.last().text in TRAILING) glyphs = glyphs.dropLast(1)
+            while (glyphs.isNotEmpty() && (glyphs.last().text in TRAILING || strayAfterEnd(glyphs.map { it.text }))) glyphs = glyphs.dropLast(1)
+            if (index == lastRow) glyphs = glyphs.dropLast(afterLastEnd(glyphs.map { it.text }))
             if (glyphs.isEmpty()) continue
             out.add(
                 OcrLine(
@@ -134,7 +180,35 @@ object OcrText {
                 )
             )
         }
-        return OcrRead(out, "meikiocr")
+        return OcrRead(out, engine)
+    }
+
+    /**
+     * Whether [a] and [b] are one text read twice: the same, or (8 characters and more) apart by
+     * one character in twenty at most. OCR reads a still line a little differently now and then (a
+     * cloud of Paranormasight's background came out as っ, then つ), and each was a new line.
+     */
+    fun sameText(a: String, b: String): Boolean {
+        if (a == b) return true
+        val x = a.codePoints().toArray()
+        val y = b.codePoints().toArray()
+        val shorter = minOf(x.size, y.size)
+        if (shorter < 8) return false
+        val allowed = maxOf(1, shorter / 20)
+        if (Math.abs(x.size - y.size) > allowed) return false
+        var previous = IntArray(y.size + 1) { it }
+        for (i in 1..x.size) {
+            val current = IntArray(y.size + 1)
+            current[0] = i
+            var best = current[0]
+            for (j in 1..y.size) {
+                current[j] = minOf(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + if (x[i - 1] == y[j - 1]) 0 else 1)
+                best = minOf(best, current[j])
+            }
+            if (best > allowed) return false
+            previous = current
+        }
+        return previous[y.size] <= allowed
     }
 
     /** A stable name for a text: the same text read again is the same line read again. */

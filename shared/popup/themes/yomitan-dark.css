@@ -6,7 +6,7 @@
 .popup { border: 1px solid #555; padding: 10px 14px 10px 18px; color: #f2f2f2; }
 .entry::before { content: ""; position: absolute; left: -15px; top: calc(20px * var(--scale)); border: 7px solid transparent; border-left: 8px solid #3b8cf0; }
 .headword { font-weight: 400; font-size: calc(26px * var(--scale)); }
-.headword rt { display: ruby-text; }
+.headword rt { display: revert; }
 .reading { display: none; }
 .tags { gap: 6px; }
 .tag {

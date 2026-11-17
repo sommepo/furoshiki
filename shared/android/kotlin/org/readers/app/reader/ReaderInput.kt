@@ -7,6 +7,8 @@ import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import org.readers.app.reader.cursor.HoverCursor
+import org.readers.app.reader.ui.PopupKeys
+import kotlin.math.abs
 
 /**
  * The controller, as far as it is the reader's: the button that holds the cursor, the sticks
@@ -53,6 +55,10 @@ object ReaderInput {
         when (event.action) {
             KeyEvent.ACTION_DOWN -> {
                 if (taken.contains(code)) return true // a repeat of a key that was taken
+                // A controller is the input now: the popup marks its buttons.
+                if (KeyEvent.isGamepadButton(code) || event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) {
+                    PopupKeys.inputFrom(pad = true)
+                }
                 if (!ReaderSession.isActive || !inGame()) return false
                 if (code == HoverCursor.button) {
                     if (HoverCursor.onButton(code, true, HoverCursor.SOURCE_KEY)) {
@@ -60,6 +66,14 @@ object ReaderInput {
                         return true
                     }
                     return false
+                }
+                // An open popup is modal: the controller's buttons are its own (PopupKeys).
+                if (PopupKeys.isOpen && (KeyEvent.isGamepadButton(code) || code == KeyEvent.KEYCODE_BACK ||
+                        code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN ||
+                        code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                    PopupKeys.onKey(code, true)
+                    taken.add(code)
+                    return true
                 }
                 if (code == statsButton && statsButton >= 0) {
                     ReaderSession.toggleStatsPaused()
@@ -100,9 +114,15 @@ object ReaderInput {
             return false
         }
         if (!ReaderSession.isActive) return false
+        if (maxOf(abs(event.getAxisValue(MotionEvent.AXIS_X)), abs(event.getAxisValue(MotionEvent.AXIS_Y)),
+                abs(event.getAxisValue(MotionEvent.AXIS_Z)), abs(event.getAxisValue(MotionEvent.AXIS_RZ))) > 0.4f) {
+            PopupKeys.inputFrom(pad = true) // a stick pushed: a controller is the input
+        }
         // A trigger that reports itself as an axis only.
         trigger(0, KeyEvent.KEYCODE_BUTTON_L2, maxOf(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_BRAKE)))
         trigger(1, KeyEvent.KEYCODE_BUTTON_R2, maxOf(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS)))
+        // An open popup takes the left stick to scroll, and the game gets none of it meanwhile.
+        if (PopupKeys.onStick(event.getAxisValue(MotionEvent.AXIS_Y))) return true
         // Only while the sticks steer the cursor: with a second display as the trackpad they,
         // and the d-pad that comes in the same reports, are the game's.
         if (!HoverCursor.takesSticks) return false

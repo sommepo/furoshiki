@@ -5,6 +5,7 @@ package org.readers.app.reader.ui
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.readers.app.reader.dict.DictionaryKinds
 import org.readers.app.reader.dict.GlossaryRenderer
 import org.readers.app.reader.dict.LookupResult
 import org.readers.app.reader.dict.NamesDictionaries
@@ -14,17 +15,21 @@ import org.readers.app.reader.dict.TermEntry
  * What the popup page (shared/popup/popup.js, Reader.show) draws for one headword: its word,
  * reading, inflections, pitch and frequency, one sense per definition with its tags and glosses
  * ([GlossaryRenderer.compact]), the word's other spellings, and how often it was looked up
- * ([history], already said in words, or null). Everything is text: the page never reads it as
- * markup. The desktop makes the same (shared/reader/desktop/popup_model.*).
+ * ([history], already said in words, or null). Each sense says its dictionary's kind
+ * ([DictionaryKinds]: the page's tabs), and a grammar or a character dictionary's sense carries
+ * its glossary as the dictionary laid it out ("content"), which the page builds element by
+ * element. Everything is text: the page never reads it as markup. The desktop makes the same
+ * (shared/reader/desktop/popup_model.*).
  */
 object PopupModel {
-    fun entry(result: LookupResult, history: String?): JSONObject = JSONObject().apply {
+    /** [kinds]: the kinds the user gave dictionaries, by title (ReaderSettings.dictionaryKinds). */
+    fun entry(result: LookupResult, history: String?, kinds: Map<String, String> = emptyMap()): JSONObject = JSONObject().apply {
         put("expression", result.expression)
         put("reading", result.displayReading)
         put("reasons", JSONArray(result.reasons))
         put("pitches", JSONArray(result.pitches.map { it.positions.joinToString(",", "[", "]") }))
         put("frequencies", JSONArray(result.frequencies.map { JSONObject().put("dictionary", it.dictionary).put("value", it.display) }))
-        put("senses", senses(result))
+        put("senses", senses(result, kinds))
         put("forms", JSONArray(forms(result)))
         put("state", "add")
         put("unknown", false)
@@ -55,11 +60,13 @@ object PopupModel {
     const val NAME_TAG = "名前"
 
     /**
-     * The senses in the page's form: {heading?, dictionary, number, tags, glosses, notes}. A
-     * heading names the dictionary where several dictionaries have senses; tags the sense
-     * before had already are not said again.
+     * The senses in the page's form: {heading?, dictionary, kind, number, tags, glosses, notes,
+     * content?}. A heading names the dictionary where several dictionaries have senses; tags the
+     * sense before had already are not said again. [kind] is its dictionary's ([DictionaryKinds]);
+     * a grammar or a kanji sense also has [content], its glossary whole, for the page to lay out
+     * as the dictionary did (formation boxes, examples, tables).
      */
-    fun senses(result: LookupResult): JSONArray {
+    fun senses(result: LookupResult, kinds: Map<String, String> = emptyMap()): JSONArray {
         val entries = result.entries.filterNot(::isFormsList)
         val several = entries.map { it.dictionary }.distinct().size > 1
         val out = JSONArray()
@@ -82,6 +89,11 @@ object PopupModel {
             val tags = entry.definitionTags.split(' ')
                 .filter { it.isNotBlank() && it.toIntOrNull() == null && !(entry.scoped && it == NAME_TAG) }
             sense.put("dictionary", entry.dictionary)
+            val kind = DictionaryKinds.of(entry, kinds)
+            sense.put("kind", kind)
+            if (kind == DictionaryKinds.GRAMMAR || kind == DictionaryKinds.KANJI) {
+                runCatching { JSONArray(entry.glossaryJson) }.getOrNull()?.let { sense.put("content", it) }
+            }
             if (entry.scoped) sense.put("name", true)
             sense.put("number", number)
             sense.put("tags", JSONArray(if (tags == lastTags) emptyList() else tags))

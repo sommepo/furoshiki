@@ -82,7 +82,10 @@ LookupFlow::LookupFlow(QWidget* popup_parent)
             popup->AskPlaying(playing);
         }
     });
-    connect(popup, &LookupPopup::AddRequested, this, &LookupFlow::Mine);
+    connect(popup, &LookupPopup::AddRequested, this, [this](int index, int audio) {
+        // The page's two pluses: -1 as the settings say, 0 without the line's audio, 1 with it.
+        Mine(index, audio < 0 ? std::nullopt : std::optional<bool>(audio == 1));
+    });
     connect(popup, &LookupPopup::NotesRequested, this, &LookupFlow::ShowNotes);
     connect(popup, &LookupPopup::DictionariesRequested, this, [this] {
         Close();
@@ -565,7 +568,7 @@ void LookupFlow::CountLookup() {
     });
 }
 
-void LookupFlow::Mine(int index) {
+void LookupFlow::Mine(int index, std::optional<bool> audio) {
     if (!pinned || index < 0 || index >= pinned->results.size()) {
         return;
     }
@@ -609,7 +612,8 @@ void LookupFlow::Mine(int index) {
                    if (known) {
                        popup->SetUnknown(index, false);
                    }
-               });
+               },
+               audio);
 }
 
 void LookupFlow::MineSentence(const PresentedLine& presented) {

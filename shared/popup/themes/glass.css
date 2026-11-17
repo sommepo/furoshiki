@@ -21,7 +21,7 @@
 .entry + .entry { border-top-color: var(--rule); padding-top: 8px; }
 .head { gap: 0 0.8em; }
 .headword { font-weight: 600; font-size: calc(22px * var(--scale)); letter-spacing: 0.02em; }
-.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.1em; }
+.headword rt { display: revert; color: var(--dim); letter-spacing: 0.1em; }
 .reading { display: none; }
 .reasons, .pitch, .tag, .dictionary-name, .lookups, .romaji { font-size: calc(10.5px * var(--scale)); letter-spacing: 0.08em; color: var(--dim); }
 .tag, .dictionary-name { text-transform: uppercase; }
