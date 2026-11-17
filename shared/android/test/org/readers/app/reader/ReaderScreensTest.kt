@@ -375,7 +375,7 @@ class ReaderScreensTest {
         assertEquals(
             listOfNotNull(
                 "reader_touch_buttons", "reader_touch_play",
-                "reader_cursor_toggle", "reader_cursor_speed", "reader_advance_button",
+                "reader_cursor_toggle", "reader_cursor_speed", "reader_hover_delay_ms", "reader_advance_button",
                 "reader_cursor_frame", "reader_cursor_home",
                 "reader_second_screen".takeIf { Console.SECOND_DISPLAY_FREE }
             ),
@@ -434,7 +434,7 @@ class ReaderScreensTest {
                 // Controller
                 ReaderSettings.KEY_TOUCH_BUTTONS, ReaderSettings.KEY_TOUCH_PLAY,
                 // (the buttons' own settings are the controller mapping screen's: ButtonMap)
-                ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED,
+                ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED, ReaderSettings.KEY_HOVER_DELAY,
                 ReaderSettings.KEY_ADVANCE_BUTTON, ReaderSettings.KEY_CURSOR_FRAME, ReaderSettings.KEY_CURSOR_HOME,
                 ReaderSettings.KEY_SECOND_SCREEN.takeIf { Console.SECOND_DISPLAY_FREE },
             ),

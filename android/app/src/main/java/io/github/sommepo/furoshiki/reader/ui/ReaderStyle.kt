@@ -25,14 +25,17 @@ object ReaderStyle {
         else -> psp
     }.toInt()
 
-    const val PANEL_BACKGROUND = 0xFF12161C.toInt() // alpha comes from the opacity setting
+    // The line's panel in Furoshiki's own look, Kon (home/shelf/kon.json): cream on indigo with
+    // the vermilion accent (the maintainer, 2026-11-17: the line "could do with looking more in
+    // keeping with the rest of the app"; it was grey with yellow, salmon for lines read before).
+    const val PANEL_BACKGROUND = 0xFF101A3A.toInt() // alpha comes from the opacity setting
     const val POPUP_BACKGROUND = 0xF21A1F27.toInt()
-    const val OUTLINE = 0x55FFFFFF
-    const val TEXT = 0xFFF4F4F2.toInt()
-    const val TEXT_DIM = 0xFFAEB4BC.toInt()
-    const val TEXT_REREAD = 0xFFFF9E8A.toInt()
-    const val ACCENT = 0xFFFFD54F.toInt()
-    const val HIGHLIGHT = 0x66FFD54F
+    const val OUTLINE = 0x3DECE5D3
+    const val TEXT = 0xFFECE5D3.toInt()
+    const val TEXT_DIM = 0xFF8A93B5.toInt()
+    const val TEXT_REREAD = 0xFF8A93B5.toInt()
+    const val ACCENT = 0xFFD9472B.toInt()
+    const val HIGHLIGHT = 0x66D9472B
 
     /** The button boxes of the popup: a shade lighter than the popup, and opaque. */
     const val BOX = 0xFF2A313B.toInt()

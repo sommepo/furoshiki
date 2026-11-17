@@ -672,7 +672,8 @@ class HomeActivity : AppCompatActivity() {
 
     // A controller works the page as the desktop's: the page takes keys, the rest are told here.
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (rawKeys && rawKey(event)) return true
+        // The mapping screen learns buttons by place (FaceButtons); the shelf's own keys stay the device's.
+        if (rawKeys && rawKey(FaceButtons.byPlace(event, FaceButtons.nintendo(this)))) return true
         // The home screen has nowhere to go back to: back is the page's own, as B is.
         if (event.keyCode == KeyEvent.KEYCODE_BACK && isHome) {
             if (event.action == KeyEvent.ACTION_UP) callPage("Front.key('Escape')")
@@ -1092,6 +1093,10 @@ class HomeActivity : AppCompatActivity() {
         // ---- The controller mapping screen (map.js; the model is ButtonMap, in the reader's settings) ----
 
         /** The controller's keys handed to the page as they come, or as the page's names again. */
+        /** "nintendo" where the device's own buttons carry Nintendo letters at Android's places (FaceButtons), else "". */
+        @JavascriptInterface
+        fun faceLetters(): String = if (FaceButtons.nintendo(this@HomeActivity)) "nintendo" else ""
+
         @JavascriptInterface
         fun listenRaw(on: Boolean) {
             rawKeys = on
@@ -1102,6 +1107,7 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun buttonMap(console: String, ids: String): String {
             GameActivity.migratePadMap(this@HomeActivity)
+            FaceButtons.forgetHandSwap(this@HomeActivity)
             val values = ReaderSettings.fresh(this@HomeActivity).all
             val layer = console.ifEmpty { null }
             // The game's own buttons: the controller's button (an input's id) that presses each.

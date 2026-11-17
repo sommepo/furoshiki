@@ -25,6 +25,7 @@ import org.readers.app.reader.stats.LineAccounting
 import org.readers.app.reader.stats.ReadingCounters
 import org.readers.app.reader.store.ReaderDatabase
 import org.readers.app.reader.ReaderLog as Log
+import org.readers.app.reader.ui.PopupKeys
 import org.readers.app.reader.ui.CrtSettings
 
 /** A line after it was counted and stored in the backlog. */
@@ -359,6 +360,14 @@ object ReaderSession {
         ReaderInput.statsButton = button
         ReaderInput.nextChoiceButton =
             prefs.nextChoiceButton.takeIf { it != prefs.cursorButton && it != button } ?: -1
+        // The popup's buttons follow the game's: its card on the controller's button that is △ in
+        // this game, as the button map has it (the maintainer, 2026-11-17: "to add a card, i had
+        // to press square instead of triangle", on a Thor whose buttons are mapped).
+        val values = prefs.preferences.all
+        val console = ReaderSettings.console
+        PopupKeys.buttons = ButtonMap.PAD_BUTTONS.mapNotNull { button ->
+            ButtonMap.PAD_INPUTS[ButtonMap.padSource(values, button, console)]?.let { it to button }
+        }.toMap()
     }
 
     /** The user did something that shows they are still reading. Any thread. */

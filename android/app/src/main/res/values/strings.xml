@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name" translatable="false">Furoshiki</string>
     <string name="game_menu_resume">Resume</string>
-    <string name="game_menu_reader">Quick menu</string>
+    <string name="game_menu_reader">More settings</string>
     <string name="game_menu_explain">Explain this line</string>
     <string name="explain_again">Ask again</string>
     <string name="explain_asking">Asking…</string>

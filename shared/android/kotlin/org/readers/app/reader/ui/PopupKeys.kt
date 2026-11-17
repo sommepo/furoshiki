@@ -45,14 +45,36 @@ object PopupKeys {
         layers.mapNotNull { it.get() }.forEach { it.padChanged(pad) }
     }
 
+    /**
+     * Each key code of the controller and the console's button it presses in the game in play
+     * (`ButtonMap`: south, east, west, north...), so that the popup's △ is the game's △. Empty:
+     * Android's own (Y north, B east, A south).
+     */
+    @Volatile
+    var buttons: Map<Int, String> = emptyMap()
+
+    private fun buttonOf(code: Int): String? = buttons[code] ?: when (code) {
+        KeyEvent.KEYCODE_BUTTON_Y -> "north"
+        KeyEvent.KEYCODE_BUTTON_B -> "east"
+        KeyEvent.KEYCODE_BUTTON_A -> "south"
+        KeyEvent.KEYCODE_BUTTON_X -> "west"
+        else -> null
+    }.takeIf { buttons.isEmpty() }
+
     /** A button pressed or let go while a popup is open: true when it was the popup's (all are). */
     fun onKey(code: Int, down: Boolean): Boolean {
         val layer = open() ?: return false
         if (!down) return true
+        if (code == KeyEvent.KEYCODE_BACK) {
+            layer.close()
+            return true
+        }
+        when (buttonOf(code)) {
+            "north" -> layer.mineWord(audio = false)
+            "east" -> layer.mineWord(audio = true)
+            "south" -> layer.close()
+        }
         when (code) {
-            KeyEvent.KEYCODE_BUTTON_Y -> layer.mineWord(audio = false)
-            KeyEvent.KEYCODE_BUTTON_B -> layer.mineWord(audio = true)
-            KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BACK -> layer.close()
             KeyEvent.KEYCODE_BUTTON_L1 -> layer.tab(-1)
             KeyEvent.KEYCODE_BUTTON_R1 -> layer.tab(1)
             KeyEvent.KEYCODE_DPAD_DOWN -> layer.scrollBy((STEP * 4).toInt())

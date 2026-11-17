@@ -180,6 +180,12 @@ class ReaderSettings(context: Context) {
     val cursorSpeed get() = preferences.getInt(KEY_CURSOR_SPEED, 100).coerceIn(25, 300)
 
     /**
+     * How long the pointer rests on a word before it is looked up, in milliseconds (0 to 700, 100
+     * by default): sweeping across words no longer looks each up (the maintainer, 2026-11-17).
+     */
+    val hoverDelayMs get() = preferences.getInt(KEY_HOVER_DELAY, HOVER_DELAY_DEFAULT).coerceIn(0, 700)
+
+    /**
      * On a character of the game's text the cursor is a frame around that character. Off: it
      * stays a ring that moves freely over the text. Off by default since 2026-11-15.
      */
@@ -472,6 +478,8 @@ class ReaderSettings(context: Context) {
         const val KEY_CURSOR_BUTTON = "reader_cursor_button"
         const val KEY_CURSOR_TOGGLE = "reader_cursor_toggle"
         const val KEY_CURSOR_SPEED = "reader_cursor_speed"
+        const val KEY_HOVER_DELAY = "reader_hover_delay_ms"
+        const val HOVER_DELAY_DEFAULT = 100
         const val KEY_CURSOR_FRAME = "reader_cursor_frame"
         const val KEY_CURSOR_HOME = "reader_cursor_home"
         const val KEY_SECOND_SCREEN = "reader_second_screen"

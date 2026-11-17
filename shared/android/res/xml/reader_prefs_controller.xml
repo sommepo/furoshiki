@@ -33,6 +33,15 @@
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_cursor_speed"
         app:iconSpaceReserved="false" />
+    <SeekBarPreference
+        app:key="reader_hover_delay_ms"
+        app:defaultValue="100"
+        app:min="0"
+        android:max="700"
+        app:seekBarIncrement="50"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_hover_delay"
+        app:iconSpaceReserved="false" />
     <ListPreference
         app:key="reader_advance_button"
         app:defaultValue="@string/reader_advance_button_default"

@@ -5,6 +5,12 @@
 <p align="center"><b>A game launcher with sentence mining built in, for Japanese games.</b><br>
 OCR and texthooking with overlay on Android and Windows.</p>
 
+<p align="center"><b>Latest releases:</b>
+<a href="../../releases/download/v0.2.5/Furoshiki-0.2.5-android.apk">Android 0.2.5</a> ·
+<a href="../../releases/download/v0.2.3/Furoshiki-0.2.3-windows.zip">Windows 0.2.3</a> ·
+<a href="../../releases/download/v0.2.3/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
+<a href="../../releases">all releases</a></p>
+
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
 
 Furoshiki is a game launcher for Windows and Android: one library for your Japanese games, with

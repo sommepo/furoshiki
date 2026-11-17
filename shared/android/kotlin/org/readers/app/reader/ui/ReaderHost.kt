@@ -113,7 +113,7 @@ class ReaderHost(
      * is not there. A dialog rather than a menu at [anchor]: next to the drawer item there is
      * no room for the list on a small landscape screen.
      */
-    fun showMenu(@Suppress("UNUSED_PARAMETER") anchor: View) {
+    fun showMenu(@Suppress("UNUSED_PARAMETER") anchor: View, onClosed: () -> Unit = {}) {
         val settings = ReaderSettings(activity)
         fun toggle(label: Int, on: Boolean): String =
             (if (on) "\u2713  " else "     ") + activity.getString(label)
@@ -145,6 +145,7 @@ class ReaderHost(
         MaterialAlertDialogBuilder(themed)
             .setTitle(R.string.reader_menu_title)
             .setItems(entries.map { it.first }.toTypedArray()) { _, which -> entries[which].second() }
+            .setOnDismissListener { onClosed() }
             .show()
     }
 

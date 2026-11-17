@@ -658,6 +658,7 @@ class ReaderOverlay(
         showSession()
         showPadHint(remind = true)
         cursorFrame = settings.cursorFrame
+        hoverDelay = settings.hoverDelayMs.toLong()
         cursorHome = settings.cursorHome
         if (cursorOn) invalidate()
     }
@@ -750,6 +751,9 @@ class ReaderOverlay(
 
     /** When the player last moved the cursor or clicked with it (see [drawCursor]). */
     private var cursorMoved = 0L
+
+    /** How long the cursor rests on a word before it is looked up (the setting, [ReaderSettings.hoverDelayMs]). */
+    private var hoverDelay = ReaderSettings.HOVER_DELAY_DEFAULT.toLong()
 
     /** Where the cursor stood as a new text came under it: it points at that text once it leaves here. */
     private var restX = Float.NaN
@@ -970,7 +974,7 @@ class ReaderOverlay(
         hovered = target?.key
         resting = target
         removeCallbacks(hoverLookup)
-        if (target != null) postDelayed(hoverLookup, HOVER_REST_MS)
+        if (target != null) postDelayed(hoverLookup, hoverDelay)
     }
 
     /** True while the cursor at ([x], [y]), over [target], is the open popup's ([PlacedText.keptByPopup]). */
@@ -1249,13 +1253,6 @@ class ReaderOverlay(
         /** How long a line may take to be placed in the game's picture before the panel shows
          * it instead. The game reports the place within a frame or two of the text. */
         const val PLACEMENT_GRACE_MS = 400L
-
-        /**
-         * A word under the cursor is looked up at once, an open popup's place taken at once too
-         * (the maintainer, 2026-10-22: "hovering on any word should be instant"). The post of no
-         * time only lets the cursor's moves of one frame pass first.
-         */
-        const val HOVER_REST_MS = 0L
 
         /** A touch on the trackpad that ends sooner than this without moving is a click. */
         const val TAP_MS = 300L

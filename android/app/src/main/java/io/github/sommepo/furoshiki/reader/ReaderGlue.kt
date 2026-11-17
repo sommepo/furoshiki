@@ -117,8 +117,11 @@ object ReaderGlue : ReaderNative.Frontend {
 
     fun onMotion(event: MotionEvent): Boolean = ReaderInput.onMotion(event)
 
-    fun showMenu() {
-        overlay?.let { host?.showMenu(it) }
+    /** The reader's own menu (*More settings*); [onClosed] once it is shut, whatever was chosen. */
+    fun showMenu(onClosed: () -> Unit = {}) {
+        val anchor = overlay
+        val readerHost = host
+        if (anchor == null || readerHost == null) onClosed() else readerHost.showMenu(anchor, onClosed)
     }
 
     /** Gives the keys back to the game's display after a touch on the second one (GameActivity). */

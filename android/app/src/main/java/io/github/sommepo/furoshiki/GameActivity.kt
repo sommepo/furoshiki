@@ -259,6 +259,8 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         hideBars()
         ReaderGlue.onResume()
         // The buttons read again: the page may have changed them while the game stood behind it.
+        nintendoFace = FaceButtons.nintendo(this)
+        FaceButtons.forgetHandSwap(this)
         keySettings = ReaderSettings(this)
         loadPad()
         steam.start()
@@ -337,10 +339,12 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             contentDescription = getString(R.string.drawer_show)
         }
         lateinit var keys: android.view.View
+        var lineIconShown: android.view.View? = null
         // Shown and put away at once: on the second display a closing slide was left standing (seen).
         fun show(open: Boolean) {
             keys.visibility = if (open) android.view.View.VISIBLE else android.view.View.GONE
             icon.visibility = if (open) android.view.View.GONE else android.view.View.VISIBLE
+            lineIconShown?.visibility = icon.visibility
             layer.invalidate()
         }
         keys = LowerKeys.view(context, keyList() + LowerKeys.Key(getString(R.string.drawer_hide)) { show(false) })
@@ -351,6 +355,35 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         layer.addView(keys, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP))
         val side = (36 * density).toInt()
         layer.addView(icon, FrameLayout.LayoutParams(side, side, android.view.Gravity.TOP or android.view.Gravity.END).apply {
+            val margin = (4 * density).toInt()
+            setMargins(margin, margin, margin, margin)
+        })
+        // The line's own icon, floating in the other top corner, apart from the keys' (the maintainer,
+        // 2026-11-17: on a game of two screens "a separate icon in the upper corner ... which when
+        // tapped reveals the LINE"): the reader's line shown over the lower screen, or put away.
+        val settings = ReaderSettings(this)
+        val lineIcon = android.widget.TextView(context).apply {
+            text = "文"
+            textSize = 15f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(android.graphics.Color.WHITE)
+            contentDescription = getString(R.string.lower_key_line)
+        }
+        fun paintLine() {
+            val on = !settings.panelAutoHide
+            lineIcon.alpha = if (on) .95f else .6f
+            lineIcon.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(if (on) 0xFFD9472B.toInt() else 0x88000000.toInt())
+            }
+        }
+        paintLine()
+        lineIcon.setOnClickListener {
+            settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_AUTO_HIDE, !settings.panelAutoHide).apply()
+            paintLine()
+        }
+        lineIconShown = lineIcon
+        layer.addView(lineIcon, FrameLayout.LayoutParams(side, side, android.view.Gravity.TOP or android.view.Gravity.START).apply {
             val margin = (4 * density).toInt()
             setMargins(margin, margin, margin, margin)
         })
@@ -458,7 +491,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             "fast" -> setFast(!fast)
             "guide" -> if (guide?.offered() == true) guide?.toggle()
             "guide_done" -> guide?.done()
-            "quick_menu" -> ReaderGlue.showMenu()
+            "quick_menu" -> showReaderMenu()
             "menu" -> showMenu()
         }
     }
@@ -511,6 +544,20 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     private var menuButton: android.view.View? = null
     private var guide: GuideCard? = null
 
+    /**
+     * *More settings* (the reader's own menu), with the game held still while it is open as the
+     * game's menu holds it (the maintainer, 2026-11-17: the game's menu paused the game, and this,
+     * opened from it, let it run on).
+     */
+    private fun showReaderMenu() {
+        inMenu = true
+        applyPause()
+        ReaderGlue.showMenu {
+            inMenu = false
+            applyPause()
+        }
+    }
+
     private fun showMenu() {
         if (inMenu || leaving) return
         inMenu = true
@@ -521,7 +568,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         // disc, the OCR text area and hiding the second display's keys.
         val items = listOfNotNull(
             getString(R.string.game_menu_resume) to {},
-            getString(R.string.game_menu_reader) to { ReaderGlue.showMenu() },
+            getString(R.string.game_menu_reader) to { showReaderMenu() },
             (getString(R.string.game_menu_explain) to { explain() }).takeIf { Explain.offered(this) },
             (getString(R.string.game_menu_ocr_now) to { ocr?.readNow() }).takeIf { ocr?.active == true },
             (getString(R.string.game_menu_save) to { pickState(save = true) }).takeIf { states },
@@ -900,7 +947,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     /** What each action of shared/controllers/controllers.json does here; false for one this app has not. */
     private fun runAction(action: String): Boolean {
         when (action) {
-            "reader_menu" -> ReaderGlue.showMenu()
+            "reader_menu" -> showReaderMenu()
             "reader_pause_game" -> {
                 held = !held
                 applyPause()
@@ -923,7 +970,12 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         GameNative.setPad(buttons, sticks[0], sticks[1], sticks[2], sticks[3], triggers[0], triggers[1])
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    /** Whether the device's own buttons come by their Nintendo letters (FaceButtons), read as the game comes to the front. */
+    private var nintendoFace = false
+
+    override fun dispatchKeyEvent(raw: KeyEvent): Boolean {
+        // The face buttons by place, whatever the device's letters (FaceButtons).
+        val event = FaceButtons.byPlace(raw, nintendoFace)
         // An open popup is modal: its buttons (and Back, which closes it) before anything else.
         if (io.github.sommepo.furoshiki.reader.ui.PopupKeys.isOpen && ReaderGlue.onKey(event)) return true
         if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||

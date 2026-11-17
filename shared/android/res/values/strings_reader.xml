@@ -2,7 +2,7 @@
 <!-- Reader fork strings, kept apart from strings.xml so upstream changes merge cleanly. -->
 <resources>
     <string name="reader_title">Settings</string>
-    <string name="reader_menu_title">Quick menu</string>
+    <string name="reader_menu_title">More settings</string>
     <string name="reader_home_description">Settings, dictionaries, Anki, games</string>
     <string name="reader_stats_home_title">Reading statistics</string>
     <string name="reader_stats_home_description">Characters, speed, time</string>
@@ -229,6 +229,7 @@
     <string name="reader_pad_active">Trackpad</string>
     <string name="reader_pref_cursor_toggle">Toggle instead of hold</string>
     <string name="reader_pref_cursor_speed">Pointer speed (%)</string>
+    <string name="reader_pref_hover_delay">Popup speed (ms)</string>
     <string name="reader_pref_cursor_frame">Snap to characters</string>
     <string name="reader_pref_cursor_home">Jump to start of new lines</string>
     <string name="reader_pref_category_panel">Text panel</string>

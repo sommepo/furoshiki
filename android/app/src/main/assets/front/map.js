@@ -27,6 +27,22 @@ const ANDROID_NAMES = {
   up: '↑', down: '↓', left: '←', right: '→', south: 'A', east: 'B', west: 'X', north: 'Y',
   l1: 'L1', r1: 'R1', l2: 'L2', r2: 'R2', l3: 'L3', r3: 'R3', start: 'Start', select: 'Select',
 };
+// A device whose own buttons have Nintendo letters at those places (the AYN Thor in its Nintendo
+// style: B at the bottom, A on the right, Y on the left, X at the top): named as they are printed.
+let NINTENDO_LETTERS = false;
+try {
+  NINTENDO_LETTERS = window.FuroshikiHost?.faceLetters?.() === 'nintendo';
+  if (NINTENDO_LETTERS) Object.assign(ANDROID_NAMES, {south: 'B', east: 'A', west: 'Y', north: 'X'});
+} catch (error) { /* a plain browser */ }
+
+/**
+ * The screen's own keys go by the letters printed on them, as everywhere else in the app (A sets,
+ * B goes back, the maintainer, 2026-11-17: "pressing B seems to go back everywhere except the
+ * controller setup screen"); what is learnt and lit stays by place. The host hands places, so on
+ * a device with Nintendo letters the face buttons are turned back into letters here.
+ */
+const LETTER_OF_PLACE = {96: 97, 97: 96, 99: 100, 100: 99};
+const byLetter = code => (NINTENDO_LETTERS && LETTER_OF_PLACE[code]) || code;
 
 /** The console's buttons in the order they are listed (ButtonMap.PAD_BUTTONS). */
 const PAD_ORDER = ['up', 'down', 'left', 'right', 'south', 'east', 'west', 'north', 'l1', 'r1', 'l2', 'r2', 'l3', 'r3', 'select', 'start'];
@@ -455,7 +471,7 @@ function learnPress(code) {
     drawMap();
     return;
   }
-  if (code === CODE.b) {
+  if (byLetter(code) === CODE.b) {
     if (learning.b) {
       stopLearning();
       drawMap();
@@ -463,7 +479,7 @@ function learnPress(code) {
     }
     learning.b = setTimeout(() => {
       learning.b = 0;
-      if (map.learning === learning) learnt(CODE.b);
+      if (map.learning === learning) learnt(code);
     }, B_TWICE_MS);
     return;
   }
@@ -631,7 +647,7 @@ function mapPad(code, down) {
     return;
   }
   const count = mapRows().length;
-  switch (code) {
+  switch (byLetter(code)) {
     case CODE.up: if (map.at > 0) chooseRow(map.at - 1); break;
     case CODE.down: if (map.at < count - 1) chooseRow(map.at + 1); break;
     case CODE.l1: case CODE.left: goToTab(map.tab - 1); break;
