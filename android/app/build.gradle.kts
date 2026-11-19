@@ -41,6 +41,11 @@ android {
         // sent to its service.
         buildConfigField("boolean", "READER_SAVE_SYNC",
             (providers.gradleProperty("readerSaveSync").orNull != "false").toString())
+        // The release this build is made for ("0.2.6", -PfuroshikiRelease= from
+        // tools/publish/furoshiki-release.sh), compared with GitHub's latest release by the in-app
+        // updater (Updater.kt). Empty in any other build, which then has no GitHub updater.
+        buildConfigField("String", "FUROSHIKI_RELEASE",
+            "\"" + (providers.gradleProperty("furoshikiRelease").orNull ?: "").filter { it.isLetterOrDigit() || it in ".-" } + "\"")
         ndk {
             abiFilters += readerAbis
         }

@@ -11,6 +11,8 @@
     <!-- The game takes the controller back after a touch on the second display (GameActivity). -->
     <uses-permission android:name="android.permission.REORDER_TASKS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The in-app updater (Updater.kt): a published build installs the next release itself. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Games are files anywhere on the device or its card, each opened by its path by a core:
@@ -666,6 +668,10 @@
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_backlog" />
 
+        <!-- PackageInstaller's answers to the in-app updater (Updater.kt). -->
+        <receiver
+            android:name=".UpdateReceiver"
+            android:exported="false" />
         <provider
             android:name=".reader.ReaderFileProvider"
             android:process=":game"

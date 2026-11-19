@@ -11,8 +11,6 @@ OCR and texthooking with overlay on Android and Windows.</p>
 <a href="../../releases/download/v0.2.3/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
-<p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
-
 Furoshiki is a game launcher for Windows and Android: one library for your Japanese games, with
 the emulators built in, and the tools for reading them (a dictionary popup, Anki cards, a
 backlog) in the same program.
@@ -29,8 +27,6 @@ are described [further down](#games-without-a-script).
   own Yomitan dictionaries and each game's character names.
 - **Cards in one press.** The sentence, a screenshot and the line's audio go to Anki.
 - **One launcher for all of it.** Seven consoles are built in as cores, and their settings are divided and shared as desired.
-
-<p align="center"><img src="home/publish/media/lookup-remember11-2.gif" width="760" alt="Remember11: ポケット, 手, 差し入れて and 取り出す looked up one after another"></p>
 
 | Console | Core | Windows | Android |
 | --- | --- | --- | --- |
@@ -89,6 +85,8 @@ chosen in Settings, *OCR engine*.
 
 ## Reading and mining
 
+<p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
+
 - **Cards**: the sentence, a screenshot and the audio, trimmed to the voice. A card of several
   lines from the backlog, a card of just the word (Ctrl+W), and the last card taken back (Ctrl+Z).
   Cards go to Anki through AnkiConnect on Windows and to AnkiDroid on Android.
@@ -115,25 +113,49 @@ Tap a word in the game's text to look it up. On-screen buttons and a stick where
 over the game with savestate slots, fast forward, skip to the next choice and patches. A game can be pinned to the home screen. On a handheld with two displays the
 second one is a trackpad, or a 3/DS game's lower screen.
 
-On the **AYN Thor**, Furoshiki can be the home screen of both displays: the shelf above, and below
-it the title in hand with the buttons to play it and the consoles' pages.
+At first start, setup asks where your games are (one folder, or one after another if each
+console has its own) and for your GameNative folder. Every game found is listed, and the
+scripts for the supported ones are fetched by themselves.
 
-<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="The AYN Thor's two displays: the shelf with Wish Room's cover above, and below it Wish Room's figures, Continue, and the consoles' pages as buttons"></p>
+On a handheld with two displays, such as the **AYN Thor**, the shelf is above, with a page for
+each console, and below it the title in hand with the button to play it.
+
+<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="The AYN Thor's two displays: the PlayStation 2 shelf with Amagami's cover above, the consoles, GameNative, Statistics, Consoles and Settings listed at its right; below, the same list, Amagami's reading figures, Continue and Game settings"></p>
 
 In a game the lower display is for looking words up, in one of two ways:
 
 - **Trackpad.** Move the pointer over the game's own text from the lower display. The word under
   the pointer is looked up, and the popup opens over the game.
 
-  <p align="center"><img src="home/publish/media/thor-trackpad.jpg" width="760" alt="STEINS;GATE on the AYN Thor: the pointer on 送 in the message window opens 送る, おくる, to send, over the game; the lower display is a trackpad, with the keys Pause, Pause timer, Card, Log, Line and Menu"></p>
+  <p align="center"><img src="home/publish/media/thor-trackpad.jpg" width="620" alt="STEINS;GATE on the AYN Thor: 電話中 outlined in the message window and looked up over the game, でんわちゅう, during a telephone call; the lower display is a trackpad, with the keys Pause, Pause stats, Log, Line and Menu"></p>
 
 - **Line.** Press **Line** to show the line under the trackpad as well. Tap a word in it, and the
   popup opens on the lower display, leaving the game clear.
 
-  <p align="center"><img src="home/publish/media/thor-lookup.jpg" width="760" alt="STEINS;GATE on the AYN Thor: the line shown on the lower display under the trackpad, 直接 tapped there opening 直接, ちょくせつ, direct; the Line key lit"></p>
+  <p align="center"><img src="home/publish/media/thor-lookup.jpg" width="620" alt="STEINS;GATE on the AYN Thor: the line shown on the lower display under the trackpad with its speaker's name, 誰か tapped there opening だれか, someone; the Line key lit"></p>
 
-The buttons along the bottom pause the game or the reading timer, add a card, and open the
-backlog and the menu.
+The keys along the bottom pause the game or the reading stats, and open the backlog and the
+menu. Cards are made from the popup.
+
+### GameNative and other apps
+
+PC games played in **GameNative**, and games in any other app, can be read too. Furoshiki starts
+the game, asks once to capture the screen, and reads the game's text by OCR: meikiocr on the
+device, or Google Lens (Settings, *OCR engine*). Words are looked up over the game itself, or in
+the line on a second display. **Area** marks where the game's text is, when the whole screen has
+too much else in it.
+
+<p align="center"><img src="home/publish/media/thor-gamenative.jpg" width="620" alt="The AYN Thor's two displays: the GameNative shelf with nine PC games above; below, PARANORMASIGHT's reading figures and Continue"></p>
+
+To list your GameNative games by themselves and start them directly:
+
+1. In GameNative, open Settings › Interface › **Frontend Sync**, turn it on and choose a folder
+   (a new one, such as `Games/GameNative`).
+2. In Furoshiki, choose that same folder: setup asks for it, and Settings has
+   *Add GameNative folder*.
+
+The games then stand on a GameNative shelf of their own. A game of any other app is added by
+hand with **Add a game**: choose the app and give the game its name.
 
 ## Supported games
 

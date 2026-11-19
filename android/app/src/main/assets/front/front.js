@@ -84,7 +84,9 @@ const made_up = {
   labels: () => JSON.stringify(location.hash.includes('renamed') ? {'Settings/Theme': 'Colours', 'Page/Settings': 'Options'} : {}),
   askLabel(key) { say('Rename ' + key); }, setLabel() {}, copyLabels() {},
   pickActionKeys() { say('Buttons'); },
-  update: () => JSON.stringify({mine: '0.3.0', version: '0.3.1', url: 'x', newer: true}), openUpdate() {},
+  // `#…,published` shows a published build's Update row (GitHub's releases) in place of the dev line's.
+  update: () => location.hash.includes('published') ? '' : JSON.stringify({mine: '0.3.0', version: '0.3.1', url: 'x', newer: true}), openUpdate() {},
+  release: () => JSON.stringify({mine: '0.2.5', version: '0.2.6', newer: true, checked: 1}), checkRelease() {}, installRelease() {},
   consoles: () => JSON.stringify([{key: 'psp', short: 'PSP', system: 'PlayStation Portable'}, {key: 'ps2', short: 'PS2', system: 'PlayStation 2'}]),
   layer: (console, game) => JSON.stringify([
     {key: 'picture.resolution', label: 'Internal resolution', kind: 1, value: '2', shown: '2×', set: !!console, from: console ? '' : 'As each console has it', low: 1, high: 8, step: 1, choices: []},
@@ -795,16 +797,33 @@ function wideRow() {
   }];
 }
 
-/** Update: this build against the one the home server's Files page offers. */
+/**
+ * Update: a dev build against the one the home server's Files page offers (host.update, dev only);
+ * a published build against the latest release on GitHub (host.release, Updater.kt), installed here.
+ */
 function updateRow() {
   let update = null;
   try { update = JSON.parse(host.update?.() || 'null'); } catch (e) { /* none */ }
-  if (!update) return [];
+  if (!update) return releaseRow();
   const said = !update.version ? 'Unknown' : update.newer ? update.version + ' available' : 'Up to date';
   return [{
     title: 'Update', id: 'update', side: `${update.mine}  ·  ${said}`, value: update.mine, go: update.newer ? 'Download' : 'Check now',
     about: '',
     act() { if (update.newer) host.openUpdate(update.url); else { host.askServices(); say('Checking for updates…'); } },
+  }];
+}
+
+function releaseRow() {
+  let release = null;
+  try { release = JSON.parse(host.release?.() || 'null'); } catch (e) { /* none */ }
+  if (!release) return [];
+  const said = release.newer ? release.version + ' available' : release.checked ? 'Up to date' : 'Not checked yet';
+  return [{
+    title: 'Update', id: 'update', side: `${release.mine}  ·  ${said}`, value: release.mine, go: release.newer ? 'Install' : 'Check now',
+    about: '',
+    act() {
+      if (release.newer) { host.installRelease(); say('Getting the update…'); } else { host.checkRelease(); say('Checking for updates…'); }
+    },
   }];
 }
 

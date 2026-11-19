@@ -452,6 +452,12 @@ class HomeActivity : AppCompatActivity() {
         callPage("if (window.Front) Front.reload()")
         startNext()
         offerGettingStarted()
+        checkRelease()
+        // Back from Android's "install unknown apps" switch, turned on: the update goes on.
+        if (installWaiting && Updater.mayInstall(this)) {
+            installWaiting = false
+            installRelease()
+        }
         // Back from the scripts: the games they read are listed.
         if (scriptsOpened) {
             scriptsOpened = false
@@ -512,6 +518,59 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun callPage(script: String) = runOnUiThread { page.evaluateJavascript(script, null) }
+
+    /** Set while Android's "install unknown apps" switch is open for an update. */
+    private var installWaiting = false
+    @Volatile private var updating = false
+
+    /**
+     * The in-app updater's daily look at GitHub (Updater.kt), in a published build only, never while
+     * a game plays, nothing said when offline or unanswered. A newer release is said once on the shelf.
+     * [asked]: the Settings page's *Check now*, which says what it found.
+     */
+    private fun checkRelease(asked: Boolean = false) {
+        if (!Updater.enabled) return
+        if (!asked && (!Updater.due(this) || HomeScreen.playing(this) != null)) return
+        kotlin.concurrent.thread(name = "Updater") {
+            val found = Updater.check(applicationContext)
+            val newer = found.getOrNull()
+            when {
+                asked && found.isFailure -> callPage("say('No answer from GitHub: try again when online')")
+                asked && newer == null -> callPage("say('Furoshiki is up to date')")
+                newer != null && (asked || !Updater.told(this, newer)) -> {
+                    Updater.markTold(this, newer)
+                    callPage("say(${JSONObject.quote("Furoshiki ${newer.version} is available: Settings › Update")})")
+                }
+            }
+            callPage("if (window.Front) Front.reload()")
+        }
+    }
+
+    /** The newer release, downloaded and handed to Android's installer, which asks the user. */
+    private fun installRelease() {
+        val release = Updater.available(this) ?: return callPage("say('Furoshiki is up to date')")
+        if (HomeScreen.playing(this) != null) return callPage("say('End the game in play first')")
+        if (!Updater.mayInstall(this)) {
+            installWaiting = true
+            callPage("say('Allow Furoshiki to install apps, then come back')")
+            runCatching { Updater.askToInstall(this) }.onFailure {
+                installWaiting = false
+                callPage("say('This device does not let Furoshiki install apps')")
+            }
+            return
+        }
+        if (updating) return
+        updating = true
+        kotlin.concurrent.thread(name = "Updater") {
+            runCatching {
+                Updater.install(applicationContext, release) { percent -> callPage("say(${JSONObject.quote("Downloading update… $percent%")})") }
+            }.onFailure {
+                android.util.Log.w("Updater", "update failed", it)
+                callPage("say(${JSONObject.quote("The update could not be downloaded: ${it.message ?: "no answer"}")})")
+            }
+            updating = false
+        }
+    }
 
     // ---- A second display (the Thor's lower screen): the title in hand and the keys ----
 
@@ -1093,6 +1152,16 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun typeOcrService() = runOnUiThread { typeOcr() }
 
+
+        /** A published build's update (Updater.kt): `{mine, version, newer, checked}`, or "" in any other build. */
+        @JavascriptInterface
+        fun release(): String = Updater.row(this@HomeActivity)
+
+        @JavascriptInterface
+        fun checkRelease() = runOnUiThread { this@HomeActivity.checkRelease(asked = true) }
+
+        @JavascriptInterface
+        fun installRelease() = runOnUiThread { this@HomeActivity.installRelease() }
 
         /** What the user called the rows, as `{"Page/Name": "label"}` (the desktop's program/labels.json). */
         @JavascriptInterface
