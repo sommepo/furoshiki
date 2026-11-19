@@ -74,6 +74,13 @@ class CompanionActivity : Activity() {
     private var launched = false
     private var ended = false
 
+    /**
+     * What starts the title's game itself, where its app exported it (GameNative's *Frontend
+     * Sync*, a Winlator shortcut: [FrontendExports]); null for a title added by hand, whose app
+     * opens as it would from the launcher.
+     */
+    private var launch: FrontendExports.Launch? = null
+
     private val frames get() = ScreenCapture.frames
 
     /** A device with one display: the companion and the game share it. */
@@ -91,6 +98,15 @@ class CompanionActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Asked to quit, or to make way for another game, with none running: nothing to do here.
+        if (intent.getBooleanExtra(EXTRA_QUIT, false) || intent.hasExtra(EXTRA_NEXT_PATH)) {
+            intent.getStringExtra(EXTRA_NEXT_PATH)?.let {
+                HomeScreen.setNext(this, it, intent.getStringExtra(EXTRA_NEXT_CONSOLE).orEmpty(), intent.getStringExtra(EXTRA_NEXT_GAME).orEmpty())
+            }
+            HomeScreen.setPlaying(this, null)
+            backToShelf()
+            return
+        }
         val path = intent.getStringExtra(EXTRA_PATH).orEmpty()
         val (named, activity) = AppTitles.appOf(path) ?: run {
             finish()
@@ -100,6 +116,7 @@ class CompanionActivity : Activity() {
         appActivity = activity
         gameId = intent.getStringExtra(EXTRA_GAME).orEmpty()
         title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifEmpty { gameId }
+        launch = AppTitles.launchOf(this, gameId)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         ReaderSession.start(this, gameId, title)
@@ -481,6 +498,48 @@ class CompanionActivity : Activity() {
         }
     }
 
+    /**
+     * One companion at a time (singleTask): Start again on the title in play brings its game back;
+     * another title, a console's game or *Quit game* on the shelf end this one first (the
+     * maintainer, 2026-11-19: "it's easy to accidentally start several furoshiki instances,
+     * especially after quitting gamenative", "not an obvious easy way to come out of gamenative
+     * cleanly"). The next game starts from the shelf once this process is gone, as after a game.
+     */
+    override fun onNewIntent(next: Intent) {
+        super.onNewIntent(next)
+        val quit = next.getBooleanExtra(EXTRA_QUIT, false)
+        val nextPath = next.getStringExtra(EXTRA_NEXT_PATH) ?: next.getStringExtra(EXTRA_PATH)?.takeIf { it != intent.getStringExtra(EXTRA_PATH) }
+        if (!quit && nextPath == null) {
+            // The same title: its game in front again, or the question about the screen asked again
+            // where it was turned down.
+            when {
+                launched -> frontGame()
+                !frames.capturing -> if (oneScreen && !android.provider.Settings.canDrawOverlays(this)) askLayer() else askCapture()
+            }
+            return
+        }
+        if (nextPath != null) {
+            val console = next.getStringExtra(EXTRA_NEXT_CONSOLE) ?: AppTitles.CONSOLE
+            val game = next.getStringExtra(EXTRA_NEXT_GAME) ?: next.getStringExtra(EXTRA_GAME).orEmpty()
+            HomeScreen.setNext(this, nextPath, console, game)
+        }
+        end()
+        backToShelf()
+    }
+
+    /** This process gone and the shelf in front, which starts the next game where one was asked for. */
+    private fun backToShelf() {
+        runCatching {
+            startActivity(
+                Intent(this, io.github.sommepo.furoshiki.HomeActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+                ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
+            )
+        }
+        finishAndRemoveTask()
+        window.decorView.postDelayed({ android.os.Process.killProcess(android.os.Process.myPid()) }, 300)
+    }
+
     override fun onDestroy() {
         end()
         super.onDestroy()
@@ -505,7 +564,14 @@ class CompanionActivity : Activity() {
 
     private fun askCapture() {
         val manager = getSystemService(MediaProjectionManager::class.java)
-        runCatching { startActivityForResult(manager.createScreenCaptureIntent(), ASK_CAPTURE) }
+        // The whole screen, never one app: Android 14 offers to share a single app, which would be
+        // chosen before the game's app is even open, and OCR would then see nothing of the game.
+        val ask = if (android.os.Build.VERSION.SDK_INT >= 34) {
+            manager.createScreenCaptureIntent(android.media.projection.MediaProjectionConfig.createConfigForDefaultDisplay())
+        } else {
+            manager.createScreenCaptureIntent()
+        }
+        runCatching { startActivityForResult(ask, ASK_CAPTURE) }
             .onFailure { Toast.makeText(this, getString(R.string.companion_no_capture), Toast.LENGTH_LONG).show() }
     }
 
@@ -552,26 +618,51 @@ class CompanionActivity : Activity() {
         runCatching { startActivity(intent, ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()) }
     }
 
-    /** The game's app on the main display, in front there. */
+    /**
+     * The game's app on the main display, in front there: the game itself where its title says
+     * what starts it ([launch]), otherwise the app as from the launcher (its own library, where
+     * the player picks the game).
+     */
     private fun startGame() {
         launched = true
         leaveFocusToGame()
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY)
+        val direct = launch?.let { intentOf(it) }
+        if (direct != null) {
+            val started = runCatching { startActivity(direct, options.toBundle()) }
+            if (started.isSuccess) {
+                android.util.Log.i("Furoshiki", "Companion: started ${direct.component?.flattenToShortString()} ${direct.action} itself")
+                return
+            }
+            // An app that no longer takes it (moved, updated away): its library, as by hand.
+            android.util.Log.w("Furoshiki", "Companion: the game's own start was refused (${started.exceptionOrNull()?.message}); its app instead")
+        }
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             .setComponent(ComponentName(app, appActivity))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY)
         runCatching { startActivity(intent, options.toBundle()) }
             .onFailure { Toast.makeText(this, getString(R.string.companion_no_app, app), Toast.LENGTH_LONG).show() }
+    }
+
+    /** The intent [one] says starts its game (an int extra stays an int: GameNative reads `app_id` so). */
+    private fun intentOf(one: FrontendExports.Launch): Intent {
+        val intent = Intent().setComponent(ComponentName(one.app, one.activity))
+        one.action?.let { intent.action = it }
+        for ((key, value) in one.ints) intent.putExtra(key, value)
+        for ((key, value) in one.strings) intent.putExtra(key, value)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        if (one.clearTask) intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        return intent
     }
 
     // ---- What the display says and its keys ----
 
     private fun say() {
         val what = when {
-            frames.capturing -> getString(R.string.companion_reading)
+            frames.capturing -> ""
             else -> getString(R.string.companion_allow)
         }
-        status.text = (title + "  ·  " + what).uppercase()
+        status.text = (if (what.isEmpty()) title else "$title  ·  $what").uppercase()
     }
 
     private fun showKeys() {
@@ -580,10 +671,13 @@ class CompanionActivity : Activity() {
             LowerKeys.Key(getString(R.string.companion_key_over), { over }) { toggleWay() }.takeIf { !oneScreen },
             LowerKeys.Key(getString(R.string.lower_key_line), { line }) { toggleLine() }.takeIf { !oneScreen },
             LowerKeys.Key(getString(R.string.lower_key_read)) { ocr?.readNow() },
-            LowerKeys.Key(getString(R.string.companion_key_area)) { setUpArea() },
+            // A "?" while the game still has the first guess of where its text is (the lower third).
+            LowerKeys.Key(getString(R.string.companion_key_area) + if (ocr?.areaSet == false) " ?" else "") { setUpArea() },
             LowerKeys.Key(getString(R.string.lower_key_stats)) { ReaderSession.toggleStatsPaused() },
             LowerKeys.Key(getString(R.string.lower_key_log), { backlog != null }) { showBacklog(backlog == null) },
-            LowerKeys.Key(getString(R.string.companion_key_game)) { startGame() },
+            // A game started by itself is not started again (GameNative would be asked to launch
+            // it a second time): its app is brought to the front.
+            LowerKeys.Key(getString(R.string.companion_key_game)) { if (launched && launch != null) frontGame() else startGame() },
             LowerKeys.Key(getString(R.string.companion_key_end)) { finish() },
         ).filterNotNull() else listOf(
             LowerKeys.Key(getString(R.string.companion_key_allow)) { if (oneScreen && !android.provider.Settings.canDrawOverlays(this)) askLayer() else askCapture() },
@@ -606,7 +700,10 @@ class CompanionActivity : Activity() {
             OcrSetup(
                 this, bitmap, whole, source.game,
                 read = { areas -> source.read(bitmap, whole, areas) },
-                onSave = { source.setGame(it) },
+                onSave = {
+                    source.setGame(it)
+                    showKeys()
+                },
                 onClosed = {
                     setting = false
                     // The box took the keys: the game has them again.
@@ -620,6 +717,12 @@ class CompanionActivity : Activity() {
         const val EXTRA_PATH = "path"
         const val EXTRA_GAME = "game"
         const val EXTRA_TITLE = "title"
+        /** Quit the title in play (the shelf's *Quit game*). */
+        const val EXTRA_QUIT = "quit"
+        /** Another game asked for while this one plays: started once this one has ended. */
+        const val EXTRA_NEXT_PATH = "next_path"
+        const val EXTRA_NEXT_CONSOLE = "next_console"
+        const val EXTRA_NEXT_GAME = "next_game"
         private const val ASK_CAPTURE = 41
         private const val KEY_OVER = "companion_over"
         private const val KEY_LINE = "companion_line"

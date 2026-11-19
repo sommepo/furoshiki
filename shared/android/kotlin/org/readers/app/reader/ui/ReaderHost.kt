@@ -131,7 +131,7 @@ class ReaderHost(
                 emptyList()
             }
         ) + listOf<Pair<String, () -> Unit>>(
-            activity.getString(R.string.reader_settings) to { openSettings() },
+            activity.getString(R.string.reader_even_more_settings) to { openSettings() },
             toggle(R.string.reader_pref_screen_text, settings.screenText) to {
                 settings.preferences.edit()
                     .putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()

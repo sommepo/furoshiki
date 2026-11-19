@@ -35,6 +35,13 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- The PC game apps whose exported games start at once (companion/FrontendExports). -->
+        <package android:name="app.gamenative" />
+        <package android:name="app.gamenative.gold" />
+        <package android:name="com.winlator.cmod" />
+        <package android:name="com.winlator" />
+        <package android:name="com.cmodded.winlator" />
+        <package android:name="com.winnative.cmod" />
         <package android:name="com.ichi2.anki" />
         <provider android:authorities="com.ichi2.anki.flashcards" />
     </queries>
@@ -553,13 +560,21 @@
             android:theme="@style/Theme.Furoshiki.Game" />
 
         <service android:name=".AppSetupService" android:process=":game" android:exported="false" />
+        <!-- Add a game's name, typed on the second display of a device with two (AddTitleActivity). -->
+        <activity
+            android:name=".AddTitleActivity"
+            android:taskAffinity="${applicationId}.addtitle"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize"
+            android:theme="@style/Theme.Furoshiki.Game" />
         <!-- Another app's game, read on the second display while that app plays it on the main one. -->
         <activity
             android:name=".companion.CompanionActivity"
             android:process=":game"
             android:taskAffinity="${applicationId}.companion"
             android:exported="false"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
             android:theme="@style/Theme.Furoshiki.Game" />
         <service

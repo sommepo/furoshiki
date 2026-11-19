@@ -229,7 +229,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   opacity: 0; pointer-events: none; transition: opacity .18s;
 }
 #say.on { opacity: 1; }
-#scan { position: fixed; right: calc(40 * var(--s)); bottom: calc(64 * var(--s)); font: calc(10.5 * var(--s)) var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+#scan {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(26 * var(--s)); z-index: 3;
+  padding: calc(10 * var(--s)) calc(22 * var(--s)); background: var(--raised); border: 1px solid var(--accent);
+  font: calc(12 * var(--s)) var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
+  animation: breathe 1.6s ease-in-out infinite;
+}
 #scan:empty { display: none; }
 
 /* ---- A screen held upright: the row in hand above, the rows under it ---- */
@@ -726,3 +731,8 @@ body.lower #add-game:active { transform: scale(.97); }
  * page's tab is. A or left takes the rows. */
 body.rail #main:not(.shelf) .row.on::before { opacity: .25; animation: none; }
 body.rail #main:not(.shelf) .row.on, body.rail #main:not(.shelf) .row.on .no, body.rail #main:not(.shelf) .row.on .side { color: inherit; }
+body.lower:not(.away) #status { display: none; }
+
+/* What a choice is about, under its title (the setup's steps). */
+#pick-note { white-space: pre-line; margin: 0; padding: calc(14 * var(--s)) calc(18 * var(--s)); font: 500 calc(14 * var(--s))/1.45 var(--text); color: var(--ink); border-bottom: 1px solid var(--rule); max-width: calc(620 * var(--s)); }
+#pick-note:empty { display: none; }

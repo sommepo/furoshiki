@@ -11,6 +11,7 @@ import android.util.Log
 import io.github.sommepo.furoshiki.reader.Console
 import io.github.sommepo.furoshiki.reader.ReaderCatalog
 import io.github.sommepo.furoshiki.reader.ReaderNative
+import io.github.sommepo.furoshiki.reader.ScriptStore
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
@@ -57,6 +58,27 @@ class ScanService : Service() {
         return START_NOT_STICKY
     }
 
+    /** The published scripts of [ids] that the device has not got, fetched and installed; quiet without a network. */
+    private fun installScripts(ids: Set<String>) {
+        val index = ScriptStore.DEFAULT_INDEX_URL
+        val missing = ids - ReaderCatalog.games(this).map { it.titleId }.toSet()
+        if (index.isEmpty() || missing.isEmpty()) return
+        runCatching {
+            val folder = ScriptStore.Folder(File(getExternalFilesDir(null), ReaderNative.PROFILE_USER_DIR))
+            for (entry in ScriptStore.parseIndex(ScriptStore.fetcher(index))) {
+                if (entry.id !in missing || entry.api > ScriptStore.API) continue
+                runCatching {
+                    val files = (listOf(entry.script) + entry.data).associate { it.file to ScriptStore.fetcher(ScriptStore.urlOf(it.file, index)) }.toMutableMap()
+                    entry.names?.let { names ->
+                        runCatching { ScriptStore.fetcher(ScriptStore.urlOf(names.file, index)) }.getOrNull()?.let { files[names.file] = it }
+                    }
+                    folder.install(entry, files)
+                    Log.i("Furoshiki", "Script installed for ${entry.id}")
+                }.onFailure { Log.w("Furoshiki", "No script for ${entry.id}: ${it.message}") }
+            }
+        }.onFailure { Log.w("Furoshiki", "The script list could not be read: ${it.message}") }
+    }
+
     private fun scan(key: String) {
         val file = Places.CORES[key] ?: return
         ReaderNative.appContext = applicationContext
@@ -77,10 +99,20 @@ class ScanService : Service() {
         val info = JSONObject(about)
         val typesList = info.getJSONArray("types")
         val types = List(typesList.length()) { typesList.getString(it) }.toSet()
-        val titles = ReaderCatalog.games(this).associate { it.titleId to it.title }
         val found = JSONArray()
         val seen = HashSet<String>()
-        val all = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, false)
+        val all = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, true)
+        // What each file is, first: a game found whose script is on the published list and not on
+        // the device gets it now (a new user, 2026-11-19: every supported game stood with a "?",
+        // as a published build bundles no scripts and nothing said to fetch them).
+        val saidOf = HashMap<String, Array<String>?>()
+        for (folder in Places.gameFolders(this)) {
+            folder.walkTopDown().maxDepth(4)
+                .filter { it.isFile && it.extension.lowercase() in types && it.path !in saidOf }
+                .forEach { saidOf[it.path] = GameNative.identify(it.path) }
+        }
+        installScripts(saidOf.values.mapNotNull { it?.getOrNull(0) }.toSet())
+        val titles = ReaderCatalog.games(this).associate { it.titleId to it.title }
         for (folder in Places.gameFolders(this)) {
             folder.walkTopDown().maxDepth(4)
                 .filter { it.isFile && it.extension.lowercase() in types && seen.add(it.path) }
@@ -90,7 +122,7 @@ class ScanService : Service() {
                         !File(it.parentFile, it.nameWithoutExtension + ".cue").isFile
                 }
                 .forEach { game ->
-                    val said = GameNative.identify(game.path) ?: return@forEach
+                    val said = saidOf[game.path] ?: return@forEach
                     // Games with a script, under its title; with "all games" (the Settings page's
                     // row) the others too, under what the core says they are called.
                     val scripted = titles[said[0]]

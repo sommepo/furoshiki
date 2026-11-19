@@ -49,7 +49,7 @@
     <string name="game_menu_lower_keys_off">Hide buttons on second screen</string>
     <string name="game_menu_lower_keys_next">Applies next time you start the game</string>
     <string name="lower_key_pause">Pause</string>
-    <string name="lower_key_stats">Pause timer</string>
+    <string name="lower_key_stats">Pause stats</string>
     <string name="lower_key_card">Card</string>
     <string name="lower_key_log">Log</string>
     <string name="lower_key_line">Line</string>

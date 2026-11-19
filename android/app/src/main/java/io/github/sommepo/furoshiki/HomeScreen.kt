@@ -74,7 +74,10 @@ object HomeScreen {
     /** Called in the game's process as a game starts, and with null as it ends. */
     fun setPlaying(context: Context, path: String?, console: String = "", game: String = "") {
         runCatching {
-            if (path == null) playingFile(context).delete() else playingFile(context).writeText(game(path, console, game))
+            // With the process that plays it: the game's process also runs other work (the first
+            // start's setup, AppSetupService), so its being there does not say a game is.
+            if (path == null) playingFile(context).delete()
+            else playingFile(context).writeText(JSONObject(game(path, console, game)).put("pid", android.os.Process.myPid()).toString())
         }
     }
 
@@ -88,11 +91,16 @@ object HomeScreen {
     fun playing(context: Context): JSONObject? {
         val file = playingFile(context)
         if (!file.isFile) return null
-        if (!gameProcess(context)) {
-            file.delete() // it ended without saying so
+        val kept = runCatching { JSONObject(file.readText()) }.getOrNull()
+        val pid = kept?.optInt("pid", 0) ?: 0
+        val running = context.getSystemService(ActivityManager::class.java).runningAppProcesses.orEmpty()
+            .any { it.processName == context.packageName + ":game" && it.pid == pid }
+        if (kept == null || !running) {
+            // It ended without saying so (a user's "is running" for a game long gone, 2026-11-19).
+            file.delete()
             return null
         }
-        return runCatching { JSONObject(file.readText()) }.getOrNull()
+        return kept
     }
 
     /** The game to start once the one in play has ended: written by the game's process as it leaves for it. */

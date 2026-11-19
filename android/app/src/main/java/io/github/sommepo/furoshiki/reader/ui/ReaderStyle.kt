@@ -35,7 +35,9 @@ object ReaderStyle {
     const val TEXT_DIM = 0xFF8A93B5.toInt()
     const val TEXT_REREAD = 0xFF8A93B5.toInt()
     const val ACCENT = 0xFFD9472B.toInt()
-    const val HIGHLIGHT = 0x66D9472B
+    // The word's mark (its outline over the game, its tint in the line) stays yellow whatever the
+    // look (the maintainer, 2026-11-17: "outline colour should be yellow always").
+    const val HIGHLIGHT = 0x66FFD54F
 
     /** The button boxes of the popup: a shade lighter than the popup, and opaque. */
     const val BOX = 0xFF2A313B.toInt()

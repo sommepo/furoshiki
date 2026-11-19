@@ -21,6 +21,12 @@ class FuroshikiApp : Application() {
             // The page's process has a WebView, and two processes cannot share its data folder:
             // the dictionary popup is a web page in this one.
             WebView.setDataDirectorySuffix("game")
+            // The native library before anything of the reader's: a screen here that is no game's
+            // (another app's companion) calls ReaderNative first, and only touching GameNative loads
+            // it. On the dev line save sync below touched it; a published build has no save sync,
+            // and the companion died at its first call there (a public user's Thor, 2026-11-19:
+            // UnsatisfiedLinkError, ReaderNative.setAudioCapture).
+            GameNative.ensureLoaded()
             SharedDictionaries.plainFolder = { Places.dictionaryFolder(it) }
             AppSetup.seed(this)
             thread(name = "AppSetup") { AppSetup.anki(this) }

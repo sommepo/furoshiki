@@ -23,6 +23,15 @@
         app:title="@string/reader_pref_popup_scale"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
+        app:key="reader_hover_delay_ms"
+        app:defaultValue="100"
+        app:min="0"
+        android:max="700"
+        app:seekBarIncrement="50"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_hover_delay"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
         app:key="reader_popup_height"
         app:defaultValue="27"
         app:min="10"

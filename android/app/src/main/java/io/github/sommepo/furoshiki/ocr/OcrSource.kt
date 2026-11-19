@@ -65,6 +65,9 @@ class OcrSource(
     /** Whether the game has a record of its own: else it is read by OCR when no script reads it. */
     private var recorded = gameId.isNotEmpty() && gameId.trim().uppercase() in areas.games()
 
+    /** Whether the game's text areas were set by the user (else the first guess: the lower third). */
+    val areaSet: Boolean get() = recorded
+
     /** Whether a script was found for the game, once the session has said. */
     private var scripted: Boolean? = null
 

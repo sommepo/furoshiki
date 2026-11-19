@@ -16,6 +16,9 @@ object GameNative {
         System.loadLibrary("furoshiki")
     }
 
+    /** Loads the library (this object's init), for a process whose first native call is ReaderNative's. */
+    fun ensureLoaded() = Unit
+
     /** Loads and starts the core in [corePath] with these folders; what went wrong, or null. */
     external fun open(corePath: String, data: String, saves: String, states: String, system: String): String?
 

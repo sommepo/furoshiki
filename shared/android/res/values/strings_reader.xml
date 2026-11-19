@@ -55,6 +55,7 @@
     <string name="reader_scripts_not_installed">Couldn\'t install script for %1$s: %2$s</string>
     <string name="reader_scripts_installed_files">Installed: %1$s.</string>
     <string name="reader_settings">Settings</string>
+    <string name="reader_even_more_settings">Even more settings</string>
     <string name="reader_dictionaries">Dictionaries</string>
     <string name="reader_anki_setup">Anki setup</string>
     <string name="reader_pause_tracking">Pause statistics</string>

@@ -6,7 +6,7 @@
 OCR and texthooking with overlay on Android and Windows.</p>
 
 <p align="center"><b>Latest releases:</b>
-<a href="../../releases/download/v0.2.5/Furoshiki-0.2.5-android.apk">Android 0.2.5</a> ·
+<a href="../../releases/download/v0.2.6/Furoshiki-0.2.6-android.apk">Android 0.2.6</a> ·
 <a href="../../releases/download/v0.2.3/Furoshiki-0.2.3-windows.zip">Windows 0.2.3</a> ·
 <a href="../../releases/download/v0.2.3/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>

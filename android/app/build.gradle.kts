@@ -33,8 +33,10 @@ android {
         applicationId = "io.github.sommepo.furoshiki"
         minSdk = 29
         targetSdk = 35
-        versionCode = 82
-        versionName = "0.5.7"
+        versionCode = 83
+        // A release is called what its tag is (-PFUROSHIKI_VERSION, furoshiki-release.sh): an
+        // updater that compares the two (Obtainium) then sees the release as installed.
+        versionName = (project.findProperty("FUROSHIKI_VERSION") as String?) ?: "0.5.8"
         // False in a published build (-PreaderSaveSync=false): no save sync, and no statistics
         // sent to its service.
         buildConfigField("boolean", "READER_SAVE_SYNC",

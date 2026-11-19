@@ -20,6 +20,8 @@ const LOOKS = {
   // A title another app plays (Add game, read as its companion): the system's key stays
   // "Another app" (AppTitles.SYSTEM); the third is the name the page shows for it.
   'Another app': ['Other apps', '#5d6b5a', 'Other apps'],
+  // GameNative's games on a shelf of their own, not among the other apps' (the maintainer, 2026-11-19).
+  'GameNative': ['GameNative', '#4a6b7a', 'GameNative'],
 };
 
 const made_up = {
@@ -166,6 +168,22 @@ const LOWER = location.hash.startsWith('#lower');
  * title in hand above its shelf), tall (a phone, a closed Fold). With a second display (the
  * Thor's lower screen) the first is all shelf and the second has the title and the keys.
  */
+/** Text sizes offered, and the one chosen (kept in the page's storage; the second display is told it). */
+const TEXT_SIZES = [['Small', .9], ['Medium', 1.1], ['Large', 1.3], ['Extra large', 1.5]];
+function textSizeIndex() {
+  if (LOWER && window.lowerTextSize !== undefined) return window.lowerTextSize;
+  let kept = 1;
+  try { const said = localStorage.getItem('text-size'); if (said !== null) kept = Number(said); } catch (e) { /* medium */ }
+  return kept >= 0 && kept < TEXT_SIZES.length ? kept : 1;
+}
+const textSize = () => TEXT_SIZES[textSizeIndex()][1];
+function setTextSize(index) {
+  const next = Math.max(0, Math.min(TEXT_SIZES.length - 1, index));
+  try { localStorage.setItem('text-size', String(next)); } catch (e) { /* this run */ }
+  fit();
+  rebuild();
+}
+
 function fit() {
   const width = innerWidth, height = innerHeight, shape = width / height;
   const body = document.body.classList;
@@ -178,7 +196,10 @@ function fit() {
   else if (shape >= 1.45) scale = Math.min(height / 720, width / 1180);
   else if (shape >= .8) scale = Math.min(width / 860, height / 760);
   else scale = width / 560;
-  document.documentElement.style.setProperty('--s', Math.max(.45, Math.min(scale, 1.6)).toFixed(3) + 'px');
+  // The user's text size (Settings › Display), and a little more on a top display read from a
+  // hand's length (a new user, 2026-11-19: "all of the text is too small ... top screen especially").
+  scale *= textSize() * (!LOWER && host.twoScreens?.() ? 1.12 : 1);
+  document.documentElement.style.setProperty('--s', Math.max(.45, Math.min(scale, 2.6)).toFixed(3) + 'px');
 }
 
 function tick() {
@@ -364,7 +385,12 @@ function gameRows(games) {
       goTo(state.pages.findIndex(one => one.key === 'consoles'));
     },
     // A title another app plays: which app, and a way off the shelf instead of a console's settings.
-    ...(game.console === 'app' ? {
+    ...(game.console === 'app' ? (state.playing?.path === game.path && host.quitPlaying ? {
+      // In play: the clean way out, the companion ended (another app's game has no menu of ours).
+      about: 'Plays in ' + (game.via || 'another app'),
+      also: 'Quit game',
+      alsoAct() { host.quitPlaying(); say('Quitting ' + game.title); },
+    } : {
       about: 'Plays in ' + (game.via || 'another app'),
       also: 'Remove from library',
       alsoAct() {
@@ -372,7 +398,7 @@ function gameRows(games) {
           if (at === 0) host.forgetTitle?.(game.id);
         });
       },
-    } : {}),
+    }) : {}),
   }));
 }
 
@@ -464,13 +490,21 @@ function systemPage() {
 
 function libraryWithoutGames() {
   const access = host.hasAccess();
+  // A new library: asked once where the games are, not left to guess what a scan looks through
+  // (a new user, 2026-11-19: "what exactly is it scanning? shouldn't we ask for a folder first?").
   return {
     key: 'library', tab: 'Library', head: 'Library', sub: '', art: '', fill: 8,
     rows: access ? [{
+      title: 'Add a games folder',
+      about: 'Any folder with your games',
+      go: 'Add',
+      act() { host.addFolder(); },
+      id: 'add',
+    }, {
       title: 'Scan for games',
-      about: '',
+      about: 'Your folders, plus Games and Reader Games on this device and its card',
       go: 'Scan',
-      act() { host.scan(); say('Scanning for games…'); },
+      act() { host.scan(); },
       id: 'scan',
     }, ...addTitleRows()] : [{
       title: 'Allow file access',
@@ -584,6 +618,48 @@ function consolesPage() {
 
 // ---- A choice among values, over the page ----
 
+/**
+ * Setup, asked once (the maintainer, 2026-11-19: "ask the user for their game folders as a part of
+ * the setup, also their gamenative folder and prompt them on how to setup frontend sync ... prompt
+ * for existing users on update from old build"): where the games are, then GameNative's exported
+ * games. Kept as the step reached (the page's storage), so a build that has this for the first
+ * time asks, new library or old; a folder chosen comes back through Front.reload, which goes on.
+ */
+const SETUP_STEPS = 2;
+function setupStep() {
+  try { return Number(localStorage.getItem('setup-step') || 0); } catch (e) { return SETUP_STEPS; }
+}
+function runSetup() {
+  if (LOWER || state.picking || !host.hasAccess?.() || !host.addFolder) return;
+  const step = setupStep();
+  // A step put away with Back is asked again at the next start, not at the next scan's news.
+  if (step >= SETUP_STEPS || state.setupAsked === step) return;
+  state.setupAsked = step;
+  const next = () => { try { localStorage.setItem('setup-step', String(step + 1)); } catch (e) { /* this run */ } };
+  if (step === 0) {
+    // A folder for each console is as good as one for all (the maintainer, 2026-11-19: "if their
+    // game folders sit at root per console"; the system's chooser refuses a card's root): after a
+    // folder, the folders so far and the question again, until Done.
+    const folders = JSON.parse(host.folders?.() || '[]');
+    const adding = !!state.setupAdding;
+    const labels = adding ? ['Add another folder', 'Done']
+      : ['Choose a games folder', folders.length ? 'Keep my folders' : 'Use the Games folder', 'Skip'];
+    const note = adding ? folders.join('\n')
+      : 'Furoshiki looks in the folders you choose, and in Games and Reader Games on this device and its card. If each console has a folder of its own, add them one after another.';
+    pick('Setup  ·  1 of 2  ·  Your games', labels, adding ? 1 : 0, at => {
+      if (at === 0) { state.setupAdding = true; state.setupAsked = -1; host.addFolder(); return; }
+      next();
+      if (!adding && at === 1) host.scan();
+      setTimeout(runSetup, 350);
+    }, note);
+  } else {
+    pick('Setup  ·  2 of 2  ·  GameNative', ['Choose the GameNative folder', 'Not now'], 0, at => {
+      next();
+      if (at === 0) host.addFolder();
+    }, 'To list your GameNative games here and start them directly: in GameNative open Settings › Interface › Frontend Sync, turn it on and choose a folder (a new one such as Games/GameNative). Then choose that same folder here.');
+  }
+}
+
 function closePick() {
   state.picking = null;
   $('pick').hidden = true;
@@ -606,9 +682,10 @@ function drawPick() {
   list.children[state.picking.at]?.scrollIntoView({block: 'nearest'});
 }
 
-function pick(title, labels, at, chosen) {
+function pick(title, labels, at, chosen, note) {
   state.picking = {labels, at: Math.max(at, 0), chosen};
   $('pick-title').textContent = title;
+  $('pick-note').textContent = note || '';
   $('pick').hidden = false;
   drawPick();
 }
@@ -835,6 +912,11 @@ function settingsPage() {
       },
     },
     {title: 'Icon', side: host.icon(), about: '', value: host.icon(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
+    {
+      title: 'Text size', side: TEXT_SIZES[textSizeIndex()][0], about: '', value: TEXT_SIZES[textSizeIndex()][0], go: 'Change', id: 'text-size',
+      act() { pick('Text size', TEXT_SIZES.map(one => one[0]), textSizeIndex(), at => setTextSize(at)); },
+      step(direction) { setTextSize(textSizeIndex() + direction); },
+    },
     // The reader's settings, by the pages Furoshiki has on a computer; each shows its few most
     // changed and keeps the rest behind More.
     open('Reading', 'Text panel, furigana, stats in the corner', 'settings:READING'),
@@ -884,7 +966,7 @@ function settingsPage() {
     {
       title: 'Show games', side: host.allGames?.() ? 'All games' : 'With scripts only', value: host.allGames?.() ? 'All' : 'Scripted',
       about: '', go: 'Change', id: 'all',
-      act() { host.setAllGames?.(!host.allGames?.()); say('Scanning for games…'); rebuild(); },
+      act() { host.setAllGames?.(!host.allGames?.()); rebuild(); },
     },
     {
       title: 'Game scripts', about: '',
@@ -897,11 +979,17 @@ function settingsPage() {
       },
     },
     {title: 'Add folder', about: '', go: 'Add', act() { host.addFolder(); }, id: 'add'},
+    // GameNative's Frontend Sync (and Winlator's shortcuts) leave a file a game in a folder: that
+    // folder added, each game is on the shelf and Start plays it at once (companion/FrontendExports).
+    ...(host.addTitle ? [{
+      title: 'Add GameNative folder', about: 'The folder its Frontend Sync exports to', go: 'Add',
+      act() { host.addFolder(); }, id: 'add-exports',
+    }] : []),
     ...folders.map(folder => ({
       title: folder, about: 'Game folder', go: 'Remove', id: folder,
       act() { host.removeFolder(folder); Front.reload(); },
     })),
-    {title: 'Scan for games', about: '', go: 'Scan', act() { host.scan(); say('Scanning for games…'); }, id: 'scan'},
+    {title: 'Scan for games', about: '', go: 'Scan', act() { host.scan(); }, id: 'scan'},
   ];
   return groupedSettings(rows.map(row => ({file: '設定', ...row})));
 }
@@ -912,11 +1000,11 @@ function settingsPage() {
  * rows, and its first row or B goes back. A row is put in its group by its id.
  */
 const SETTING_GROUPS = [
-  {key: 'library', title: 'Library', ids: ['add-title', 'find', 'order', 'all', 'scripts', 'add', 'scan']},
+  {key: 'library', title: 'Library', ids: ['add-title', 'find', 'order', 'all', 'scripts', 'add', 'add-exports', 'scan']},
   {key: 'reading', title: 'Reading', ids: ['settings:READING', 'settings:POPUP', 'dictionaries', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
   {key: 'cards', title: 'Cards', ids: ['settings:CARDS', 'tracker']},
   {key: 'controls', title: 'Controls', ids: ['controller', 'action-keys']},
-  {key: 'display', title: 'Display', ids: ['look', 'icon', 'wide', 'crt', 'home']},
+  {key: 'display', title: 'Display', ids: ['look', 'icon', 'text-size', 'wide', 'crt', 'home']},
   {key: 'accounts', title: 'Accounts', ids: ['settings:SAVE_SYNC', 'services', 'achievements', 'update']},
 ];
 
@@ -1307,6 +1395,7 @@ function mirror() {
   const row = current.rows[chosenIndex()];
   const theme = state.themes[state.theme] || {};
   host.lower(JSON.stringify({
+    size: textSizeIndex(),
     theme: Object.fromEntries(['ground', 'raised', 'ink', 'muted', 'accent', 'rule'].map(key => [key, theme[key]])),
     head: current.shelf ? current.sub : current.head, shelf: !!current.shelf,
     file: $('file').textContent, title: row?.title || '', sub: row?.about || '', value: current.shelf ? '' : row?.value || '',
@@ -1399,6 +1488,7 @@ const Front = {
   reload() {
     try {
       state.games = JSON.parse(host.games());
+      for (const game of state.games) if (game.console === 'app' && /gamenative/i.test(game.path + ' ' + (game.via || ''))) game.system = 'GameNative';
       state.stats = JSON.parse(host.stats());
       if (!Object.keys(state.titles).length) state.titles = JSON.parse(host.titles?.() || '{}');
       state.tracker = JSON.parse(host.tracker?.() || 'null');
@@ -1408,6 +1498,7 @@ const Front = {
       console.error(error);
     }
     readStatus();
+    setTimeout(runSetup, 600);
     rebuild();
   },
   /** A title just added (Add a title): on its shelf, in hand. */
@@ -1434,6 +1525,10 @@ const Front = {
       // No game in play: the shelf that was looked at last.
       goTo(Math.max(state.pages.findIndex(one => one.key === state.lastShelf), 0));
     }
+  },
+  /** A scan under way: what it is looking through now ("PSP  ·  2 of 9"), or '' once it is done. */
+  scanning(text) {
+    $('scan').textContent = text ? 'Scanning  ·  ' + text : '';
   },
   /** What a finger did on the second display's page. */
   remote(what) {
@@ -1582,6 +1677,8 @@ const Lower = {
     Lower.status();
   },
   status() {
+    // The second display's page beside the shelf (a Presentation) has no device figures to give.
+    if (!host.status) return;
     let status = null;
     try { status = JSON.parse(host.status()); } catch (error) { console.error(error); }
     if (!status) return;
@@ -1592,6 +1689,10 @@ const Lower = {
   },
   show(json) {
     const shown = JSON.parse(json);
+    if (shown.size !== undefined && shown.size !== window.lowerTextSize) {
+      window.lowerTextSize = shown.size;
+      fit();
+    }
     // Another title or row on the first display: this card comes in from the side it lies on.
     const moved = Lower.was && (Lower.was.title !== shown.title || Lower.was.page !== shown.page);
     if (moved) {

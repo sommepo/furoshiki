@@ -52,6 +52,8 @@ class HomeActivity : AppCompatActivity() {
 
     private val scanned = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            // Add a game's name was asked on the second display (AddTitleActivity): its page is back.
+            if (intent.getBooleanExtra(AddTitleActivity.EXTRA_DONE, false)) runCatching { lower?.show() }
             callPage("Front.reload()")
             if (intent.getBooleanExtra(ScanService.EXTRA_LISTED, false)) return
             val key = intent.getStringExtra(ScanService.EXTRA_CONSOLE).orEmpty()
@@ -265,6 +267,21 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startGame(path: String, console: String, game: String) {
+        // Another app's game in play (its companion in the game's process): the companion is told
+        // first, and starts the next game itself once it has ended, as a game's process does.
+        val playing = HomeScreen.playing(this)
+        if (playing?.optString("console") == io.github.sommepo.furoshiki.companion.AppTitles.CONSOLE &&
+            playing.optString("path") != path && HomeScreen.gameProcess(this)
+        ) {
+            startActivity(
+                Intent(this, io.github.sommepo.furoshiki.companion.CompanionActivity::class.java)
+                    .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_NEXT_PATH, path)
+                    .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_NEXT_CONSOLE, console)
+                    .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_NEXT_GAME, game)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            return
+        }
         if (console == io.github.sommepo.furoshiki.companion.AppTitles.CONSOLE) {
             startCompanion(path, game)
             return
@@ -284,10 +301,22 @@ class HomeActivity : AppCompatActivity() {
      * with one display, on this one, over the game.
      */
     private fun startCompanion(path: String, game: String) {
+        // Only a second display one can see: switched on, not private, not one named like the
+        // built-in screen (the reader's own choice, SecondScreen). Phones list virtual displays
+        // too (casting, a desktop mode, a recorder), and the companion opened on one of those
+        // showed nothing at all: no question about the screen, Start seemed to do nothing (a
+        // user's report, 2026-11-19).
+        val manager = getSystemService(android.hardware.display.DisplayManager::class.java)
+        val main = manager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
         val lower = LowerActivity.live?.display?.displayId
-            ?: getSystemService(android.hardware.display.DisplayManager::class.java)
-                .getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
-                .firstOrNull { it.displayId != android.view.Display.DEFAULT_DISPLAY }?.displayId
+            ?: manager.getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+                .firstOrNull {
+                    it.displayId != android.view.Display.DEFAULT_DISPLAY && it.isValid &&
+                        it.state == android.view.Display.STATE_ON &&
+                        it.flags and android.view.Display.FLAG_PRIVATE == 0 &&
+                        it.flags and android.view.Display.FLAG_PRESENTATION != 0 &&
+                        it.name != main?.name
+                }?.displayId
         val list = io.github.sommepo.furoshiki.companion.AppTitles.list(this)
         val title = (0 until list.length()).map { list.getJSONObject(it) }.firstOrNull { it.optString("id") == game }?.optString("title").orEmpty()
         val intent = Intent(this, io.github.sommepo.furoshiki.companion.CompanionActivity::class.java)
@@ -295,14 +324,42 @@ class HomeActivity : AppCompatActivity() {
             .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_GAME, game)
             .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_TITLE, title)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        // A device with one display: the companion on it, over the game (CompanionActivity).
+        // A device with one display: the companion on it, over the game (CompanionActivity). A
+        // display that will not take it: this one instead.
+        android.util.Log.i("Furoshiki", "Companion: starting on display ${lower ?: "main"}")
         if (lower == null) startActivity(intent)
-        else startActivity(intent, android.app.ActivityOptions.makeBasic().setLaunchDisplayId(lower).toBundle())
+        else runCatching { startActivity(intent, android.app.ActivityOptions.makeBasic().setLaunchDisplayId(lower).toBundle()) }
+            .onFailure {
+                android.util.Log.w("Furoshiki", "Companion: display $lower refused it (${it.message}); on the main display")
+                startActivity(intent)
+            }
     }
 
     /** *Add a title*: its name, for a game [label] ([app], from its [activity]) plays. */
     private fun askTitle(app: String, activity: String, label: String) {
-        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+        // On the second display where there is one: the keyboard comes up where the box is, and a
+        // handheld's lower display is the one typed on (a new user, 2026-11-19: "when doing add
+        // game you should be able to type on the bottom screen"). A display that will not show
+        // it: this one.
+        val display = lower?.takeIf { it.isShowing }?.display
+        val asked = display != null && runCatching {
+            // The page there steps aside meanwhile: its window lies over any screen on that display.
+            lower?.hide()
+            startActivity(
+                Intent(this, AddTitleActivity::class.java).putExtra(AddTitleActivity.EXTRA_APP, app)
+                    .putExtra(AddTitleActivity.EXTRA_ACTIVITY, activity).putExtra(AddTitleActivity.EXTRA_LABEL, label)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                android.app.ActivityOptions.makeBasic().setLaunchDisplayId(display!!.displayId).toBundle()
+            )
+        }.isSuccess
+        if (!asked) {
+            lower?.show()
+            askTitleOn(this, app, activity, label)
+        }
+    }
+
+    private fun askTitleOn(base: Context, app: String, activity: String, label: String) {
+        val themed = android.view.ContextThemeWrapper(base, R.style.Theme_Reader)
         val name = android.widget.EditText(themed).apply {
             isSingleLine = true
             inputType = android.text.InputType.TYPE_CLASS_TEXT
@@ -312,7 +369,7 @@ class HomeActivity : AppCompatActivity() {
             setPadding(pad, pad / 2, pad, 0)
             addView(name)
         }
-        androidx.appcompat.app.AlertDialog.Builder(themed)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(themed)
             .setTitle(R.string.add_title_name)
             .setMessage(label)
             .setView(box)
@@ -324,7 +381,9 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton(R.string.add_title_cancel, null)
-            .show()
+            .create()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        dialog.show()
         name.requestFocus()
     }
 
@@ -573,6 +632,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun scan() {
         if (!hasAccess()) return
+        importExports()
         if (Scans.inFlight != null) {
             Scans.again = true
             return
@@ -588,8 +648,27 @@ class HomeActivity : AppCompatActivity() {
         scanNext()
     }
 
+    /**
+     * The games PC game apps exported for launchers (GameNative's *Frontend Sync*, Winlator's
+     * shortcuts) in the game folders, as titles that start their game itself
+     * (companion/FrontendExports); the shelf again where they changed.
+     */
+    private fun importExports() {
+        val context = applicationContext
+        Thread({
+            val changed = runCatching {
+                io.github.sommepo.furoshiki.companion.AppTitles.importExports(context, Places.gameFolders(context))
+            }.onFailure { android.util.Log.w("Furoshiki", "Exported games: ${it.message}") }.getOrDefault(false)
+            if (changed) runOnUiThread { callPage("Front.reload()") }
+        }, "exported-games").start()
+    }
+
     private fun scanNext() {
         val key = Scans.queue.removeFirstOrNull()
+        // What the scan is at, on the page (a new user, 2026-11-19: "some popup on screen showing
+        // the scan is in progress").
+        val total = Places.CORES.size
+        callPage("Front.scanning(" + org.json.JSONObject.quote(if (key == null) "" else "${key.uppercase()}  ·  ${total - Scans.queue.size} of $total") + ")")
         if (key == null) {
             Scans.owner = null
             if (Scans.again) {
@@ -693,14 +772,22 @@ class HomeActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_DPAD_RIGHT -> "ArrowRight"
             else -> return super.dispatchKeyEvent(event)
         }
-        if (event.action == KeyEvent.ACTION_DOWN) callPage("Front.key('$name')")
+        // A held A or Start is one press: its repeats started a game again and again (a companion
+        // that died at once was started some 150 times in a public user's log, 2026-11-19).
+        val once = name == "Enter" || name == "Play" || name == "Other" || name == "Escape"
+        if (event.action == KeyEvent.ACTION_DOWN && !(once && event.repeatCount > 0)) callPage("Front.key('$name')")
         return true
     }
 
     private val pickFolder = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
     ) { tree: Uri? ->
-        val path = tree?.let { Places.pathOfTree(DocumentsContract.getTreeDocumentId(it)) } ?: return@registerForActivityResult
+        val path = tree?.let { Places.pathOfTree(DocumentsContract.getTreeDocumentId(it)) }
+        if (path == null) {
+            // Nothing chosen: the page goes on all the same (its setup's next step).
+            callPage("Front.reload()")
+            return@registerForActivityResult
+        }
         Places.setFolders(this, (Places.folders(this) + path).distinct())
         scan()
         callPage("Front.reload()")
@@ -825,6 +912,21 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun play(path: String, console: String, game: String) = runOnUiThread { startGame(path, console, game) }
 
+        /** Another app's game in play: its companion ended, back to the shelf. */
+        @JavascriptInterface
+        fun quitPlaying() = runOnUiThread {
+            if (!HomeScreen.gameProcess(this@HomeActivity)) {
+                HomeScreen.setPlaying(this@HomeActivity, null)
+                callPage("Front.reload()")
+                return@runOnUiThread
+            }
+            startActivity(
+                Intent(this@HomeActivity, io.github.sommepo.furoshiki.companion.CompanionActivity::class.java)
+                    .putExtra(io.github.sommepo.furoshiki.companion.CompanionActivity.EXTRA_QUIT, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+
         /** *Add a title*: a game [label] plays, its name asked for here. */
         @JavascriptInterface
         fun addTitle(app: String, activity: String, label: String) = runOnUiThread { askTitle(app, activity, label) }
@@ -880,7 +982,7 @@ class HomeActivity : AppCompatActivity() {
 
         /** Whether games without a script are listed too, and that changed (the folders are looked through again). */
         @JavascriptInterface
-        fun allGames(): Boolean = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, false)
+        fun allGames(): Boolean = getSharedPreferences("home", MODE_PRIVATE).getBoolean(Places.KEY_ALL_GAMES, true)
 
         @JavascriptInterface
         fun setAllGames(all: Boolean) {
