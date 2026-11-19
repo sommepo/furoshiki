@@ -1,0 +1,346 @@
+{
+ "source": {
+  "vndb": "v3770",
+  "fetched": "2026-11-19"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c515",
+   "kind": "person",
+   "name": "カイム・アストレア",
+   "reading": "カイム・アストレア",
+   "romaji": "Caim Astraea",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c514",
+   "kind": "person",
+   "name": "ユースティア・アストレア",
+   "reading": "ユースティア・アストレア",
+   "romaji": "Eustia Astraea",
+   "aliases": [
+    {
+     "text": "ティア",
+     "reading": "ティア"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c520",
+   "kind": "person",
+   "name": "フィオネ・シルヴァリア",
+   "reading": "フィオネ・シルヴァリア",
+   "romaji": "Fione Silvaria",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c524",
+   "kind": "person",
+   "name": "エリス・フローラリア",
+   "reading": "エリス・フローラリア",
+   "romaji": "Eris Floralia",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c526",
+   "kind": "person",
+   "name": "コレット・アナスタシア",
+   "reading": "コレット・アナスタシア",
+   "romaji": "Colette Anastasia",
+   "aliases": [
+    {
+     "text": "聖女 イレーヌ",
+     "reading": "せいじょ イレーヌ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c531",
+   "kind": "person",
+   "name": "リシア・ド・ノーヴァス・ユーリィ",
+   "reading": "リシア・ド・ノーヴァス・ユーリィ",
+   "romaji": "Licia de novus Yurii",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c541",
+   "kind": "person",
+   "name": "ルキウス・ディス・ミレイユ",
+   "reading": "ルキウス・ディス・ミレイユ",
+   "romaji": "Lucius dis Mireille",
+   "aliases": [
+    {
+     "text": "アイム・アストレア",
+     "reading": "アイム・アストレア"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c542",
+   "kind": "person",
+   "name": "ラヴィリア",
+   "reading": "ラヴィリア",
+   "romaji": "Lavria",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c113033",
+   "kind": "person",
+   "name": "黒羽",
+   "reading": "くろはね",
+   "romaji": "Kurohane",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c133898",
+   "kind": "person",
+   "name": "オズ",
+   "reading": "オズ",
+   "romaji": "Oz",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c43511",
+   "kind": "person",
+   "name": "ガウ・ルゲイラ",
+   "reading": "ガウ・ルゲイラ",
+   "romaji": "Gau Rugeila",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c539",
+   "kind": "person",
+   "name": "ジークフリード・グラード",
+   "reading": "ジークフリード・グラード",
+   "romaji": "Siegfried Grado",
+   "aliases": [
+    {
+     "text": "ジーク",
+     "reading": "ジーク"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c540",
+   "kind": "person",
+   "name": "メルト・ログティエ",
+   "reading": "メルト・ログティエ",
+   "romaji": "Melt Logtie",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c543",
+   "kind": "person",
+   "name": "クローディア",
+   "reading": "クローディア",
+   "romaji": "Claudia",
+   "aliases": [
+    {
+     "text": "クロ",
+     "reading": "クロ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c544",
+   "kind": "person",
+   "name": "リサ",
+   "reading": "リサ",
+   "romaji": "Lisa",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c545",
+   "kind": "person",
+   "name": "アイリス",
+   "reading": "アイリス",
+   "romaji": "Iris",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c546",
+   "kind": "person",
+   "name": "ラング・スクロープ",
+   "reading": "ラング・スクロープ",
+   "romaji": "Lang Scrope",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c547",
+   "kind": "person",
+   "name": "ギルバルト・ディス・バルシュタイン",
+   "reading": "ギルバルト・ディス・バルシュタイン",
+   "romaji": "Gilbert dis Balstein",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c548",
+   "kind": "person",
+   "name": "ヴァリアス・メイスナー",
+   "reading": "ヴァリアス・メイスナー",
+   "romaji": "Varrius Meisner",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c549",
+   "kind": "person",
+   "name": "システィナ・アイル",
+   "reading": "システィナ・アイル",
+   "romaji": "Sistina Uyl",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c550",
+   "kind": "person",
+   "name": "ナダル・アトライド",
+   "reading": "ナダル・アトライド",
+   "romaji": "Nudar Atraid",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:novus-aither",
+   "kind": "place",
+   "name": "ノーヴァス・アイテル",
+   "reading": "ノーヴァス・アイテル",
+   "romaji": "Novus Aither",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:lilium",
+   "kind": "place",
+   "name": "リリウム",
+   "reading": "リリウム",
+   "romaji": "Lilium",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "place:vinoleta",
+   "kind": "place",
+   "name": "ヴィノレタ",
+   "reading": "ヴィノレタ",
+   "romaji": "Vinoleta",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hanegari",
+   "kind": "thing",
+   "name": "羽狩り",
+   "reading": "はねがり",
+   "romaji": "Hanegari",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:hanetsuki",
+   "kind": "thing",
+   "name": "羽つき",
+   "reading": "はねつき",
+   "romaji": "Hanetsuki",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "thing:daihouraku",
+   "kind": "thing",
+   "name": "大崩落",
+   "reading": "だいほうらく",
+   "romaji": "Daihouraku",
+   "aliases": [],
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

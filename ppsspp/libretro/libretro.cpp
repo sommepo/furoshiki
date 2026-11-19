@@ -1,4 +1,5 @@
 #include "ppsspp_config.h"
+#include <chrono>
 #include <cstring>
 #include <cassert>
 #include <thread>
@@ -1614,7 +1615,9 @@ static bool g_umd_permit_seen = false;
 
 // A game that asks for its next disc (it permits a disc change, sceUmdReplacePermit: what makes
 // PPSSPP's own Swap UMD appear) is given it: Grisaia starts only from disc 1, installs from it,
-// then asks for disc 2. Once each time it asks, and only for the disc after the one in.
+// then asks for disc 2. Once each time it asks, the disc after the one in, and after the last
+// the first again: with nothing installed yet Grisaia takes disc 2's data and then asks for
+// disc 1 back, where a new install stood at "DISC1をセットして下さい" for good (2026-11-19).
 static void UmdAutoSwap()
 {
    const bool permit = getUMDReplacePermit();
@@ -1622,10 +1625,20 @@ static void UmdAutoSwap()
    g_umd_permit_seen = permit;
    if (!asked)
       return;
+   // Taking a disc in, Grisaia permits a change again a fifth of a second later, which is no
+   // request: answered, the two discs changed places for ever. A disc it does not want it asks
+   // about again after two seconds.
+   static std::chrono::steady_clock::time_point last_swap;
+   const auto now = std::chrono::steady_clock::now();
+   if (last_swap.time_since_epoch().count() != 0 && now - last_swap < std::chrono::milliseconds(1200))
+      return;
+   last_swap = now;
    {
       std::lock_guard<std::mutex> lock(g_umd_mutex);
-      const unsigned next = g_umd_in + 1;
-      if (g_umd_ejected || next >= g_umd_paths.size() || g_umd_paths[next].empty())
+      if (g_umd_ejected || g_umd_paths.size() < 2)
+         return;
+      const unsigned next = (g_umd_in + 1) % (unsigned)g_umd_paths.size();
+      if (g_umd_paths[next].empty())
          return;
       g_umd_index = next;
    }
