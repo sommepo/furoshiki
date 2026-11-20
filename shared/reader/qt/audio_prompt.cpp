@@ -92,8 +92,8 @@ AudioPrompt::AudioPrompt(QWidget* parent) : QWidget(parent, PromptFlags()) {
     drop = new QPushButton(this);
     keep->setToolTip(tr("With audio"));
     keep->setAccessibleName(tr("With audio"));
-    drop->setToolTip(tr("Without"));
-    drop->setAccessibleName(tr("Without"));
+    drop->setToolTip(tr("Without audio"));
+    drop->setAccessibleName(tr("Without audio"));
     for (QPushButton* button : {listen, keep, drop}) {
         button->setFocusPolicy(Qt::NoFocus);
         button->setCursor(Style::PointerCursor(Style::PointerSize(parent), devicePixelRatioF()));

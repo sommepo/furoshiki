@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The dictionary popup. The first 4 are shown; the rest stand behind "More"
-     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
+     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer.
+     Four sliders have a value that means "Default", "All" or "Never": the value beside the
+     slider says the word there (ReaderSettingsActivity.SectionPage). -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     app:initialExpandedChildrenCount="4">
@@ -31,6 +33,11 @@
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_hover_delay"
         app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_popup_fit"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_popup_fit"
+        app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_height"
         app:defaultValue="27"
@@ -52,7 +59,6 @@
         app:seekBarIncrement="5"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_autohide"
-        app:summary="@string/reader_pref_popup_autohide_summary"
         app:iconSpaceReserved="false" />
     <SwitchPreferenceCompat
         app:key="reader_popup_hide_on_exit"
@@ -76,7 +82,6 @@
         app:seekBarIncrement="5"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_opacity"
-        app:summary="@string/reader_pref_popup_opacity_summary"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_radius"
@@ -86,7 +91,6 @@
         app:seekBarIncrement="1"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_radius"
-        app:summary="@string/reader_pref_popup_radius_summary"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_compact"
@@ -96,7 +100,6 @@
         app:seekBarIncrement="1"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_compact"
-        app:summary="@string/reader_pref_popup_compact_summary"
         app:iconSpaceReserved="false" />
     <SwitchPreferenceCompat
         app:key="reader_popup_hide_tags"

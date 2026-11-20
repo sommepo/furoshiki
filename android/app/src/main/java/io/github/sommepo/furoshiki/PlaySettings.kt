@@ -30,7 +30,7 @@ class PlaySetting(
 
     /** The value as the page shows it. */
     fun shown(value: String): String = when {
-        kind == SWITCH -> if (value == "1") "ON" else "OFF"
+        kind == SWITCH -> if (value == "1") "On" else "Off"
         key == "picture.resolution" -> "$value×"
         else -> value
     }
@@ -52,10 +52,11 @@ class PlaySetting(
         /** What the common settings are called, where a core gives no label. */
         private val LABELS = mapOf(
             "picture.resolution" to "Internal resolution",
-            "picture.aspect" to "Shape of the picture",
-            "picture.renderer" to "Renderer (from the next game)",
+            "picture.aspect" to "Aspect ratio",
+            // A renderer applies from the next game: the page says so when it is changed, not here.
+            "picture.renderer" to "Renderer",
             "picture.vsync" to "Vertical sync",
-            "picture.frame_limit" to "At the console's own speed",
+            "picture.frame_limit" to "Limit frame rate",
             "sound.volume" to "Volume",
         )
 

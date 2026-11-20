@@ -46,17 +46,17 @@ ReaderUi::ReadingSource::About HookSource::Describe() const {
 
 QString HookSource::Label() const {
     const auto engine = Hooks::EngineOf(title.engine);
-    return QStringLiteral("HOOK  ·  ") + (engine ? Hooks::LabelOf(*engine) : title.engine.toUpper());
+    return QStringLiteral("TEXT HOOK · ") + (engine ? Hooks::LabelOf(*engine) : title.engine.toUpper());
 }
 
 bool HookSource::Start(const Lines::Title& title_, const QString& shared_, QString& error) {
     Stop();
     if (!Hooks::EngineOf(title_.engine)) {
-        error = QStringLiteral("Unknown hook engine: %1").arg(title_.engine);
+        error = QStringLiteral("Couldn't read this game: its text hook \"%1\" isn't one Furoshiki knows. Add it again").arg(title_.engine);
         return false;
     }
     if (title_.process.isEmpty()) {
-        error = QStringLiteral("%1 has no program set").arg(title_.title);
+        error = QStringLiteral("%1 has no program to read from. Add it again").arg(title_.title);
         return false;
     }
     title = title_;
@@ -121,9 +121,19 @@ QString HookSource::Status() const {
         return {};
     }
     if (runner.Running()) {
-        return QStringLiteral("%1  ·  %2").arg(runner.Status(), title.process);
+        return QStringLiteral("%1 · %2").arg(runner.Status(), title.process);
     }
-    return QStringLiteral("waiting for %1%2").arg(title.process, waiting.isEmpty() || waiting == QStringLiteral("not running") ? QString() : QStringLiteral("  ·  ") + waiting);
+    return QStringLiteral("waiting for %1%2").arg(title.process, waiting.isEmpty() || waiting == QStringLiteral("not running") ? QString() : QStringLiteral(" · ") + waiting);
+}
+
+QString HookSource::Said() const {
+    if (!running) {
+        return {};
+    }
+    if (runner.Running()) {
+        return QStringLiteral("%1 · %2").arg(runner.Sentence(), title.process);
+    }
+    return waiting.isEmpty() || waiting == QStringLiteral("not running") ? QStringLiteral("Waiting for %1 to start").arg(title.process) : waiting;
 }
 
 bool HookSource::Chosen(const Hooks::Thread& thread) const {

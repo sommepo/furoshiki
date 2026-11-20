@@ -1228,7 +1228,7 @@ int Rebuild(const QString& shared, QString& said) {
     QDir().mkpath(hooks);
     QSaveFile out(IndexFile(shared));
     if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(ToJson(games)).toJson(QJsonDocument::Compact)) < 0 || !out.commit()) {
-        said = QStringLiteral("Couldn't save hooks to %1").arg(IndexFile(shared));
+        said = QStringLiteral("Couldn't save the text hook list to %1. Check that the folder can be written").arg(IndexFile(shared));
         return -1;
     }
     QStringList known;
@@ -1239,7 +1239,9 @@ int Rebuild(const QString& shared, QString& said) {
             }
         }
     }
-    said = QStringLiteral("%1 games known: LunaHook %2 of %3 hooks, Agent %4 of %5 scripts").arg(known.size()).arg(luna.converted).arg(luna.entries).arg(agent.converted).arg(agent.entries);
+    said = QStringLiteral("Text hooks known for %1 games").arg(known.size());
+    Q_UNUSED(luna);
+    Q_UNUSED(agent);
     return static_cast<int>(known.size());
 }
 
@@ -1346,13 +1348,13 @@ bool IsDescription(const QString& source) {
 bool Install(const Game& game, const QString& id, const QString& title, const QString& profiles, QString& error) {
     const QString file = profiles + u'/' + id + QStringLiteral(".lua");
     if (QFileInfo::exists(file) && !IsDescription(ReadText(file))) {
-        error = QStringLiteral("%1 already has a script").arg(id);
+        error = QStringLiteral("%1 already has a script, so it needs no text hook").arg(id);
         return false;
     }
     QDir().mkpath(profiles);
     QSaveFile out(file);
     if (!out.open(QIODevice::WriteOnly) || out.write(Profile(game, id, title).toUtf8()) < 0 || !out.commit()) {
-        error = QStringLiteral("%1 could not be written").arg(file);
+        error = QStringLiteral("Couldn't write %1. Check that the folder can be written").arg(file);
         return false;
     }
     return true;
@@ -1362,7 +1364,7 @@ bool Choose(const QString& profiles, const QString& id, const QStringList& only,
     const QString file = profiles + u'/' + id + QStringLiteral(".lua");
     QString source = ReadText(file);
     if (!IsDescription(source)) {
-        error = QStringLiteral("%1 is not read by hook").arg(id);
+        error = QStringLiteral("%1 isn't read by a text hook").arg(id);
         return false;
     }
     static const QRegularExpression old_only(QStringLiteral(R"(\n    only = \{[^\n]*\},)"));
@@ -1376,7 +1378,7 @@ bool Choose(const QString& profiles, const QString& id, const QStringList& only,
     }
     QSaveFile out(file);
     if (!out.open(QIODevice::WriteOnly) || out.write(source.toUtf8()) < 0 || !out.commit()) {
-        error = QStringLiteral("%1 could not be written").arg(file);
+        error = QStringLiteral("Couldn't write %1. Check that the folder can be written").arg(file);
         return false;
     }
     return true;

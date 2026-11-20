@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <functional>
 #include <optional>
 #include <QColor>
 #include <QCursor>
@@ -96,6 +97,9 @@ public:
     void SetCursor(bool visible, const QPointF& position, const std::optional<QRectF>& character);
     /// A few words near the top of the picture, for a few seconds.
     void ShowMessage(const QString& text, const QRectF& picture);
+    /// Something of the host's drawn over the picture with the rest (Furoshiki's state mark and
+    /// hint bar while reading with a controller): `paint` draws into this window. Nothing: none.
+    void SetHud(std::function<void(QPainter& painter, const QRect& window)> paint);
 
     /// True when there is anything to draw: the window is only shown then.
     [[nodiscard]] bool HasContent() const;
@@ -147,6 +151,7 @@ private:
     bool cursor_visible{};
     QPointF cursor_position;
     std::optional<QRectF> cursor_character;
+    std::function<void(QPainter&, const QRect&)> hud;
     QString message;
     QRectF message_picture;
     QTimer message_timer;

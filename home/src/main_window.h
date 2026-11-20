@@ -27,6 +27,8 @@
 #include "addons.h"
 #include "line_titles.h"
 #include "play_settings.h"
+#include "pad_names.h"
+#include "pad_bluetooth.h"
 
 class QAction;
 class QAudioSink;
@@ -34,6 +36,11 @@ class QMenu;
 class QStackedWidget;
 namespace ReaderApp {
 struct PresentedLine;
+}
+
+namespace ReaderUi {
+class LookupFlow;
+class PopupWeb;
 }
 
 namespace Home {
@@ -176,6 +183,9 @@ private:
     /// apps' files name, the folders the settings name, and where games were played; each file
     /// of the core's types that it says is a game with a text profile. Then WriteOwnFile.
     void FindGames();
+    /// The game scripts window for one console (the CONSOLES page's row): that console's list,
+    /// with no game of another console running; the games are looked for again after it.
+    void OpenGameScripts(const QString& key);
     /// Furoshiki's file for a console the program plays (apps/reader-home-<key>.json, the
     /// format every reader app writes): its games, and with `stats` what was read of them.
     void WriteOwnFile(const QString& key, bool stats);
@@ -184,7 +194,26 @@ private:
     void ShowGame(bool shown);
     void SendWindow();
     void PollPads();
+    /// Reading with the controller's d-pad (docs/furoshiki-3.md, 31): what a test says in place
+    /// of a button (start, stop, toggle, left, right, up, down, lb, rb, shorter, longer, x, y,
+    /// b, a, say). Returns where the cursor is then.
+    QString ReadCommand(const QString& what);
+    /// The state mark and the hint bar over the game, as the reading and the settings now are.
+    void ShowReadHud();
+    /// The popup's marks for the controller in hand: the triggers at its tabs while reading.
+    void SetPopupKeys();
+    /// The triggers by the controller's own words (LT RT, L2 R2, ZL ZR).
+    [[nodiscard]] QStringList TriggerWords() const;
+    /// The controller's own word for its Select button (View, Share, −).
+    [[nodiscard]] QString SelectWord() const;
+    /// What starts reading, as the settings have it, in the controller's words.
+    [[nodiscard]] QStringList ReadStartCaps() const;
+    QString read_hud_shown;
+    /// The dictionary popup that is open (over the game, the OCR overlay or the line strip), or none.
+    [[nodiscard]] ReaderUi::LookupFlow* OpenPopup() const;
     void OpenMenu();
+    /// The text panel (the strip of lines) shown or hidden: a shortcut's action.
+    void ToggleTextPanel();
     /// The pointer at `at` (the screen widget's units) to the game's screen under it, where
     /// the core takes one there.
     bool PointerToGame(const QPointF& at, uint32_t flags);
@@ -276,6 +305,13 @@ private:
     void PlaceOverlay();
 
     HomeWindow* home{};
+    /// The popup's live preview on the home page's Popup settings (HomeWindow::SetPopupPreview):
+    /// the reader's popup page with a sample entry, as the settings now have it.
+    ReaderUi::PopupWeb* popup_preview{};
+    QTimer* popup_preview_timer{};
+    QRect popup_preview_place;
+    QString popup_preview_shown;
+    void ShowPopupPreview();
     GameScreen* screen{};
     QStackedWidget* pages{};
     QStringList core_files;
@@ -286,30 +322,70 @@ private:
     std::mutex pads_mutex;
     static constexpr int MaxPorts = 8;
     reader_core_pad gamepads[MaxPorts]{}; ///< The controllers' state by port, read on the main thread
-    /// SDL's controllers, in the order they came: the first is port 1's (with the keyboard and
-    /// the Steam Controller), the next port 2's, and so on.
+    /// SDL's controllers, in the order they came. The one last pressed is port 1's (with the
+    /// keyboard and the Steam Controller), the others port 2's and on, in that order.
     std::vector<struct _SDL_GameController*> sdl_pads;
+    int active_pad{-1};          ///< SDL's instance id of the controller last pressed; -1: none yet
+    std::map<int, uint64_t> pad_input_held; ///< By instance id: its buttons and pushed axes, for "pressed"
+    QSet<int> pads_pressed;      ///< Pads a press was seen from (said in the log once)
+    QSet<int> pads_unmapped;     ///< Joysticks without a mapping, said in the log once each
+    QSet<QString> bundled_mappings; ///< The GUIDs the bundled database maps (for the log)
+    /// The controller in use, as the controller screen names it: SDL's name, or empty.
+    [[nodiscard]] QString PadInUseName() const;
+    /// SDL's controllers opened as they come and closed as they go, each said in the log once.
+    void OpenPads();
+    /// The controller in use: the one last pressed, else the first that came; null for none.
+    [[nodiscard]] struct _SDL_GameController* ActivePad() const;
+    /// What the controller in use calls its buttons (pad_names.h); the Steam Controller's
+    /// when it was the last pressed.
+    [[nodiscard]] Home::PadNames::Names NamesInUse() const;
+    Home::PadNames::Names pad_names = Home::PadNames::OfFamily(Home::PadNames::Xbox);
+    /// A controller's key for what is kept of it (its layout): its Bluetooth address where
+    /// Windows says one ("bt-E417D85A6799"), else SDL's GUID and name, hashed.
+    [[nodiscard]] QString PadKey(struct _SDL_GameController* pad) const;
+    /// The key by SDL's GUID and name alone (the only key before Bluetooth addresses were read).
+    [[nodiscard]] static QString PadKeyBySdl(struct _SDL_GameController* pad);
+    /// A controller's name: its Bluetooth device's ("8BitDo Pro 2") where Windows says one, else SDL's.
+    [[nodiscard]] QString PadName(struct _SDL_GameController* pad) const;
+    /// By SDL's instance id: each pad's Bluetooth device, looked up once as it was added (Windows).
+    std::map<int, Home::PadBluetooth::Found> pad_bluetooth;
+    /// The layout set up for a controller (pad_names.h's family), or -1 when it has none yet.
+    [[nodiscard]] static int StoredLayout(const QString& key);
+    /// The layout the controller in use says it has, by SDL's type and name.
+    [[nodiscard]] int ReportedLayout() const;
+    /// The first-use setup over the window (pad_setup.h): which letters the controller has, then
+    /// whether to map its shortcuts. `key` empty: a page script's, for pictures (nothing kept).
+    void OpenPadSetup(const QString& key, const QString& name, int reported);
+    QPointer<QWidget> pad_setup;
+    QString pad_setup_key;
+    QSet<QString> pad_setup_skipped; ///< Closed with Esc in this run: not asked again until the next
+    uint32_t pad_setup_held{};       ///< The buttons held at the last look, by role
+    uint32_t pad_setup_ignored{};    ///< Held as it opened: their letting go says nothing to it
     struct _SDL_GameController* port_pads[MaxPorts]{}; ///< Which of them is on each port (rumble)
     /// The Steam Controller while a game plays (Windows, without Steam: SteamPad in game mode),
     /// by SDL's button numbers and axes; read with SDL's controller in PollPads.
     uint32_t steam_buttons{};
     int steam_axes[6]{};
     bool steam_seen{};
+    bool steam_last{}; ///< The Steam Controller (the bridge) was pressed after any of SDL's
     bool reader_installed{};
     PlaySettings play_settings;     ///< program/settings.json in Furoshiki's folder
     QList<Addon> addons;            ///< The game add-ons found when the program started
     Companions* companions{};       ///< Their companions that run
     std::map<QString, QList<OwnGame>> own_games; ///< By console: found and played
     std::map<QString, QList<OwnGame>> unscripted; ///< By console: found, but no script reads them
+    int pad_style{};                ///< The controller in hand, for the feet's buttons: pad_names.family
+    QString announce_console;       ///< The console whose games the page is told of once they are next found
     QString playing;                ///< The file of the game being played
     QStringList playing_discs;      ///< Its discs (Discs): the one started first, then the others in order
     class GuideOverlay* guide_overlay{}; ///< (dev line) The guide's next step over the game (guide_window.h)
     /// The controller map over the window while it is open (controller_screen.h), and the
     /// actions buttons are given in game (reader_button_action_<number>, the console's first).
     QPointer<ControllerScreen> controller_screen;
-    void OpenControllerMap();
+    void OpenControllerMap(bool shortcuts = false); ///< On its Shortcuts list, or its game buttons
     [[nodiscard]] Home::ControllerMap::Store ControllerStore();
     QHash<int, QString> button_actions;
+    QList<Home::ControllerMap::ChordBinding> chord_actions; ///< Two buttons held together that do an action
     bool button_actions_known{};
     /// The console's buttons on the controller's (pad_button_<id>): for each of the program's
     /// roles, the role whose button presses it; -1: none does.

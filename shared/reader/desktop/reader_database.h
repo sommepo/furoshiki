@@ -9,6 +9,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QMutex>
+#include <QSet>
 #include <QString>
 #include "reader/desktop/sqlite_db.h"
 #include "reader/desktop/stats.h"
@@ -121,6 +122,11 @@ public:
     /// One more lookup of a word (by its expression and reading) in `game`, at `ts`.
     void CountLookup(const QString& expression, const QString& reading, const QString& game,
                      qint64 ts);
+    /// The same, once a line: a word looked up again in the same line of the same game (the
+    /// popup closed and opened again, the line shown again under another number, the backlog's
+    /// own lookup of it) is not counted again while the program runs. Whether it was counted.
+    bool CountLookupOnce(const QString& expression, const QString& reading, const QString& game,
+                         const QString& line, qint64 ts);
     /// How often the word was looked up before, in every game together.
     [[nodiscard]] LookupHistory Lookups(const QString& expression, const QString& reading);
 
@@ -171,6 +177,7 @@ private:
 
     SqliteDb db;
     QMutex mutex;
+    QSet<QString> lookups_counted; ///< CountLookupOnce: game, line and word of each one counted
 };
 
 } // namespace ReaderApp

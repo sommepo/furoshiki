@@ -17,7 +17,7 @@ puts a line that was still being written in the place of its beginning.
    the packages and meikiocr's model) and no administrator.
 
 Everything goes into `FuroshikiOcrHelper` in Furoshiki's folder and nowhere else. Nothing runs
-until Furoshiki starts it: *Add a title*, *B, a game window*. To remove it, run
+until Furoshiki starts it: *Add game*, *B, Game window*. To remove it, run
 `install.cmd -Uninstall`, or delete that folder.
 
 ## Engines
@@ -31,11 +31,11 @@ Chosen in Furoshiki: *Settings, Sources, OCR engine*.
 | Chrome Screen AI | This computer | Fetches its library the first time it is chosen. |
 | Google Lens | Google | **Sends each text area it reads to Google.** |
 
-## Text boxes
+## Text areas
 
-A game can have several boxes, drawn in *Add a title*: the text's own; others read with it as
-one line (a name above the message); and boxes read only when you ask (a menu, a status
-screen), with Ctrl+Shift+R, or R on Furoshiki's text strip.
+A game can have several text areas, drawn in *Add game*: the main one; extra ones read with it
+as one line (a name above the message); and areas read only when you ask (a menu, a status
+screen), with *Read text now* (Ctrl+Shift+R, or R on Furoshiki's text strip).
 
 ## What it answers, and to whom
 

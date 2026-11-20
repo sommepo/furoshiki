@@ -25,6 +25,7 @@ import org.readers.app.reader.ReaderSession
 import org.readers.app.reader.stats.ReadingCounters
 import org.readers.app.reader.stats.ReadingRules
 import org.readers.app.reader.stats.SessionRecord
+import org.readers.app.reader.stats.SessionSummary
 import org.readers.app.reader.store.GameTotals
 import org.readers.app.reader.store.ReaderDatabase
 
@@ -48,7 +49,7 @@ class ReaderStatsActivity : ReaderScreen() {
     private lateinit var db: ReaderDatabase
     private lateinit var column: LinearLayout
     private val numbers = NumberFormat.getIntegerInstance()
-    private val sessionTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    private val sessionTime = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
     private val clock = DateTimeFormatter.ofPattern("HH:mm")
     private var pendingExport: String? = null
 
@@ -125,6 +126,7 @@ class ReaderStatsActivity : ReaderScreen() {
         if (s.sessions.isNotEmpty()) {
             val titles = s.games.associate { it.game to it.title }
             column.addView(heading(getString(R.string.reader_stats_sessions)))
+            column.addView(note(getString(R.string.reader_stats_session_hint)))
             for (session in s.sessions) column.addView(sessionRow(session, titles))
         }
 
@@ -178,7 +180,8 @@ class ReaderStatsActivity : ReaderScreen() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(2f), 0, dp(2f))
         }
-        row.addView(note(day.substring(5)), LinearLayout.LayoutParams(dp(52f), WRAP))
+        // The one date form: 2026/11/19.
+        row.addView(note(day.replace('-', '/')), LinearLayout.LayoutParams(dp(88f), WRAP))
         val track = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val share = c.characters.toFloat() / most
         track.addView(
@@ -212,7 +215,6 @@ class ReaderStatsActivity : ReaderScreen() {
             confirmDelete(session)
             true
         }
-        row.setOnClickListener { confirmDelete(session) }
         return row
     }
 
@@ -296,17 +298,7 @@ class ReaderStatsActivity : ReaderScreen() {
     companion object {
         private const val MAX_SESSIONS = 100
 
-        /** "1h 05m", "12m 30s" or "45s". */
-        fun duration(ms: Long): String {
-            val seconds = ms / 1000
-            val h = seconds / 3600
-            val m = seconds % 3600 / 60
-            val s = seconds % 60
-            return when {
-                h > 0 -> String.format("%dh %02dm", h, m)
-                m > 0 -> String.format("%dm %02ds", m, s)
-                else -> "${s}s"
-            }
-        }
+        /** "1h 05m", "12m" or "<1m": the one form of a duration (SessionSummary's). */
+        fun duration(ms: Long): String = SessionSummary.duration(ms)
     }
 }

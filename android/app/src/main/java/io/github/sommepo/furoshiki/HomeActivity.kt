@@ -31,7 +31,6 @@ import io.github.sommepo.furoshiki.reader.ui.CrtSettingsActivity
 import io.github.sommepo.furoshiki.reader.ui.DictionaryManagerActivity
 import io.github.sommepo.furoshiki.reader.ui.ReaderGamesActivity
 import io.github.sommepo.furoshiki.reader.ui.ReaderSettingsActivity
-import io.github.sommepo.furoshiki.reader.ui.ReaderStartActivity
 import io.github.sommepo.furoshiki.reader.ui.ReaderStatsActivity
 import org.json.JSONArray
 import org.json.JSONObject
@@ -104,6 +103,10 @@ class HomeActivity : AppCompatActivity() {
         page.settings.javaScriptEnabled = true
         page.settings.allowFileAccess = true
         page.settings.domStorageEnabled = true
+        // The page may be pinched larger (its text is small on a phone); no buttons drawn for it.
+        page.settings.setSupportZoom(true)
+        page.settings.builtInZoomControls = true
+        page.settings.displayZoomControls = false
         page.webChromeClient = WebChromeClient()
         page.isVerticalScrollBarEnabled = false
         page.addJavascriptInterface(Bridge(), "FuroshikiHost")
@@ -128,7 +131,7 @@ class HomeActivity : AppCompatActivity() {
         val kept = Places.playSettings(this)
         val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
         val user = android.widget.EditText(themed).apply {
-            hint = "User"
+            hint = "Username"
             setText(kept.raw("achievements.user"))
             isSingleLine = true
         }
@@ -146,7 +149,7 @@ class HomeActivity : AppCompatActivity() {
         }
         androidx.appcompat.app.AlertDialog.Builder(themed)
             .setTitle("RetroAchievements")
-            .setMessage("For the cores that have achievements. The password is sent to retroachievements.org once; only the token it gives is kept.")
+            .setMessage("Your password is sent once to retroachievements.org and is not stored.")
             .setView(box)
             .setPositiveButton("Log in") { _, _ ->
                 val name = user.text.toString().trim()
@@ -170,9 +173,9 @@ class HomeActivity : AppCompatActivity() {
                             kept.set("achievements.token", token)
                             "Logged in as $name"
                         } else {
-                            "Not logged in: " + answer.optString("Error", "no answer")
+                            "Couldn't log in: " + answer.optString("Error", "no answer") + ". Check the username and password."
                         }
-                    }.getOrElse { "Not logged in: ${it.message}" }
+                    }.getOrElse { "Couldn't log in: ${it.message ?: "no answer"}. Check the connection and try again." }
                     callPage("say(${JSONObject.quote(said)}); Front.reload()")
                 }.start()
             }
@@ -191,14 +194,20 @@ class HomeActivity : AppCompatActivity() {
         val settings = io.github.sommepo.furoshiki.ocr.OcrSettings.read(this)
         val device = io.github.sommepo.furoshiki.ocr.OcrSource.deviceAvailable(this)
         val choices = listOfNotNull(
-            "" to (if (io.github.sommepo.furoshiki.ocr.OcrSettings.dev) "Default: the OCR service where one is known, else meikiocr" else "Default: meikiocr"),
-            ("device" to "meikiocr (on this device, nothing is sent anywhere)").takeIf { device },
-            "lens" to "Google Lens (best reading; each text area is sent to Google)",
-            "service" to "OCR service (the OCR helper on a computer, or your home server)",
+            // The default: on this device, but for the dev line where a home server's service is known.
+            ("" to "Default (home server's OCR, else on this device)").takeIf { io.github.sommepo.furoshiki.ocr.OcrSettings.dev },
+            ("device" to (if (io.github.sommepo.furoshiki.ocr.OcrSettings.dev) "On this device" else "On this device (default)")).takeIf { device },
+            "lens" to "Google Lens (sends text areas to Google)",
+            "service" to "OCR helper on a computer",
         )
         androidx.appcompat.app.AlertDialog.Builder(themed)
             .setTitle("OCR engine")
-            .setSingleChoiceItems(choices.map { it.second }.toTypedArray(), choices.indexOfFirst { it.first == settings.engine }.coerceAtLeast(0)) { dialog, which ->
+            .setSingleChoiceItems(
+                choices.map { it.second }.toTypedArray(),
+                // A published build has no "Default" row: nothing chosen is "On this device (default)".
+                choices.indexOfFirst { it.first == settings.engine }.takeIf { it >= 0 }
+                    ?: choices.indexOfFirst { settings.engine.isEmpty() && it.first == "device" }
+            ) { dialog, which ->
                 io.github.sommepo.furoshiki.ocr.OcrSettings.write(this, settings.copy(engine = choices[which].first))
                 dialog.dismiss()
                 callPage("Front.reload()")
@@ -218,7 +227,7 @@ class HomeActivity : AppCompatActivity() {
             isSingleLine = true
         }
         val token = android.widget.EditText(themed).apply {
-            hint = "Token (the OCR helper's)"
+            hint = "Token"
             setText(settings.token)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             isSingleLine = true
@@ -231,8 +240,8 @@ class HomeActivity : AppCompatActivity() {
             addView(token)
         }
         androidx.appcompat.app.AlertDialog.Builder(themed)
-            .setTitle("OCR service")
-            .setMessage("Where a game's text area is sent to be read. Left empty: " + named.ifEmpty { "none is known" } + ".")
+            .setTitle("OCR helper")
+            .setMessage(if (named.isEmpty()) "Address of the OCR helper" else "Address of the OCR helper. Empty: $named")
             .setView(box)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 io.github.sommepo.furoshiki.ocr.OcrSettings.write(
@@ -502,19 +511,26 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    /** The reader's first questions, once, when there are games to read: never over a game. */
+    /** Whether this build carries its own settings (AppSetup): its dictionaries and Anki are set by themselves. */
+    private fun setUpByItself() = assets.list("").orEmpty().contains("setup.json")
+
+    /**
+     * The reader's first questions. They are steps of the page's one setup now (front.js,
+     * runSetup: game folders, dictionaries, Anki, GameNative), no longer a screen of their own
+     * beside it. Only a build with its settings in it (AppSetup) is asked here: AnkiDroid's leave.
+     */
     private fun offerGettingStarted() {
         val kept = getSharedPreferences("home", MODE_PRIVATE)
-        if (!hasAccess() || kept.getBoolean(KEY_OFFERED, false)) return
+        if (!hasAccess() || kept.getBoolean(KEY_OFFERED, false) || !setUpByItself()) return
         kept.edit().putBoolean(KEY_OFFERED, true).apply()
-        // A build with its settings in it (AppSetup) has only AnkiDroid's leave to ask.
-        if (assets.list("").orEmpty().contains("setup.json")) {
-            if (packageManager.getLaunchIntentForPackage(AnkiDroidClient.ANKIDROID_PACKAGE) != null) {
-                requestPermissions(arrayOf(AnkiDroidClient.PERMISSION), 1)
-            }
-            return
+        if (packageManager.getLaunchIntentForPackage(AnkiDroidClient.ANKIDROID_PACKAGE) != null) {
+            requestPermissions(arrayOf(AnkiDroidClient.PERMISSION), 1)
         }
-        startActivity(HomeScreen.apart(this, Intent(this, ReaderStartActivity::class.java)))
+    }
+
+    /** Whether one of GameNative's apps is installed: its setup step and its folder's row are for those who have it. */
+    private fun hasGameNative(): Boolean = listOf("app.gamenative", "app.gamenative.gold").any {
+        runCatching { packageManager.getPackageInfo(it, 0) }.isSuccess
     }
 
     private fun callPage(script: String) = runOnUiThread { page.evaluateJavascript(script, null) }
@@ -535,11 +551,11 @@ class HomeActivity : AppCompatActivity() {
             val found = Updater.check(applicationContext)
             val newer = found.getOrNull()
             when {
-                asked && found.isFailure -> callPage("say('No answer from GitHub: try again when online')")
+                asked && found.isFailure -> callPage("say(${JSONObject.quote("Couldn't check for updates. Try again when online.")})")
                 asked && newer == null -> callPage("say('Furoshiki is up to date')")
                 newer != null && (asked || !Updater.told(this, newer)) -> {
                     Updater.markTold(this, newer)
-                    callPage("say(${JSONObject.quote("Furoshiki ${newer.version} is available: Settings › Update")})")
+                    callPage("say(${JSONObject.quote("Furoshiki ${newer.version} is available in Settings › About")})")
                 }
             }
             callPage("if (window.Front) Front.reload()")
@@ -549,13 +565,13 @@ class HomeActivity : AppCompatActivity() {
     /** The newer release, downloaded and handed to Android's installer, which asks the user. */
     private fun installRelease() {
         val release = Updater.available(this) ?: return callPage("say('Furoshiki is up to date')")
-        if (HomeScreen.playing(this) != null) return callPage("say('End the game in play first')")
+        if (HomeScreen.playing(this) != null) return callPage("say('Quit the game first')")
         if (!Updater.mayInstall(this)) {
             installWaiting = true
             callPage("say('Allow Furoshiki to install apps, then come back')")
             runCatching { Updater.askToInstall(this) }.onFailure {
                 installWaiting = false
-                callPage("say('This device does not let Furoshiki install apps')")
+                callPage("say(${JSONObject.quote("Couldn't install the update: this device doesn't let Furoshiki install apps")})")
             }
             return
         }
@@ -566,7 +582,7 @@ class HomeActivity : AppCompatActivity() {
                 Updater.install(applicationContext, release) { percent -> callPage("say(${JSONObject.quote("Downloading update… $percent%")})") }
             }.onFailure {
                 android.util.Log.w("Updater", "update failed", it)
-                callPage("say(${JSONObject.quote("The update could not be downloaded: ${it.message ?: "no answer"}")})")
+                callPage("say(${JSONObject.quote("Couldn't download the update: ${it.message ?: "no answer"}. Try again from Settings › About.")})")
             }
             updating = false
         }
@@ -620,7 +636,10 @@ class HomeActivity : AppCompatActivity() {
             val taken = super.dispatchTouchEvent(event)
             if (event.actionMasked == android.view.MotionEvent.ACTION_UP) {
                 view.postDelayed({
-                    if (!this@HomeActivity.hasWindowFocus()) runCatching {
+                    // Not once this touch has opened a page of settings on this display (this page
+                    // is then hidden): the keys are that page's, so its Back and its rows work
+                    // (seen on the Thor, 2026-11-19: Back did not close a settings page there).
+                    if (isShowing && onLower == null && !this@HomeActivity.hasWindowFocus()) runCatching {
                         getSystemService(android.app.ActivityManager::class.java).moveTaskToFront(taskId, 0)
                     }
                 }, 250)
@@ -727,7 +746,8 @@ class HomeActivity : AppCompatActivity() {
         // What the scan is at, on the page (a new user, 2026-11-19: "some popup on screen showing
         // the scan is in progress").
         val total = Places.CORES.size
-        callPage("Front.scanning(" + org.json.JSONObject.quote(if (key == null) "" else "${key.uppercase()}  ·  ${total - Scans.queue.size} of $total") + ")")
+        // By the console's name, never its key ("PS Vita", not "PSVITA").
+        callPage("Front.scanning(" + org.json.JSONObject.quote(if (key == null) "" else "${Places.shortName(key)} · ${total - Scans.queue.size} of $total") + ")")
         if (key == null) {
             Scans.owner = null
             if (Scans.again) {
@@ -812,9 +832,18 @@ class HomeActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // The mapping screen learns buttons by place (FaceButtons); the shelf's own keys stay the device's.
         if (rawKeys && rawKey(FaceButtons.byPlace(event, FaceButtons.nintendo(this)))) return true
-        // The home screen has nowhere to go back to: back is the page's own, as B is.
-        if (event.keyCode == KeyEvent.KEYCODE_BACK && isHome) {
-            if (event.action == KeyEvent.ACTION_UP) callPage("Front.key('Escape')")
+        // Back is the page's first: a list or box open over it shuts, then the page goes up one
+        // level (a game's page to its shelf, a group of settings to Settings, a page to the
+        // library), and only from the top does Back leave the app (a user, 2026-11-19: Back with
+        // "Choose app" open went straight to Android's home screen). A page of settings open on
+        // the second display is shut before that. The home screen has nowhere to go back to.
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+                if (closeOnLower()) return true
+                page.evaluateJavascript("(window.Front && Front.back) ? Front.back() : false") { took ->
+                    if (took != "true" && !isHome) leaveByBack()
+                }
+            }
             return true
         }
         val name = when (event.keyCode) {
@@ -835,6 +864,36 @@ class HomeActivity : AppCompatActivity() {
         // that died at once was started some 150 times in a public user's log, 2026-11-19).
         val once = name == "Enter" || name == "Play" || name == "Other" || name == "Escape"
         if (event.action == KeyEvent.ACTION_DOWN && !(once && event.repeatCount > 0)) callPage("Front.key('$name')")
+        return true
+    }
+
+    /** Back from the top level: what Android does by itself (the task goes behind, or the page ends). */
+    private fun leaveByBack() {
+        if (isFinishing || isDestroyed) return
+        if (isTaskRoot) moveTaskToBack(true) else finish()
+    }
+
+    /**
+     * The reader's page that was opened on the second display (settings, dictionaries, a game
+     * scripts list), by its class; null when none was. Looked for among the app's tasks when Back
+     * comes to this page while that one is still open.
+     */
+    @Volatile
+    private var onLower: String? = null
+
+    /** Shuts the page open on the second display, if one is. True when one was shut. */
+    private fun closeOnLower(): Boolean {
+        val target = onLower ?: return false
+        val tasks = getSystemService(android.app.ActivityManager::class.java)
+        val open = runCatching {
+            tasks.appTasks.filter { it.taskInfo.baseActivity?.className == target || it.taskInfo.topActivity?.className == target }
+        }.getOrDefault(emptyList())
+        if (open.isEmpty()) {
+            onLower = null
+            return false
+        }
+        open.forEach { task -> runCatching { task.finishAndRemoveTask() } }
+        onLower = null
         return true
     }
 
@@ -946,7 +1005,7 @@ class HomeActivity : AppCompatActivity() {
             }
             val games = JSONArray()
             for (game in database.gameTotals()) {
-                games.put(counters(game.counters).put("title", game.title))
+                games.put(counters(game.counters).put("title", game.title).put("id", game.game))
             }
             return JSONObject().put("today", counters(database.dayTotals(today)))
                 .put("total", counters(database.totals())).put("days", days).put("games", games)
@@ -1054,7 +1113,7 @@ class HomeActivity : AppCompatActivity() {
         fun pin(path: String, console: String, game: String, title: String) = runOnUiThread {
             val shortcuts = getSystemService(android.content.pm.ShortcutManager::class.java)
             if (shortcuts == null || !shortcuts.isRequestPinShortcutSupported) {
-                callPage("say('This launcher takes no shortcuts')")
+                callPage("say(${JSONObject.quote("Couldn't add to the Home screen: your launcher doesn't support shortcuts")})")
                 return@runOnUiThread
             }
             val start = Intent(this@HomeActivity, HomeActivity::class.java).setAction(Places.ACTION_PLAY)
@@ -1094,19 +1153,40 @@ class HomeActivity : AppCompatActivity() {
 
         // ---- Buttons for the keys, widescreen, the services, what a row is called ----
 
-        /** The actions done over a game, each with the button given to it (ActionKeys). */
+        // ---- Haptics, and every setting by its name (the page's "Search settings") ----
+
+        /** Whether a card that lands and a step in the popup are felt (ReaderHaptics; the reader's own setting). */
         @JavascriptInterface
-        fun actionKeys(): String {
-            val assigned = ActionKeys.assigned(this@HomeActivity)
+        fun haptics(): Boolean = ReaderSettings.fresh(this@HomeActivity).getBoolean(ReaderSettings.KEY_HAPTICS, true)
+
+        @JavascriptInterface
+        fun setHaptics(on: Boolean) {
+            ReaderSettings.fresh(this@HomeActivity).edit().putBoolean(ReaderSettings.KEY_HAPTICS, on).commit()
+        }
+
+        /** Whether this device can tick at all: the row is for those that can. */
+        @JavascriptInterface
+        fun hasVibrator(): Boolean = getSystemService(android.os.Vibrator::class.java)?.hasVibrator() == true
+
+        /** Every row of the reader's settings pages, as `[{section, page, key, title}]`, for the page's search. */
+        @JavascriptInterface
+        fun settingsIndex(): String {
             val list = JSONArray()
-            for (action in ActionKeys.ALL) {
-                list.put(JSONObject().put("id", action.id).put("label", getString(action.label)).put("key", assigned[action.id]?.let(ActionKeys::name).orEmpty()))
+            for (found in runCatching { ReaderSettingsActivity.all(this@HomeActivity) }.getOrDefault(emptyList())) {
+                list.put(
+                    JSONObject().put("section", found.section.name).put("page", getString(found.section.title))
+                        .put("key", found.key).put("title", found.title)
+                )
             }
             return list.toString()
         }
 
+        /** One of those rows: its page, opened at it. */
         @JavascriptInterface
-        fun pickActionKeys() = runOnUiThread { ActionKeys.pick(this@HomeActivity) { callPage("Front.reload()") } }
+        fun openSetting(section: String, key: String) {
+            val found = ReaderSettingsActivity.Section.values().firstOrNull { it.name == section } ?: return
+            startOnLower(HomeScreen.apart(this@HomeActivity, ReaderSettingsActivity.intent(this@HomeActivity, found, key)))
+        }
 
         private fun wideSettings() = Wide.settings(Places.CORES.keys.associateWith { Places.coreSettings(this@HomeActivity, it) })
 
@@ -1209,6 +1289,32 @@ class HomeActivity : AppCompatActivity() {
                 .setPrimaryClip(android.content.ClipData.newPlainText("Furoshiki labels", labels()))
         }
 
+        /**
+         * The setup's steps for this device, in order (front.js, runSetup): the game folders
+         * always; dictionaries and Anki unless the build sets them up itself or the older
+         * "Getting started" screen already asked (its flag is only read now: the page keeps
+         * which steps are done, so the list stays the same through a setup); GameNative's folder where its app is installed.
+         */
+        @JavascriptInterface
+        fun setupSteps(): String {
+            val asked = getSharedPreferences("home", MODE_PRIVATE).getBoolean(KEY_OFFERED, false) || setUpByItself()
+            return JSONArray(listOfNotNull("folders", "dictionaries".takeIf { !asked }, "anki".takeIf { !asked }, "gamenative".takeIf { hasGameNative() })).toString()
+        }
+
+        @JavascriptInterface
+        fun hasGameNative(): Boolean = this@HomeActivity.hasGameNative()
+
+        /** Whether a controller is there (the device's own or one plugged in): the page shows its button hints then. */
+        @JavascriptInterface
+        fun hasController(): Boolean = android.view.InputDevice.getDeviceIds().any { id ->
+            val device = android.view.InputDevice.getDevice(id) ?: return@any false
+            !device.isVirtual && device.sources and android.view.InputDevice.SOURCE_GAMEPAD == android.view.InputDevice.SOURCE_GAMEPAD
+        }
+
+        /** This build's version: the release it is (a published build), else the app's own. */
+        @JavascriptInterface
+        fun version(): String = Updater.mine.ifEmpty { BuildConfig.VERSION_NAME }
+
         /** RetroAchievements' user where one is logged in, else empty. */
         @JavascriptInterface
         fun achievementsUser(): String = Places.playSettings(this@HomeActivity).raw("achievements.user")
@@ -1278,6 +1384,8 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun buttonMap(console: String, ids: String): String {
             GameActivity.migratePadMap(this@HomeActivity)
+            // What "Shortcut buttons" had is this screen's now (one place for a shortcut).
+            ActionKeys.migrate(this@HomeActivity)
             FaceButtons.forgetHandSwap(this@HomeActivity)
             val values = ReaderSettings.fresh(this@HomeActivity).all
             val layer = console.ifEmpty { null }
@@ -1349,6 +1457,11 @@ class HomeActivity : AppCompatActivity() {
                 startOnLower(HomeScreen.apart(this@HomeActivity, ReaderSettingsActivity.intent(this@HomeActivity, section)))
                 return
             }
+            // "Search settings": the reader's settings with the search asked at once.
+            if (screen == "find") {
+                startOnLower(HomeScreen.apart(this@HomeActivity, ReaderSettingsActivity.findIntent(this@HomeActivity)))
+                return
+            }
             val activity = when (screen) {
                 "settings" -> ReaderSettingsActivity::class.java
                 "dictionaries" -> DictionaryManagerActivity::class.java
@@ -1380,6 +1493,7 @@ class HomeActivity : AppCompatActivity() {
             // The second display's own page is a window over every activity there: it steps
             // aside while the page of settings is open, and comes back when that page is left.
             val target = intent.component?.className
+            onLower = target
             this@HomeActivity.lower?.let { page ->
                 page.hide()
                 // The page of settings may run in another of the app's processes: its task is
@@ -1401,6 +1515,9 @@ class HomeActivity : AppCompatActivity() {
                         }
                         // Back to the shelf: its second display's page again (made anew if the shelf
                         // let it go meanwhile), and the shelf in front, so the controller works it.
+                        if (onLower == target) onLower = null
+                        // The page reads again what that screen may have changed (and its setup goes on).
+                        callPage("if (window.Front) Front.reload()")
                         if (this@HomeActivity.lower === page) runCatching { page.show() }
                         else if (this@HomeActivity.lower == null) showLower()
                         runCatching { tasks.moveTaskToFront(taskId, 0) }
@@ -1409,7 +1526,7 @@ class HomeActivity : AppCompatActivity() {
                 main.postDelayed(watch, 500)
             }
             runCatching { startActivity(intent, android.app.ActivityOptions.makeBasic().setLaunchDisplayId(lower).toBundle()) }
-                .onFailure { this@HomeActivity.lower?.show(); startActivity(intent) }
+                .onFailure { onLower = null; this@HomeActivity.lower?.show(); startActivity(intent) }
         }
     }
 }

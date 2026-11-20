@@ -116,7 +116,16 @@ void SetGame(const Store& store, const QHash<QString, QString>& given, const QSt
 /// The console's button back on its own.
 void ClearGame(const Store& store, const QString& button, const QString& console);
 
-/// Puts `action` on `input` in that layer, alone: the action leaves the inputs it was on and
+/// Two buttons held together that do an action: their reader numbers, their id ("select+l3"),
+/// the action. A chord's id is two inputs' ids joined by "+", in Assign and Binding alike.
+struct ChordBinding {
+    int a{-1}, b{-1};
+    QString id, action;
+};
+/// The chords that do an action in that layer (all consoles' under a console's own).
+[[nodiscard]] QList<ChordBinding> Chords(const Store& store, const QString& console);
+
+/// Puts `action` on `input` (or on a chord, "select+l3") in that layer, alone: the action leaves the inputs it was on and
 /// what was on the input leaves it. False (and nothing changed) where it cannot be: a held
 /// action on a back button.
 bool Assign(const Store& store, const Action& action, const QString& input, const QString& console);

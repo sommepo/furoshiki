@@ -19,7 +19,7 @@
 namespace Home::Hooks::Agent {
 
 /// Whose the scripts are, said wherever they are listed.
-inline const QString Credit = QStringLiteral("0xDC00 AND CONTRIBUTORS  ·  MIT  ·  GITHUB.COM/0XDC00/SCRIPTS");
+inline const QString Credit = QStringLiteral("0xDC00 AND CONTRIBUTORS · MIT · GITHUB.COM/0XDC00/SCRIPTS");
 inline const QString Runtime = QStringLiteral("libLoader.js");
 
 struct Script {

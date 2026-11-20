@@ -11,7 +11,7 @@
 'use strict';
 
 /** The actions the desktop has and this app has not (no card is taken back, no line explained). */
-const NOT_HERE = new Set(['reader_undo_card', 'reader_explain']);
+const NOT_HERE = new Set(['reader_undo_card', 'reader_explain']); // Explain is added again where a home server is known (actions())
 
 /** The buttons the pointer can be held on (ButtonMap.POINTER_BUTTONS). */
 const POINTER_BUTTONS = new Set([102, 103, 104, 105, 106, 107, 108, 109]);
@@ -20,7 +20,7 @@ const POINTER_BUTTONS = new Set([102, 103, 104, 105, 106, 107, 108, 109]);
 const CODE = {back: 4, up: 19, down: 20, left: 21, right: 22, a: 96, b: 97, x: 99, y: 100, l1: 102, r1: 103};
 
 /** A console's tab, by its key (Console.kt's), when the host has no name for it. */
-const CONSOLE_TABS = {psp: 'PSP', dc: 'DC', '3ds': '3DS', nds: 'DS', ps1: 'PS1', ps2: 'PS2', psvita: 'Vita', switch: 'Switch'};
+const CONSOLE_TABS = {psp: 'PSP', dc: 'Dreamcast', '3ds': '3DS', nds: 'DS', ps1: 'PS1', ps2: 'PS2', psvita: 'PS Vita', switch: 'Switch'};
 
 /** All consoles on Android: a controller as Android names its buttons (A at the bottom). */
 const ANDROID_NAMES = {
@@ -48,7 +48,7 @@ const byLetter = code => (NINTENDO_LETTERS && LETTER_OF_PLACE[code]) || code;
 const PAD_ORDER = ['up', 'down', 'left', 'right', 'south', 'east', 'west', 'north', 'l1', 'r1', 'l2', 'r2', 'l3', 'r3', 'select', 'start'];
 
 /** The buttons a console's controller has no letter for. */
-const PAD_WORDS = {up: 'Up', down: 'Down', left: 'Left', right: 'Right', l3: 'Left stick, pressed', r3: 'Right stick, pressed'};
+const PAD_WORDS = {up: 'D-pad up', down: 'D-pad down', left: 'D-pad left', right: 'D-pad right', l3: 'L3', r3: 'R3'};
 
 const LEARN_MS = 6000;
 const B_TWICE_MS = 600;
@@ -103,10 +103,24 @@ function buttonName(code, pad) {
   return (button && button.label) || ANDROID_NAMES[input.id] || input.label || input.id;
 }
 
+/**
+ * The actions this app has that the shared list has not for it (they were "Shortcut buttons"'
+ * own until 2026-11-20; ActionKeys.TO_MAP, GameActivity.runAction): the shortcuts are given their
+ * buttons here alone now.
+ */
+const HERE_TOO = [
+  {id: 'furoshiki_ocr_read', label: 'Read text now'},
+  {id: 'reader_toggle_panel', label: 'Show/hide text panel'},
+  {id: 'furoshiki_fast_forward', label: 'Fast forward'},
+];
+
 function actions() {
-  // The guide's come with the home server's services (host.services), which a published app has not.
-  const guides = !!host.services;
-  return mapData().actions.filter(one => !one.desktop && !NOT_HERE.has(one.id) && (guides || !one.id.startsWith('furoshiki_guide')));
+  // The guide's and Explain come with the home server's services (host.services), which a published app has not.
+  const served = !!host.services;
+  const shared = mapData().actions.filter(one => !one.desktop && !NOT_HERE.has(one.id) && (served || !one.id.startsWith('furoshiki_guide')));
+  const more = HERE_TOO.filter(one => !shared.some(other => other.id === one.id));
+  if (served && !shared.some(one => one.id === 'reader_explain')) more.push({id: 'reader_explain', label: 'Explain line'});
+  return [...shared, ...more];
 }
 
 /** The console's buttons a tab lists: those its controller has, each once. */
@@ -144,9 +158,9 @@ function mapTabs() {
   const order = Object.keys(mapData().consoles).filter(key => key !== 'all');
   const have = new Map();
   try {
-    for (const one of JSON.parse(host.consoles())) have.set(one.key, LOOKS[one.system]?.[0] || one.short);
+    for (const one of JSON.parse(host.consoles())) have.set(one.key, tabName(one.key, one.system, one.short));
   } catch (error) { console.error(error); }
-  for (const game of state.games) if (game.console && !have.has(game.console)) have.set(game.console, LOOKS[game.system]?.[0] || '');
+  for (const game of state.games) if (game.console && !have.has(game.console)) have.set(game.console, tabName(game.console, game.system, ''));
   const tabs = [{key: '', name: 'All consoles'}];
   for (const key of order) if (have.has(key)) tabs.push({key, name: have.get(key) || CONSOLE_TABS[key] || key});
   return tabs;
@@ -285,7 +299,7 @@ function drawMap() {
   const layer = $('map-layer');
   layer.hidden = !console;
   $('map-same').disabled = !map.own;
-  $('map-layer-text').textContent = map.own ? 'Custom for ' + map.tabs[map.tab].name : 'Same as All consoles';
+  $('map-layer-text').textContent = map.own ? 'Custom for ' + map.tabs[map.tab].name : 'Same as all consoles';
 
   // The input wizard has the side to itself: one button asked for at a time.
   const wizard = map.wizard;
@@ -296,7 +310,7 @@ function drawMap() {
   if (wizard) {
     layer.hidden = true;
     const id = wizard.steps[wizard.at];
-    $('wiz-count').textContent = `${wizard.at + 1} / ${wizard.steps.length}  ·  ${map.tabs[map.tab].name}`;
+    $('wiz-count').textContent = `${counter(wizard.at + 1, wizard.steps.length)} · ${map.tabs[map.tab].name}`;
     $('wiz-name').textContent = gameButtonName(id, pad);
     $('wiz-note').textContent = wizard.note;
     $('wiz-back').disabled = wizard.at === 0;
@@ -331,7 +345,7 @@ function drawMap() {
     label.textContent = name;
     const from = document.createElement('span');
     from.className = 'where';
-    from.textContent = learning ? (map.learning.note || 'Press a button') : where;
+    from.textContent = learning ? (map.learning.note || 'Press a controller button') : where;
     const on = document.createElement('span');
     on.className = 'chip';
     on.textContent = learning ? '…' : chip;
@@ -370,7 +384,7 @@ function drawMap() {
         cls: ' game' + (shown.changed ? ' bound changed' : '') + (!shown.own && console && shown.changed ? ' inherited' : ''),
         name: gameButtonName(one.pad, pad),
         where: !shown.own && console && map.own && shown.changed ? 'All consoles' : '',
-        chip: shown.source === 'none' ? '—' : ANDROID_NAMES[shown.source] || shown.source,
+        chip: shown.source === 'none' ? 'None' : PAD_WORDS[shown.source] || ANDROID_NAMES[shown.source] || shown.source,
         clearable: shown.changed,
         learning: map.learning?.pad === one.pad,
       });
@@ -383,7 +397,7 @@ function drawMap() {
         name: one.action.label,
         // Said where the tab has its own: else the whole tab is all consoles', and the bar says so.
         where: !shown.own && console && map.own ? 'All consoles' : '',
-        chip: bound ? buttonName(shown.button, pad) : '—',
+        chip: bound ? buttonName(shown.button, pad) : 'None',
         clearable: bound,
         learning: map.learning?.action === one.action.id,
       });
@@ -416,15 +430,18 @@ function drawMap() {
 
 function drawFootLine() {
   const foot = $('map-foot');
+  // The controller's own hints only once a controller is in the hand (body.pad, front.js): a
+  // finger has the screen's buttons, and "B twice" means nothing to it.
+  const pad = document.body.classList.contains('pad');
   if (map.wizard) {
-    foot.textContent = 'Press each button in turn  ·  Skip to leave one as is';
+    foot.textContent = 'Press each button in turn · Skip to leave one as it is';
     return;
   }
   if (map.learning) {
-    foot.textContent = 'Press a button  ·  B twice to cancel';
+    foot.textContent = pad ? 'Press a button · B twice to cancel' : 'Press a controller button, or tap Cancel';
     return;
   }
-  foot.textContent = ['Start  Set up all buttons', 'A  Set', 'X  Clear', consoleKey() ? 'Y  Reset to default' : '', 'L R  Console', 'B  Back']
+  foot.textContent = !pad ? '' : ['Start  Set up all buttons', 'A  Set', 'X  Clear', consoleKey() ? 'Y  Reset to default' : '', 'L R  Console', 'B  Back']
     .filter(Boolean).join('    ');
 }
 
@@ -495,10 +512,10 @@ function learnt(code) {
     armLearning();
     drawMap();
   };
-  if (!inputOf(code)) return refuse('Not a controller button');
+  if (!inputOf(code)) return refuse('Not a controller button. Press another.');
   if (learning.pad) {
     // A game button: the controller's button that presses it from now on (the two swap).
-    if (!host.assignPad(learning.pad, code, consoleKey())) return refuse('Can\'t use this button');
+    if (!host.assignPad(learning.pad, code, consoleKey())) return refuse('Can\'t use this button. Press another.');
     stopLearning();
     readMap();
     drawMap();
@@ -506,7 +523,7 @@ function learnt(code) {
     return;
   }
   if (learning.action === 'pointer' && !POINTER_BUTTONS.has(code)) return refuse('Use a shoulder, trigger, stick, Select or Start');
-  if (!host.assignButton(learning.action, code, consoleKey())) return refuse('Can\'t use this button');
+  if (!host.assignButton(learning.action, code, consoleKey())) return refuse('Can\'t use this button. Press another.');
   stopLearning();
   readMap();
   drawMap();
@@ -567,7 +584,7 @@ function finishWizard(keep) {
   const count = Object.keys(wizard.got).length;
   if (keep && count) {
     host.setPads(JSON.stringify(wizard.got), consoleKey());
-    say(`${count} of ${wizard.steps.length} buttons set for ${map.tabs[map.tab].name.toLowerCase()}`);
+    say(`${count} of ${wizard.steps.length} buttons set for ${map.tabs[map.tab].key ? map.tabs[map.tab].name : 'all consoles'}`);
   } else {
     say('Nothing changed');
   }
@@ -591,7 +608,7 @@ function wizardPress(code, down) {
   wizard.held.add(code);
   if (busy) return;
   if (!inputOf(code)) {
-    wizard.note = 'Not a game button';
+    wizard.note = 'Not a controller button. Press another.';
     armWizard();
     drawMap();
     return;
@@ -616,7 +633,7 @@ function sameAsAll() {
   host.sameAsAll(console);
   readMap();
   drawMap();
-  say(map.tabs[map.tab].name + ': same as all consoles');
+  say(map.tabs[map.tab].name + ' uses the buttons of all consoles again');
 }
 
 // ---- The controller, its key codes as they come (HomeActivity hands them over while this is open) ----
@@ -636,6 +653,8 @@ function light(code, down) {
 
 function mapPad(code, down) {
   if (!map.open) return;
+  // A controller is in the hand: its hints from here on.
+  if (down && code !== CODE.back && !document.body.classList.contains('pad')) { document.body.classList.add('pad'); drawFootLine(); }
   if (map.wizard) {
     wizardPress(code, down);
     return;

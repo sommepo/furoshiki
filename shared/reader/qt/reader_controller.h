@@ -14,7 +14,9 @@
 #include <QPointF>
 #include <QPointer>
 #include <QRectF>
+#include <QHash>
 #include <QString>
+#include <QThreadPool>
 #include <QTimer>
 #include "reader/core/types.h"
 #include "reader/desktop/discord_presence.h"
@@ -129,6 +131,47 @@ public:
         return pad;
     }
 
+    // ---- Reading with a controller's d-pad, no pointer (the host's controller polling drives
+    // it: Furoshiki's MainWindow::PollPads). The cursor is on a word of the game's text; the
+    // popup follows it through the pointer's own lookup. ----
+
+    enum class ReadState {
+        Off,   ///< Not reading
+        Idle,  ///< Reading, and no word is on screen
+        Text,  ///< The cursor is on the text
+        Popup, ///< The popup has the buttons
+        Game,  ///< A choice (or a menu of the game's) is up: the buttons are the game's
+    };
+    enum class ReadKey {
+        Left,
+        Right,
+        Up,
+        Down,
+        UnknownBefore, ///< the previous word not in Anki
+        UnknownNext,
+        Shorter, ///< the match a character shorter
+        Longer,
+        Popup, ///< into the popup
+        Text,  ///< back to the text
+    };
+    /// How long the popup waits before it follows the cursor.
+    static constexpr int ReadFollowMs = 100;
+    void SetReading(bool on);
+    [[nodiscard]] bool Reading() const {
+        return reading;
+    }
+    [[nodiscard]] ReadState ReadingState() const;
+    void ReadKeyPressed(ReadKey key);
+    /// Where the cursor is, in a line of text (the development channel's "read say").
+    [[nodiscard]] QString ReadingSaid() const;
+    /// How often a pointer really used ended reading (the mouse moved more than a few pixels or
+    /// pressed, the stick pointer moved by the player): the host does not start it again by itself.
+    [[nodiscard]] int ReadPointerEnds() const {
+        return read_pointer_ends;
+    }
+    /// A pointer may end reading by a move of more than this, from where it was when reading began.
+    static constexpr int ReadPointerSlop = 6;
+
     /**
      * The app has no setup screen. In its place, at the first start and once each: whether
      * saves are to be synced (and how), then a dictionary, then Anki. Each question opens the
@@ -178,7 +221,7 @@ private:
     [[nodiscard]] bool KeptByPopup(const QPointF& position,
                                    const ReaderApp::PlacedText::Hit& hit) const;
     void LookUp(const ReaderApp::PresentedLine& presented, int offset, const QRectF& rows,
-                qreal near_x, bool quiet);
+                qreal near_x, bool quiet, int longest = -1);
     [[nodiscard]] LookupFlow::Anchor AnchorFor(const QRectF& rows, qreal near_x) const;
     void UpdateMarks();
     void UpdateSessionLine();
@@ -290,6 +333,48 @@ private:
     std::optional<Down> resting;
     qint64 hovered_line{-1};
     int hovered_offset{-1};
+
+    /// Reading with the d-pad: a line's words, as the dictionary cuts them.
+    struct ReadLine {
+        QString text;
+        QList<ReaderApp::WordWalk::Span> spans;
+        /// The first word the dictionary has at each span (no expression: none).
+        QList<ReaderApp::LookupResult> heads;
+        /// Which of them are not in Anki, and when that was asked.
+        QList<bool> unknown;
+        qint64 known_at{};
+        bool walked{};
+        int request{};
+    };
+    /// The texts on screen changed: their words are found (on a thread) and placed.
+    void ReadRefresh();
+    void ReadWalk(qint64 line, int from);
+    void ReadRebuild();
+    void ReadGo(int to);
+    void ReadLookup();
+    void ReadResize(int by);
+    /// The pointer is at `position` (nothing: it pressed, or it is the stick pointer moved by
+    /// the player): reading ends if that is a pointer really used.
+    void ReadPointerUsed(const QPointF* position);
+    int read_pointer_ends{};
+    bool read_pointer_known{};
+    QPointF read_pointer_from;
+    bool reading{};
+    bool read_in_popup{};
+    QHash<qint64, ReadLine> read_lines;
+    QList<ReaderApp::WordWalk::Word> read_words;
+    /// Whether each text on screen (by its place in `placed`) is written in columns.
+    QHash<int, bool> read_vertical;
+    /// The cursor's word: its place in read_words (-1 none), its line and its stretch of it.
+    int read_at{-1};
+    qint64 read_line{-1};
+    ReaderApp::WordWalk::Span read_span;
+    /// The newest line the cursor was put on, and the word last looked up for it.
+    qint64 read_landed_for{-1};
+    qint64 read_looked_line{-1};
+    ReaderApp::WordWalk::Span read_looked;
+    QTimer read_timer;
+    QThreadPool read_worker;
 
     /// The cursor steered with a controller's sticks.
     StickCursor* cursor{};

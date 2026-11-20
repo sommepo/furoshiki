@@ -337,7 +337,7 @@ void ChoicePicker::paintEvent(QPaintEvent*) {
     p.setFont(colours.title);
     p.setPen(WithAlpha(colours.dim, 0.8));
     p.drawText(QRectF(card.left() + Side(), card.bottom() - Foot(), card.width() - 2 * Side(), Foot()), Qt::AlignLeft | Qt::AlignVCenter,
-               QStringLiteral("ENTER  SELECT   ·   ESC  BACK"));
+               QStringLiteral("ENTER SELECT · ESC BACK"));
 }
 
 } // namespace Home

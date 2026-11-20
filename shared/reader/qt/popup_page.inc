@@ -64,6 +64,11 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .entry { position: relative; padding: 3px 0 4px; }
 .entry + .entry { border-top: 1px solid var(--edge); }
 .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; }
+/* An entry taller than the popup keeps its headline in sight: it stays at the top (under the tab
+   row where that stays too) while the meanings go on under it. What has gone under it is cut
+   away by the script (pin(), a clip-path on each part), so that nothing shows through a popup
+   that is not solid, whatever the theme's ground is. */
+.entry > .head { position: sticky; top: var(--pin, 0px); z-index: 2; }
 .headword { font-size: calc(17px * var(--scale)); font-weight: 600; ruby-position: over; ruby-align: center; }
 .headword rt { display: none; font-size: 0.62em; font-weight: 400; color: var(--dim); }
 .reading, .frequency, .lookups, .number, .notes, .dictionary-name, .pitch { color: var(--dim); font-size: calc(11px * var(--scale)); }
@@ -81,7 +86,20 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 /* A name in the running game (its names dictionary): the accent's colour, in every theme. */
 .tag.name { color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 3px; padding: 0 4px; }
 .senses { list-style: none; margin: 0; padding: 0; }
+/* How often the word was looked up: one line under the definition, cut with an ellipsis. */
+.lookups { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: calc(3px * var(--scale)); }
+/* A dictionary's name: a slim label with its rule running on to the right. */
+.dictionary-name { display: flex; align-items: center; gap: 0.7em; }
+.dictionary-name::after { content: ""; flex: 1; height: 1px; background: var(--edge); opacity: 0.8; }
 .sense .tag { margin-right: 0.3em; }
+/* A sense's tags: one quiet run, small, the ones past the second behind a count. */
+.sense-tags { display: inline; margin-right: 0.15em; }
+.sense-tags .tag { font-size: calc(9.5px * var(--scale)); opacity: 0.85; vertical-align: 0.08em; }
+.sense-tags .tag.extra { display: none; }
+.sense-tags.all .tag.extra { display: inline; }
+.sense-tags.all .more-tags { display: none; }
+.sense-tags .more-tags { cursor: pointer; }
+.popup.no-tags .sense-tags { display: none; }
 .number { margin-right: 0.3em; }
 .glosses .gloss + .gloss::before { content: " | "; color: var(--dim); }
 .forms .form + .form::before { content: "、"; color: var(--dim); }
@@ -105,8 +123,33 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .card.book { color: var(--book); border-color: color-mix(in srgb, var(--book) 63%, transparent); }
 .card:active, .card.pressed { background: var(--box-pressed); }
 .card svg { width: 60%; height: 60%; display: block; }
-.card.addAudio svg { width: 64%; height: 64%; }
+/* The card with the line's audio: the same button and the same plus, with a small speaker in its
+   upper corner, clear of the plus's arms. */
+.card .with-audio {
+  position: absolute; top: 5%; right: 5%; width: 38%; height: 38%; display: block; opacity: 0.9;
+  animation: none !important;
+}
 .card[data-state="working"] { opacity: 0.4; }
+.card.making { opacity: 1; }
+.card.making svg { animation: reader-turn 0.7s linear infinite; width: 52%; height: 52%; }
+/* A press: the button gives and springs back, and a ring goes out from it. */
+.card.pressing { animation: reader-press 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.card.pressing::before, .card.landing::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  border: 1px solid var(--accent, currentColor); animation: reader-ring 0.36s ease-out forwards;
+}
+/* The card made: the book lands where the plus was. */
+.card.landing { animation: reader-land 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.25); }
+.card.landing svg { animation: reader-land-sign 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.25); }
+@keyframes reader-press { 0% { transform: scale(1); } 35% { transform: scale(0.86); } 100% { transform: scale(1); } }
+@keyframes reader-ring { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.55); } }
+@keyframes reader-land { 0% { transform: scale(0.8); } 100% { transform: scale(1); } }
+@keyframes reader-land-sign { 0% { transform: scale(0.4) rotate(-12deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
+/* The d-pad's step to another entry: it arrives from the side it came from, very quickly. */
+.entry.arriving { animation: reader-arrive 0.13s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.entry.arriving::before { animation: reader-mark 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); transform-origin: 50% 50%; }
+@keyframes reader-arrive { from { transform: translateY(var(--from, 6px)); opacity: 0.45; } to { transform: none; opacity: 1; } }
+@keyframes reader-mark { from { transform: scaleY(0.2); opacity: 0.2; } to { transform: none; opacity: 1; } }
 .card[data-state="checking"] svg { animation: reader-turn 0.9s linear infinite; }
 .card[data-state="away"] svg { opacity: 0.6; }
 .card[data-state="away"]::after {
@@ -114,7 +157,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   border-radius: 50%; background: #8a8aa0; border: 1px solid var(--box);
 }
 @keyframes reader-turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .card[data-state="checking"] svg { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .card[data-state="checking"] svg, .card.pressing, .card.landing, .card.landing svg, .card.pressing::before,
+  .card.landing::before, .entry.arriving, .entry.arriving::before { animation: none; }
+}
 .card-buttons.ask .card { width: calc(30px * var(--scale)); }
 .card-buttons.ask .ask-keep { border-color: var(--accent); }
 .message { font-size: calc(13px * var(--scale)); padding: 2px 0; }
@@ -149,9 +195,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .popup.no-tags .sense .tag[data-category="part-of-speech"] { display: none; }
 
 /* ---- Tabs by kind (words, grammar, kanji, names), each with its count; none for one kind ---- */
+.popup.tabbed { padding-top: calc(4px * var(--scale)); }
 .tabs {
-  display: flex; align-items: stretch; gap: 0;
-  margin: 0 0 calc(5px * var(--scale));
+  display: flex; align-items: stretch; gap: 0; line-height: 1.25;
+  margin: 0 0 calc(3px * var(--scale));
   border-bottom: 1px solid var(--edge);
   position: relative;
 }
@@ -166,13 +213,30 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 /* ---- The controller's buttons, marked like the legend on a key cap: only with a controller ---- */
 .key-mark { display: none; }
 .popup.pad .key-mark {
-  display: block; pointer-events: none;
-  font: 600 calc(7.5px * var(--scale)) / 1 var(--font); letter-spacing: 0;
-  color: var(--dim); opacity: 0.85; text-transform: none;
+  display: grid; place-items: center; pointer-events: none;
+  /* A small filled cap in the popup's own text colour, the legend cut out in its ground: seen at
+     a glance on any theme, but quieter than the buttons it sits on. */
+  min-width: calc(14px * var(--scale)); height: calc(14px * var(--scale)); padding: 0 calc(3px * var(--scale));
+  border-radius: calc(7px * var(--scale)); box-sizing: border-box;
+  background: var(--text); color: var(--ground, #000);
+  font: 700 calc(9.5px * var(--scale)) / 1 var(--font); letter-spacing: 0; text-transform: none;
+  opacity: 0.88;
 }
-.popup.pad .tabs .key-mark { align-self: center; padding: 0 calc(3px * var(--scale)); font-size: calc(8.5px * var(--scale)); }
+.popup.pad .tabs .key-mark { align-self: center; margin: 0 calc(4px * var(--scale)); }
 .popup.pad .tabs .key-mark.right { margin-left: auto; }
-.popup.pad .card .key-mark { position: absolute; right: 1px; bottom: 1px; font-size: calc(7px * var(--scale)); }
+.popup.pad .card { overflow: visible; }
+.popup.pad .card .key-mark {
+  position: absolute; right: calc(-6px * var(--scale)); bottom: calc(-6px * var(--scale));
+  box-shadow: 0 0 0 calc(1.5px * var(--scale)) var(--ground, #000);
+}
+/* The entry the d-pad is on (Reader.entry): a hairline in the accent down its side, and only its
+   card buttons marked, for they are the ones the controller presses. */
+.popup.pad.choosing .entry:not(.chosen) .card .key-mark { display: none; }
+.popup.pad.choosing .entry.chosen::before {
+  content: ""; position: absolute; left: calc(-5px * var(--scale)); top: calc(4px * var(--scale));
+  bottom: calc(5px * var(--scale)); width: calc(2px * var(--scale)); border-radius: 1px;
+  background: var(--accent, currentColor); pointer-events: none;
+}
 /* ---- A dictionary's own layout (grammar, characters): as it set it, in the popup's colours ---- */
 .sense.laid-out { list-style: none; }
 .sense.unnumbered { padding-left: 0; }
@@ -202,9 +266,21 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .kanji-rows dt { color: var(--dim); font-size: calc(9.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.25em; }
 .kanji-rows dd { margin: 0; }
 .kanji-side { min-width: 0; }
+
+/* Where color-mix is not known (the Thor's WebView 109): a color-mix with var() in it is only found
+   wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
+   here instead of before it. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .popup { background: var(--ground); }
+  .entry.unknown .headword { background: rgba(127, 127, 127, 0.25); box-shadow: none; }
+  .tag.name { border-color: var(--accent); }
+  .card { border-color: var(--edge); }
+  .about, .sc [data-sc-content="example-sentence"] { color: var(--text); }
+}
 </style>
 <style id="console"></style>
 <style id="theme"></style>
+<style id="device"></style>
 <style id="user"></style>
 </head>
 <body>
@@ -273,13 +349,32 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       path.setAttribute("stroke-width", "1.8");
     } else if (kind === "ring") {
       path.setAttribute("d", "M12 3a9 9 0 1 1-9 9");
-    } else if (kind === "plusAudio") {
-      // The card with the line's audio: a speaker sounding.
-      path.setAttribute("stroke-width", "2.2");
-      path.setAttribute("d", "M3 9h4l5-4v14l-5-4H3zM16 8.5a5 5 0 0 1 0 7M19 5.5a9 9 0 0 1 0 13");
+    } else if (kind === "done") {
+      path.setAttribute("d", "M5 12.5l4.5 4.5L19 7.5");
     } else {
       path.setAttribute("d", "M12 4v16M4 12h16");
     }
+    svg.appendChild(path);
+    return svg;
+  }
+
+  /**
+   * The card with the line's audio: the same plus as the plain card's, and a small speaker in the
+   * button's upper corner (a speaker alone read as "play the audio"; the maintainer, 2026-11-20:
+   * both buttons one size, the plus most of the button, the speaker smaller).
+   */
+  function speaker() {
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("viewBox", "0 0 12 12");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", "with-audio");
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.25");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("d", "M1.4 4.6h2l2.5-2.1v7L3.4 7.4h-2zM8 4.4a2.5 2.5 0 0 1 0 3.2M9.9 2.9a4.9 4.9 0 0 1 0 6.2");
     svg.appendChild(path);
     return svg;
   }
@@ -294,8 +389,30 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     return mark;
   }
 
-  /** The controller's button for each card button (PopupKeys on Android): north, east. */
+  /**
+   * The controller's button for each card button (PopupKeys on Android): north, east. An app
+   * names them as its controller prints them (model.keys: Furoshiki on a computer says Y and B,
+   * the Steam Controller's letters); the tab row's L and R likewise (keys.left, keys.right).
+   */
   const KEYS = { add: "△", addAudio: "○" };
+  function keyOf(kind) {
+    const own = model.keys || {};
+    return own[kind] || KEYS[kind] || "";
+  }
+
+  /** The card button last pressed (by a finger, the pointer or the controller). */
+  let pressed = { index: -1, kind: "" };
+
+  /** Plays an animation class on a node once, from its start even when it was just played. */
+  function play(node, name) {
+    if (!node) return;
+    node.classList.remove(name);
+    void node.offsetWidth;
+    node.classList.add(name);
+    node.addEventListener("animationend", () => node.classList.remove(name), { once: true });
+  }
+  /** A button gives under its press and a ring goes out from it. */
+  function press(node) { play(node, "pressing"); }
 
   function button(kind, index, state, label) {
     const node = element("button", "card " + kind);
@@ -305,11 +422,17 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     node.dataset.state = state;
     node.title = label || "";
     node.setAttribute("aria-label", label || "");
-    node.appendChild(sign(kind === "book" ? "book" : state === "checking" ? "ring" : kind === "addAudio" ? "plusAudio" : "plus"));
-    if (KEYS[kind]) node.appendChild(keyMark(KEYS[kind]));
+    // The one pressed turns while its card is made; the other waits, dimmed.
+    const making = state === "working" && pressed.index === index && pressed.kind === kind;
+    if (making) node.classList.add("making");
+    node.appendChild(sign(kind === "book" ? "book" : state === "checking" || making ? "ring" : "plus"));
+    if (kind === "addAudio") node.appendChild(speaker());
+    if (keyOf(kind)) node.appendChild(keyMark(keyOf(kind)));
     node.addEventListener("click", (event) => {
       event.stopPropagation();
       if (node.dataset.state === "working") return;
+      pressed = { index: index, kind: kind };
+      press(node);
       // Both pluses say "add"; "audio" says which (an app from before them reads only the index).
       if (kind === "book") post({ type: "book", index: index });
       else post({ type: "add", index: index, audio: kind === "addAudio" });
@@ -373,6 +496,51 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 
   let tabs = [];
   let tab = "word";
+  /**
+   * The entry the controller is on (model.choose: the d-pad goes from one to the next, its card
+   * buttons are the ones marked and pressed: Reader.entry, Reader.addChosen), or -1.
+   */
+  let chosen = -1;
+
+  /** Marks entry [index] as the chosen one and brings it into view ([scroll]). */
+  function chooseEntry(index, scroll, step) {
+    chosen = index;
+    let section = null;
+    popup.querySelectorAll(".entry").forEach((node) => {
+      const on = Number(node.dataset.index) === index;
+      node.classList.toggle("chosen", on);
+      if (on) section = node;
+    });
+    if (!section || !scroll) return;
+    const top = section.getBoundingClientRect().top - popup.getBoundingClientRect().top + popup.scrollTop;
+    const row = popup.querySelector(".tabs");
+    // Under the tab row where it stays at the top; the first entry from the very top.
+    const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
+    const first = popup.querySelector(".entry") === section;
+    glide(first ? 0 : Math.max(0, top - above - 2));
+    // A very short move from the side it came from, so the eye sees which way it went.
+    if (step) {
+      section.style.setProperty("--from", (step < 0 ? -1 : 1) * 7 + "px");
+      play(section, "arriving");
+    }
+  }
+
+  /** The popup's scroll taken to [to] in about a tenth of a second (at once where motion is unwanted). */
+  let gliding = 0;
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function glide(to) {
+    cancelAnimationFrame(gliding);
+    const from = popup.scrollTop;
+    if (still || Math.abs(to - from) < 2) { popup.scrollTop = to; return; }
+    const began = performance.now(), time = 110;
+    const frame = (now) => {
+      const part = Math.min(1, (now - began) / time);
+      popup.scrollTop = from + (to - from) * (1 - Math.pow(1 - part, 3));
+      if (part < 1) gliding = requestAnimationFrame(frame);
+      else reportSoon();
+    };
+    gliding = requestAnimationFrame(frame);
+  }
   /** A controller is the input (Reader.setPad, model.pad). */
   let pad = false;
 
@@ -380,7 +548,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   function tabRow() {
     const row = element("div", "tabs");
     row.setAttribute("role", "tablist");
-    row.appendChild(keyMark("L", "left"));
+    row.appendChild(keyMark(keyOf("left") || "L", "left"));
     const labels = model.labels || {};
     tabs.forEach((one) => {
       const node = element("span", "tab" + (one.kind === tab ? " on" : ""));
@@ -394,7 +562,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       });
       row.appendChild(node);
     });
-    row.appendChild(keyMark("R", "right"));
+    row.appendChild(keyMark(keyOf("right") || "R", "right"));
     return row;
   }
 
@@ -485,7 +653,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     if (entry.reading) head.appendChild(element("span", "reading", entry.reading));
     if (entry.name) {
       // A name in this game, from its names dictionary.
-      const tag = element("span", "tag name", (model.labels && model.labels.name) || "名前");
+      const tag = element("span", "tag name", (model.labels && model.labels.name) || "Name");
       tag.dataset.category = "name";
       head.appendChild(tag);
     }
@@ -566,6 +734,12 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     return (entry.senses || []).filter((sense) => !kind || senseKind(sense) === kind);
   }
 
+  /** A dictionary's name as a label: without the date or revision its title ends in. */
+  function dictionaryLabel(name) {
+    const short = String(name).replace(/\s*[\[(（]?(?:rev\.?\s*)?\d{4}[-./]\d{1,2}[-./]\d{1,2}[\])）]?\s*$/i, "").trim();
+    return short || String(name);
+  }
+
   function senses(entry, kind) {
     const out = document.createDocumentFragment();
     let list = null;
@@ -579,9 +753,12 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     const per = {};
     shown.forEach((sense) => { per[sense.dictionary] = (per[sense.dictionary] || 0) + 1; });
     let count = 0;
+    // A dictionary's name says nothing where every sense shown is that dictionary's.
+    const several = Object.keys(per).length > 1;
     shown.forEach((sense) => {
-      if (sense.heading) {
-        const name = element("div", "dictionary-name", sense.heading);
+      if (sense.heading && several) {
+        const name = element("div", "dictionary-name");
+        name.appendChild(element("span", "dictionary-label", dictionaryLabel(sense.heading)));
         name.dataset.dictionary = sense.heading;
         out.appendChild(name);
         list = null;
@@ -598,11 +775,25 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (laidOut) item.classList.add("laid-out");
       if (!laidOut || per[sense.dictionary] > 1) item.appendChild(element("span", "number", String(sense.number)));
       else item.classList.add("unnumbered");
-      (sense.tags || []).forEach((tag) => {
-        const node = element("span", "tag", tag);
-        node.dataset.category = "part-of-speech";
-        item.appendChild(node);
-      });
+      // The tags stand as one quiet run before the meaning: the first two, the rest behind a
+      // count (a tap shows them), so a sense with five tags does not push its meaning away.
+      const tags = sense.tags || [];
+      if (tags.length) {
+        const run = element("span", "sense-tags");
+        tags.forEach((tag, at) => {
+          const node = element("span", "tag" + (at >= 2 && tags.length > 3 ? " extra" : ""), tag);
+          node.dataset.category = "part-of-speech";
+          run.appendChild(node);
+        });
+        if (tags.length > 3) {
+          const more = element("span", "tag more-tags", "+" + (tags.length - 2));
+          more.dataset.category = "part-of-speech";
+          more.title = tags.slice(2).join(" · ");
+          more.addEventListener("click", (event) => { event.stopPropagation(); run.classList.add("all"); reportSoon(); });
+          run.appendChild(more);
+        }
+        item.appendChild(run);
+      }
       if (laidOut) {
         // A grammar or a character dictionary: its formation boxes, examples and tables as it set them.
         item.appendChild(glossary(sense.content));
@@ -660,7 +851,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (stats.strokes) counts.push(String(stats.strokes));
       if (stats.grade) counts.push((labels.grade || "Grade") + " " + stats.grade);
       if (stats.jlpt) counts.push("JLPT N" + String(stats.jlpt).replace(/^N/i, ""));
-      if (stats.freq || stats.frequency) counts.push((labels.frequency || "Freq") + " " + (stats.freq || stats.frequency));
+      if (stats.freq || stats.frequency) counts.push((labels.frequency || "Frequency") + " " + (stats.freq || stats.frequency));
       row("strokes", "Strokes", counts.join(" · "));
       row("parts", "Parts", kanji.parts);
       out.appendChild(rows);
@@ -710,7 +901,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     if (model.message) {
       popup.appendChild(element("div", "message", model.message.text));
       if (model.message.dictionaries) {
-        const link = element("div", "link", (model.labels && model.labels.dictionaries) || "Open the dictionaries");
+        const link = element("div", "link", (model.labels && model.labels.dictionaries) || "Open dictionaries");
         link.addEventListener("click", () => post({ type: "dictionaries" }));
         popup.appendChild(link);
       }
@@ -737,30 +928,67 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       section.classList.toggle("unknown", !!entry.unknown);
       const asCharacter = (kind || kinds[0]) === "kanji";
       if (!asCharacter) section.appendChild(headline(entry));
-      if (entry.history) section.appendChild(element("div", "lookups", entry.history));
       // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
       if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) section.appendChild(nameCard(entry.card));
       if (asCharacter) section.appendChild(character(entry, kind));
       else section.appendChild(senses(entry, kind));
       if (entry.forms && entry.forms.length && (!kind || kind === "word")) section.appendChild(forms(entry));
+      // How often it was looked up: one line under the definition, never above it.
+      if (entry.history) {
+        const lookups = element("div", "lookups", entry.history);
+        lookups.title = entry.history;
+        section.appendChild(lookups);
+      }
       // A kanji bank's character is not a word of the line: no card of it.
       if (!entry.kanji) section.appendChild(buttons(entry, index));
       popup.appendChild(section);
     });
     popup.scrollTop = 0;
+    // A controller's d-pad starts on the first entry of the tab.
+    popup.classList.toggle("choosing", !!model.choose);
+    chosen = -1;
+    if (model.choose) {
+      const first = popup.querySelector(".entry");
+      if (first) chooseEntry(Number(first.dataset.index), false);
+    }
     report();
     if (design) mark(picked);
   }
 
   /** How tall the popup is, where its buttons are and what it says, for the app. */
   function report() {
+    pin();
     const boxes = [];
     popup.querySelectorAll(".card").forEach((node) => {
       const r = node.getBoundingClientRect();
       boxes.push({ index: Number(node.dataset.index), kind: node.dataset.kind, x: r.left, y: r.top, w: r.width, h: r.height });
     });
     const content = popup.scrollHeight + (popup.offsetHeight - popup.clientHeight);
-    post({ type: "size", width: popup.offsetWidth, height: content, scrolled: popup.scrollTop, boxes: boxes, text: popup.innerText });
+    // fit: the height that shows the entry in hand whole (the chosen one, else the first), with
+    // the tab row above the first. need: the least that still shows where its definition begins
+    // (two lines of it): a popup is never so short that the meaning is out of sight.
+    const frame = popup.offsetHeight - popup.clientHeight;
+    const style = getComputedStyle(popup);
+    const under = parseFloat(style.paddingBottom) || 0;
+    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const section = entries.find((node) => Number(node.dataset.index) === chosen) || entries[0];
+    let fit = content, need = 0;
+    if (section) {
+      const box = popup.getBoundingClientRect();
+      const place = section.getBoundingClientRect();
+      const top = section === entries[0] ? 0 : place.top - box.top + popup.scrollTop - (parseFloat(style.paddingTop) || 0);
+      fit = Math.ceil(place.bottom - box.top + popup.scrollTop - top + under + frame);
+      const first = section.querySelector(".sense, .name-card, .kanji, .forms");
+      if (first) {
+        const line = parseFloat(getComputedStyle(first).lineHeight) || 20;
+        const start = first.getBoundingClientRect().top - box.top + popup.scrollTop - top;
+        need = Math.ceil(Math.min(fit, start + Math.min(first.getBoundingClientRect().height, line * 2) + under + frame));
+      }
+    } else if (popup.firstElementChild) {
+      need = content; // a message
+    }
+    post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
+           scrolled: popup.scrollTop, boxes: boxes, text: popup.innerText });
   }
 
   let pending = false;
@@ -771,6 +999,37 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   }
 
   popup.addEventListener("scroll", reportSoon);
+
+  /**
+   * The headline of an entry taller than the popup stays at the top (base.css: sticky); what
+   * of the entry has gone under it is cut away here, part by part, so that it is not seen
+   * through the headline on a popup that is not solid.
+   */
+  function pin() {
+    const row = popup.querySelector(".tabs");
+    const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
+    popup.style.setProperty("--pin", above + "px");
+    popup.querySelectorAll(".entry").forEach((section) => {
+      const head = section.querySelector(":scope > .head");
+      if (!head) return;
+      const edge = head.getBoundingClientRect().bottom;
+      Array.from(section.children).forEach((part) => {
+        if (part === head) return;
+        // The card buttons set above the headline (a top corner) never pass under it.
+        if (part.classList.contains("card-buttons") && getComputedStyle(part).order === "-1") return;
+        const place = part.getBoundingClientRect();
+        const under = Math.min(place.height, edge - place.top);
+        const cut = under > 0.5 ? "inset(" + under.toFixed(1) + "px -999px -999px -999px)" : "";
+        if (part.style.clipPath !== cut) part.style.clipPath = cut;
+      });
+    });
+  }
+  popup.addEventListener("scroll", pin);
+  /** How much of the popup's height the pinned headline of entry [section] takes. */
+  function pinned(section) {
+    const head = section && section.querySelector(":scope > .head");
+    return head ? head.offsetHeight + (parseFloat(popup.style.getPropertyValue("--pin")) || 0) : 0;
+  }
   window.addEventListener("resize", reportSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(reportSoon);
   // Clicks between the buttons answer nothing, and never reach the game.
@@ -991,10 +1250,49 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       const at = Math.max(0, tabs.findIndex((one) => one.kind === tab));
       choose(tabs[(at + (step < 0 ? tabs.length - 1 : 1)) % tabs.length].kind);
     },
+    /**
+     * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
+     * (model.choose): it is marked and brought into view. At the last entry, down only scrolls
+     * on to what is left of it.
+     */
+    entry(step) {
+      const all = Array.from(popup.querySelectorAll(".entry")).map((node) => Number(node.dataset.index));
+      if (!all.length) return;
+      const at = all.indexOf(chosen);
+      const next = at < 0 ? 0 : at + (step < 0 ? -1 : 1);
+      if (next < 0 || next >= all.length) {
+        // A page on, less what the pinned headline covers and a line that was already read.
+        const section = popup.querySelector('.entry[data-index="' + chosen + '"]');
+        const page = Math.max(40, popup.clientHeight - pinned(section) - 20);
+        popup.scrollTop += step < 0 ? -page : page;
+        if (next < 0) popup.scrollTop = 0;
+      } else {
+        chooseEntry(all[next], true, step);
+        // The app's own answer to a step (a tick, a touch of the motor).
+        post({ type: "feedback", kind: "step" });
+      }
+      reportSoon();
+    },
+    /** The chosen entry's card ([audio]: with the line's audio), as its own button makes it. */
+    addChosen(audio) {
+      if (asking >= 0) return;
+      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      const button = section && section.querySelector(".card." + (audio ? "addAudio" : "add"));
+      if (button) button.click();
+    },
     /** Whether a controller is the input: its buttons are marked on the tabs and the card buttons. */
-    setPad(on) {
+    setPad(on, keys) {
       pad = !!on;
       popup.classList.toggle("pad", pad);
+      // The controller's own letters for the marks (model.keys), known once it was used.
+      if (keys) {
+        model.keys = keys;
+        popup.querySelectorAll(".card .key-mark").forEach((mark) => { mark.textContent = keyOf(mark.parentNode.dataset.kind); });
+        const left = popup.querySelector(".tabs .key-mark.left");
+        const right = popup.querySelector(".tabs .key-mark.right");
+        if (left) left.textContent = keyOf("left") || "L";
+        if (right) right.textContent = keyOf("right") || "R";
+      }
     },
     /** The tabs these entries make and the one the popup opens on (for the app and the tests). */
     kinds(entries) {
@@ -1003,11 +1301,17 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     setBox(index, state) {
       const entry = (model.entries || [])[index];
       if (!entry || entry.state === state) return;
+      const was = entry.state;
       entry.state = state;
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
       if (!section) return;
       section.dataset.state = state;
       section.replaceChild(buttons(entry, index), section.querySelector(".card-buttons"));
+      // The card was just made: the book lands where the plus was.
+      if (state === "inDeck" && was === "working") {
+        play(section.querySelector(".card.book"), "landing");
+        post({ type: "feedback", kind: "land" });
+      }
       reportSoon();
     },
     setUnknown(index, unknown) {
@@ -1142,7 +1446,7 @@ static const PopupTheme PopupThemes[] = {
 .entry + .entry { border-top-color: var(--rule); padding-top: 8px; }
 .head { gap: 0 0.8em; }
 .headword { font-weight: 600; font-size: calc(22px * var(--scale)); letter-spacing: 0.02em; }
-.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.1em; }
+.headword rt { display: revert; color: var(--dim); letter-spacing: 0.1em; }
 .reading { display: none; }
 .reasons, .pitch, .tag, .dictionary-name, .lookups, .romaji { font-size: calc(10.5px * var(--scale)); letter-spacing: 0.08em; color: var(--dim); }
 .tag, .dictionary-name { text-transform: uppercase; }
@@ -1184,25 +1488,31 @@ static const PopupTheme PopupThemes[] = {
 .entry { padding: 0 0 calc(10px * var(--scale)); }
 .entry + .entry { border-top: 1px solid var(--rule); padding-top: calc(10px * var(--scale)); }
 .head { gap: 0 0.9em; align-items: baseline; }
-.headword { font-size: calc(25px * var(--scale)); font-weight: 600; letter-spacing: 0.02em; line-height: 1.7; color: var(--headword);
+.headword { font-size: calc(25px * var(--scale)); font-weight: 600; letter-spacing: 0.02em; line-height: 1.3; color: var(--headword);
   font-family: "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", sans-serif; }
-.headword rt { display: ruby-text; font-size: 0.64em; color: var(--dim); letter-spacing: 0.1em; }
+.headword rt { display: revert; font-size: 0.64em; color: var(--dim); letter-spacing: 0.1em; }
 .reading { display: none; }
 .reasons, .pitch, .lookups, .tag, .dictionary-name, .romaji, .more {
   font-size: calc(10px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim);
 }
-.lookups { margin: calc(-2px * var(--scale)) 0 calc(4px * var(--scale)); text-transform: none; letter-spacing: 0.04em; }
+.lookups { margin: calc(5px * var(--scale)) 0 0; text-transform: none; letter-spacing: 0.04em; }
 .tags { gap: calc(4px * var(--scale)) 0.6em; }
 .tag { background: none; border: 1px solid var(--rule); border-radius: 2px; padding: 0 5px; }
 .tag.frequency { background: var(--raised); border-color: transparent; font-size: calc(12.5px * var(--scale)); }
 .tag.frequency .tag-value { color: var(--text); letter-spacing: 0.04em; }
 .tag.name { color: var(--accent); border-color: var(--accent); }
 .tag.role { color: var(--text); }
-.dictionary-name { margin-top: calc(8px * var(--scale)); padding-bottom: 2px; border-bottom: 1px solid var(--rule); }
+.dictionary-name { margin-top: calc(5px * var(--scale)); }
+.dictionary-name::after { background: var(--rule); opacity: 1; }
+.popup.tabbed { padding-top: calc(5px * var(--scale)); }
+.head { margin-top: calc(2px * var(--scale)); }
 .senses { margin-top: calc(3px * var(--scale)); }
 .sense { padding-left: 1.6em; margin: 1px 0; }
 .sense > .number { display: inline-block; width: 1.6em; margin: 0 0 0 -1.6em; color: var(--dim); font-size: 0.9em; }
-.sense .tag { margin-right: 0.6em; }
+.sense .tag { margin-right: 0.35em; }
+.sense-tags .tag { font-size: calc(8.5px * var(--scale)); letter-spacing: 0.08em; padding: 0 3px; border-color: transparent;
+  background: color-mix(in srgb, var(--text) 9%, transparent); border-radius: 2px; }
+.forms .tag { font-size: calc(8.5px * var(--scale)); letter-spacing: 0.08em; padding: 0 3px; }
 .glosses .gloss + .gloss::before { content: " · "; color: var(--dim); }
 .notes { color: var(--dim); font-size: 0.9em; }
 .forms { margin-top: calc(4px * var(--scale)); }
@@ -1219,13 +1529,17 @@ static const PopupTheme PopupThemes[] = {
 .card-buttons { margin-top: calc(6px * var(--scale)); }
 .card { border: 1px solid var(--rule); border-radius: 2px; width: calc(24px * var(--scale)); height: calc(24px * var(--scale)); }
 .card:hover { border-color: var(--text); }
-.card svg { width: 46%; height: 46%; }
+.card svg { width: 64%; height: 64%; }
+.card .with-audio { width: 36%; height: 36%; top: 4%; right: 4%; }
 .link { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--accent); }
 .more { margin-top: 2px; display: inline-block; }
 .tab.on { box-shadow: inset 0 -2px 0 var(--accent); }
 .kanji .glyph { color: var(--headword); font-size: calc(58px * var(--scale)); }
 .sc [data-sc-content="formation"], .sc [data-sc-content="structure"], .sc [data-sc-class="formation"] { border-color: var(--rule); border-radius: 2px; }
 .sc [data-sc-content="example-sentence"], .sc [data-sc-content="examples"], .sc [data-sc-content="example"] { border-left-color: var(--rule); }
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .entry.unknown .headword { background: rgba(255, 255, 255, 0.22); }
+}
 )popup"},
     {"kumihan", R"popup(/* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later
@@ -1249,7 +1563,7 @@ static const PopupTheme PopupThemes[] = {
 .entry + .entry { border-top: 1px solid var(--rule); padding-top: calc(10px * var(--scale)); }
 .head { gap: 0 0.9em; align-items: baseline; }
 .headword { font-size: calc(26px * var(--scale)); font-weight: 500; letter-spacing: 0.02em; line-height: 1.7; }
-.headword rt { display: ruby-text; font-size: 0.4em; color: var(--dim); letter-spacing: 0.12em; }
+.headword rt { display: revert; font-size: 0.4em; color: var(--dim); letter-spacing: 0.12em; }
 .reading { display: none; }
 .reasons, .pitch, .lookups, .tag, .dictionary-name, .romaji, .more {
   font-size: calc(10px * var(--scale)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim);
@@ -1339,7 +1653,7 @@ static const PopupTheme PopupThemes[] = {
 .entry + .entry { border-top: 1px solid var(--rule); padding-top: 12px; }
 .head { gap: 0 1em; }
 .headword { font-size: calc(36px * var(--scale)); font-weight: 700; letter-spacing: 0.02em; line-height: 1.6; }
-.headword rt { display: ruby-text; font-size: 0.38em; color: var(--dim); font-weight: 400; letter-spacing: 0.12em; }
+.headword rt { display: revert; font-size: 0.38em; color: var(--dim); font-weight: 400; letter-spacing: 0.12em; }
 .reading { display: none; }
 .reasons, .pitch, .lookups, .tag, .notes, .dictionary-name, .romaji, .more { font-size: calc(12px * var(--scale)); letter-spacing: 0.08em; color: var(--dim); }
 .tag, .dictionary-name { text-transform: uppercase; }
@@ -1406,7 +1720,7 @@ static const PopupTheme PopupThemes[] = {
 .entry + .entry { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 8px; }
 .head { gap: 0 0.9em; }
 .headword { font-size: calc(26px * var(--scale)); font-weight: 600; letter-spacing: 0.05em; }
-.headword rt { display: ruby-text; color: var(--dim); letter-spacing: 0.14em; font-size: 0.4em; }
+.headword rt { display: revert; color: var(--dim); letter-spacing: 0.14em; font-size: 0.4em; }
 .reading { display: none; }
 .reasons { color: var(--dim); font-style: italic; }
 .pitch { color: var(--dim); }
@@ -1444,7 +1758,7 @@ static const PopupTheme PopupThemes[] = {
 .popup { border: 1px solid #586e75; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45); }
 .entry + .entry { border-top-color: #073642; }
 .headword { color: #eee8d5; font-weight: 700; font-size: calc(20px * var(--scale)); }
-.headword rt { display: ruby-text; color: #839496; }
+.headword rt { display: revert; color: #839496; }
 .reading { display: none; }
 .reasons { color: #cb4b16; }
 .pitch { color: #6c71c4; }
@@ -1479,7 +1793,7 @@ static const PopupTheme PopupThemes[] = {
 .popup { border: 1px solid #d3cbb7; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35); }
 .entry + .entry { border-top-color: #eee8d5; }
 .headword { color: #073642; font-weight: 700; font-size: calc(20px * var(--scale)); }
-.headword rt { display: ruby-text; color: #93a1a1; }
+.headword rt { display: revert; color: #93a1a1; }
 .reading { display: none; }
 .reasons { color: #cb4b16; }
 .pitch { color: #6c71c4; }
@@ -1507,7 +1821,7 @@ static const PopupTheme PopupThemes[] = {
 .popup { border: 1px solid #555; padding: 10px 14px 10px 18px; color: #f2f2f2; }
 .entry::before { content: ""; position: absolute; left: -15px; top: calc(20px * var(--scale)); border: 7px solid transparent; border-left: 8px solid #3b8cf0; }
 .headword { font-weight: 400; font-size: calc(26px * var(--scale)); }
-.headword rt { display: ruby-text; }
+.headword rt { display: revert; }
 .reading { display: none; }
 .tags { gap: 6px; }
 .tag {

@@ -114,5 +114,15 @@ class PlaySettingsTest {
         assertEquals(listOf("top_bottom", "large_screen"), settings[1].choices)
         assertTrue(settings[2].hidden)
         assertEquals("3×", settings[0].shown("3"))
+        // The settings every console has, as the desktop program calls them; a switch reads On or Off.
+        val common = PlaySetting.list(
+            "psp",
+            JSONObject("""{"settings":[{"key":"picture.aspect","label":"","kind":2,"default":"auto","choices":["auto","4:3"]},
+            {"key":"picture.frame_limit","label":"","kind":0,"default":"1"},
+            {"key":"picture.renderer","label":"","kind":2,"default":"vulkan","choices":["vulkan","opengl"]}]}"""),
+        )
+        assertEquals(listOf("Aspect ratio", "Limit frame rate", "Renderer"), common.map { it.label })
+        assertEquals("On", common[1].shown("1"))
+        assertEquals("Off", common[1].shown("0"))
     }
 }

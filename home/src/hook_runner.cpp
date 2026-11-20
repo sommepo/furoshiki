@@ -29,14 +29,14 @@ Runner::Runner(QObject* parent) : QObject(parent) {
         if (stopping) {
             return;
         }
-        const QString why = !fault.isEmpty() ? fault : code != 0 && !said.isEmpty() ? said.last() : QStringLiteral("the program went");
+        const QString why = !fault.isEmpty() ? fault : code != 0 && !said.isEmpty() ? said.last() : QStringLiteral("the game closed");
         fault = why;
         emit Changed();
         emit Ended(why);
     });
     connect(&process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart && !stopping) {
-            fault = QStringLiteral("%1 could not be started").arg(QFileInfo(process.program()).fileName());
+            fault = QStringLiteral("couldn't start %1").arg(QFileInfo(process.program()).fileName());
             emit Changed();
             emit Ended(fault);
         }
@@ -78,12 +78,12 @@ bool Runner::Start(const Plan& plan_, QString& error) {
     if (plan.engine == Engine::Agent) {
         const QString inject = FridaInject(plan.shared);
         if (inject.isEmpty()) {
-            error = QStringLiteral("frida-inject not found in the hooks folder");
+            error = QStringLiteral("Hook scripts need frida-inject, which is missing from Furoshiki's hooks folder. Unzip Furoshiki again");
             return false;
         }
         QFile host(QStringLiteral(":/hooks/agent_host.js"));
         if (!host.open(QIODevice::ReadOnly)) {
-            error = QStringLiteral("Agent scripts aren't supported in this build");
+            error = QStringLiteral("This build of Furoshiki can't run hook scripts. Use OCR for this game");
             return false;
         }
         storage = Agent::LoadStorage(plan.shared, plan.title, plan.pid);
@@ -95,7 +95,7 @@ bool Runner::Start(const Plan& plan_, QString& error) {
         QDir().mkpath(QFileInfo(file).path());
         QSaveFile out(file);
         if (!out.open(QIODevice::WriteOnly) || out.write(bundle.toUtf8()) <= 0 || !out.commit()) {
-            error = QStringLiteral("Couldn't save script to %1").arg(file);
+            error = QStringLiteral("Couldn't save the hook script to %1. Check that the folder can be written").arg(file);
             return false;
         }
         // QuickJS, as Agent runs its scripts.
@@ -104,14 +104,14 @@ bool Runner::Start(const Plan& plan_, QString& error) {
     } else if (plan.engine == Engine::Textractor) {
         command = TextractorCommand(plan.shared, plan.is32);
         if (command.isEmpty()) {
-            error = QStringLiteral("Textractor isn't downloaded yet");
+            error = QStringLiteral("Textractor isn't downloaded yet. Add the game again to download it");
             return false;
         }
         input = TextractorCommands(plan.pid, plan.codes);
     } else {
         command = LunaCommand(plan.shared);
         if (command.isEmpty()) {
-            error = QStringLiteral("LunaHook isn't installed");
+            error = QStringLiteral("LunaHook isn't downloaded yet. Add the game again to download it");
             return false;
         }
         command << QString::number(plan.pid) << (plan.is32 ? QStringLiteral("32") : QStringLiteral("64"));
@@ -158,7 +158,7 @@ void Runner::Stop() {
 
 QString Runner::Status() const {
     if (!Running()) {
-        return fault.isEmpty() ? QStringLiteral("not hooked") : QStringLiteral("ended  ·  ") + fault;
+        return fault.isEmpty() ? QStringLiteral("not hooked") : QStringLiteral("ended · ") + fault;
     }
     if (!attached) {
         return QStringLiteral("hooking");
@@ -167,7 +167,21 @@ QString Runner::Status() const {
         return QStringLiteral("hooked");
     }
     const int count = static_cast<int>(threads.All().size());
-    return QStringLiteral("hooked  ·  %1 %2").arg(count).arg(count == 1 ? QStringLiteral("thread") : QStringLiteral("threads"));
+    return QStringLiteral("hooked · %1 %2").arg(count).arg(count == 1 ? QStringLiteral("thread") : QStringLiteral("threads"));
+}
+
+QString Runner::Sentence() const {
+    if (!Running()) {
+        return fault.isEmpty() ? QStringLiteral("Not connected") : QStringLiteral("Stopped: ") + fault;
+    }
+    if (!attached) {
+        return QStringLiteral("Connecting to the game…");
+    }
+    if (plan.engine == Engine::Agent) {
+        return QStringLiteral("Connected");
+    }
+    const int count = static_cast<int>(threads.All().size());
+    return QStringLiteral("Connected · %1 %2").arg(count).arg(count == 1 ? QStringLiteral("text") : QStringLiteral("texts"));
 }
 
 void Runner::Read(bool errors) {

@@ -139,13 +139,13 @@ class CrtSettingsActivity : ReaderScreen() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        toolbar.title = TITLE
+        toolbar.setTitle(R.string.reader_crt)
         val column = scrollingColumn()
         val table = try {
             CrtSettings.load(applicationContext)
             CrtNative.table()
         } catch (_: UnsatisfiedLinkError) {
-            column.addView(note("The CRT picture needs the emulator's own library, which is not loaded here."))
+            column.addView(note(getString(R.string.reader_crt_unavailable)))
             return
         }
         val rows = ArrayList<Row>()
@@ -182,13 +182,13 @@ class CrtSettingsActivity : ReaderScreen() {
             if (row.key == "enabled") {
                 // The ready-made looks come straight after the switch.
                 lookKeys.add("")
-                lookNames.add("My own")
+                lookNames.add(getString(R.string.reader_crt_custom))
                 val spinner = spinner(lookNames) { index ->
                     val key = lookKeys[index]
                     if (key.isNotEmpty() && CrtNative.look(key)) changed()
                 }
                 looks = spinner
-                column.addView(labelled("Look", "Ready-made pictures. Moving a slider makes the picture your own.", spinner))
+                column.addView(labelled(getString(R.string.reader_crt_preset), "", spinner))
             }
         }
         refresh()
@@ -235,7 +235,8 @@ class CrtSettingsActivity : ReaderScreen() {
     }
 
     private fun toggle(row: Row): View = SwitchCompat(this).apply {
-        text = row.name
+        // The switch is the filter itself: called what the row that opens this page is called.
+        text = if (row.key == "enabled") getString(R.string.reader_crt) else row.name
         textSize = 16f
         setPadding(0, dp(10f), 0, dp(10f))
         setOnCheckedChangeListener { _, on -> set(row.key, if (on) 1f else 0f) }
@@ -303,9 +304,5 @@ class CrtSettingsActivity : ReaderScreen() {
         addView(body(name, 16f))
         if (hint.isNotEmpty()) addView(note(hint))
         addView(control, LinearLayout.LayoutParams(MATCH, WRAP))
-    }
-
-    private companion object {
-        const val TITLE = "CRT picture"
     }
 }

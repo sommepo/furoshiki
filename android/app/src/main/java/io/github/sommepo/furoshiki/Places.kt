@@ -26,6 +26,19 @@ object Places {
     )
     const val SCANNED = "io.github.sommepo.furoshiki.SCANNED"
 
+    /**
+     * What each console is called: on a tab or in a short place first ("PS Vita", never the key
+     * "PSVITA"), then in a sentence ("Nintendo 3DS"). The page has the same in front.js (LOOKS).
+     */
+    val NAMES = mapOf(
+        "psp" to ("PSP" to "PSP"), "dc" to ("Dreamcast" to "Dreamcast"), "3ds" to ("3DS" to "Nintendo 3DS"),
+        "nds" to ("DS" to "Nintendo DS"), "ps1" to ("PS1" to "PlayStation"), "ps2" to ("PS2" to "PlayStation 2"),
+        "psvita" to ("PS Vita" to "PS Vita"),
+    )
+
+    fun shortName(key: String): String = NAMES[key]?.first ?: key
+    fun fullName(key: String): String = NAMES[key]?.second ?: key
+
     /** The cores this APK may carry: the file in the app's library folder, by console key. */
     val CORES = linkedMapOf(
         "psp" to "libreader_core_ppsspp.so", "dc" to "libreader_core_flycast.so", "3ds" to "libreader_core_azahar.so",

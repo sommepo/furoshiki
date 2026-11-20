@@ -93,8 +93,18 @@ compound there is a word); else words.
   dim colour (`.popup.pad .key-mark`). Never on touch or a mouse.
 - `Reader.tab(±1)` goes to the next tab or the one before, round the row (Android: R1 and L1,
   `PopupKeys`); a tab is also clicked. The page says `{"type": "tab", "kind"}`. `Reader.kinds(entries)`
-  gives `{tabs: [{kind, count}], first}` (for tests). The desktop's popup gets no controller
-  buttons today, so it has no L1/R1 and never shows the marks.
+  gives `{tabs: [{kind, count}], first}` (for tests).
+- **The marks' letters** are the app's where it says them: `"keys": {"add", "addAudio", "left",
+  "right"}` in the model or `Reader.setPad(true, keys)` (else △, ○, L, R). Furoshiki on a computer
+  says the controller's own: **Y** and **B** on the Steam Controller and an Xbox-style pad (Y north,
+  B east), △ ○ L1 R1 on a PlayStation pad, X and A on a Switch Pro Controller.
+- **An entry chosen by the d-pad** (2026-11-19, Furoshiki on a computer; `"choose": true` in the
+  model): the first entry of the tab is chosen as it is drawn, `Reader.entry(±1)` goes to the next
+  or the one before and brings it into view (past the last, down scrolls on), and
+  `Reader.addChosen(audio)` presses that entry's own card button (nothing where it has none: a
+  word in Anki without duplicates). With a controller the chosen entry has a hairline of the accent
+  down its side (`.popup.pad.choosing .entry.chosen::before`) and only its buttons are marked.
+  Android does not set `choose`: its d-pad scrolls and its marks are on every entry, as before.
 
 An entry from the running game's names dictionary (a dictionary whose `furoshikiScope` has
 the game: `docs/titles.md`) has `"name": true`, and so has each of its senses; the page tags it
@@ -142,6 +152,32 @@ window (or surface) under it, so a slider for it would do nothing. `glass` asks 
 Then `Reader.setBox(index, state)` (`add`, `working`, `inDeck`, `checking`, `away`),
 `Reader.setUnknown(index, bool)`, `Reader.setStyle(id, css)` for the `console`, `theme` and
 `user` stylesheets, `Reader.scrollTo(y)`.
+
+## The definition first (2026-11-20)
+
+The maintainer, of a popup whose tabs, lookup history and dictionary name left the meaning at its
+bottom edge: "this should never be possible". Since then:
+
+- **The order of an entry**: headline, the name's card, the senses, the other forms, then how often
+  it was looked up (`.lookups`, one line, cut with an ellipsis) and the card buttons. A
+  dictionary's name (`.dictionary-name` > `.dictionary-label`, with a rule running on) is left out
+  where every sense shown is that dictionary's, and is shown without the date its title ends in.
+- **`size` also says `fit` and `need`**: `fit` is the height that shows the entry in hand whole
+  (the one the d-pad is on, else the first; with the tab row above the first), `need` the least
+  that still shows the first two lines of its definition. The apps size the popup to `fit` up to
+  70 % of the picture when *Fit height to entry* is on (`reader_popup_fit`, on by default;
+  `ReaderSettings::PopupFitEntry`, `ReaderSettings.popupFitEntry`), so it changes size as the
+  d-pad goes to another entry; with it off, to the content up to the height set, and in either
+  case never under `need`.
+- **The card buttons** are one size. The second is the same plus with a small speaker in its
+  upper corner (`.card .with-audio`): a speaker alone read as "play the audio".
+- **What is pressed answers**: `.card.pressing` (it gives, a ring goes out), `.card.making` (the
+  one pressed turns while its card is made), `.card.landing` (the book lands in its place), and
+  `.entry.arriving` for the d-pad's step, which also glides the scroll (about a tenth of a
+  second). None of it with `prefers-reduced-motion`.
+- **Android's d-pad** goes from entry to entry too (`model.choose` with `pad`, `Reader.entry`).
+- **On a computer** a controller is the input from its first press or push of a stick
+  (`MainWindow::PollPads`), so a popup comes up with its buttons marked.
 
 ## What the page says back
 

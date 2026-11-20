@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -21,7 +22,7 @@ QString EntryId() {
 #endif
 }
 
-Offer Read(const QByteArray& index_json, const QString& files, const QString& id, const QString& own) {
+Offer Read(const QByteArray& index_json, const QString& files, const QString& id, const QString& own, qint64 own_written) {
     for (const QJsonValue& value : QJsonDocument::fromJson(index_json).object().value(QStringLiteral("items")).toArray()) {
         const QJsonObject item = value.toObject();
         if (item.value(QStringLiteral("id")).toString() != id) {
@@ -31,6 +32,10 @@ Offer Read(const QByteArray& index_json, const QString& files, const QString& id
         const QString url = item.value(QStringLiteral("url")).toString();
         if (sha.size() != 64 || url.isEmpty() || sha == own.toLower()) {
             return {};
+        }
+        const qint64 written = item.value(QStringLiteral("modified")).toVariant().toLongLong();
+        if (own_written > 0 && written > 0 && written < own_written) {
+            return {}; // older than this program: never a step back
         }
         Offer offer;
         offer.url = url.startsWith(QLatin1Char('/')) ? files + url : url;
@@ -62,7 +67,9 @@ void Check(QObject* context, const QString& files, std::function<void(const Offe
                           done({}, answer.error);
                           return;
                       }
-                      done(Read(answer.body, files, EntryId(), Sha256(QCoreApplication::applicationFilePath())), {});
+                      const QString own = QCoreApplication::applicationFilePath();
+                      done(Read(answer.body, files, EntryId(), Sha256(own),
+                                QFileInfo(own).lastModified().toMSecsSinceEpoch()), {});
                   });
 }
 

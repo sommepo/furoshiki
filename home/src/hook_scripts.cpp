@@ -268,12 +268,12 @@ QString Bundle(const QString& folder, const QString& script, const QString& host
     const QDir dir(folder);
     const QString mission = CleanPath(script);
     if (mission.isEmpty() || !QFileInfo(dir.filePath(mission)).isFile()) {
-        error = QStringLiteral("Script %1 not found").arg(script);
+        error = QStringLiteral("Couldn't find the hook script %1. Download the hook scripts again").arg(script);
         return {};
     }
     const QString runtime = ReadText(dir.filePath(Runtime));
     if (runtime.isEmpty()) {
-        error = QStringLiteral("Agent runtime (%1) missing. Download scripts again").arg(Runtime);
+        error = QStringLiteral("Part of the hook scripts is missing (%1). Download the hook scripts again").arg(Runtime);
         return {};
     }
     // The script and everything it requires, each under its path within the folder. A file

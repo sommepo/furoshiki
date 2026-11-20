@@ -85,6 +85,12 @@ public:
     [[nodiscard]] int PopupScale() const;
     /// How tall the dictionary popup may get, in percent of the picture's height.
     [[nodiscard]] int PopupHeightPercent() const;
+    /// The popup is as tall as the entry in hand (the first, or the one the d-pad is on), up to
+    /// PopupFitLimitPercent of the picture; off: as tall as its content up to PopupHeightPercent.
+    /// On by default since 2026-11-20 (the maintainer: a definition must never be out of sight).
+    [[nodiscard]] bool PopupFitEntry() const;
+    /// How much of the picture's height a popup fitted to its entry may take.
+    static constexpr int PopupFitLimitPercent = 70;
     /// The popup goes away by itself after this long without the pointer on it; 0: it stays.
     [[nodiscard]] int PopupAutoHideSeconds() const;
     /// The popup goes away when the pointer (the mouse, or the controller's cursor) leaves
@@ -183,6 +189,13 @@ public:
     [[nodiscard]] static QString DefaultBackButtonAction(int button);
     /// The cursor's button switches it on and off with a press each, instead of being held.
     [[nodiscard]] bool CursorToggle() const;
+    /// What starts and stops reading with the controller's d-pad (a host that has it): "select",
+    /// "l3", "r3", two buttons together ("select+a", "l3+r3", "lb+rb"), or "always" (whenever a
+    /// line is on screen and no choice is up).
+    [[nodiscard]] QString ReadStart() const;
+    /// The state mark ("READING") and the hint bar over the game while reading that way.
+    [[nodiscard]] bool ReadMark() const;
+    [[nodiscard]] bool ReadHints() const;
     /// How fast the cursor moves, in percent.
     [[nodiscard]] int CursorSpeed() const;
     /// On a character of the game's text the cursor is a frame around that character.
@@ -324,6 +337,7 @@ public:
     static const QString KeyCardCorner;
     static const QString KeyPopupScale;
     static const QString KeyPopupHeight;
+    static const QString KeyPopupFit;
     static const QString KeyPopupAutoHide;
     static const QString KeyPopupHideOnExit;
     static const QString KeyPopupMarkUnknown;
@@ -346,6 +360,9 @@ public:
     static const QString KeyBackButton;
     static const QString KeyStatsInstall;
     static const QString KeyCursorToggle;
+    static const QString KeyReadStart;
+    static const QString KeyReadHints;
+    static const QString KeyReadMark;
     static const QString KeyCursorSpeed;
     static const QString KeyCursorFrame;
     static const QString KeyCursorHome;

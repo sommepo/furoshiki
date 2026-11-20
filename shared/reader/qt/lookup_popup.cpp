@@ -144,6 +144,7 @@ QFont LookupPopup::BaseFont() const {
 void LookupPopup::Clear() {
     entries.clear();
     scroll = 0;
+    pad_chosen = 0;
     pressed_index = -1;
     pressed_kind = 0;
     UpdateSpin();
@@ -426,6 +427,102 @@ void LookupPopup::AskDone() {
     }
 }
 
+namespace {
+bool& PadInUseHeld() {
+    static bool in_use = false;
+    return in_use;
+}
+QJsonObject& PadKeysHeld() {
+    static QJsonObject keys;
+    return keys;
+}
+int& PadKeysCount() {
+    static int count = 0;
+    return count;
+}
+} // namespace
+
+namespace {
+std::function<void(const QString&)>& FeedbackHeld() {
+    static std::function<void(const QString&)> feedback;
+    return feedback;
+}
+} // namespace
+
+void LookupPopup::SetFeedback(std::function<void(const QString& kind)> feedback) {
+    FeedbackHeld() = std::move(feedback);
+}
+
+void LookupPopup::SetPadInUse(bool on) {
+    PadInUseHeld() = on;
+}
+
+bool LookupPopup::PadInUse() {
+    return PadInUseHeld();
+}
+
+void LookupPopup::SetPadKeys(const QJsonObject& keys) {
+    if (PadKeysHeld() != keys) {
+        PadKeysHeld() = keys;
+        ++PadKeysCount();
+    }
+}
+
+void LookupPopup::ShowPad() {
+    if (web && (pad_shown != PadInUse() || pad_keys_shown != PadKeysCount())) {
+        pad_shown = PadInUse();
+        pad_keys_shown = PadKeysCount();
+        web->Call(QStringLiteral("Reader.setPad(%1, %2)")
+                      .arg(pad_shown ? "true" : "false",
+                           QString::fromUtf8(QJsonDocument(PadKeysHeld()).toJson(QJsonDocument::Compact))));
+    }
+}
+
+void LookupPopup::PadTab(int step) {
+    if (web) {
+        ShowPad();
+        web->Call(QStringLiteral("Reader.tab(%1)").arg(step < 0 ? -1 : 1));
+    }
+}
+
+void LookupPopup::PadEntry(int step) {
+    if (web) {
+        ShowPad();
+        web->Call(QStringLiteral("Reader.entry(%1)").arg(step < 0 ? -1 : 1));
+        return;
+    }
+    // Drawn here: from one result's top to the next.
+    int results = 0;
+    for (const Entry& entry : entries) {
+        results += entry.is_result ? 1 : 0;
+    }
+    if (results == 0) {
+        return;
+    }
+    pad_chosen = std::clamp(pad_chosen + (step < 0 ? -1 : 1), 0, results - 1);
+    ScrollTo(pad_chosen == 0 ? 0 : entries[static_cast<std::size_t>(pad_chosen)].top);
+}
+
+void LookupPopup::PadAdd(bool audio) {
+    if (web) {
+        ShowPad();
+        web->Call(QStringLiteral("Reader.addChosen(%1)").arg(audio ? "true" : "false"));
+        return;
+    }
+    if (pad_chosen < ResultCount() && entries[static_cast<std::size_t>(pad_chosen)].is_result &&
+        GetCardState(pad_chosen) != CardState::Working) {
+        emit AddRequested(pad_chosen, audio ? 1 : 0);
+    }
+}
+
+void LookupPopup::ScrollBy(int dy) {
+    if (web) {
+        web->Call(QStringLiteral("Reader.scrollBy(%1)").arg(dy));
+        return;
+    }
+    ScrollTo(scroll + dy);
+}
+
 void LookupPopup::SetConsoleKey(const QString& key) {
     ConsoleKeyHeld() = key;
 }
@@ -455,20 +552,25 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
         {QStringLiteral("look"), look},
         {QStringLiteral("console"), ConsoleKeyHeld()},
         {QStringLiteral("game"), ReaderSession::Instance().GameKey()},
+        // A controller: the d-pad goes from entry to entry, and its buttons are marked.
+        {QStringLiteral("choose"), true},
+        {QStringLiteral("pad"), PadInUse()},
+        {QStringLiteral("keys"), PadKeysHeld()},
         {QStringLiteral("labels"),
          QJsonObject{{QStringLiteral("add"), tr("Add to Anki")},
                      {QStringLiteral("addAudio"), tr("Add to Anki with audio")},
-                     {QStringLiteral("book"), tr("In Anki · Show note")},
+                     {QStringLiteral("book"), tr("In Anki · Show card")},
                      {QStringLiteral("forms"), tr("forms")},
                      {QStringLiteral("more"), tr("more")},
                      {QStringLiteral("dictionaries"), tr("Open dictionaries")},
                      {QStringLiteral("listen"), tr("Listen")},
                      {QStringLiteral("stop"), tr("Stop")},
                      {QStringLiteral("keep"), tr("With audio")},
-                     {QStringLiteral("drop"), tr("Without")}}}};
+                     {QStringLiteral("drop"), tr("Without audio")}}}};
     if (!message.isEmpty()) {
         model.insert(QStringLiteral("message"), message);
     }
+    pad_shown = PadInUse();
     web_layout = false;
     web_add.clear();
     web_book.clear();
@@ -479,9 +581,18 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
 void LookupPopup::OnPageMessage(const QJsonObject& message) {
     const QString type = message.value(QStringLiteral("type")).toString();
     const int index = message.value(QStringLiteral("index")).toInt(-1);
+    if (type == QStringLiteral("feedback")) {
+        if (FeedbackHeld()) {
+            FeedbackHeld()(message.value(QStringLiteral("kind")).toString());
+        }
+        return;
+    }
     if (type == QStringLiteral("size")) {
         web_height = static_cast<int>(std::ceil(message.value(QStringLiteral("height")).toDouble()));
+        web_fit = static_cast<int>(std::ceil(message.value(QStringLiteral("fit")).toDouble(web_height)));
+        web_need = static_cast<int>(std::ceil(message.value(QStringLiteral("need")).toDouble(0)));
         web_scrolled = message.value(QStringLiteral("scrolled")).toInt();
+        web_tabs = message.value(QStringLiteral("tabs")).toInt();
         web_text = message.value(QStringLiteral("text")).toString();
         web_add.clear();
         web_book.clear();
@@ -685,7 +796,7 @@ QSize LookupPopup::Fit(int max_width, int max_height) {
         // As wide as it may be; as tall as the page said its content is.
         last_max_width = max_width;
         last_max_height = max_height;
-        const int tall = web_layout ? web_height : std::max(height(), 56);
+        const int tall = web_layout ? (fit_entry ? std::min(web_fit, web_height) : web_height) : std::max(height(), 56);
         return QSize(max_width, std::clamp(tall, 1, std::max(max_height, 1)));
     }
     Layout(max_width, max_height);

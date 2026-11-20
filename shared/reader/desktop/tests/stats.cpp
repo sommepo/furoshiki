@@ -506,6 +506,22 @@ TEST_CASE("ReaderDatabase: what was counted twice is taken out, once", "[reader]
     REQUIRE(db.Totals(game).characters == once);
 }
 
+TEST_CASE("ReaderDatabase: a word looked up again in the same line is counted once", "[reader][stats]") {
+    ReaderDatabase db(QStringLiteral(":memory:"));
+    // Once a line: the same word in the same line of the same game is not counted again,
+    // in another line or another game it is.
+    const QString line = Q(u"死ぬほど疲れた。");
+    REQUIRE(db.CountLookupOnce(Q(u"疲れる"), Q(u"つかれる"), QStringLiteral("SLPM-65550"), line, 4000));
+    REQUIRE(!db.CountLookupOnce(Q(u"疲れる"), Q(u"つかれる"), QStringLiteral("SLPM-65550"), line, 4500));
+    REQUIRE(!db.CountLookupOnce(Q(u"疲れる"), Q(u"つかれる"), QStringLiteral("SLPM-65550"), line, 9000));
+    REQUIRE(db.Lookups(Q(u"疲れる"), Q(u"つかれる")).count == 1);
+    REQUIRE(db.CountLookupOnce(Q(u"疲れる"), Q(u"つかれる"), QStringLiteral("SLPM-65550"), Q(u"もう疲れた。"), 5000));
+    REQUIRE(db.CountLookupOnce(Q(u"疲れる"), Q(u"つかれる"), QStringLiteral("SLPM-66302"), line, 6000));
+    REQUIRE(db.CountLookupOnce(Q(u"死ぬほど"), Q(u"しぬほど"), QStringLiteral("SLPM-65550"), line, 7000));
+    REQUIRE(db.Lookups(Q(u"疲れる"), Q(u"つかれる")).count == 3);
+    REQUIRE(db.Lookups(Q(u"死ぬほど"), Q(u"しぬほど")).count == 1);
+}
+
 TEST_CASE("ReaderDatabase: words looked up are counted per game and added up", "[reader][stats]") {
     ReaderDatabase db(QStringLiteral(":memory:"));
     REQUIRE(db.Lookups(Q(u"死ぬほど"), Q(u"しぬほど")).count == 0);

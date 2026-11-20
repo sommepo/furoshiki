@@ -74,11 +74,11 @@ CoreOcr::CoreOcr(QObject* parent) : QObject(parent) {
 bool CoreOcr::Start(const Lines::CoreGame& game_, const Lines::Helper& helper, QString& error) {
     Stop();
     if (Lines::CleanHelperAddress(helper.address).isEmpty()) {
-        error = QStringLiteral("OCR has nowhere to run: Settings, Sources");
+        error = QStringLiteral("OCR isn't set up yet. Choose where it runs in Settings, Library");
         return false;
     }
     if (!game_.area.isValid()) {
-        error = QStringLiteral("%1 has no text area to read yet").arg(game_.title);
+        error = QStringLiteral("%1 has no text area yet. Press Esc and choose \"Set text area…\"").arg(game_.title);
         return false;
     }
     game = game_;

@@ -61,13 +61,32 @@
       path.setAttribute("stroke-width", "1.8");
     } else if (kind === "ring") {
       path.setAttribute("d", "M12 3a9 9 0 1 1-9 9");
-    } else if (kind === "plusAudio") {
-      // The card with the line's audio: a speaker sounding.
-      path.setAttribute("stroke-width", "2.2");
-      path.setAttribute("d", "M3 9h4l5-4v14l-5-4H3zM16 8.5a5 5 0 0 1 0 7M19 5.5a9 9 0 0 1 0 13");
+    } else if (kind === "done") {
+      path.setAttribute("d", "M5 12.5l4.5 4.5L19 7.5");
     } else {
       path.setAttribute("d", "M12 4v16M4 12h16");
     }
+    svg.appendChild(path);
+    return svg;
+  }
+
+  /**
+   * The card with the line's audio: the same plus as the plain card's, and a small speaker in the
+   * button's upper corner (a speaker alone read as "play the audio"; the maintainer, 2026-11-20:
+   * both buttons one size, the plus most of the button, the speaker smaller).
+   */
+  function speaker() {
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("viewBox", "0 0 12 12");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", "with-audio");
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.25");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("d", "M1.4 4.6h2l2.5-2.1v7L3.4 7.4h-2zM8 4.4a2.5 2.5 0 0 1 0 3.2M9.9 2.9a4.9 4.9 0 0 1 0 6.2");
     svg.appendChild(path);
     return svg;
   }
@@ -82,8 +101,30 @@
     return mark;
   }
 
-  /** The controller's button for each card button (PopupKeys on Android): north, east. */
+  /**
+   * The controller's button for each card button (PopupKeys on Android): north, east. An app
+   * names them as its controller prints them (model.keys: Furoshiki on a computer says Y and B,
+   * the Steam Controller's letters); the tab row's L and R likewise (keys.left, keys.right).
+   */
   const KEYS = { add: "△", addAudio: "○" };
+  function keyOf(kind) {
+    const own = model.keys || {};
+    return own[kind] || KEYS[kind] || "";
+  }
+
+  /** The card button last pressed (by a finger, the pointer or the controller). */
+  let pressed = { index: -1, kind: "" };
+
+  /** Plays an animation class on a node once, from its start even when it was just played. */
+  function play(node, name) {
+    if (!node) return;
+    node.classList.remove(name);
+    void node.offsetWidth;
+    node.classList.add(name);
+    node.addEventListener("animationend", () => node.classList.remove(name), { once: true });
+  }
+  /** A button gives under its press and a ring goes out from it. */
+  function press(node) { play(node, "pressing"); }
 
   function button(kind, index, state, label) {
     const node = element("button", "card " + kind);
@@ -93,11 +134,17 @@
     node.dataset.state = state;
     node.title = label || "";
     node.setAttribute("aria-label", label || "");
-    node.appendChild(sign(kind === "book" ? "book" : state === "checking" ? "ring" : kind === "addAudio" ? "plusAudio" : "plus"));
-    if (KEYS[kind]) node.appendChild(keyMark(KEYS[kind]));
+    // The one pressed turns while its card is made; the other waits, dimmed.
+    const making = state === "working" && pressed.index === index && pressed.kind === kind;
+    if (making) node.classList.add("making");
+    node.appendChild(sign(kind === "book" ? "book" : state === "checking" || making ? "ring" : "plus"));
+    if (kind === "addAudio") node.appendChild(speaker());
+    if (keyOf(kind)) node.appendChild(keyMark(keyOf(kind)));
     node.addEventListener("click", (event) => {
       event.stopPropagation();
       if (node.dataset.state === "working") return;
+      pressed = { index: index, kind: kind };
+      press(node);
       // Both pluses say "add"; "audio" says which (an app from before them reads only the index).
       if (kind === "book") post({ type: "book", index: index });
       else post({ type: "add", index: index, audio: kind === "addAudio" });
@@ -161,6 +208,51 @@
 
   let tabs = [];
   let tab = "word";
+  /**
+   * The entry the controller is on (model.choose: the d-pad goes from one to the next, its card
+   * buttons are the ones marked and pressed: Reader.entry, Reader.addChosen), or -1.
+   */
+  let chosen = -1;
+
+  /** Marks entry [index] as the chosen one and brings it into view ([scroll]). */
+  function chooseEntry(index, scroll, step) {
+    chosen = index;
+    let section = null;
+    popup.querySelectorAll(".entry").forEach((node) => {
+      const on = Number(node.dataset.index) === index;
+      node.classList.toggle("chosen", on);
+      if (on) section = node;
+    });
+    if (!section || !scroll) return;
+    const top = section.getBoundingClientRect().top - popup.getBoundingClientRect().top + popup.scrollTop;
+    const row = popup.querySelector(".tabs");
+    // Under the tab row where it stays at the top; the first entry from the very top.
+    const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
+    const first = popup.querySelector(".entry") === section;
+    glide(first ? 0 : Math.max(0, top - above - 2));
+    // A very short move from the side it came from, so the eye sees which way it went.
+    if (step) {
+      section.style.setProperty("--from", (step < 0 ? -1 : 1) * 7 + "px");
+      play(section, "arriving");
+    }
+  }
+
+  /** The popup's scroll taken to [to] in about a tenth of a second (at once where motion is unwanted). */
+  let gliding = 0;
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function glide(to) {
+    cancelAnimationFrame(gliding);
+    const from = popup.scrollTop;
+    if (still || Math.abs(to - from) < 2) { popup.scrollTop = to; return; }
+    const began = performance.now(), time = 110;
+    const frame = (now) => {
+      const part = Math.min(1, (now - began) / time);
+      popup.scrollTop = from + (to - from) * (1 - Math.pow(1 - part, 3));
+      if (part < 1) gliding = requestAnimationFrame(frame);
+      else reportSoon();
+    };
+    gliding = requestAnimationFrame(frame);
+  }
   /** A controller is the input (Reader.setPad, model.pad). */
   let pad = false;
 
@@ -168,7 +260,7 @@
   function tabRow() {
     const row = element("div", "tabs");
     row.setAttribute("role", "tablist");
-    row.appendChild(keyMark("L", "left"));
+    row.appendChild(keyMark(keyOf("left") || "L", "left"));
     const labels = model.labels || {};
     tabs.forEach((one) => {
       const node = element("span", "tab" + (one.kind === tab ? " on" : ""));
@@ -182,7 +274,7 @@
       });
       row.appendChild(node);
     });
-    row.appendChild(keyMark("R", "right"));
+    row.appendChild(keyMark(keyOf("right") || "R", "right"));
     return row;
   }
 
@@ -273,7 +365,7 @@
     if (entry.reading) head.appendChild(element("span", "reading", entry.reading));
     if (entry.name) {
       // A name in this game, from its names dictionary.
-      const tag = element("span", "tag name", (model.labels && model.labels.name) || "名前");
+      const tag = element("span", "tag name", (model.labels && model.labels.name) || "Name");
       tag.dataset.category = "name";
       head.appendChild(tag);
     }
@@ -354,6 +446,12 @@
     return (entry.senses || []).filter((sense) => !kind || senseKind(sense) === kind);
   }
 
+  /** A dictionary's name as a label: without the date or revision its title ends in. */
+  function dictionaryLabel(name) {
+    const short = String(name).replace(/\s*[\[(（]?(?:rev\.?\s*)?\d{4}[-./]\d{1,2}[-./]\d{1,2}[\])）]?\s*$/i, "").trim();
+    return short || String(name);
+  }
+
   function senses(entry, kind) {
     const out = document.createDocumentFragment();
     let list = null;
@@ -367,9 +465,12 @@
     const per = {};
     shown.forEach((sense) => { per[sense.dictionary] = (per[sense.dictionary] || 0) + 1; });
     let count = 0;
+    // A dictionary's name says nothing where every sense shown is that dictionary's.
+    const several = Object.keys(per).length > 1;
     shown.forEach((sense) => {
-      if (sense.heading) {
-        const name = element("div", "dictionary-name", sense.heading);
+      if (sense.heading && several) {
+        const name = element("div", "dictionary-name");
+        name.appendChild(element("span", "dictionary-label", dictionaryLabel(sense.heading)));
         name.dataset.dictionary = sense.heading;
         out.appendChild(name);
         list = null;
@@ -386,11 +487,25 @@
       if (laidOut) item.classList.add("laid-out");
       if (!laidOut || per[sense.dictionary] > 1) item.appendChild(element("span", "number", String(sense.number)));
       else item.classList.add("unnumbered");
-      (sense.tags || []).forEach((tag) => {
-        const node = element("span", "tag", tag);
-        node.dataset.category = "part-of-speech";
-        item.appendChild(node);
-      });
+      // The tags stand as one quiet run before the meaning: the first two, the rest behind a
+      // count (a tap shows them), so a sense with five tags does not push its meaning away.
+      const tags = sense.tags || [];
+      if (tags.length) {
+        const run = element("span", "sense-tags");
+        tags.forEach((tag, at) => {
+          const node = element("span", "tag" + (at >= 2 && tags.length > 3 ? " extra" : ""), tag);
+          node.dataset.category = "part-of-speech";
+          run.appendChild(node);
+        });
+        if (tags.length > 3) {
+          const more = element("span", "tag more-tags", "+" + (tags.length - 2));
+          more.dataset.category = "part-of-speech";
+          more.title = tags.slice(2).join(" · ");
+          more.addEventListener("click", (event) => { event.stopPropagation(); run.classList.add("all"); reportSoon(); });
+          run.appendChild(more);
+        }
+        item.appendChild(run);
+      }
       if (laidOut) {
         // A grammar or a character dictionary: its formation boxes, examples and tables as it set them.
         item.appendChild(glossary(sense.content));
@@ -448,7 +563,7 @@
       if (stats.strokes) counts.push(String(stats.strokes));
       if (stats.grade) counts.push((labels.grade || "Grade") + " " + stats.grade);
       if (stats.jlpt) counts.push("JLPT N" + String(stats.jlpt).replace(/^N/i, ""));
-      if (stats.freq || stats.frequency) counts.push((labels.frequency || "Freq") + " " + (stats.freq || stats.frequency));
+      if (stats.freq || stats.frequency) counts.push((labels.frequency || "Frequency") + " " + (stats.freq || stats.frequency));
       row("strokes", "Strokes", counts.join(" · "));
       row("parts", "Parts", kanji.parts);
       out.appendChild(rows);
@@ -498,7 +613,7 @@
     if (model.message) {
       popup.appendChild(element("div", "message", model.message.text));
       if (model.message.dictionaries) {
-        const link = element("div", "link", (model.labels && model.labels.dictionaries) || "Open the dictionaries");
+        const link = element("div", "link", (model.labels && model.labels.dictionaries) || "Open dictionaries");
         link.addEventListener("click", () => post({ type: "dictionaries" }));
         popup.appendChild(link);
       }
@@ -525,30 +640,67 @@
       section.classList.toggle("unknown", !!entry.unknown);
       const asCharacter = (kind || kinds[0]) === "kanji";
       if (!asCharacter) section.appendChild(headline(entry));
-      if (entry.history) section.appendChild(element("div", "lookups", entry.history));
       // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
       if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) section.appendChild(nameCard(entry.card));
       if (asCharacter) section.appendChild(character(entry, kind));
       else section.appendChild(senses(entry, kind));
       if (entry.forms && entry.forms.length && (!kind || kind === "word")) section.appendChild(forms(entry));
+      // How often it was looked up: one line under the definition, never above it.
+      if (entry.history) {
+        const lookups = element("div", "lookups", entry.history);
+        lookups.title = entry.history;
+        section.appendChild(lookups);
+      }
       // A kanji bank's character is not a word of the line: no card of it.
       if (!entry.kanji) section.appendChild(buttons(entry, index));
       popup.appendChild(section);
     });
     popup.scrollTop = 0;
+    // A controller's d-pad starts on the first entry of the tab.
+    popup.classList.toggle("choosing", !!model.choose);
+    chosen = -1;
+    if (model.choose) {
+      const first = popup.querySelector(".entry");
+      if (first) chooseEntry(Number(first.dataset.index), false);
+    }
     report();
     if (design) mark(picked);
   }
 
   /** How tall the popup is, where its buttons are and what it says, for the app. */
   function report() {
+    pin();
     const boxes = [];
     popup.querySelectorAll(".card").forEach((node) => {
       const r = node.getBoundingClientRect();
       boxes.push({ index: Number(node.dataset.index), kind: node.dataset.kind, x: r.left, y: r.top, w: r.width, h: r.height });
     });
     const content = popup.scrollHeight + (popup.offsetHeight - popup.clientHeight);
-    post({ type: "size", width: popup.offsetWidth, height: content, scrolled: popup.scrollTop, boxes: boxes, text: popup.innerText });
+    // fit: the height that shows the entry in hand whole (the chosen one, else the first), with
+    // the tab row above the first. need: the least that still shows where its definition begins
+    // (two lines of it): a popup is never so short that the meaning is out of sight.
+    const frame = popup.offsetHeight - popup.clientHeight;
+    const style = getComputedStyle(popup);
+    const under = parseFloat(style.paddingBottom) || 0;
+    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const section = entries.find((node) => Number(node.dataset.index) === chosen) || entries[0];
+    let fit = content, need = 0;
+    if (section) {
+      const box = popup.getBoundingClientRect();
+      const place = section.getBoundingClientRect();
+      const top = section === entries[0] ? 0 : place.top - box.top + popup.scrollTop - (parseFloat(style.paddingTop) || 0);
+      fit = Math.ceil(place.bottom - box.top + popup.scrollTop - top + under + frame);
+      const first = section.querySelector(".sense, .name-card, .kanji, .forms");
+      if (first) {
+        const line = parseFloat(getComputedStyle(first).lineHeight) || 20;
+        const start = first.getBoundingClientRect().top - box.top + popup.scrollTop - top;
+        need = Math.ceil(Math.min(fit, start + Math.min(first.getBoundingClientRect().height, line * 2) + under + frame));
+      }
+    } else if (popup.firstElementChild) {
+      need = content; // a message
+    }
+    post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
+           scrolled: popup.scrollTop, boxes: boxes, text: popup.innerText });
   }
 
   let pending = false;
@@ -559,6 +711,37 @@
   }
 
   popup.addEventListener("scroll", reportSoon);
+
+  /**
+   * The headline of an entry taller than the popup stays at the top (base.css: sticky); what
+   * of the entry has gone under it is cut away here, part by part, so that it is not seen
+   * through the headline on a popup that is not solid.
+   */
+  function pin() {
+    const row = popup.querySelector(".tabs");
+    const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
+    popup.style.setProperty("--pin", above + "px");
+    popup.querySelectorAll(".entry").forEach((section) => {
+      const head = section.querySelector(":scope > .head");
+      if (!head) return;
+      const edge = head.getBoundingClientRect().bottom;
+      Array.from(section.children).forEach((part) => {
+        if (part === head) return;
+        // The card buttons set above the headline (a top corner) never pass under it.
+        if (part.classList.contains("card-buttons") && getComputedStyle(part).order === "-1") return;
+        const place = part.getBoundingClientRect();
+        const under = Math.min(place.height, edge - place.top);
+        const cut = under > 0.5 ? "inset(" + under.toFixed(1) + "px -999px -999px -999px)" : "";
+        if (part.style.clipPath !== cut) part.style.clipPath = cut;
+      });
+    });
+  }
+  popup.addEventListener("scroll", pin);
+  /** How much of the popup's height the pinned headline of entry [section] takes. */
+  function pinned(section) {
+    const head = section && section.querySelector(":scope > .head");
+    return head ? head.offsetHeight + (parseFloat(popup.style.getPropertyValue("--pin")) || 0) : 0;
+  }
   window.addEventListener("resize", reportSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(reportSoon);
   // Clicks between the buttons answer nothing, and never reach the game.
@@ -779,10 +962,49 @@
       const at = Math.max(0, tabs.findIndex((one) => one.kind === tab));
       choose(tabs[(at + (step < 0 ? tabs.length - 1 : 1)) % tabs.length].kind);
     },
+    /**
+     * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
+     * (model.choose): it is marked and brought into view. At the last entry, down only scrolls
+     * on to what is left of it.
+     */
+    entry(step) {
+      const all = Array.from(popup.querySelectorAll(".entry")).map((node) => Number(node.dataset.index));
+      if (!all.length) return;
+      const at = all.indexOf(chosen);
+      const next = at < 0 ? 0 : at + (step < 0 ? -1 : 1);
+      if (next < 0 || next >= all.length) {
+        // A page on, less what the pinned headline covers and a line that was already read.
+        const section = popup.querySelector('.entry[data-index="' + chosen + '"]');
+        const page = Math.max(40, popup.clientHeight - pinned(section) - 20);
+        popup.scrollTop += step < 0 ? -page : page;
+        if (next < 0) popup.scrollTop = 0;
+      } else {
+        chooseEntry(all[next], true, step);
+        // The app's own answer to a step (a tick, a touch of the motor).
+        post({ type: "feedback", kind: "step" });
+      }
+      reportSoon();
+    },
+    /** The chosen entry's card ([audio]: with the line's audio), as its own button makes it. */
+    addChosen(audio) {
+      if (asking >= 0) return;
+      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      const button = section && section.querySelector(".card." + (audio ? "addAudio" : "add"));
+      if (button) button.click();
+    },
     /** Whether a controller is the input: its buttons are marked on the tabs and the card buttons. */
-    setPad(on) {
+    setPad(on, keys) {
       pad = !!on;
       popup.classList.toggle("pad", pad);
+      // The controller's own letters for the marks (model.keys), known once it was used.
+      if (keys) {
+        model.keys = keys;
+        popup.querySelectorAll(".card .key-mark").forEach((mark) => { mark.textContent = keyOf(mark.parentNode.dataset.kind); });
+        const left = popup.querySelector(".tabs .key-mark.left");
+        const right = popup.querySelector(".tabs .key-mark.right");
+        if (left) left.textContent = keyOf("left") || "L";
+        if (right) right.textContent = keyOf("right") || "R";
+      }
     },
     /** The tabs these entries make and the one the popup opens on (for the app and the tests). */
     kinds(entries) {
@@ -791,11 +1013,17 @@
     setBox(index, state) {
       const entry = (model.entries || [])[index];
       if (!entry || entry.state === state) return;
+      const was = entry.state;
       entry.state = state;
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
       if (!section) return;
       section.dataset.state = state;
       section.replaceChild(buttons(entry, index), section.querySelector(".card-buttons"));
+      // The card was just made: the book lands where the plus was.
+      if (state === "inDeck" && was === "working") {
+        play(section.querySelector(".card.book"), "landing");
+        post({ type: "feedback", kind: "land" });
+      }
       reportSoon();
     },
     setUnknown(index, unknown) {

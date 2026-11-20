@@ -72,7 +72,7 @@ class DictionaryImporter(private val database: DictionaryDatabase) {
             if (db.rawQuery("SELECT 1 FROM dictionaries WHERE title = ?", arrayOf(title))
                     .use { it.moveToFirst() }
             ) {
-                throw ImportException("\"$title\" is already installed", alreadyThere = true)
+                throw ImportException("\"$title\" is already imported", alreadyThere = true)
             }
 
             var terms = 0L

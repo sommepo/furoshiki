@@ -18,6 +18,14 @@ namespace {
 const QString ButtonAction = QStringLiteral("reader_button_action_");
 const QString BackButton = QStringLiteral("reader_back_button_");
 const QString PadButton = QStringLiteral("pad_button_");
+const QString ChordAction = QStringLiteral("reader_chord_action_");
+
+/// Every two buttons that can be held together (the numbered inputs, not the back grips): their
+/// key ("reader_chord_action_108_109", the lower number first) and their id ("start+select").
+struct ChordSlot {
+    QString key, id;
+};
+const QList<ChordSlot>& ChordSlots();
 
 QList<Item> ItemsOf(const QJsonArray& array) {
     QList<Item> out;
@@ -51,7 +59,8 @@ QList<Item> ItemsOf(const QJsonArray& array) {
 
 /// The key a binding of `action` to the input numbered `number` is kept in.
 QString NoneOf(const QString& key) {
-    return key.startsWith(ButtonAction) || key.startsWith(BackButton) ? QStringLiteral("none") : QStringLiteral("-1");
+    return key.startsWith(ButtonAction) || key.startsWith(BackButton) || key.startsWith(ChordAction) ? QStringLiteral("none")
+                                                                                                    : QStringLiteral("-1");
 }
 
 QString DefaultOf(const QString& key) {
@@ -74,7 +83,54 @@ QString DefaultOf(const QString& key) {
     return QStringLiteral("none");
 }
 
+const QList<ChordSlot>& ChordSlots() {
+    static const QList<ChordSlot> pairs = [] {
+        QList<ChordSlot> out;
+        QList<const Input*> numbered;
+        for (const Input& input : Load().inputs) {
+            if (input.number >= 0) {
+                numbered.append(&input);
+            }
+        }
+        std::sort(numbered.begin(), numbered.end(), [](const Input* a, const Input* b) { return a->number < b->number; });
+        for (int i = 0; i < numbered.size(); ++i) {
+            for (int j = i + 1; j < numbered.size(); ++j) {
+                out.append({ChordAction + QString::number(numbered[i]->number) + QLatin1Char('_') + QString::number(numbered[j]->number),
+                            numbered[i]->id + QLatin1Char('+') + numbered[j]->id});
+            }
+        }
+        return out;
+    }();
+    return pairs;
+}
+
+/// The slot of two buttons by their ids, in either order; null where it is no chord.
+const ChordSlot* ChordOf(const QString& id) {
+    const QStringList parts = id.split(QLatin1Char('+'));
+    if (parts.size() != 2) {
+        return nullptr;
+    }
+    for (const ChordSlot& slot : ChordSlots()) {
+        if (slot.id == parts[0] + QLatin1Char('+') + parts[1] || slot.id == parts[1] + QLatin1Char('+') + parts[0]) {
+            return &slot;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
+
+QList<ChordBinding> Chords(const Store& store, const QString& console) {
+    QList<ChordBinding> out;
+    for (const ChordSlot& slot : ChordSlots()) {
+        const QString action = Resolved(store, slot.key, console);
+        if (!action.isEmpty() && action != QStringLiteral("none")) {
+            const QStringList parts = slot.id.split(QLatin1Char('+'));
+            out.append({InputById(parts[0])->number, InputById(parts[1])->number, slot.id, action});
+        }
+    }
+    return out;
+}
 
 QString Pad::LabelOf(const QString& id) const {
     for (const Item& item : draw) {
@@ -228,6 +284,9 @@ QStringList Keys() {
             keys.append(PadButton + input.id);
         }
     }
+    for (const ChordSlot& slot : ChordSlots()) {
+        keys.append(slot.key);
+    }
     return keys;
 }
 
@@ -336,6 +395,11 @@ QList<Binding> BindingsOf(const Store& store, const Action& action, const QStrin
             out.append({input.id, inherited});
         }
     }
+    for (const ChordSlot& slot : ChordSlots()) {
+        if (Resolved(store, slot.key, console, &inherited) == action.id) {
+            out.append({slot.id, inherited});
+        }
+    }
     return out;
 }
 
@@ -360,9 +424,26 @@ void Clear(const Store& store, const Action& action, const QString& console) {
             store.set(key, QStringLiteral("none"), console);
         }
     }
+    for (const ChordSlot& slot : ChordSlots()) {
+        if (Resolved(store, slot.key, console) == action.id) {
+            store.set(slot.key, QStringLiteral("none"), console);
+        }
+    }
 }
 
 bool Assign(const Store& store, const Action& action, const QString& id, const QString& console) {
+    // Two buttons held together: the action leaves where it was, and what was on them leaves them.
+    if (const ChordSlot* chord = ChordOf(id)) {
+        if (action.held) {
+            return false; // a held action needs one button the reader's filter can keep
+        }
+        Clear(store, action, console);
+        store.set(chord->key, action.id, console);
+        if (store.save) {
+            store.save();
+        }
+        return true;
+    }
     const Input* input = InputById(id);
     if (input == nullptr || (action.held && input->back > 0)) {
         return false;

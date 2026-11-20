@@ -41,14 +41,14 @@ LineSource::LineSource(QObject* parent) : ReaderUi::ReadingSource(parent) {
 }
 
 ReaderUi::ReadingSource::About LineSource::Describe() const {
-    return {by, by == QStringLiteral("clipboard") ? QStringLiteral("Clipboard") : QStringLiteral("WebSocket"), false};
+    return {by, by == QStringLiteral("clipboard") ? QStringLiteral("Clipboard") : QStringLiteral("Texthooker"), false};
 }
 
 bool LineSource::Start(const QString& by_, const QString& id_, const QString& title_, const QString& address, QString& error) {
     Stop();
     if (by_ == QStringLiteral("websocket")) {
         if (!client.Open(address)) {
-            error = QStringLiteral("Not a WebSocket address: %1").arg(address);
+            error = QStringLiteral("\"%1\" isn't a WebSocket address. Enter one such as ws://localhost:6677 in Settings, Library").arg(address);
             return false;
         }
     } else if (by_ == QStringLiteral("clipboard")) {
@@ -56,7 +56,7 @@ bool LineSource::Start(const QString& by_, const QString& id_, const QString& ti
         clipboard_seen = QGuiApplication::clipboard()->text();
         clipboard_poll.start();
     } else {
-        error = QStringLiteral("Unknown source: %1").arg(by_);
+        error = QStringLiteral("Couldn't read this game: its text source \"%1\" isn't one Furoshiki knows. Add it again").arg(by_);
         return false;
     }
     by = by_;
@@ -90,6 +90,13 @@ QString LineSource::Status() const {
         return {};
     }
     return by == QStringLiteral("clipboard") ? QStringLiteral("what is copied") : client.Status();
+}
+
+QString LineSource::Said() const {
+    if (!running) {
+        return {};
+    }
+    return by == QStringLiteral("clipboard") ? QStringLiteral("Reading Japanese text copied to the clipboard") : client.Said();
 }
 
 void LineSource::Arrived(const QString& raw) {

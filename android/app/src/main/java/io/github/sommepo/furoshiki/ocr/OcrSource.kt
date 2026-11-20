@@ -39,6 +39,8 @@ class OcrSource(
     /** Where the pictures come from: the game's surface, or the screen's capture ([OcrFrames]). */
     val frames: OcrFrames,
     private val gameId: String,
+    /** What is said when a read is asked for with OCR off: where this screen turns it on. */
+    private val offHint: Int = R.string.ocr_off_here,
     /** Whether the game is in front and playing now: nothing is looked at otherwise. */
     private val running: () -> Boolean,
 ) {
@@ -135,7 +137,7 @@ class OcrSource(
     /** Reads the areas read on request (a menu); where there are none, the others, even if unchanged. */
     fun readNow() {
         if (!active) {
-            say(activity.getString(R.string.ocr_off_here))
+            say(activity.getString(offHint))
             return
         }
         copyAndRead(game.asked.ifEmpty { game.always }, asked = true)

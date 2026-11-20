@@ -74,8 +74,10 @@ public:
     /// is on the screen (OnScreen), until Unfollow.
     void Follow();
     void Unfollow();
-    /// For the user: "reading · http://…", "no answer · http://… · connection refused".
+    /// For the log and the tests: "reading · http://…", "no answer · http://… · connection refused".
     [[nodiscard]] QString Status() const;
+    /// For the user, as a sentence: what the helper is doing, or what to do about it.
+    [[nodiscard]] QString Said() const;
     /// Pictures sent and taken since Set (a test's figures).
     [[nodiscard]] int Sent() const {
         return sent;

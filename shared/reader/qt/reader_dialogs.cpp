@@ -102,7 +102,7 @@ QString Speed(const ReadingCounters& counters) {
 }
 
 QString When(qint64 epoch_ms) {
-    return QLocale().toString(QDateTime::fromMSecsSinceEpoch(epoch_ms), QLocale::ShortFormat);
+    return QDateTime::fromMSecsSinceEpoch(epoch_ms).toString(QStringLiteral("yyyy/MM/dd HH:mm"));
 }
 
 // ---- A line of text whose words can be clicked ----
@@ -594,7 +594,7 @@ void Statistics(QWidget* parent) {
     tabs->addTab(sessions, Tr("Sessions"));
     layout->addWidget(tabs, 1);
 
-    auto* paused = new QCheckBox(Tr("Pause statistics"));
+    auto* paused = new QCheckBox(Tr("Pause reading timer"));
     paused->setChecked(session.Settings().StatsPaused());
     layout->addWidget(paused);
 
@@ -694,7 +694,7 @@ void Statistics(QWidget* parent) {
         }
         QFile file(path);
         if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-            QMessageBox::warning(&dialog, Tr("Export"), Tr("Couldn't save the file."));
+            QMessageBox::warning(&dialog, Tr("Export"), Tr("Couldn't save the file. Choose a folder you can write to"));
         }
     };
     QObject::connect(export_json, &QPushButton::clicked, &dialog, [&, save] {
@@ -724,7 +724,7 @@ void Statistics(QWidget* parent) {
             QApplication::restoreOverrideCursor();
             if (found == 0) {
                 QMessageBox::information(&dialog, Tr("Remove duplicate text"),
-                                         Tr("No duplicate text found."));
+                                         Tr("No duplicate text found"));
                 return;
             }
             if (QMessageBox::question(&dialog, Tr("Remove duplicate text"),
@@ -762,7 +762,7 @@ void Dictionaries(QWidget* parent) {
     dialog.resize(640, 460);
     auto* layout = new QVBoxLayout(&dialog);
     auto* hint = new QLabel(
-        Tr("Yomitan dictionaries (.zip), shown in this order."));
+        Tr("Words are looked up in these dictionaries, from the top. Import takes Yomitan dictionaries (.zip)."));
     hint->setWordWrap(true);
     layout->addWidget(hint);
 
@@ -770,11 +770,14 @@ void Dictionaries(QWidget* parent) {
     layout->addWidget(list, 1);
     auto* buttons = new QHBoxLayout;
     auto* import = new QPushButton(Tr("Import…"));
+    auto* starter = new QPushButton(Tr("Download Jitendex"));
+    starter->setToolTip(Tr("A free Japanese-English dictionary (39 MB)"));
     auto* up = new QPushButton(Tr("Move up"));
     auto* down_button = new QPushButton(Tr("Move down"));
     auto* remove = new QPushButton(Tr("Delete"));
     auto* close = new QPushButton(Tr("Close"));
     buttons->addWidget(import);
+    buttons->addWidget(starter);
     buttons->addWidget(up);
     buttons->addWidget(down_button);
     buttons->addWidget(remove);
@@ -799,7 +802,7 @@ void Dictionaries(QWidget* parent) {
                 if (!info.revision.isEmpty()) {
                     details.append(info.revision);
                 }
-                text += QStringLiteral("  —  ") + details.join(QStringLiteral(", "));
+                text += QStringLiteral(" · ") + details.join(QStringLiteral(", "));
                 auto* item = new QListWidgetItem(text, list);
                 item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
                 item->setCheckState(info.enabled ? Qt::Checked : Qt::Unchecked);
@@ -810,6 +813,15 @@ void Dictionaries(QWidget* parent) {
             }
         } catch (const std::exception& error) {
             QMessageBox::warning(&dialog, Tr("Dictionaries"), QString::fromUtf8(error.what()));
+        }
+        const bool none = list->count() == 0;
+        if (none) {
+            // Nothing installed: what to do about it, where the list would be.
+            auto* empty = new QListWidgetItem(Tr("No dictionaries yet. Download Jitendex, or import Yomitan dictionaries (.zip)."), list);
+            empty->setFlags(Qt::NoItemFlags);
+        }
+        for (QPushButton* button : {up, down_button, remove}) {
+            button->setEnabled(!none);
         }
         filling = false;
     };
@@ -908,6 +920,13 @@ void Dictionaries(QWidget* parent) {
             QMessageBox::warning(&dialog, Tr("Import dictionaries"), problems.join(u'\n'));
         }
     });
+    QObject::connect(starter, &QPushButton::clicked, &dialog, [&] {
+        QString problem;
+        if (!FetchStarterDictionary(&dialog, &problem) && !problem.isEmpty()) {
+            QMessageBox::warning(&dialog, Tr("Dictionaries"), Tr("Couldn't install Jitendex: %1").arg(problem));
+        }
+        refresh(-1);
+    });
     QObject::connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
 
     refresh(-1);
@@ -926,7 +945,11 @@ void AnkiSetup(QWidget* parent) {
     dialog.resize(680, 620);
     auto* layout = new QVBoxLayout(&dialog);
 
-    auto* enabled = new QCheckBox(Tr("Enable Anki cards (AnkiConnect)"));
+    auto* steps = new QLabel(Tr("Open Anki, install the AnkiConnect add-on (in Anki: Tools, Add-ons, Get Add-ons, code 2055492159), "
+                                "then press Connect to choose your deck and note type."));
+    steps->setWordWrap(true);
+    layout->addWidget(steps);
+    auto* enabled = new QCheckBox(Tr("Add cards to Anki"));
     enabled->setChecked(settings.AnkiTransport() == QStringLiteral("ankiconnect"));
     layout->addWidget(enabled);
 
@@ -946,7 +969,7 @@ void AnkiSetup(QWidget* parent) {
     model->setEditable(true);
     deck->setCurrentText(settings.AnkiDeck());
     model->setCurrentText(settings.AnkiModel());
-    form->addRow(Tr("Address"), url);
+    form->addRow(Tr("AnkiConnect address"), url);
     form->addRow(Tr("API key"), key);
     form->addRow(QString(), connect_row);
     form->addRow(Tr("Deck"), deck);
@@ -959,8 +982,10 @@ void AnkiSetup(QWidget* parent) {
     fields->horizontalHeader()->setStretchLastSection(true);
     fields->verticalHeader()->setVisible(false);
     layout->addWidget(fields, 1);
+    auto* fields_empty = new QLabel(Tr("Press Connect to load your note type's fields."));
+    layout->addWidget(fields_empty);
     auto* markers_hint = new QLabel(
-        Tr("Use markers like {expression}, {sentence}, {screenshot} or {audio}."));
+        Tr("Each field takes markers such as {expression}, {sentence}, {screenshot} or {audio}."));
     markers_hint->setWordWrap(true);
     layout->addWidget(markers_hint);
     auto* suggest = new QPushButton(Tr("Suggest from field names"));
@@ -996,7 +1021,7 @@ void AnkiSetup(QWidget* parent) {
             mapping->insert(fields->item(row, 0)->text(), template_of(row));
         }
     };
-    const auto fill_table = [fields, mapping, field_order] {
+    const auto fill_table = [fields, mapping, field_order, fields_empty] {
         fields->setRowCount(0);
         QStringList names = *field_order;
         if (names.isEmpty()) {
@@ -1018,6 +1043,7 @@ void AnkiSetup(QWidget* parent) {
             combo->setCurrentText(mapping->value(name));
             fields->setCellWidget(row, 1, combo);
         }
+        fields_empty->setVisible(fields->rowCount() == 0);
     };
     const auto client = [url, key] {
         return ReaderApp::AnkiConnectClient(url->text().trimmed(), key->text(), 4000, 15000);
@@ -1308,7 +1334,7 @@ void ReaderSettingsDialog(QWidget* parent) {
         side->addWidget(new QLabel(Tr("Preview")));
         side->addWidget(demo, 1);
         if (PopupCustomiser()) {
-            auto* customise = new QPushButton(Tr("Customize…"));
+            auto* customise = new QPushButton(Tr("Customise…"));
             side->addWidget(customise);
             QObject::connect(customise, &QPushButton::clicked, &dialog, [&dialog] {
                 dialog.reject();
@@ -1544,12 +1570,12 @@ static void ProgressWindow(QWidget* parent) {
     auto& engine = Reader::Engine::Instance();
     std::optional<Reader::ProgressList> list = engine.Progress();
     if (!list || list->items.empty()) {
-        QMessageBox::information(parent, Tr("Progress"),
-                                 Tr("Nothing to mark for this game."));
+        QMessageBox::information(parent, Tr("Routes and progress"),
+                                 Tr("This game has nothing to mark"));
         return;
     }
     QDialog dialog(parent);
-    dialog.setWindowTitle(list->title.empty() ? Tr("Progress")
+    dialog.setWindowTitle(list->title.empty() ? Tr("Routes and progress")
                                               : QString::fromStdString(list->title));
     dialog.resize(560, 640);
     auto* layout = new QVBoxLayout(&dialog);
@@ -1682,7 +1708,7 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
         }
         if (curl.error() == QProcess::FailedToStart || curl.exitStatus() != QProcess::NormalExit || curl.exitCode() != 0) {
             const QString said = QString::fromUtf8(curl.readAllStandardError()).trimmed();
-            *problem = said.isEmpty() ? Tr("Couldn't download Jitendex.") : said;
+            *problem = said.isEmpty() ? Tr("Couldn't download Jitendex. Check the internet connection and try again") : said;
             QFile::remove(file);
             return false;
         }

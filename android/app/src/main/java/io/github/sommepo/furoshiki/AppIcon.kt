@@ -20,7 +20,8 @@ import org.json.JSONObject
  */
 object AppIcon {
     private class Choice(val key: String, val name: String) {
-        override fun toString() = "$key $name"
+        // By its name alone: the number is the file's, not the user's.
+        override fun toString() = name
     }
 
     private class Table(val default: String, val choices: List<Choice>)
@@ -44,7 +45,7 @@ object AppIcon {
         } ?: table.choices.first { it.key == table.default }
     }
 
-    /** What the choice is called, for the page: "30 Solarized". */
+    /** What the choice is called, for the page: "Solarized". */
     fun label(context: Context) = chosen(context, table(context)).toString()
 
     private fun choose(context: Context, table: Table, key: String) {

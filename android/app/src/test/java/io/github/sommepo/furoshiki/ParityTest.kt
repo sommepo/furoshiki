@@ -72,19 +72,63 @@ class ParityTest {
     // ---- Buttons for the keys ----
 
     @Test
-    fun aButtonDoesOneAction() {
-        var keys = ActionKeys.give(emptyMap(), "pause", 105)
-        keys = ActionKeys.give(keys, "card", 104)
-        // The button pause had goes to the backlog: pause has none then.
-        keys = ActionKeys.give(keys, "log", 105)
-        assertEquals(mapOf("card" to 104, "log" to 105), keys)
-        assertEquals(mapOf("log" to 105), ActionKeys.give(keys, "card", null))
+    fun theOldShortcutButtonsBecomeTheControllerScreensShortcuts() {
+        // What the controller screen had: the backlog on R3, the pointer on L2 by itself.
+        val values = HashMap<String, Any?>(mapOf("reader_button_action_107" to "reader_backlog"))
+        val old = ActionKeys.parse("""{"pause":105,"card":104,"log":106,"ocr_now":103,"fast":100,"quick_menu":109}""")
+        assertTrue(ActionKeys.migrateInto(values, old))
+        val map = io.github.sommepo.furoshiki.reader.ButtonMap
+        assertEquals(105, map.binding(values, "reader_pause_game", null).button)
+        // A button given in the old list did its action before anything else: it takes L2 from the pointer.
+        assertEquals(104, map.binding(values, "reader_sentence_card", null).button)
+        assertEquals(-1, map.binding(values, "pointer", null).button)
+        // An action is on one button: the backlog leaves R3 for the button the old list gave it.
+        assertEquals(106, map.binding(values, "reader_backlog", null).button)
+        assertNull(map.action(values, 107, null))
+        // The actions only the old list had are the controller screen's now.
+        assertEquals(103, map.binding(values, "furoshiki_ocr_read", null).button)
+        assertEquals(100, map.binding(values, "furoshiki_fast_forward", null).button)
+        assertEquals(109, map.binding(values, "reader_menu", null).button)
+        // Every action the old list had has one there.
+        assertEquals(13, ActionKeys.TO_MAP.values.toSet().size)
     }
 
     @Test
     fun onlyOurActionsAreReadFromTheFile() {
         assertEquals(mapOf("pause" to 105), ActionKeys.parse("""{"pause":105,"dance":3,"card":0}"""))
         assertEquals(emptyMap<String, Int>(), ActionKeys.parse("not json"))
+    }
+
+    @Test
+    fun aButtonIsCalledWhatTheControllerScreenCallsIt() {
+        // Never Android's raw name ("THUMBL", "DPAD_UP"): one form on every screen.
+        assertEquals("R2", ActionKeys.plainName("KEYCODE_BUTTON_R2"))
+        assertEquals("A", ActionKeys.plainName("KEYCODE_BUTTON_A"))
+        assertEquals("Button 3", ActionKeys.plainName("KEYCODE_BUTTON_3"))
+        assertEquals("F5", ActionKeys.plainName("KEYCODE_F5"))
+        assertEquals("Volume mute", ActionKeys.plainName("KEYCODE_VOLUME_MUTE"))
+    }
+
+    // ---- Add game from another app: the apps Android calls games come first ----
+
+    @Test
+    fun anAppIsAGameByItsCategoryOrItsOlderFlag() {
+        assertTrue(Device.isGame(android.content.pm.ApplicationInfo.CATEGORY_GAME, 0))
+        @Suppress("DEPRECATION")
+        assertTrue(Device.isGame(android.content.pm.ApplicationInfo.CATEGORY_UNDEFINED, android.content.pm.ApplicationInfo.FLAG_IS_GAME))
+        assertFalse(Device.isGame(android.content.pm.ApplicationInfo.CATEGORY_PRODUCTIVITY, 0))
+        assertFalse(Device.isGame(-1, 0))
+    }
+
+    // ---- A console is called by its name, never its key ----
+
+    @Test
+    fun aConsoleHasANameForATabAndOneForASentence() {
+        assertEquals("PS Vita", Places.shortName("psvita"))
+        assertEquals("Dreamcast", Places.shortName("dc"))
+        assertEquals("DS", Places.shortName("nds"))
+        assertEquals("Nintendo 3DS", Places.fullName("3ds"))
+        assertEquals("PlayStation", Places.fullName("ps1"))
     }
 
     // ---- Explain's kept answers ----

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The reader's pointer and the controller. Which button does what (the pointer's, the
      statistics', the next choice's and the rest) is the controller mapping screen's (the app's
-     page; ButtonMap), no longer rows here. The first 6 are shown; the rest stand behind "More"
+     page; ButtonMap), no longer rows here. The first 7 are shown; the rest stand behind "More"
      (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:initialExpandedChildrenCount="6">
+    app:initialExpandedChildrenCount="7">
 
     <!-- The controller on the screen: its buttons small over the game, and playing by touch. -->
     <SwitchPreferenceCompat
@@ -17,6 +17,13 @@
         app:key="reader_touch_play"
         app:title="@string/reader_pref_touch_play"
         app:summary="@string/reader_pref_touch_play_summary"
+        app:iconSpaceReserved="false" />
+
+    <!-- A tick in the hand as a card lands and as the popup's d-pad steps (ReaderHaptics). -->
+    <SwitchPreferenceCompat
+        app:key="reader_haptics"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_haptics"
         app:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat

@@ -25,13 +25,13 @@ object SessionSummary {
         append(" · ").append(duration(counters.activeMs))
     }
 
-    /** "<1m", "12m" or "1h05m": minutes, so that it does not tick. */
+    /** "<1m", "12m" or "1h 05m": minutes, so that it does not tick. */
     fun duration(activeMs: Long): String {
         val minutes = activeMs / 60_000
         return when {
             minutes < 1 -> "<1m"
             minutes < 60 -> "${minutes}m"
-            else -> String.format("%dh%02dm", minutes / 60, minutes % 60)
+            else -> String.format("%dh %02dm", minutes / 60, minutes % 60)
         }
     }
 }

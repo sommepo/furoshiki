@@ -43,6 +43,8 @@ class BacklogView(
     private val game: String,
     /** The search field: none where typing would take the keys from the game. */
     searchable: Boolean = true,
+    /** The lines' size beside the game's text size: larger on a screen of its own, read from a distance. */
+    private val textScale: Float = 0.9f,
     openDictionaries: () -> Unit,
 ) : LinearLayout(context) {
     private val main = Handler(Looper.getMainLooper())
@@ -52,7 +54,7 @@ class BacklogView(
     private val listView: RecyclerView
     private val empty: TextView
     private val adapter = LineAdapter()
-    private val time = DateTimeFormatter.ofPattern("MM-dd HH:mm")
+    private val time = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
     private var query = ""
     private var loading = false
     private var reachedStart = false
@@ -103,6 +105,11 @@ class BacklogView(
         frame.addView(lookups)
         addView(frame, LayoutParams(MATCH, 0, 1f))
         reload()
+    }
+
+    /** Scrolls the lines by [dy] pixels (a controller's d-pad or stick, the pointer at an edge). */
+    fun scrollLines(dy: Int, smooth: Boolean = true) {
+        if (smooth) listView.smoothScrollBy(0, dy) else listView.scrollBy(0, dy)
     }
 
     /** Lets its worker go: the view is not shown again. */
@@ -179,10 +186,10 @@ class BacklogView(
                 setPadding(dp(16f), dp(8f), dp(16f), dp(8f))
                 layoutParams = RecyclerView.LayoutParams(MATCH, WRAP)
             }
-            val caption = text("", 13f, com.google.android.material.R.attr.colorOnSurfaceVariant)
+            val caption = text("", if (textScale > 1f) 15f else 13f, com.google.android.material.R.attr.colorOnSurfaceVariant)
             val line = ReaderTextView(parent.context).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp * 0.9f)
-                setLineSpacing(0f, 1.1f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp * textScale)
+                setLineSpacing(0f, 1.18f)
                 wordHighlightColor = ReaderStyle.HIGHLIGHT
             }
             row.addView(caption)

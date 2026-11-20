@@ -1,0 +1,34 @@
+// The program's icon in Windows (the file's picture, its shortcuts): the default colour. The
+// window and the task bar take the colour chosen in Settings at run time (src/app_icon.cpp).
+// And the version of the file's properties. CMake makes the resource file from this one
+// (CMakeLists.txt: FUROSHIKI_VERSION, "dev" unless a release names its own).
+#include <winver.h>
+
+IDI_ICON1 ICON "@HOME_ICON_FILE@"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION @HOME_VERSION_NUMBERS@
+PRODUCTVERSION @HOME_VERSION_NUMBERS@
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "Furoshiki"
+            VALUE "FileVersion", "@FUROSHIKI_VERSION@"
+            VALUE "InternalName", "reader-home"
+            VALUE "OriginalFilename", "reader-home.exe"
+            VALUE "ProductName", "Furoshiki"
+            VALUE "ProductVersion", "@FUROSHIKI_VERSION@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

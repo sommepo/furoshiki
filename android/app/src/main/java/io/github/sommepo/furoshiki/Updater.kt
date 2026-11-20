@@ -214,8 +214,8 @@ class UpdateReceiver : BroadcastReceiver() {
                 val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
                 Log.w("Updater", "install failed ($status): $message")
                 val said = if (status == PackageInstaller.STATUS_FAILURE_CONFLICT || status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE)
-                    "This copy of Furoshiki was signed differently, so the update cannot replace it"
-                else "The update was not installed"
+                    "Couldn't install the update: this copy of Furoshiki was signed differently. Install the new version by hand."
+                else "Couldn't install the update. Try again from Settings › About."
                 Toast.makeText(context, said, Toast.LENGTH_LONG).show()
             }
         }

@@ -45,8 +45,10 @@ public:
     [[nodiscard]] const QString& Title() const {
         return title.title;
     }
-    /// For the user: whether the window is there and what the helper says.
+    /// For the log and the tests: whether the window is there and what the helper says.
     [[nodiscard]] QString Status() const;
+    /// For the user, as a sentence.
+    [[nodiscard]] QString Said() const;
     /// The characters' places of the line handed over last, 0-1 of the window's picture.
     [[nodiscard]] const QList<QRectF>& Boxes() const {
         return boxes;

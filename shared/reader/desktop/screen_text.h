@@ -176,4 +176,67 @@ public:
 [[nodiscard]] bool KeptByPopup(const QPointF& point, const PlacedText::Hit& hit, bool popups_word,
                                const QRectF& popup, const QRectF& word_row);
 
+/**
+ * Reading with a controller's d-pad instead of a pointer: the words of the texts on screen, and
+ * the way from one to the next. A word is what a pointer's lookup finds at its first character
+ * (the dictionary's longest match), so what the d-pad marks is what the popup defines. Nothing
+ * here knows of a dictionary or a window: the caller says how long the match at a character is
+ * and where each word is drawn.
+ */
+namespace WordWalk {
+
+/// A stretch of a line's text, by its first and last UTF-16 unit.
+struct Span {
+    int first{};
+    int last{};
+    bool operator==(const Span&) const = default;
+};
+
+/// One word on screen.
+struct Word {
+    /// Which of the texts on screen it is in (the caller's number).
+    int text{};
+    Span span;
+    /// Where it is drawn (its part on the line it begins on); null while it is not drawn.
+    QRectF place;
+    /// Not in Anki yet.
+    bool unknown{};
+};
+
+enum class Way { Left, Right, Up, Down };
+
+/**
+ * The words of `text` from `from` on, in order. `match(offset)` is how many UTF-16 units the
+ * longest word that begins at `offset` covers, 0 for none. The walk goes on from each word's
+ * end. A character no word begins at is a word of its own (the popup says there is no entry),
+ * unless there is nothing in it to read: a space, a line break, punctuation, a symbol.
+ */
+[[nodiscard]] QList<Span> Words(const QString& text, const std::function<int(int offset)>& match,
+                                int from = 0);
+/// Where the cursor waits when a line comes: its first word not in Anki, else its first word,
+/// among those of the text `text` (every text for -1). -1: no word.
+[[nodiscard]] int Landing(const QList<Word>& words, int text = -1);
+/// The next (by 1) or previous (-1) word that is drawn; `at` where there is none.
+[[nodiscard]] int Step(const QList<Word>& words, int at, int by);
+/// The same among the words not in Anki.
+[[nodiscard]] int StepUnknown(const QList<Word>& words, int at, int by);
+/// The drawn word nearest to `at` in the picture that way: in the nearest line that way, the
+/// one closest across. `at` where there is none.
+[[nodiscard]] int Nearest(const QList<Word>& words, int at, Way way);
+/**
+ * Where the d-pad's `way` leads from `at`. Text in rows: left and right are the previous and
+ * next word, up and down the nearest word of the line above or below. In columns (`vertical`)
+ * the axes swap: up and down are the previous and next word, left and right the nearest column.
+ */
+[[nodiscard]] int Move(const QList<Word>& words, int at, Way way, bool vertical);
+/// True when the cells (a text's characters in order) run down the picture more than across.
+[[nodiscard]] bool Vertical(const QList<QRectF>& cells);
+/**
+ * `span` one character longer (`by` 1) or shorter (-1) at its end: never shorter than a
+ * character, longer than `longest` units, past the text's end or over a line break.
+ */
+[[nodiscard]] Span Resized(const QString& text, Span span, int by, int longest);
+
+} // namespace WordWalk
+
 } // namespace ReaderApp

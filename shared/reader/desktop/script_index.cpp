@@ -89,13 +89,12 @@ std::optional<Index> ParseIndex(const QByteArray& json, QString* error) {
     QJsonParseError parse{};
     const QJsonDocument document = QJsonDocument::fromJson(json, &parse);
     if (parse.error != QJsonParseError::NoError || !document.isObject()) {
-        return fail(QStringLiteral("The list of scripts is not JSON: %1").arg(parse.errorString()));
+        return fail(QStringLiteral("Couldn't read the list of game scripts (%1). Try again later").arg(parse.errorString()));
     }
     const QJsonObject root = document.object();
     const int format = root.value(QStringLiteral("format")).toInt(0);
     if (format < 1 || format > IndexFormat) {
-        return fail(QStringLiteral("The list of scripts is in a format this app does not know "
-                                   "(%1): a newer app may read it").arg(format));
+        return fail(QStringLiteral("The list of game scripts needs a newer version of this app (format %1)").arg(format));
     }
     Index index;
     index.system = Text(root, "system");
@@ -229,12 +228,12 @@ bool Folder::WriteRecord(const QHash<QString, QString>& record) const {
 
 bool Folder::WriteFile(const QString& name, const QByteArray& bytes, QString* error) const {
     if (!QDir().mkpath(path)) {
-        *error = QStringLiteral("Cannot make the folder %1").arg(path);
+        *error = QStringLiteral("Couldn't create the folder %1").arg(path);
         return false;
     }
     QSaveFile file(path + u'/' + name);
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
-        *error = QStringLiteral("Cannot write %1: %2").arg(name, file.errorString());
+        *error = QStringLiteral("Couldn't write %1: %2").arg(name, file.errorString());
         return false;
     }
     return true;
@@ -245,7 +244,7 @@ bool Folder::Install(const Entry& entry, const QHash<QString, QByteArray>& files
     const auto check = [&files, &entry, error](const FileEntry& wanted) {
         const auto found = files.constFind(wanted.file);
         if (found == files.constEnd()) {
-            *error = QStringLiteral("%1 was not fetched").arg(wanted.file);
+            *error = QStringLiteral("Couldn't download %1. Try again").arg(wanted.file);
             return false;
         }
         if (IdOfFile(wanted.file) != entry.id) {
@@ -253,14 +252,13 @@ bool Folder::Install(const Entry& entry, const QHash<QString, QByteArray>& files
             return false;
         }
         if (found->size() != wanted.size || Sha256(*found) != wanted.sha256) {
-            *error = QStringLiteral("%1 is not the file the list names (it may have changed "
-                                    "since the list was read: try again)").arg(wanted.file);
+            *error = QStringLiteral("%1 changed while it was downloading. Press Refresh and try again").arg(wanted.file);
             return false;
         }
         return true;
     };
     if (entry.api > Api) {
-        *error = QStringLiteral("This script needs a newer app");
+        *error = QStringLiteral("This game script needs a newer version of this app");
         return false;
     }
     if (!check(entry.script)) {
@@ -268,7 +266,7 @@ bool Folder::Install(const Entry& entry, const QHash<QString, QByteArray>& files
     }
     const QByteArray& source = files.value(entry.script.file);
     if (!IsUtf8(source) || ApiOf(QString::fromUtf8(source)) > Api) {
-        *error = QStringLiteral("%1 is not a script this app can run").arg(entry.script.file);
+        *error = QStringLiteral("%1 isn't a game script this app can run").arg(entry.script.file);
         return false;
     }
     for (const FileEntry& data : entry.data) {
@@ -336,8 +334,7 @@ QStringList Folder::InstallFiles(const QStringList& paths, QString* error) {
         const QString name = QFileInfo(file_path).fileName();
         const auto id = IdOfFile(name);
         if (!id) {
-            problems.append(QStringLiteral("%1: not a game's script or data file (a script is "
-                                           "named after its game, as SLPM-65555.lua)").arg(name));
+            problems.append(QStringLiteral("%1: not a game script. Name it after its game's ID, for example SLPM-65555.lua").arg(name));
             continue;
         }
         const bool script = name.endsWith(QStringLiteral(".lua"));
@@ -352,11 +349,11 @@ QStringList Folder::InstallFiles(const QStringList& paths, QString* error) {
         }
         const QByteArray bytes = file.readAll();
         if (script && (!Catalog::TitleIdOf(name) || !IsUtf8(bytes))) {
-            problems.append(QStringLiteral("%1: not a script (a script is UTF-8 text)").arg(name));
+            problems.append(QStringLiteral("%1: not a game script (it must be UTF-8 text)").arg(name));
             continue;
         }
         if (script && ApiOf(QString::fromUtf8(bytes)) > Api) {
-            problems.append(QStringLiteral("%1: needs a newer app").arg(name));
+            problems.append(QStringLiteral("%1: needs a newer version of this app").arg(name));
             continue;
         }
         QString why;

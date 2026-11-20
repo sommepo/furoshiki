@@ -366,4 +366,180 @@ bool KeptByPopup(const QPointF& point, const PlacedText::Hit& hit, bool popups_w
            point.y() >= gap.top() && point.y() <= gap.bottom();
 }
 
+namespace WordWalk {
+
+namespace {
+/// How many UTF-16 units the character at `offset` takes.
+int UnitsAt(const QString& text, int offset) {
+    return text.at(offset).isHighSurrogate() && offset + 1 < text.size() ? 2 : 1;
+}
+
+/// Something to read: a letter or a digit, of any script (a kanji, a kana, the long vowel mark).
+bool Readable(const QString& text, int offset) {
+    if (UnitsAt(text, offset) == 2) {
+        return QChar::isLetterOrNumber(QChar::surrogateToUcs4(text.at(offset), text.at(offset + 1)));
+    }
+    return text.at(offset).isLetterOrNumber();
+}
+
+bool Drawn(const Word& word) {
+    return !word.place.isNull();
+}
+} // namespace
+
+QList<Span> Words(const QString& text, const std::function<int(int offset)>& match, int from) {
+    QList<Span> words;
+    int offset = std::max(0, from);
+    while (offset < text.size()) {
+        if (!Readable(text, offset)) {
+            offset += UnitsAt(text, offset);
+            continue;
+        }
+        int length = match ? match(offset) : 0;
+        length = std::clamp(length, 0, static_cast<int>(text.size()) - offset);
+        if (length <= 0) {
+            length = UnitsAt(text, offset);
+        }
+        words.append({offset, offset + length - 1});
+        offset += length;
+    }
+    return words;
+}
+
+int Landing(const QList<Word>& words, int text) {
+    int first = -1;
+    for (int i = 0; i < words.size(); ++i) {
+        if (text >= 0 && words.at(i).text != text) {
+            continue;
+        }
+        if (words.at(i).unknown) {
+            return i;
+        }
+        if (first < 0) {
+            first = i;
+        }
+    }
+    return first;
+}
+
+int Step(const QList<Word>& words, int at, int by) {
+    for (int i = at + by; by != 0 && i >= 0 && i < words.size(); i += by) {
+        if (Drawn(words.at(i))) {
+            return i;
+        }
+    }
+    return at;
+}
+
+int StepUnknown(const QList<Word>& words, int at, int by) {
+    for (int i = at + by; by != 0 && i >= 0 && i < words.size(); i += by) {
+        if (Drawn(words.at(i)) && words.at(i).unknown) {
+            return i;
+        }
+    }
+    return at;
+}
+
+int Nearest(const QList<Word>& words, int at, Way way) {
+    if (at < 0 || at >= words.size() || !Drawn(words.at(at))) {
+        return at;
+    }
+    const QRectF from = words.at(at).place;
+    const bool across = way == Way::Left || way == Way::Right; // the way goes across the picture
+    const bool back = way == Way::Left || way == Way::Up;
+    // How far `to` is along the way (positive: that way), and how thick a line is there.
+    const auto along = [&](const QRectF& to) {
+        const qreal by = across ? to.center().x() - from.center().x() : to.center().y() - from.center().y();
+        return back ? -by : by;
+    };
+    const qreal thick = across ? from.width() : from.height();
+    // How far `to` is off to the side: nothing while the word's middle is beside it.
+    const auto aside = [&](const QRectF& to) {
+        const qreal middle = across ? from.center().y() : from.center().x();
+        const qreal low = across ? to.top() : to.left();
+        const qreal high = across ? to.bottom() : to.right();
+        return middle < low ? low - middle : middle > high ? middle - high : 0.0;
+    };
+    qreal nearest_line = -1;
+    for (int i = 0; i < words.size(); ++i) {
+        const qreal far = Drawn(words.at(i)) && i != at ? along(words.at(i).place) : 0;
+        if (far > thick * 0.5 && (nearest_line < 0 || far < nearest_line)) {
+            nearest_line = far;
+        }
+    }
+    if (nearest_line < 0) {
+        return at;
+    }
+    int best = at;
+    qreal best_aside = 0;
+    qreal best_far = 0;
+    for (int i = 0; i < words.size(); ++i) {
+        if (i == at || !Drawn(words.at(i))) {
+            continue;
+        }
+        const qreal far = along(words.at(i).place);
+        if (far <= thick * 0.5 || far > nearest_line + thick * 0.5) {
+            continue; // not that way, or a line further on
+        }
+        const qreal off = aside(words.at(i).place);
+        if (best == at || off < best_aside || (off == best_aside && far < best_far)) {
+            best = i;
+            best_aside = off;
+            best_far = far;
+        }
+    }
+    return best;
+}
+
+int Move(const QList<Word>& words, int at, Way way, bool vertical) {
+    const Way before = vertical ? Way::Up : Way::Left;
+    const Way next = vertical ? Way::Down : Way::Right;
+    if (way == before || way == next) {
+        return Step(words, at, way == next ? 1 : -1);
+    }
+    return Nearest(words, at, way);
+}
+
+bool Vertical(const QList<QRectF>& cells) {
+    int down = 0;
+    int along = 0;
+    for (qsizetype i = 1; i < cells.size(); ++i) {
+        const QPointF by = cells.at(i).center() - cells.at(i - 1).center();
+        // The step to the next character of a line; the jump to the next line counts for neither.
+        if (std::abs(by.y()) > std::abs(by.x()) && by.y() > 0 && by.y() < cells.at(i).height() * 2) {
+            ++down;
+        } else if (std::abs(by.x()) > std::abs(by.y()) && by.x() > 0 && by.x() < cells.at(i).width() * 2) {
+            ++along;
+        }
+    }
+    return down > along;
+}
+
+Span Resized(const QString& text, Span span, int by, int longest) {
+    if (span.first < 0 || span.first >= text.size() || span.last < span.first) {
+        return span;
+    }
+    if (by > 0) {
+        const int next = span.last + 1;
+        if (next >= text.size() || text.at(next) == QLatin1Char('\n')) {
+            return span;
+        }
+        const int last = next + UnitsAt(text, next) - 1;
+        return last - span.first + 1 > longest ? span : Span{span.first, last};
+    }
+    if (by < 0) {
+        // Its last character goes: one unit, or the two of a pair.
+        int last = span.last - 1;
+        if (last > span.first && text.at(span.last).isLowSurrogate() && text.at(last).isHighSurrogate()) {
+            --last;
+        }
+        if (last >= span.first && !(last == span.first && UnitsAt(text, span.first) == 2)) {
+            return {span.first, last};
+        }
+    }
+    return span;
+}
+
+} // namespace WordWalk
+
 } // namespace ReaderApp

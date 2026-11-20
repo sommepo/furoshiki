@@ -65,8 +65,17 @@ public:
      * is open (the pointer went from its word to something else): for lookups nobody asked for
      * by hand, such as under a pointer passing over punctuation.
      */
+    /// `longest` (when above 0): the word is looked for in that many UTF-16 units from `offset`
+    /// and no further (a match made shorter or longer by hand: reading with a controller).
     void Lookup(const ReaderApp::PresentedLine& presented, int offset, const Anchor& beside,
-                bool quiet = false);
+                bool quiet = false, int longest = -1);
+    /**
+     * Whether `word`, found at [first, last] of `presented`, is in Anki, as this computer's copy
+     * of the deck says at once (the popup's "not in Anki" mark asks the same): 1 it is not, 0 it
+     * is or the copy cannot tell yet, -1 no card can be made (Anki is not set up). Main thread.
+     */
+    [[nodiscard]] int NotInAnki(const ReaderApp::PresentedLine& presented,
+                                const ReaderApp::LookupResult& word, int first, int last);
     void Close();
     /// Makes a card of `presented` alone, without a word.
     void MineSentence(const ReaderApp::PresentedLine& presented);
@@ -76,6 +85,21 @@ public:
     void UndoLast();
 
     [[nodiscard]] bool IsOpen() const;
+
+    /// A controller's button, while the popup is open and has the controller (it is modal).
+    enum class PadKey {
+        EntryBefore,   ///< d-pad up
+        EntryNext,     ///< d-pad down
+        TabBefore,     ///< L1
+        TabNext,       ///< R1
+        Card,          ///< north: a card without the line's audio
+        CardWithAudio, ///< east: a card with it
+        Close,         ///< south
+    };
+    /// Does what `key` does in the open popup; false when no popup is open.
+    bool OnPad(PadKey key);
+    /// The left stick's up and down while the popup is open: -1 (up) to 1 (down), once a frame.
+    void PadScroll(float y);
     /// True when the open popup is about the character at `offset` of the line `backlog_id`.
     [[nodiscard]] bool IsAbout(qint64 backlog_id, int offset) const;
     /**
@@ -182,8 +206,6 @@ private:
     bool asking_on_page{};
     /// A popup drawn by the page waits for the page's layout before it is shown.
     bool show_pending{};
-    /// The words counted, by line: each once per line.
-    QSet<QString> counted;
     QTimer exit_timer;
     Anchor anchor;
     /// Counts what the popup has shown: answers about an earlier content are dropped.

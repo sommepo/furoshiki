@@ -114,7 +114,7 @@ std::optional<Event> ReadInjectLine(const QByteArray& raw) {
         return event;
     }
     if (cmd == QStringLiteral("detach")) {
-        return Of(Event::Gone, QStringLiteral("the script let go"));
+        return Of(Event::Gone, QStringLiteral("the hook script stopped"));
     }
     return std::nullopt;
 }

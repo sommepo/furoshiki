@@ -31,8 +31,11 @@ struct Offer {
     }
 };
 /// The entry `id` of the index at `files` (its base address) as an offer; none when the index
-/// has no such entry or its build is the one whose SHA-256 is `own`.
-[[nodiscard]] Offer Read(const QByteArray& index_json, const QString& files, const QString& id, const QString& own);
+/// has no such entry, its build is the one whose SHA-256 is `own`, or its build was written before
+/// `own_written` (ms since 1970; 0: not known): an update never goes back to an older build (the
+/// maintainer, 2026-11-20, whose Update replaced a newer program with a week-old one).
+[[nodiscard]] Offer Read(const QByteArray& index_json, const QString& files, const QString& id, const QString& own,
+                         qint64 own_written = 0);
 /// The SHA-256 of a file, in small hexadecimal; empty when it cannot be read.
 [[nodiscard]] QString Sha256(const QString& file);
 

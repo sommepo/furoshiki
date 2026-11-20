@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include <QList>
@@ -118,6 +119,17 @@ public:
 
     /// Lays the content out for a popup no larger than this, and returns the size it takes.
     [[nodiscard]] QSize Fit(int max_width, int max_height);
+    /// As tall as the entry in hand (the page's "fit") instead of all its content.
+    void SetFitEntry(bool on) {
+        fit_entry = on;
+    }
+    /// The least height that still shows where the definition begins (the page's "need"; 0 unknown).
+    [[nodiscard]] bool IsPage() const {
+        return web != nullptr;
+    }
+    [[nodiscard]] int Need() const {
+        return web ? web_need : 0;
+    }
     /// How far the content is scrolled, and how far it can be.
     [[nodiscard]] int Scrolled() const {
         return web ? web_scrolled : scroll;
@@ -129,6 +141,38 @@ public:
     [[nodiscard]] QRect BookBox(int index) const;
     /// What the popup says, as plain text. For tests.
     [[nodiscard]] QString PlainText() const;
+
+    // ---- A controller (Furoshiki's on a computer, as PopupKeys on Android) ----
+
+    /// A controller is the input: every popup's page marks the buttons that work it (SetPadKeys)
+    /// and the entry the d-pad is on. Set by the program as a controller's button is pressed.
+    static void SetPadInUse(bool on);
+    [[nodiscard]] static bool PadInUse();
+    /// How the controller names those buttons, for the marks: {"add": "Y", "addAudio": "B",
+    /// "left": "L", "right": "R"} (the page's own △ and ○ where one is not given).
+    static void SetPadKeys(const QJsonObject& keys);
+    /// What the program does when the page says something happened that may be heard or felt
+    /// ({"type":"feedback"}: "land", a card's book landing; "step", the d-pad on another entry).
+    /// None set (the forks' own apps): nothing.
+    static void SetFeedback(std::function<void(const QString& kind)> feedback);
+    /// The tab before (-1) or the next (1): words, grammar, kanji, names.
+    void PadTab(int step);
+    /// How many tabs the popup shows (words, grammar, kanji, names): 0 or 1 is no row of tabs.
+    [[nodiscard]] int Tabs() const {
+        return web ? web_tabs : 0;
+    }
+    /// The controller's marks as they now are, on the page (after SetPadKeys changed them).
+    void RefreshPad() {
+        ShowPad();
+    }
+    /// The entry before (-1) or the next (1), brought into view.
+    void PadEntry(int step);
+    /// The chosen entry's card, with the line's audio or without, as its own button makes it.
+    void PadAdd(bool audio);
+    /// Tells the page a controller is the input now, with its letters (once it has changed).
+    void ShowPad();
+    /// Scrolls by `dy` pixels (the left stick).
+    void ScrollBy(int dy);
 
     /// The largest width the popup takes at the current text scale.
     [[nodiscard]] int MaxWidth() const;
@@ -204,6 +248,12 @@ private:
     int last_max_width{};
     int last_max_height{};
     int pressed_index{-1};
+    /// The entry the controller is on (PadEntry) in the popup drawn here.
+    int pad_chosen{};
+    /// What the page was last told of the controller (Reader.setPad).
+    bool pad_shown{};
+    /// Which set of the controller's marks the page has (SetPadKeys counts them).
+    int pad_keys_shown{};
     int pressed_kind{};
     QTimer spin;
     QElapsedTimer spun;
@@ -220,7 +270,13 @@ private:
     bool web_failed{};
     bool web_layout{};
     int web_height{};
+    /// From the page's "size": the height that shows the entry in hand whole, and the least that
+    /// still shows where its definition begins.
+    int web_fit{};
+    int web_need{};
+    bool fit_entry{};
     int web_scrolled{};
+    int web_tabs{};
     QString web_text;
     QHash<int, QRect> web_add;
     QHash<int, QRect> web_book;

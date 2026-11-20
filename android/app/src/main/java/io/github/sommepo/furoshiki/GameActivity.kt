@@ -20,7 +20,6 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import io.github.sommepo.furoshiki.reader.ButtonMap
 import io.github.sommepo.furoshiki.reader.Console
 import io.github.sommepo.furoshiki.reader.NextChoice
@@ -97,7 +96,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
                 setColor(0x66000000)
             }
-            contentDescription = getString(R.string.game_menu_reader)
+            contentDescription = getString(R.string.game_menu_title)
             visibility = android.view.View.GONE
             setOnClickListener { showMenu() }
         }
@@ -113,7 +112,8 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         setContentView(frame)
         hideBars()
         surface.holder.addCallback(this)
-        actionKeys = ActionKeys.byKey(this)
+        // The buttons once given in "Shortcut buttons" are the controller screen's shortcuts now.
+        ActionKeys.migrate(this)
         // The services this device's home server names (Explain's), where none is known yet.
         if (!Explain.offered(this)) thread(name = "Services") { runCatching { Services.ask(applicationContext) } }
         ReaderGlue.lowerKeys = { context -> lowerKeys(context) }
@@ -136,7 +136,9 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 within(drawerHandle, x, y, 10 * density) || within(drawer, x, y, 0f)
         }
         ocr = io.github.sommepo.furoshiki.ocr.OcrSource(this, io.github.sommepo.furoshiki.ocr.SurfaceFrames(surface), gameId) { resumedNow && !inMenu && !leaving && started }
-        ReaderGlue.stoppedByItself = { if (!leaving) fail(GameNative.lastError()?.removePrefix("core: ") ?: getString(R.string.game_ended)) }
+        ReaderGlue.stoppedByItself = {
+            if (!leaving) fail(GameNative.lastError()?.removePrefix("core: ")?.let { getString(R.string.game_stopped, it) } ?: getString(R.string.game_ended))
+        }
         thread(name = "GameStart") {
             val error = prepare(key)
             runOnUiThread {
@@ -152,7 +154,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
     /** The core's files in place and the core started: off the main thread. */
     private fun prepare(key: String): String? {
-        val file = Places.CORES[key] ?: return "No core for $key in this build"
+        val file = Places.CORES[key] ?: return getString(R.string.game_no_emulator)
         val system = Places.system(this, key)
         Places.BIOS_FOLDERS[key]?.let { folder ->
             if (Places.bios(this, key) == null) return getString(R.string.game_no_bios, folder)
@@ -168,10 +170,11 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 if (used.isNotEmpty()) Log.i("Furoshiki", "add-ons: " + used.joinToString())
             }
         }.onFailure { Log.w("Furoshiki", "add-ons: ${it.message}") }
+        // What the emulator itself says went wrong, said as what it means for the user.
         return GameNative.open(
             Places.corePath(this, file), Places.console(this, key, "data"), Places.console(this, key, "saves"),
             Places.console(this, key, "states"), system
-        )
+        )?.let { getString(R.string.game_start_failed, it.removePrefix("core: ")) }
     }
 
     private fun startWhenReady() {
@@ -191,7 +194,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             }
         }
         if (Console.TWO_SCREENS) chooseScreens(settings.map { it.first })
-        GameNative.load(path)?.let { fail(it) } ?: run {
+        GameNative.load(path)?.let { fail(getString(R.string.game_start_failed, it.removePrefix("core: "))) } ?: run {
             // The game's other discs, for the menu's "Change disc".
             for (other in discPaths.drop(1)) GameNative.addDisc(other)
             ocr?.start()
@@ -367,7 +370,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             textSize = 15f
             gravity = android.view.Gravity.CENTER
             setTextColor(android.graphics.Color.WHITE)
-            contentDescription = getString(R.string.lower_key_line)
+            contentDescription = getString(R.string.action_panel)
         }
         fun paintLine() {
             val on = !settings.panelAutoHide
@@ -390,14 +393,46 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         return layer
     }
 
+    /**
+     * The BACKLOG key: opens the backlog over the game; pressed again, moves it to the second
+     * display (the maintainer, 2026-11-20: it "should let it sit on the bottom screen instead"),
+     * where its own arrow closes it; with one display, closes it.
+     */
+    private fun backlogKey() {
+        val open = io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity.current
+        if (open == null) {
+            ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
+            return
+        }
+        val own = display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
+        val other = (getSystemService(DISPLAY_SERVICE) as android.hardware.display.DisplayManager).displays
+            .firstOrNull { it.displayId != own && it.isValid && it.state != android.view.Display.STATE_OFF }
+        val above = (open.display?.displayId ?: own) == own
+        open.finish()
+        if (above && other != null) {
+            runCatching {
+                startActivity(
+                    Intent(this, io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK),
+                    android.app.ActivityOptions.makeBasic().setLaunchDisplayId(other.displayId).toBundle()
+                )
+            }
+        }
+    }
+
     /** The keys, as the second display has them along its foot and one display in its drawer. */
     private fun keyList(): List<LowerKeys.Key> {
         val settings = ReaderSettings(this)
         return (
             listOfNotNull(
-                LowerKeys.Key(getString(R.string.lower_key_pause), { held }) { act("pause") },
-                LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }) { act("stats") },
-                LowerKeys.Key(getString(R.string.lower_key_log)) { act("log") },
+                LowerKeys.Key(getString(R.string.lower_key_pause), { held }, getString(R.string.lower_key_resume)) { act("pause") },
+                LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }, getString(R.string.lower_key_stats_on)) { act("stats") },
+                // Once more with the backlog open moves it to the second display, under the game.
+                LowerKeys.Key(
+                    getString(R.string.lower_key_log),
+                    { io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity.current != null },
+                    getString(R.string.lower_key_log_below),
+                ) { act("log") },
                 // The line shown always (on), or only where the game's own text can't be pointed at:
                 // the second display then the trackpad alone.
                 LowerKeys.Key(getString(R.string.lower_key_line), { !settings.panelAutoHide }) {
@@ -406,7 +441,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
                 LowerKeys.Key(getString(R.string.lower_key_explain)) { act("explain") }.takeIf { Explain.offered(this) },
                 LowerKeys.Key(getString(R.string.lower_key_read)) { act("ocr_now") }.takeIf { ocr?.active == true },
                 LowerKeys.Key(getString(R.string.lower_key_guide), { guide?.shown == true }) { act("guide") }.takeIf { guide?.offered() == true },
-                LowerKeys.Key(getString(R.string.lower_key_menu)) { act("menu") },
+                LowerKeys.Key(getString(R.string.lower_key_menu), says = getString(R.string.game_menu_title)) { act("menu") },
             )
         )
     }
@@ -467,9 +502,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         view != null && view.visibility == android.view.View.VISIBLE &&
             x >= view.left - slop && x <= view.right + slop && y >= view.top - slop && y <= view.bottom + slop
 
-    /** The controller's buttons given to an action ([ActionKeys]): each key and what it does. */
-    private var actionKeys: Map<Int, String> = emptyMap()
-
     /**
      * One of the things done over a game without its menu ([ActionKeys.ALL]): from a key on the
      * second display, or from the button of the controller given to it.
@@ -483,7 +515,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             }
             "stats" -> ReaderSession.toggleStatsPaused()
             "card" -> ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD)
-            "log" -> ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
+            "log" -> backlogKey()
             "panel" -> ReaderSession.dispatch(ReaderSession.Command.TOGGLE_PANEL)
             "explain" -> explain()
             "ocr_now" -> ocr?.readNow()
@@ -544,66 +576,133 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     private var menuButton: android.view.View? = null
     private var guide: GuideCard? = null
 
-    /**
-     * *More settings* (the reader's own menu), with the game held still while it is open as the
-     * game's menu holds it (the maintainer, 2026-11-17: the game's menu paused the game, and this,
-     * opened from it, let it run on).
-     */
-    private fun showReaderMenu() {
+    /** A menu over the game in the page's look ([ShelfMenu]): the game stands still while it is open. */
+    private fun menu(title: Int) = ShelfMenu(this).title(getString(title))
+
+    /** Holds the game still for a menu, and lets it go as the menu shuts, once what was chosen is done. */
+    private fun ShelfMenu.overGame(at: Int = 0) {
         inMenu = true
         applyPause()
-        ReaderGlue.showMenu {
+        onClosed { picked ->
             inMenu = false
+            // What was chosen, once the menu is gone: a menu it opens holds the game still itself.
+            picked?.invoke()
             applyPause()
+            hideBars()
+        }.show(at)
+    }
+
+    private fun onOff(on: Boolean) = getString(if (on) R.string.menu_on else R.string.menu_off)
+
+    /**
+     * The Quick menu (the reading layer's own): statistics, dictionaries, Anki, this game's card
+     * audio, what the game script offers, the settings, and the two switches a reader changes most.
+     * In the page's look as every menu over a game is; the game held still while it is open (the
+     * maintainer, 2026-11-17: the game's menu paused the game, and this, opened from it, let it run on).
+     */
+    private fun showReaderMenu() {
+        if (leaving) return
+        val host = ReaderGlue.readerHost ?: return
+        val settings = ReaderSettings(this)
+        val list = menu(R.string.game_menu_reader)
+            .row(getString(R.string.reader_statistics)) { host.openStatistics() }
+            .row(getString(R.string.reader_dictionaries)) { host.openDictionaries() }
+            .row(getString(R.string.reader_anki_setup)) { host.openAnkiSetup() }
+            .row(getString(R.string.reader_card_audio_game)) { pickCardAudio() }
+        if (host.gameActions().isNotEmpty()) list.row(getString(R.string.reader_game_actions)) { pickGameAction() }
+        list.row(getString(R.string.reader_settings)) { host.openSettings() }
+            .keep(getString(R.string.reader_pref_screen_text), { onOff(settings.screenText) }) {
+                settings.preferences.edit().putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()
+            }
+            .keep(getString(R.string.reader_pref_panel_enabled), { onOff(settings.panelEnabled) }) {
+                settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_ENABLED, !settings.panelEnabled).apply()
+            }
+            .row(getString(R.string.reader_reload_profile)) { io.github.sommepo.furoshiki.reader.ReaderNative.reloadProfile() }
+            .overGame()
+    }
+
+    /** What this game's cards do with their line's audio: the setting for every game, or this game's own. */
+    private fun pickCardAudio() {
+        val settings = ReaderSettings(this)
+        val game = ReaderSession.gameKey
+        if (game.isEmpty()) return
+        val names = resources.getStringArray(R.array.reader_card_audio_entries)
+        val values = resources.getStringArray(R.array.reader_card_audio_values)
+        fun name(choice: ReaderSettings.CardAudio) = names[values.indexOf(choice.value)]
+        val choices = listOf<ReaderSettings.CardAudio?>(null) + ReaderSettings.CardAudio.values()
+        val now = settings.cardAudioOf(game)
+        val list = menu(R.string.reader_card_audio_game)
+        for (choice in choices) {
+            val label = if (choice != null) name(choice) else {
+                val said = io.github.sommepo.furoshiki.reader.ReaderCatalog.cardAudio(this, game)
+                if (said != null) getString(R.string.reader_card_audio_as_game, name(said))
+                else getString(R.string.reader_card_audio_as_general, name(settings.cardAudioGeneral))
+            }
+            list.row(label, if (choice == now) getString(R.string.menu_chosen) else "") { settings.setCardAudioOf(game, choice) }
         }
+        list.overGame(choices.indexOf(now).coerceAtLeast(0))
+    }
+
+    /** What the running game's script offers to do in the game: a row each, and what it says of one done. */
+    private fun pickGameAction() {
+        val actions = io.github.sommepo.furoshiki.reader.ReaderNative.actions()
+        if (actions.isEmpty()) return
+        val list = menu(R.string.reader_game_actions)
+        actions.forEachIndexed { which, name ->
+            list.row(name) {
+                val said = io.github.sommepo.furoshiki.reader.ReaderNative.runAction(which)
+                if (!said.isNullOrEmpty()) {
+                    ShelfMenu(this).title(name).message(said).row(getString(android.R.string.ok)) {}.overGame()
+                }
+            }
+        }
+        list.overGame()
     }
 
     private fun showMenu() {
         if (inMenu || leaving) return
-        inMenu = true
-        applyPause()
         // Eden has no savestates.
         val states = Console.KEY != "switch"
         // Not here by the maintainer's word (2026-11-17, from the Thor): cheat codes, changing the
-        // disc, the OCR text area and hiding the second display's keys.
-        val items = listOfNotNull(
-            getString(R.string.game_menu_resume) to {},
-            getString(R.string.game_menu_reader) to { showReaderMenu() },
-            (getString(R.string.game_menu_explain) to { explain() }).takeIf { Explain.offered(this) },
-            (getString(R.string.game_menu_ocr_now) to { ocr?.readNow() }).takeIf { ocr?.active == true },
-            (getString(R.string.game_menu_save) to { pickState(save = true) }).takeIf { states },
-            (getString(R.string.game_menu_load) to { pickState(save = false) }).takeIf { states },
-            getString(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) to { setFast(!fast) },
-            (getString(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice) to {
-                NextChoice.toggle()
-            }).takeIf { Console.HAS_NEXT_CHOICE },
-            (getString(R.string.game_menu_routes) to { Routes.show(this) }).takeIf { Routes.offer() != null },
-            (getString(R.string.game_menu_patches) to { pickPatches() }).takeIf { GameNative.features() and 32 != 0 },
-            (getString(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide) to {
-                guide?.toggle()
-            }).takeIf { guide?.offered() == true },
-            getString(R.string.action_keys_title) to {
-                inMenu = true
-                ActionKeys.pick(this) {
-                    actionKeys = ActionKeys.byKey(this)
-                    inMenu = false
-                    applyPause()
-                }
-            },
-            getString(R.string.game_menu_home) to { leave() },
-        )
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setItems(items.map { it.first }.toTypedArray()) { _, which -> chosen = { items[which].second() } }
-            .setOnDismissListener {
-                inMenu = false
-                // What was chosen, once the menu is gone: a box it opens holds the game still itself.
-                val then = chosen
-                chosen = null
-                then?.invoke()
-                applyPause()
-            }
-            .show()
+        // disc and hiding the second display's keys. The OCR text area is here again (2026-11-19):
+        // without its row a console game read by OCR had no way to set its area, and the shelf's
+        // "?" and the message "OCR is off for this game" both sent the user to it. The shortcuts
+        // are the controller screen's alone since 2026-11-20 (Settings › Controls › Controller).
+        val list = menu(R.string.game_menu_title)
+        fun row(label: Int, shown: Boolean = true, act: () -> Unit) { if (shown) list.row(getString(label), act = act) }
+        row(R.string.game_menu_resume) {}
+        row(R.string.game_menu_reader) { showReaderMenu() }
+        row(R.string.game_menu_explain, Explain.offered(this)) { explain() }
+        row(R.string.game_menu_ocr_now, ocr?.active == true) { ocr?.readNow() }
+        row(R.string.game_menu_ocr_setup, ocr != null && started) { setUpOcr() }
+        row(R.string.game_menu_save, states) { pickState(save = true) }
+        row(R.string.game_menu_load, states) { pickState(save = false) }
+        row(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) { setFast(!fast) }
+        row(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice, Console.HAS_NEXT_CHOICE) { NextChoice.toggle() }
+        row(R.string.game_menu_routes, Routes.offer() != null) { Routes.show(this) }
+        row(R.string.game_menu_patches, GameNative.features() and 32 != 0) { pickPatches() }
+        row(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide, guide?.offered() == true) { guide?.toggle() }
+        row(R.string.game_menu_home) { askQuit() }
+        list.overGame()
     }
+
+    /**
+     * Quit game asks first (the maintainer, 2026-11-20): what was not saved in the game is lost,
+     * as nothing here saves a state by itself. Cancel is the row in hand.
+     */
+    private fun askQuit() {
+        if (leaving) return
+        menu(R.string.game_quit_ask)
+            .message(getString(R.string.game_quit_lost))
+            .row(getString(R.string.game_quit_yes)) { leave() }
+            .row(getString(android.R.string.cancel)) {}
+            .overGame(at = 1)
+    }
+
+    /** The plain boxes that are left (the cheat codes' field, should it come back to the menu). */
+    private fun dialog() = com.google.android.material.dialog.MaterialAlertDialogBuilder(
+        android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+    )
 
     /** The game read by OCR, where no script reads it or the user said so (ocr/OcrSource). */
     private var ocr: io.github.sommepo.furoshiki.ocr.OcrSource? = null
@@ -646,9 +745,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         }
     }
 
-    /** The menu's row that was tapped, done as the menu shuts. */
-    private var chosen: (() -> Unit)? = null
-
     /** As fast as it goes, until switched back (the menu's row): through what was read before. */
     private var fast = false
 
@@ -659,27 +755,20 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             if (save) GameNative.saveState(1) else GameNative.loadState(1)
             return
         }
-        val clock = java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.US)
-        val labels = (1..slots).map { slot ->
+        val clock = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.ROOT)
+        val list = menu(if (save) R.string.game_menu_save else R.string.game_menu_load)
+        for (slot in 1..slots) {
             val saved = GameNative.stateSaved(slot)
-            getString(R.string.game_state_slot, slot) + when {
-                saved > 1 -> "  ·  " + clock.format(java.util.Date(saved))
-                saved == 0L -> "  ·  " + getString(R.string.game_state_empty)
+            val said = when {
+                saved > 1 -> clock.format(java.util.Date(saved))
+                saved == 0L -> getString(R.string.game_state_empty)
                 else -> ""
             }
+            list.row(getString(R.string.game_state_slot, slot), said) {
+                if (save) GameNative.saveState(slot) else GameNative.loadState(slot)
+            }
         }
-        inMenu = true
-        applyPause()
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setTitle(if (save) R.string.game_menu_save else R.string.game_menu_load)
-            .setItems(labels.toTypedArray()) { _, which ->
-                if (save) GameNative.saveState(which + 1) else GameNative.loadState(which + 1)
-            }
-            .setOnDismissListener {
-                inMenu = false
-                applyPause()
-            }
-            .show()
+        list.overGame()
     }
 
     /** The core's patches for this game (widescreen, no interlacing), each switched; kept for the game. */
@@ -696,24 +785,17 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         val on = BooleanArray(names.size) { at ->
             if (set.isEmpty()) list.getJSONObject(at).optBoolean("on") else names[at] in set.lines()
         }
-        inMenu = true
-        applyPause()
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setTitle(R.string.game_menu_patches)
-            .setMultiChoiceItems(names.toTypedArray(), on) { _, which, checked -> on[which] = checked }
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                // "none" keeps an empty choice apart from never having chosen.
-                val chosen = names.filterIndexed { at, _ -> on[at] }.joinToString("\n").ifEmpty { "none" }
-                kept.set("cheats.patches", chosen, Console.KEY, gameId)
-                GameNative.applySetting("cheats.patches", chosen)
-                android.widget.Toast.makeText(this, R.string.game_patches_next, android.widget.Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .setOnDismissListener {
-                inMenu = false
-                applyPause()
-            }
-            .show()
+        val rows = menu(R.string.game_menu_patches)
+        names.forEachIndexed { at, name -> rows.keep(name, { onOff(on[at]) }) { on[at] = !on[at] } }
+        rows.row(getString(R.string.ocr_setup_save)) {
+            // "none" keeps an empty choice apart from never having chosen.
+            val chosen = names.filterIndexed { at, _ -> on[at] }.joinToString("\n").ifEmpty { "none" }
+            kept.set("cheats.patches", chosen, Console.KEY, gameId)
+            GameNative.applySetting("cheats.patches", chosen)
+            android.widget.Toast.makeText(this, R.string.game_patches_next, android.widget.Toast.LENGTH_SHORT).show()
+        }
+        rows.row(getString(android.R.string.cancel)) {}
+        rows.overGame()
     }
 
     /** This game's cheat codes, one to a line, as the console's players write them. */
@@ -729,7 +811,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         }
         inMenu = true
         applyPause()
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
+        dialog()
             .setTitle(R.string.game_menu_codes)
             .setView(field)
             .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -748,20 +830,12 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     /** Another disc of the game put in, by its label. */
     private fun pickDisc(count: Int) {
         val now = GameNative.discCurrent()
-        val labels = (0 until count).map { index ->
+        val list = menu(R.string.game_menu_disc)
+        for (index in 0 until count) {
             val label = String(GameNative.discLabel(index), Charsets.UTF_8).ifEmpty { getString(R.string.game_disc, index + 1) }
-            if (index == now) "● $label" else label
+            list.row(label, if (index == now) getString(R.string.menu_chosen) else "") { if (index != now) GameNative.insertDisc(index) }
         }
-        inMenu = true
-        applyPause()
-        AlertDialog.Builder(android.view.ContextThemeWrapper(this, R.style.Theme_Reader))
-            .setTitle(R.string.game_menu_disc)
-            .setItems(labels.toTypedArray()) { _, which -> if (which != now) GameNative.insertDisc(which) }
-            .setOnDismissListener {
-                inMenu = false
-                applyPause()
-            }
-            .show()
+        list.overGame(now.coerceAtLeast(0))
     }
 
     @Deprecated("Deprecated in Java")
@@ -961,6 +1035,11 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             "furoshiki_game_menu" -> showMenu()
             "furoshiki_guide" -> if (guide?.offered() == true) guide?.toggle()
             "furoshiki_guide_done" -> if (guide?.offered() == true) guide?.done()
+            // The actions "Shortcut buttons" had and the controller screen had not (ActionKeys.TO_MAP).
+            "furoshiki_ocr_read" -> ocr?.readNow()
+            "reader_toggle_panel" -> ReaderSession.dispatch(ReaderSession.Command.TOGGLE_PANEL)
+            "furoshiki_fast_forward" -> setFast(!fast)
+            "reader_explain" -> explain()
             else -> return false
         }
         return true
@@ -982,11 +1061,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
         ) {
             return super.dispatchKeyEvent(event)
-        }
-        // A button given to an action is the action's, not the game's.
-        actionKeys[event.keyCode]?.let { action ->
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) act(action)
-            return true
         }
         if (ReaderGlue.onKey(event)) return true
         // A button given a shortcut does the shortcut, and the game hears nothing of it.

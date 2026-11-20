@@ -37,5 +37,143 @@
         <item name="android:windowBackground">@color/reader_kon_ground</item>
         <item name="android:statusBarColor">@color/reader_kon_ground</item>
         <item name="android:navigationBarColor">@color/reader_kon_ground</item>
+        <item name="colorOutlineVariant">#454b5f</item>
+        <item name="preferenceTheme">@style/Furoshiki.PreferenceTheme</item>
+    </style>
+
+    <!-- The page's other themes over it (home/shelf/*.json: ground, raised, ink, muted, accent,
+         and its rule laid over the ground), put on by ConsoleLook.theme for the theme the page
+         has: a setting never changes its colours one tap in. A theme added there is added here. -->
+    <style name="ThemeOverlay.Reader.Kon" parent="">
+        <item name="colorPrimary">#d9472b</item>
+        <item name="colorOnPrimary">#101a3a</item>
+        <item name="colorPrimaryContainer">#18244d</item>
+        <item name="colorOnPrimaryContainer">#ece5d3</item>
+        <item name="colorSecondary">#8a93b5</item>
+        <item name="colorOnSecondary">#101a3a</item>
+        <item name="colorSecondaryContainer">#18244d</item>
+        <item name="colorOnSecondaryContainer">#ece5d3</item>
+        <item name="colorTertiary">#d9472b</item>
+        <item name="android:colorBackground">#101a3a</item>
+        <item name="colorSurface">#101a3a</item>
+        <item name="colorOnSurface">#ece5d3</item>
+        <item name="colorOnSurfaceVariant">#8a93b5</item>
+        <item name="colorSurfaceVariant">#18244d</item>
+        <item name="colorSurfaceContainer">#18244d</item>
+        <item name="colorSurfaceContainerHigh">#18244d</item>
+        <item name="colorSurfaceContainerHighest">#22305e</item>
+        <item name="colorOutline">#454b5f</item>
+        <item name="colorOutlineVariant">#454b5f</item>
+        <item name="android:textColorPrimary">#ece5d3</item>
+        <item name="android:textColorSecondary">#8a93b5</item>
+        <item name="android:textColorHint">#8a93b5</item>
+        <item name="android:editTextColor">#ece5d3</item>
+        <item name="colorControlNormal">#8a93b5</item>
+        <item name="isLightTheme">false</item>
+    </style>
+    <style name="ThemeOverlay.Reader.Mono" parent="">
+        <item name="colorPrimary">#f2f2f0</item>
+        <item name="colorOnPrimary">#0a0a0a</item>
+        <item name="colorPrimaryContainer">#161616</item>
+        <item name="colorOnPrimaryContainer">#f2f2f0</item>
+        <item name="colorSecondary">#8c8c88</item>
+        <item name="colorOnSecondary">#0a0a0a</item>
+        <item name="colorSecondaryContainer">#161616</item>
+        <item name="colorOnSecondaryContainer">#f2f2f0</item>
+        <item name="colorTertiary">#f2f2f0</item>
+        <item name="android:colorBackground">#0a0a0a</item>
+        <item name="colorSurface">#0a0a0a</item>
+        <item name="colorOnSurface">#f2f2f0</item>
+        <item name="colorOnSurfaceVariant">#8c8c88</item>
+        <item name="colorSurfaceVariant">#161616</item>
+        <item name="colorSurfaceContainer">#161616</item>
+        <item name="colorSurfaceContainerHigh">#161616</item>
+        <item name="colorSurfaceContainerHighest">#222222</item>
+        <item name="colorOutline">#464646</item>
+        <item name="colorOutlineVariant">#464646</item>
+        <item name="android:textColorPrimary">#f2f2f0</item>
+        <item name="android:textColorSecondary">#8c8c88</item>
+        <item name="android:textColorHint">#8c8c88</item>
+        <item name="android:editTextColor">#f2f2f0</item>
+        <item name="colorControlNormal">#8c8c88</item>
+        <item name="isLightTheme">false</item>
+    </style>
+    <style name="ThemeOverlay.Reader.Paper" parent="">
+        <item name="colorPrimary">#1f3a8a</item>
+        <item name="colorOnPrimary">#e8e3d6</item>
+        <item name="colorPrimaryContainer">#dcd6c6</item>
+        <item name="colorOnPrimaryContainer">#121212</item>
+        <item name="colorSecondary">#6d6a61</item>
+        <item name="colorOnSecondary">#e8e3d6</item>
+        <item name="colorSecondaryContainer">#dcd6c6</item>
+        <item name="colorOnSecondaryContainer">#121212</item>
+        <item name="colorTertiary">#1f3a8a</item>
+        <item name="android:colorBackground">#e8e3d6</item>
+        <item name="colorSurface">#e8e3d6</item>
+        <item name="colorOnSurface">#121212</item>
+        <item name="colorOnSurfaceVariant">#6d6a61</item>
+        <item name="colorSurfaceVariant">#dcd6c6</item>
+        <item name="colorSurfaceContainer">#dcd6c6</item>
+        <item name="colorSurfaceContainerHigh">#dcd6c6</item>
+        <item name="colorSurfaceContainerHighest">#cfc8b6</item>
+        <item name="colorOutline">#a8a49b</item>
+        <item name="colorOutlineVariant">#a8a49b</item>
+        <item name="android:textColorPrimary">#121212</item>
+        <item name="android:textColorSecondary">#6d6a61</item>
+        <item name="android:textColorHint">#6d6a61</item>
+        <item name="android:editTextColor">#121212</item>
+        <item name="colorControlNormal">#6d6a61</item>
+        <item name="isLightTheme">true</item>
+    </style>
+    <style name="ThemeOverlay.Reader.Solarized" parent="">
+        <item name="colorPrimary">#b58900</item>
+        <item name="colorOnPrimary">#002b36</item>
+        <item name="colorPrimaryContainer">#073642</item>
+        <item name="colorOnPrimaryContainer">#eee8d5</item>
+        <item name="colorSecondary">#839496</item>
+        <item name="colorOnSecondary">#002b36</item>
+        <item name="colorSecondaryContainer">#073642</item>
+        <item name="colorOnSecondaryContainer">#eee8d5</item>
+        <item name="colorTertiary">#b58900</item>
+        <item name="android:colorBackground">#002b36</item>
+        <item name="colorSurface">#002b36</item>
+        <item name="colorOnSurface">#eee8d5</item>
+        <item name="colorOnSurfaceVariant">#839496</item>
+        <item name="colorSurfaceVariant">#073642</item>
+        <item name="colorSurfaceContainer">#073642</item>
+        <item name="colorSurfaceContainerHigh">#073642</item>
+        <item name="colorSurfaceContainerHighest">#0d4350</item>
+        <item name="colorOutline">#2f5158</item>
+        <item name="colorOutlineVariant">#2f5158</item>
+        <item name="android:textColorPrimary">#eee8d5</item>
+        <item name="android:textColorSecondary">#839496</item>
+        <item name="android:textColorHint">#839496</item>
+        <item name="android:editTextColor">#eee8d5</item>
+        <item name="colorControlNormal">#839496</item>
+        <item name="isLightTheme">false</item>
+    </style>
+
+    <!-- The reader's settings rows as the home page's rows (layout/shelf_preference). -->
+    <style name="Furoshiki.PreferenceTheme" parent="PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/Furoshiki.Preference</item>
+        <item name="switchPreferenceCompatStyle">@style/Furoshiki.Preference.Switch</item>
+        <item name="dialogPreferenceStyle">@style/Furoshiki.Preference.Dialog</item>
+        <item name="editTextPreferenceStyle">@style/Furoshiki.Preference.EditText</item>
+        <item name="seekBarPreferenceStyle">@style/Furoshiki.Preference.SeekBar</item>
+    </style>
+    <style name="Furoshiki.Preference" parent="Preference.Material">
+        <item name="android:layout">@layout/shelf_preference</item>
+    </style>
+    <style name="Furoshiki.Preference.Switch" parent="Preference.SwitchPreferenceCompat.Material">
+        <item name="android:layout">@layout/shelf_preference</item>
+    </style>
+    <style name="Furoshiki.Preference.Dialog" parent="Preference.DialogPreference.Material">
+        <item name="android:layout">@layout/shelf_preference</item>
+    </style>
+    <style name="Furoshiki.Preference.EditText" parent="Preference.DialogPreference.EditTextPreference.Material">
+        <item name="android:layout">@layout/shelf_preference</item>
+    </style>
+    <style name="Furoshiki.Preference.SeekBar" parent="Preference.SeekBarPreference.Material">
+        <item name="android:layout">@layout/shelf_preference_seekbar</item>
     </style>
 </resources>

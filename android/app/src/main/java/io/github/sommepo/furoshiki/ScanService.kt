@@ -126,7 +126,10 @@ class ScanService : Service() {
                     // Games with a script, under its title; with "all games" (the Settings page's
                     // row) the others too, under what the core says they are called.
                     val scripted = titles[said[0]]
-                    val title = scripted ?: said.getOrNull(1)?.takeIf { all && it.isNotBlank() } ?: (if (all) game.nameWithoutExtension else return@forEach)
+                    // A name from the file or the disc is tidied (its dump's tags, "_ " for ": "); a script's is its own.
+                    val title = scripted ?: io.github.sommepo.furoshiki.reader.TitleText.clean(
+                        said.getOrNull(1)?.takeIf { all && it.isNotBlank() } ?: (if (all) game.nameWithoutExtension else return@forEach)
+                    )
                     // Two discs of one game have one ID and one script: the file tells them apart.
                     val disc = DISC.find(game.name)?.takeUnless { "ディスク" in title }
                         ?.let { " (Disc ${it.groupValues[1]})" }.orEmpty()

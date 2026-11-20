@@ -130,14 +130,16 @@ class ReaderScreensTest {
         val shown = text(activity)
         assertTrue(shown, shown.contains("2,468")) // today
         assertTrue(shown, shown.contains("8,468")) // all games
-        assertTrue(shown, shown.contains("40m 00s")) // 30 + 10 minutes
+        assertTrue(shown, shown.contains("40m")) // 30 + 10 minutes
         assertTrue(shown, shown.contains("12,702")) // 8468 characters in 40 minutes, per hour
-        assertTrue(shown, shown.contains("09-16"))
+        assertTrue(shown, shown.contains("2026/09/16"))
 
         // Deleting the older session removes exactly its share.
-        val row = TestSupport.find(root(activity), TextView::class.java) { it.text.startsWith("2025-09-16") || it.text.startsWith("2026-09-16") }
+        val row = TestSupport.find(root(activity), TextView::class.java) { it.text.startsWith("2025/09/16 ") }
         assertNotNull(shown, row)
-        (row!!.parent as View).performClick()
+        // A tap does nothing: only a held finger asks to delete (the screen says so).
+        assertTrue(shown, shown.contains("Hold a session to delete it"))
+        (row!!.parent as View).performLongClick()
         confirmDialog()
         TestSupport.await("totals after deletion") { !text(activity).contains("8,468") }
         assertEquals(2468L, db.totals(game).characters)
@@ -229,7 +231,7 @@ class ReaderScreensTest {
             activity.stepsShown().map { it.first }
         )
         assertTrue(activity.stepsShown().none { it.second })
-        assertTrue(text(activity), text(activity).contains("Install dictionaries"))
+        assertTrue(text(activity), text(activity).contains("Import dictionaries"))
         // Back from the dictionaries' screen with one installed: that step says it is done.
         installDictionary()
         controller.pause().resume()
@@ -374,7 +376,7 @@ class ReaderScreensTest {
         assertEquals("Controller", heading(activity))
         assertEquals(
             listOfNotNull(
-                "reader_touch_buttons", "reader_touch_play",
+                "reader_touch_buttons", "reader_touch_play", "reader_haptics",
                 "reader_cursor_toggle", "reader_cursor_speed", "reader_advance_button",
                 "reader_cursor_frame", "reader_cursor_home",
                 "reader_second_screen".takeIf { Console.SECOND_DISPLAY_FREE }
@@ -382,7 +384,7 @@ class ReaderScreensTest {
             entries(controller.preferenceScreen).mapNotNull { it.key }
         )
         // The few most changed are shown; the rest stand behind "More".
-        assertEquals(6, controller.preferenceScreen.initialExpandedChildrenCount)
+        assertEquals(7, controller.preferenceScreen.initialExpandedChildrenCount)
         assertTrue(text(activity), text(activity).contains("Toggle instead of hold"))
 
         activity.onBackPressedDispatcher.onBackPressed()
@@ -417,9 +419,9 @@ class ReaderScreensTest {
                 ReaderSettings.KEY_PANEL_DISPLAY, ReaderSettings.KEY_PANEL_POSITION, ReaderSettings.KEY_PANEL_HEIGHT,
                 ReaderSettings.KEY_PANEL_OPACITY, ReaderSettings.KEY_SHOW_CHOICES, ReaderSettings.KEY_REREAD_COLOUR,
                 ReaderSettings.KEY_SESSION_HUD, ReaderSettings.KEY_STATS_STYLE, ReaderSettings.KEY_STATS_PAUSED,
-                ReaderSettings.KEY_IDLE_MINUTES,
+                ReaderSettings.KEY_IDLE_MINUTES, ReaderSettings.KEY_CLIPBOARD_AUTO,
                 // Popup
-                ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_HOVER_DELAY, ReaderSettings.KEY_POPUP_HEIGHT,
+                ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_HOVER_DELAY, ReaderSettings.KEY_POPUP_FIT, ReaderSettings.KEY_POPUP_HEIGHT,
                 ReaderSettings.KEY_POPUP_MARK_UNKNOWN, ReaderSettings.KEY_POPUP_AUTOHIDE,
                 ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CARD_CORNER, ReaderSettings.KEY_POPUP_OPACITY,
                 ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_COMPACT, ReaderSettings.KEY_POPUP_HIDE_TAGS,
@@ -429,10 +431,9 @@ class ReaderScreensTest {
                 "reader_open_anki", ReaderSettings.KEY_CARD_AUDIO, ReaderSettings.KEY_AUDIO_VOICE_TRIM,
                 ReaderSettings.KEY_CARD_CONTEXT_LINES, ReaderSettings.KEY_CAPTURE_AUDIO, ReaderSettings.KEY_AUDIO_MAX,
                 ReaderSettings.KEY_AUDIO_LEAD, ReaderSettings.KEY_SCREENSHOT_CACHE, ReaderSettings.KEY_SCREENSHOT_WIDTH,
-                // Sources
-                ReaderSettings.KEY_CLIPBOARD_AUTO,
+                // Sources (the dev line's page: a published build has none, and the clipboard's row is on Reading)
                 // Controller
-                ReaderSettings.KEY_TOUCH_BUTTONS, ReaderSettings.KEY_TOUCH_PLAY,
+                ReaderSettings.KEY_TOUCH_BUTTONS, ReaderSettings.KEY_TOUCH_PLAY, ReaderSettings.KEY_HAPTICS,
                 // (the buttons' own settings are the controller mapping screen's: ButtonMap)
                 ReaderSettings.KEY_CURSOR_TOGGLE, ReaderSettings.KEY_CURSOR_SPEED,
                 ReaderSettings.KEY_ADVANCE_BUTTON, ReaderSettings.KEY_CURSOR_FRAME, ReaderSettings.KEY_CURSOR_HOME,
@@ -493,11 +494,11 @@ class ReaderScreensTest {
             val activity = Robolectric.buildActivity(ReaderGamesActivity::class.java).setup().get()
             TestSupport.await("the list") { text(activity).contains("$id · Not installed") }
             val shown = text(activity)
-            assertTrue(shown, shown.contains("1 script in the published list.") || shown.contains("1 scripts in the published list."))
+            assertTrue(shown, shown.contains("1 game script in the published list"))
 
             val install = TestSupport.find(root(activity), android.widget.Button::class.java) { it.text == "Install" }!!
             install.performClick()
-            TestSupport.await("installed") { text(activity).contains("Installed script for 作り話") && text(activity).contains("$id · Installed") }
+            TestSupport.await("installed") { text(activity).contains("Installed the game script for 作り話") && text(activity).contains("$id · Installed") }
             val file = java.io.File(context.getExternalFilesDir(null), "reader/profiles/$id.lua")
             assertTrue(file.readBytes().contentEquals(madeUp))
             assertTrue(fetched.contains("https://example.invalid/scripts/$id.lua"))
@@ -537,7 +538,7 @@ class ReaderScreensTest {
         assertTrue(shown, shown.contains("作り話 (A Made-up Game)"))
         assertTrue(shown, shown.contains("The story's text and choices"))
         assertTrue(shown, shown.contains("${Console.Test.GAME}, disc version 1.001"))
-        assertTrue(shown, shown.contains("Games need a script"))
+        assertTrue(shown, shown.contains("A game without one is read by OCR"))
         ReaderCatalog.forget()
     }
 

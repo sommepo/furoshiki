@@ -121,4 +121,10 @@
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_idle_minutes"
         app:iconSpaceReserved="false" />
+    <!-- Each line read copied for another app (it was the Sources page's row). -->
+    <SwitchPreferenceCompat
+        app:key="reader_clipboard_auto"
+        app:defaultValue="false"
+        app:title="@string/reader_pref_clipboard_auto"
+        app:iconSpaceReserved="false" />
 </PreferenceScreen>

@@ -58,6 +58,10 @@ void Notify(const QString& text);
 /// Does an action of the settings (reader_backlog, furoshiki_guide...): a button's the
 /// controller map gives one.
 void RunAction(const QString& name);
+/// The lookups over the game's own text (the reader's popup there), or none before Install.
+[[nodiscard]] class LookupFlow* GameLookups();
+/// The reader over the game (reading with the controller's d-pad is its), or none before Install.
+[[nodiscard]] class ReaderController* GameController();
 /// While set, a controller's back buttons (1 to 5: the Steam Controller's grips and its "..."
 /// button) go here first; true: taken. Empty: they do their actions again.
 void CaptureBackButtons(std::function<bool(int)> capture);

@@ -3,6 +3,7 @@
 
 package org.readers.app.reader.ui
 
+import org.readers.app.R
 import org.readers.app.reader.Console
 import android.annotation.SuppressLint
 import android.content.Context
@@ -97,7 +98,7 @@ class TouchButtons(
             body.visibility = if (away) GONE else VISIBLE
             // The arrow points the way the buttons go: out from the edge, or back to it.
             tab.text = if (away == atLeft) "›" else "‹"
-            tab.contentDescription = if (away) "Show the buttons" else "Hide the buttons"
+            tab.contentDescription = context.getString(if (away) R.string.reader_touch_show else R.string.reader_touch_hide)
         }
     }
 

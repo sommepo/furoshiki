@@ -117,6 +117,9 @@ object ReaderGlue : ReaderNative.Frontend {
 
     fun onMotion(event: MotionEvent): Boolean = ReaderInput.onMotion(event)
 
+    /** The reader's host of the game in play: what the app's Quick menu opens through (GameActivity). */
+    val readerHost: ReaderHost? get() = host
+
     /** The reader's own menu (*More settings*); [onClosed] once it is shut, whatever was chosen. */
     fun showMenu(onClosed: () -> Unit = {}) {
         val anchor = overlay

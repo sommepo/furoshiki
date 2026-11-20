@@ -154,6 +154,25 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     private var page: PopupPage? = null
     private var pageHeight = 0
+
+    /** From the page: the height that shows the entry in hand whole, and the least that shows its definition. */
+    private var pageFit = 0
+    private var pageNeed = 0
+
+    /** As tall as the entry in hand instead of all the content (ReaderSettings.popupFitEntry). */
+    var fitEntry = false
+        set(value) {
+            if (field != value) {
+                field = value
+                requestLayout()
+            }
+        }
+
+    /** The least height that still shows where the definition begins; 0 when not known. */
+    val needHeight get() = if (page != null) pageNeed else 0
+
+    /** The popup is the web page (the classic popup has no entry heights to fit to). */
+    val isPage get() = page != null && scroll.visibility == GONE
     /** Where the page says each result's plus is, in this view's pixels. */
     private val pageBoxes = HashMap<Int, android.graphics.Rect>()
 
@@ -214,6 +233,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             Console.APP_KEY, org.readers.app.reader.ReaderSession.gameKey, labels, look
         )
         model.put("pad", pad)
+        // The d-pad goes from entry to entry, as on a computer (Reader.entry).
+        model.put("choose", pad)
         page.call("Reader.show($model)")
     }
 
@@ -223,6 +244,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             "size" -> {
                 val density = resources.displayMetrics.density
                 pageHeight = (message.optDouble("height", 0.0) * density).toInt()
+                pageFit = (message.optDouble("fit", message.optDouble("height", 0.0)) * density).toInt()
+                pageNeed = (message.optDouble("need", 0.0) * density).toInt()
                 pageBoxes.clear()
                 message.optJSONArray("boxes")?.let { boxes ->
                     for (i in 0 until boxes.length()) {
@@ -246,6 +269,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
                 if (cardState(result) != CardState.WORKING) onAdd?.invoke(result, audio)
             }
 
+            // A tick in the hand: a card landed, or the d-pad stepped to another entry (ReaderHaptics).
+            "feedback" -> ReaderHaptics.tick(context, message.optString("kind"))
             "book" -> shownResults.getOrNull(index)?.let { onShowNotes?.invoke(it) }
             "dictionaries" -> onOpenDictionaries?.invoke()
             "listen" -> onListen?.invoke()
@@ -309,7 +334,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         val width = limit(widthMeasureSpec, maxWidth)
         if (page != null && scroll.visibility == GONE) {
             // As wide as it may be, as tall as the page said its content is.
-            val tall = minOf(pageHeight.coerceAtLeast(1), MeasureSpec.getSize(limit(heightMeasureSpec, maxHeight)))
+            val wanted = if (fitEntry && pageFit > 0) minOf(pageFit, pageHeight) else pageHeight
+            val tall = minOf(wanted.coerceAtLeast(1), MeasureSpec.getSize(limit(heightMeasureSpec, maxHeight)))
             super.onMeasure(
                 MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(width), MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(tall, MeasureSpec.EXACTLY)
@@ -408,6 +434,12 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     fun scrollTo(y: Int) = scroll.scrollTo(0, y)
 
     /** A step through the popup, the page's or the views' (a controller's stick). */
+    /** The next entry (1) or the one before (-1) for the d-pad; the classic popup scrolls a step. */
+    fun entry(step: Int, fallback: Int) {
+        val page = page
+        if (page != null && scroll.visibility == GONE) page.call("Reader.entry($step)") else scroll.scrollBy(0, fallback)
+    }
+
     fun scrollBy(dy: Int) {
         val page = page
         if (page != null && scroll.visibility == GONE) page.call("Reader.scrollBy($dy)") else scroll.scrollBy(0, dy)
@@ -478,7 +510,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             context.getString(R.string.reader_lookup_history_times, history.count)
         }
         if (!withWhere || history.firstTs <= 0) return count
-        val day = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault()).format(java.util.Date(history.firstTs))
+        val day = java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.ROOT).format(java.util.Date(history.firstTs))
         val where = history.firstTitle.ifEmpty { history.firstGame }
         return if (where.isEmpty()) {
             context.getString(R.string.reader_lookup_history_first, count, day)

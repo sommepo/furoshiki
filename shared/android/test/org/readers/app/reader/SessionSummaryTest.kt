@@ -20,8 +20,8 @@ class SessionSummaryTest {
     @Test
     fun saysCharactersSpeedAndTimeInOneShortLine() {
         assertEquals("1,234字 · 6,170/h · 12m", summary(1234, 12 * minute))
-        assertEquals("15,300字 · 9,180/h · 1h40m", summary(15300, 100 * minute))
-        assertEquals("48,000字 · 8,000/h · 6h00m", summary(48000, 360 * minute))
+        assertEquals("15,300字 · 9,180/h · 1h 40m", summary(15300, 100 * minute))
+        assertEquals("48,000字 · 8,000/h · 6h 00m", summary(48000, 360 * minute))
     }
 
     @Test
@@ -41,7 +41,7 @@ class SessionSummaryTest {
         assertEquals("<1m", SessionSummary.duration(59_999))
         assertEquals("1m", SessionSummary.duration(60_000))
         assertEquals("59m", SessionSummary.duration(60 * minute - 1))
-        assertEquals("1h00m", SessionSummary.duration(60 * minute))
-        assertEquals("2h05m", SessionSummary.duration(125 * minute))
+        assertEquals("1h 00m", SessionSummary.duration(60 * minute))
+        assertEquals("2h 05m", SessionSummary.duration(125 * minute))
     }
 }

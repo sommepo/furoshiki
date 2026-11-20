@@ -38,12 +38,12 @@ LocalHelper ReadLocalHelper(const QString& folder, QString* problem) {
         return LocalHelper{};
     };
     if (folder.isEmpty()) {
-        return fail(QStringLiteral("no folder"));
+        return fail(QStringLiteral("no OCR helper folder"));
     }
     const QString path = QDir(folder).absoluteFilePath(QStringLiteral("helper.json"));
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        return fail(QStringLiteral("%1 is not there").arg(QDir::toNativeSeparators(path)));
+        return fail(QStringLiteral("%1 is missing").arg(QDir::toNativeSeparators(path)));
     }
     QByteArray text = file.readAll();
     if (text.startsWith("\xef\xbb\xbf")) {
@@ -55,7 +55,7 @@ LocalHelper ReadLocalHelper(const QString& folder, QString* problem) {
         return fail(QStringLiteral("%1: %2").arg(QDir::toNativeSeparators(path), error.errorString()));
     }
     if (root.value(QStringLiteral("format")).toInt(1) > LocalHelperFormat) {
-        return fail(QStringLiteral("%1 is of a newer Furoshiki's").arg(QDir::toNativeSeparators(path)));
+        return fail(QStringLiteral("%1 needs a newer Furoshiki").arg(QDir::toNativeSeparators(path)));
     }
     LocalHelper local;
     local.name = root.value(QStringLiteral("name")).toString(QStringLiteral("OCR helper"));
@@ -71,7 +71,7 @@ LocalHelper ReadLocalHelper(const QString& folder, QString* problem) {
     }
     if (local.address.isEmpty() || local.source.isEmpty() || local.token.isEmpty() || local.program.isEmpty() ||
         local.program.first().isEmpty()) {
-        return fail(QStringLiteral("%1 lacks an address, a source, a token or a program").arg(QDir::toNativeSeparators(path)));
+        return fail(QStringLiteral("%1 is incomplete. Run the OCR helper's install.cmd again").arg(QDir::toNativeSeparators(path)));
     }
     local.folder = QDir(folder).absolutePath();
     return local;
@@ -188,7 +188,7 @@ void OcrHelper::Ensure(const Lines::Helper& said, Then then) {
             return;
         }
         if (helper.program.isEmpty()) {
-            then(false, QStringLiteral("nothing answers at %1").arg(helper.address));
+            then(false, QStringLiteral("nothing is answering at %1").arg(helper.address));
             return;
         }
         if (starting && helper.address == address) {
@@ -260,12 +260,12 @@ void OcrHelper::Poll() {
         return;
     }
     if (!Runs()) {
-        Finish(false, QStringLiteral("OCR helper stopped on launch. See %1").arg(QDir::toNativeSeparators(log_file)));
+        Finish(false, QStringLiteral("the OCR helper stopped as it started. See %1").arg(QDir::toNativeSeparators(log_file)));
         return;
     }
     if (QDateTime::currentMSecsSinceEpoch() - started_at > StartMs) {
         Stop();
-        Finish(false, QStringLiteral("OCR helper didn't respond at %1 within %2 s. See %3")
+        Finish(false, QStringLiteral("the OCR helper didn't answer at %1 within %2 s. See %3")
                           .arg(address).arg(StartMs / 1000).arg(QDir::toNativeSeparators(log_file)));
         return;
     }

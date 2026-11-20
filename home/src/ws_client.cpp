@@ -70,13 +70,25 @@ void WsClient::Close() {
 QString WsClient::Status() const {
     const QString where = url.toString();
     if (upgraded) {
-        return QStringLiteral("connected  ·  %1").arg(where);
+        return QStringLiteral("connected · %1").arg(where);
     }
     if (!wanted) {
         return QStringLiteral("not connected");
     }
-    return last_error.isEmpty() ? QStringLiteral("connecting  ·  %1").arg(where)
-                                : QStringLiteral("waiting  ·  %1  ·  %2").arg(where, last_error);
+    return last_error.isEmpty() ? QStringLiteral("connecting · %1").arg(where)
+                                : QStringLiteral("waiting · %1 · %2").arg(where, last_error);
+}
+
+QString WsClient::Said() const {
+    const QString where = url.toString();
+    if (upgraded) {
+        return QStringLiteral("Connected to the texthooker at %1").arg(where);
+    }
+    if (!wanted) {
+        return QStringLiteral("Not connected");
+    }
+    return last_error.isEmpty() ? QStringLiteral("Connecting to the texthooker at %1…").arg(where)
+                                : QStringLiteral("Waiting for the texthooker at %1. Check that it is running").arg(where);
 }
 
 void WsClient::Connect() {

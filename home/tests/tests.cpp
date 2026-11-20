@@ -57,6 +57,8 @@
 #include "popup_design.h"
 #include "popup_style.h"
 #include "sounds.h"
+#include "pad_names.h"
+#include "pad_bluetooth.h"
 
 namespace {
 
@@ -627,6 +629,12 @@ int main(int argc, char** argv) {
                                   QStringLiteral("ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12")).IsNone());
         CHECK(Home::Updater::Read(index, QStringLiteral("https://box:8789"), QStringLiteral("none"), QString()).IsNone());
         CHECK(Home::Updater::Read(index, QStringLiteral("https://box:8789"), QStringLiteral("other"), QString()).IsNone()); // no real hash
+        // Never a step back: a build written before this program is not offered.
+        const QByteArray dated = R"({"items":[{"id":"prog","sha256":"AB12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12",
+            "url":"/p.bin","modified":1000}]})";
+        CHECK(Home::Updater::Read(dated, QStringLiteral("https://box"), QStringLiteral("prog"), QStringLiteral("ffff"), 2000).IsNone());
+        CHECK(!Home::Updater::Read(dated, QStringLiteral("https://box"), QStringLiteral("prog"), QStringLiteral("ffff"), 500).IsNone());
+        CHECK(!Home::Updater::Read(dated, QStringLiteral("https://box"), QStringLiteral("prog"), QStringLiteral("ffff"), 0).IsNone());
         // Which other device read a game last: this install's own days left out.
         const auto read = Home::Services::ReadElsewhere(R"({"devices":[
             {"id":"aaaa","device":"Z13","days":[{"day":"2026-11-10","game":"G1","chars":50}]},
@@ -1216,7 +1224,7 @@ int main(int argc, char** argv) {
         QDir().mkpath(folder);
         QDir().mkpath(root.path() + QStringLiteral("/Readers/Furoshiki"));
         QString problem;
-        CHECK(!Home::ReadLocalHelper(folder, &problem).Valid() && problem.contains(QStringLiteral("not there")));
+        CHECK(!Home::ReadLocalHelper(folder, &problem).Valid() && problem.contains(QStringLiteral("is missing")));
         CHECK(!Home::FindLocalHelper(root.path() + QStringLiteral("/Readers/Furoshiki")).Valid());
         quint16 port = 0;
         {
@@ -1253,7 +1261,7 @@ server.serve_forever()
                          {QStringLiteral("program"), QJsonArray{QStringLiteral("python3"), QStringLiteral("-c"), QString::fromUtf8(stand_in), QString::number(port)}},
                          {QStringLiteral("env"), QJsonObject{{QStringLiteral("HELPER_SAYS"), QStringLiteral("in {folder}")}}}};
         write(said);
-        CHECK(!Home::ReadLocalHelper(folder, &problem).Valid() && problem.contains(QStringLiteral("lacks"))); // no token
+        CHECK(!Home::ReadLocalHelper(folder, &problem).Valid() && problem.contains(QStringLiteral("is incomplete"))); // no token
         said.insert(QStringLiteral("token"), QStringLiteral("the-installed-helper-token"));
         write(said);
         const Home::LocalHelper local = Home::FindLocalHelper(root.path() + QStringLiteral("/Readers/Furoshiki"));
@@ -1375,7 +1383,7 @@ server.serve_forever()
         CHECK(client.Open(QStringLiteral("ws://127.0.0.1:%1/lines?x=1").arg(port)));
         CHECK(until([&] { return client.Connected(); }));
         CHECK(asked_path == QStringLiteral("/lines?x=1"));
-        CHECK(client.Status().startsWith(QStringLiteral("connected  ·  ws://127.0.0.1")));
+        CHECK(client.Status().startsWith(QStringLiteral("connected · ws://127.0.0.1")));
         const QByteArray plain = QStringLiteral("一行目です").toUtf8();
         const QByteArray longer = QStringLiteral("長い行です。").repeated(30).toUtf8(); // more than 125 bytes
         const QByteArray json = QStringLiteral("{\"sentence\":\"三行目\"}").toUtf8();
@@ -1392,7 +1400,7 @@ server.serve_forever()
         peer->abort();
         server.close();
         CHECK(until([&] { return !client.Connected(); }));
-        CHECK(client.Status().startsWith(QStringLiteral("waiting  ·  ")));
+        CHECK(client.Status().startsWith(QStringLiteral("waiting · ")));
         CHECK(server.listen(QHostAddress::LocalHost, port));
         CHECK(until([&] { return client.Connected(); }));
         peer->write(frame(0x81, plain));
@@ -1557,9 +1565,10 @@ server.serve_forever()
         CHECK(read.titles.size() == 2 && read.titles[0].by == QStringLiteral("hook") && read.titles[0].engine == QStringLiteral("agent") && read.titles[0].script == scripts[0].file &&
               read.titles[0].process == QStringLiteral("yuzu.exe") && read.titles[0].hook_auto);
         CHECK(read.titles.size() == 2 && read.titles[1].threads == luna.threads && read.titles[1].codes == luna.codes);
-        CHECK(Lines::PathOf(read.titles[0]) == QStringLiteral("lines://hook-agent/") + agent_id && Lines::ReadByOf(Lines::PathOf(read.titles[0])) == QStringLiteral("HOOK  ·  AGENT"));
-        CHECK(Lines::ReadByOf(Lines::PathOf(read.titles[1])) == QStringLiteral("HOOK  ·  LUNAHOOK") && Lines::ReadByOf(QStringLiteral("lines://websocket/X")) == QStringLiteral("LINES  ·  WEBSOCKET") &&
-              Lines::ReadByOf(QStringLiteral("lines://ocr/X")) == QStringLiteral("WINDOW  ·  OCR") && Lines::ReadByOf(QStringLiteral("/games/x.iso")).isEmpty());
+        CHECK(Lines::PathOf(read.titles[0]) == QStringLiteral("lines://hook-agent/") + agent_id && Lines::ReadByOf(Lines::PathOf(read.titles[0])) == QStringLiteral("TEXT HOOK · AGENT"));
+        CHECK(Lines::ReadByOf(Lines::PathOf(read.titles[1])) == QStringLiteral("TEXT HOOK · LUNAHOOK") && Lines::ReadByOf(QStringLiteral("lines://websocket/X")) == QStringLiteral("TEXTHOOKER") &&
+              Lines::ReadByOf(QStringLiteral("lines://clipboard/X")) == QStringLiteral("CLIPBOARD") &&
+              Lines::ReadByOf(QStringLiteral("lines://ocr/X")) == QStringLiteral("OCR · WINDOW") && Lines::ReadByOf(QStringLiteral("/games/x.iso")).isEmpty());
         // Read by itself when its program starts: only where one title names that program.
         CHECK(Lines::HookedIn(read, QStringLiteral("KAITOU.EXE")).size() == 1 && Lines::HookedIn(read, QStringLiteral("other.exe")).isEmpty());
         Lines::Sources two = read;
@@ -1607,7 +1616,7 @@ server.serve_forever()
             QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
         }
         CHECK(lines == QStringList({QStringLiteral("GetGlyphOutlineA=") + U(u8"警警部部"), QStringLiteral("KiriKiri=") + U(u8"警部はまだ、何も知らない。")}));
-        CHECK(runner.Threads().size() == 2 && runner.Said().contains(QStringLiteral("Textractor: pipe connected")) && ended == QStringLiteral("the program went") && !runner.Running());
+        CHECK(runner.Threads().size() == 2 && runner.Said().contains(QStringLiteral("Textractor: pipe connected")) && ended == QStringLiteral("the game closed") && !runner.Running());
         QFile asked(made.path() + QStringLiteral("/asked.bin"));
         CHECK(asked.open(QIODevice::ReadOnly) && asked.readAll() == TextractorCommands(6699, {}));
         qunsetenv("READER_HOME_TEXTRACTOR_CLI");
@@ -1779,6 +1788,126 @@ function handler(regs, index) {
         CHECK(found.value(0).endsWith(QStringLiteral("(Disc 1).cue")) && found.value(2).endsWith(QStringLiteral("(Disc 3).cue")));
         CHECK(Home::Discs::GroupKey(found.value(0)) == Home::Discs::GroupKey(found.value(2)));
         CHECK(Home::Discs::Of(QStringLiteral("/x/One (Japan).iso")) == QStringList{QStringLiteral("/x/One (Japan).iso")});
+    }
+
+    // What a controller's buttons are called, by its kind (pad_names.h): one function for every
+    // place they are shown.
+    {
+        using namespace Home::PadNames;
+        const auto of = [](Kind kind, uint16_t vendor, uint16_t product, const char* name) {
+            return Of({kind, vendor, product, QString::fromUtf8(name)});
+        };
+        // The 8BitDo Pro 2 in X-input mode over Bluetooth says it is an Xbox One S (045E:02E0).
+        const Names pro2 = of(Kind::XboxOne, 0x045E, 0x02E0, "Xbox One S Controller");
+        CHECK(pro2.select == QStringLiteral("Select") && pro2.start == QStringLiteral("Start"));
+        CHECK(pro2.south == QStringLiteral("A") && pro2.north == QStringLiteral("Y") && pro2.family == Xbox);
+        // A real Xbox Wireless Controller over Bluetooth LE (045E:0B13): View and Menu.
+        const Names xbox = of(Kind::XboxOne, 0x045E, 0x0B13, "Xbox Wireless Controller");
+        CHECK(xbox.select == QStringLiteral("View") && xbox.start == QStringLiteral("Menu"));
+        CHECK(xbox.l1 == QStringLiteral("LB") && xbox.r2 == QStringLiteral("RT"));
+        // Named Xbox, of no type SDL knows: View and Menu; an 8BitDo name never.
+        CHECK(of(Kind::Unknown, 0x1234, 0x5678, "Some Xbox pad").select == QStringLiteral("View"));
+        CHECK(of(Kind::XboxOne, 0x045E, 0x0B13, "8BitDo Pro 2 (Xbox mode)").select == QStringLiteral("Select"));
+        CHECK(of(Kind::Unknown, 0x2DC8, 0x6006, "8BitDo SN30 Pro").select == QStringLiteral("Select"));
+        // An 8BitDo pad in Switch mode has the Nintendo names.
+        const Names switch_mode = of(Kind::SwitchPro, 0x057E, 0x2009, "8BitDo Pro 2");
+        CHECK(switch_mode.family == Nintendo && switch_mode.select == QStringLiteral("−") && switch_mode.south == QStringLiteral("B"));
+        // Xbox 360 pads and pads of no known kind: Select and Start.
+        CHECK(of(Kind::Xbox360, 0x045E, 0x028E, "Xbox 360 Controller").select == QStringLiteral("Select"));
+        CHECK(of(Kind::Unknown, 0, 0, "").select == QStringLiteral("Select") && of(Kind::Unknown, 0, 0, "").start == QStringLiteral("Start"));
+        // PlayStation: Share and Options, Create on a PS5's; the shapes by place.
+        const Names ds4 = of(Kind::PS4, 0x054C, 0x09CC, "PS4 Controller");
+        CHECK(ds4.select == QStringLiteral("Share") && ds4.start == QStringLiteral("Options") && ds4.south == QStringLiteral("×"));
+        CHECK(ds4.east == QStringLiteral("○") && ds4.west == QStringLiteral("□") && ds4.north == QStringLiteral("△") && ds4.l2 == QStringLiteral("L2"));
+        CHECK(of(Kind::PS5, 0x054C, 0x0CE6, "DualSense Wireless Controller").select == QStringLiteral("Create"));
+        // Switch: − and +, B at the bottom and A on the right (SDL's buttons by place).
+        const Names pro = of(Kind::SwitchPro, 0x057E, 0x2009, "Nintendo Switch Pro Controller");
+        CHECK(pro.select == QStringLiteral("−") && pro.start == QStringLiteral("+"));
+        CHECK(pro.south == QStringLiteral("B") && pro.east == QStringLiteral("A") && pro.west == QStringLiteral("Y") && pro.north == QStringLiteral("X"));
+        CHECK(pro.l2 == QStringLiteral("ZL"));
+        // Label by the controller map's ids.
+        CHECK(Label(pro2, QStringLiteral("select")) == QStringLiteral("Select") && Label(ds4, QStringLiteral("north")) == QStringLiteral("△"));
+        CHECK(Label(pro2, QStringLiteral("grip1")).isEmpty());
+        // A layout set up changes the face letters only: the 8BitDo with Nintendo letters keeps
+        // Select, Start and LB; south is still where it was and is now called B.
+        const Names printed = WithLayout(pro2, Nintendo);
+        CHECK(printed.family == Nintendo && printed.south == QStringLiteral("B") && printed.east == QStringLiteral("A"));
+        CHECK(printed.north == QStringLiteral("X") && printed.west == QStringLiteral("Y"));
+        CHECK(printed.select == QStringLiteral("Select") && printed.l1 == QStringLiteral("LB"));
+        const Names shapes = WithLayout(pro2, PlayStation);
+        CHECK(shapes.south == QStringLiteral("×") && shapes.north == QStringLiteral("△") && shapes.select == QStringLiteral("Select"));
+        CHECK(WithLayout(pro2, -1) == pro2);
+        // The setup's one press: south is the Xbox layout, east the Nintendo one; kept by name.
+        CHECK(LayoutFromPress(QStringLiteral("south")) == Xbox && LayoutFromPress(QStringLiteral("east")) == Nintendo);
+        CHECK(LayoutFromPress(QStringLiteral("west")) == -1 && LayoutFromPress(QStringLiteral("north")) == -1);
+        for (const int family : {Xbox, Nintendo, PlayStation}) {
+            CHECK(LayoutOf(LayoutKey(family)) == family);
+        }
+        CHECK(LayoutOf(QStringLiteral("other")) == -1 && LayoutKey(7).isEmpty());
+        // The setup's answer, and confirm and back by this controller's letters: always the
+        // bottom and the right button, named as printed (the 8BitDo with Nintendo letters: B, A).
+        CHECK(LayoutAnswer(Nintendo) == QStringLiteral("A is on the right: Nintendo letters"));
+        CHECK(LayoutAnswer(Xbox) == QStringLiteral("A is at the bottom: Xbox letters"));
+        CHECK(ConfirmName(printed) == QStringLiteral("B") && BackName(printed) == QStringLiteral("A"));
+        CHECK(ConfirmName(pro2) == QStringLiteral("A") && BackName(pro2) == QStringLiteral("B"));
+        CHECK(ConfirmName(shapes) == QStringLiteral("×") && BackName(shapes) == QStringLiteral("○"));
+        // The Check step's table: what each place is on each console, as the cores take it.
+        const QList<ConsoleFaces> faces = FacesOnConsoles();
+        CHECK(faces.size() == 5);
+        CHECK(faces.value(0).south == QStringLiteral("Confirm") && faces.value(0).east == QStringLiteral("Back"));
+        CHECK(faces.value(1).console.startsWith(QStringLiteral("PS1")) && faces.value(1).south == QStringLiteral("×") &&
+              faces.value(1).east == QStringLiteral("○") && faces.value(1).west == QStringLiteral("□") && faces.value(1).north == QStringLiteral("△"));
+        for (int i = 2; i < 5; ++i) { // Switch, 3DS and DS, Dreamcast: the bottom button is their A
+            CHECK(faces.value(i).south == QStringLiteral("A") && faces.value(i).east == QStringLiteral("B") &&
+                  faces.value(i).west == QStringLiteral("X") && faces.value(i).north == QStringLiteral("Y"));
+        }
+        CHECK(ConsoleFaceName(QStringLiteral("3ds"), QStringLiteral("south")) == QStringLiteral("A"));
+        CHECK(ConsoleFaceName(QStringLiteral("switch"), QStringLiteral("east")) == QStringLiteral("B"));
+        CHECK(ConsoleFaceName(QStringLiteral("ps2"), QStringLiteral("north")) == QStringLiteral("△"));
+        CHECK(ConsoleFaceName(QStringLiteral("ps2"), QStringLiteral("l1")).isEmpty() && ConsoleFaceName(QString(), QStringLiteral("south")).isEmpty());
+        // The pages' feet by family alone.
+        CHECK(OfFamily(PlayStation).l1 == QStringLiteral("L1") && OfFamily(Nintendo).r1 == QStringLiteral("R"));
+        SetCurrent(ds4);
+        CHECK(Current() == ds4);
+        SetCurrent(OfFamily(Xbox));
+    }
+
+    // A controller's Bluetooth address in Windows' instance ids and device paths (pad_bluetooth.h),
+    // as the maintainer's PC has them for the 8BitDo Pro 2, the SN30 Pro and the Xbox controller.
+    {
+        using namespace Home::PadBluetooth;
+        const QString hid_child = QStringLiteral(
+            "BTHENUM\\{00001124-0000-1000-8000-00805F9B34FB}_VID&0002045E_PID&02E0\\9&243DBE1C&0&E417D85A6799_C00000000");
+        CHECK(AddressIn(hid_child) == QStringLiteral("E417D85A6799"));
+        CHECK(IsBluetooth(hid_child));
+        CHECK(AddressIn(QStringLiteral("BTHENUM\\DEV_E417D85A6799\\8&2A1B3C4D&0&BLUETOOTHDEVICE_E417D85A6799")) == QStringLiteral("E417D85A6799"));
+        CHECK(AddressIn(QStringLiteral("BTHENUM\\DEV_E417D84CFE76\\x")) == QStringLiteral("E417D84CFE76"));
+        const QString ble = QStringLiteral("BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02045E_PID&0B13_REV&0509_0C3526235A50\\9&1&0");
+        CHECK(AddressIn(ble) == QStringLiteral("0C3526235A50"));
+        CHECK(AddressIn(QStringLiteral("BTHLE\\DEV_0C3526235A50\\7&ABC&0&0C3526235A50")) == QStringLiteral("0C3526235A50"));
+        // HID device paths, in small letters as Windows writes them.
+        const QString path = QStringLiteral(
+            "\\\\?\\HID#{00001124-0000-1000-8000-00805f9b34fb}_VID&0002045e_PID&02e0#9&243dbe1c&0&e417d85a6799_c00000000#{4d1e55b2-f16f-11cf-88cb-001111000030}");
+        CHECK(AddressIn(path) == QStringLiteral("E417D85A6799") && IsBluetooth(path));
+        CHECK(AddressIn(QStringLiteral(
+                  "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&02045e_PID&0b13_REV&0509_0c3526235a50&Col01#a&1&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}")) ==
+              QStringLiteral("0C3526235A50"));
+        // No address: XInput's name, a USB pad, the classic HID device's own id (its parent has it).
+        CHECK(AddressIn(QStringLiteral("XInput#0")).isEmpty());
+        CHECK(AddressIn(QStringLiteral("\\\\?\\HID#VID_045E&PID_028E&IG_00#7&2f0e3c45&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}")).isEmpty());
+        CHECK(!IsBluetooth(QStringLiteral("USB\\VID_045E&PID_028E\\0001")));
+        CHECK(AddressIn(QStringLiteral("HID\\{00001124-0000-1000-8000-00805F9B34FB}_VID&0002045E_PID&02E0\\A&1B2C3D4E&0&0000")).isEmpty());
+        uint16_t vendor = 0, product = 0;
+        CHECK(VendorProductIn(hid_child, vendor, product) && vendor == 0x045E && product == 0x02E0);
+        CHECK(VendorProductIn(ble, vendor, product) && vendor == 0x045E && product == 0x0B13);
+        CHECK(VendorProductIn(QStringLiteral("USB\\VID_2DC8&PID_6006\\1"), vendor, product) && vendor == 0x2DC8 && product == 0x6006);
+        CHECK(!VendorProductIn(QStringLiteral("XInput#0"), vendor, product));
+        CHECK(InstanceIdOfPath(path) ==
+              QStringLiteral("HID\\{00001124-0000-1000-8000-00805f9b34fb}_VID&0002045e_PID&02e0\\9&243dbe1c&0&e417d85a6799_c00000000"));
+        CHECK(InstanceIdOfPath(QStringLiteral("XInput#0")) == QStringLiteral("XInput#0"));
+#if !defined(_WIN32)
+        CHECK(Find(path, 0x045E, 0x02E0).address.isEmpty()); // only Windows looks
+#endif
     }
 
     std::printf(failures == 0 ? "All tests passed\n" : "%d failure(s)\n", failures);

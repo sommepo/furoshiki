@@ -14,7 +14,6 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
@@ -224,12 +223,12 @@ class AnkiSetupActivity : ReaderScreen() {
         } else {
             val url = urlField.text.toString().trim()
             if (url.isEmpty()) {
-                if (mayAsk) status.setText(R.string.reader_anki_url)
+                if (mayAsk) status.setText(R.string.reader_anki_url_missing)
                 return
             }
             AnkiConnectClient(url, keyField.text.toString())
         }
-        status.text = "…"
+        status.setText(R.string.reader_anki_connecting)
         worker.execute {
             val result = runCatching { candidate.deckNames() to candidate.modelNames() }
             runOnUiThread {
@@ -317,18 +316,19 @@ class AnkiSetupActivity : ReaderScreen() {
         }
     }
 
-    private fun pickMarker(anchor: View, editor: EditText) {
-        val menu = PopupMenu(this, anchor)
-        CardBuilder.MARKERS.forEachIndexed { index, (marker, description) ->
-            menu.menu.add(0, index, index, "{$marker}  $description")
-        }
-        menu.setOnMenuItemClickListener { item ->
-            val marker = "{${CardBuilder.MARKERS[item.itemId].first}}"
-            val at = editor.selectionStart.coerceAtLeast(0)
-            editor.text.insert(at, marker)
-            true
-        }
-        menu.show()
+    // A list in a dialog, not a menu at the button: a menu's rows are one line each, and a
+    // marker with what it is ("{sentence-furigana-html}  The line with ...") was cut off on a phone.
+    private fun pickMarker(@Suppress("UNUSED_PARAMETER") anchor: View, editor: EditText) {
+        val rows = CardBuilder.MARKERS.map { (marker, description) -> "{$marker}\n$description" }
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.reader_anki_marker_pick)
+            .setItems(rows.toTypedArray()) { _, which ->
+                val marker = "{${CardBuilder.MARKERS[which].first}}"
+                val at = editor.selectionStart.coerceAtLeast(0)
+                editor.text.insert(at, marker)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun rememberDraft() {

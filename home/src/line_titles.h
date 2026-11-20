@@ -172,8 +172,8 @@ bool Remove(Sources& sources, const QString& id);
 [[nodiscard]] QString PathOf(const Title& title);
 /// The way lines are read, for the page: "WEBSOCKET", "CLIPBOARD", "OCR", "HOOK-AGENT"; empty for another path.
 [[nodiscard]] QString WayOf(const QString& path);
-/// What reads such a title, as the page says it: "LINES  ·  WEBSOCKET", "WINDOW  ·  OCR",
-/// "HOOK  ·  AGENT"; empty for a path that is no such title's.
+/// Where such a title's text comes from, as the page says it: "TEXTHOOKER", "CLIPBOARD",
+/// "OCR · WINDOW", "TEXT HOOK · AGENT"; empty for a path that is no such title's.
 [[nodiscard]] QString ReadByOf(const QString& path);
 
 /// Writes apps/reader-home-lines.json: the titles, and `stats` (the reader's record of them);

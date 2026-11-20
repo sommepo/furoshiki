@@ -69,10 +69,10 @@ QString PlaySetting::Moved(const QString& value, int steps) const {
     }
 }
 
-QString PlaySetting::Shown(const QString& value) const {
+QString PlaySetting::Said(const QString& value) const {
     switch (kind) {
     case Switch:
-        return value == QStringLiteral("1") ? QStringLiteral("ON") : QStringLiteral("OFF");
+        return value == QStringLiteral("1") ? QStringLiteral("On") : QStringLiteral("Off");
     case Number:
         if (key == QStringLiteral("picture.resolution")) {
             return value + QStringLiteral("×");
@@ -80,10 +80,46 @@ QString PlaySetting::Shown(const QString& value) const {
         if (key == QStringLiteral("sound.volume")) {
             return value + QStringLiteral("%");
         }
+        // The popup's numbers: the one that leaves its theme as it is, or shows everything, by a word.
+        if (key == QStringLiteral("popup.opacity")) {
+            return value.toInt() == 0 ? QStringLiteral("Default") : value + QStringLiteral("%");
+        }
+        if (key == QStringLiteral("popup.radius")) {
+            return value.toInt() < 0 ? QStringLiteral("Default") : value + QStringLiteral(" px");
+        }
+        if (key == QStringLiteral("popup.compact")) {
+            return value.toInt() == 0 ? QStringLiteral("All") : value;
+        }
         return value;
-    default:
-        return value.toUpper();
+    default: {
+        // A choice by its name where it has one, else its own word without the hyphen or
+        // underscore it is written with ("yomitan-dark", "top_bottom").
+        static const QList<QPair<QString, QString>> names{
+            {QStringLiteral("popup.theme/auto"), QStringLiteral("Match theme")},
+            {QStringLiteral("popup.theme/console"), QStringLiteral("Console colours")},
+            {QStringLiteral("popup.theme/furoshiki"), QStringLiteral("Furoshiki glass")},
+            {QStringLiteral("popup.lookups/where"), QStringLiteral("Count and first seen")},
+        };
+        const QString full = key + QLatin1Char('/') + value;
+        for (const auto& [which, name] : names) {
+            if (which == full) {
+                return name;
+            }
+        }
+        QString said = QString(value).replace(QLatin1Char('_'), QLatin1Char(' '));
+        if (key.startsWith(QStringLiteral("popup."))) {
+            said.replace(QLatin1Char('-'), QLatin1Char(' '));
+        }
+        if (!said.isEmpty() && said.at(0).isLower() && said == said.toLower()) {
+            said[0] = said.at(0).toUpper();
+        }
+        return said;
     }
+    }
+}
+
+QString PlaySetting::Shown(const QString& value) const {
+    return Said(value).toUpper();
 }
 
 QString CommonLabel(const QString& key) {

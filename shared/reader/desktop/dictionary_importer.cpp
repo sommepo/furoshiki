@@ -25,11 +25,11 @@ struct ImportFailure {
 
 QByteArray ReadEntry(QuaZip& zip, const QString& name) {
     if (!zip.setCurrentFile(name)) {
-        throw ImportFailure{QStringLiteral("%1 cannot be read from the archive").arg(name)};
+        throw ImportFailure{QStringLiteral("Couldn't read %1 in the zip file. Download the dictionary again").arg(name)};
     }
     QuaZipFile file(&zip);
     if (!file.open(QIODevice::ReadOnly)) {
-        throw ImportFailure{QStringLiteral("%1 cannot be read from the archive").arg(name)};
+        throw ImportFailure{QStringLiteral("Couldn't read %1 in the zip file. Download the dictionary again").arg(name)};
     }
     return file.readAll();
 }
@@ -75,7 +75,7 @@ QJsonArray ParseBank(QuaZip& zip, const QString& name) {
     QJsonParseError error{};
     const QJsonDocument document = QJsonDocument::fromJson(ReadEntry(zip, name), &error);
     if (!document.isArray()) {
-        throw ImportFailure{QStringLiteral("%1 is not valid: %2").arg(name, error.errorString())};
+        throw ImportFailure{QStringLiteral("Couldn't read %1 in the zip file (%2). Download the dictionary again").arg(name, error.errorString())};
     }
     return document.array();
 }
@@ -89,7 +89,7 @@ DictionaryImporter::Result DictionaryImporter::Import(const QString& archive_pat
     try {
         QuaZip zip(archive_path);
         if (!zip.open(QuaZip::mdUnzip)) {
-            throw ImportFailure{QStringLiteral("The file cannot be opened as a zip archive")};
+            throw ImportFailure{QStringLiteral("Couldn't open the file as a zip file. Choose a Yomitan dictionary (.zip)")};
         }
         const QStringList entries = zip.getFileNameList();
         QString index_name;
@@ -101,23 +101,23 @@ DictionaryImporter::Result DictionaryImporter::Import(const QString& archive_pat
             }
         }
         if (index_name.isEmpty()) {
-            throw ImportFailure{QStringLiteral("Not a dictionary archive: index.json is missing")};
+            throw ImportFailure{QStringLiteral("This zip file isn't a Yomitan dictionary")};
         }
         const QString prefix = index_name.left(index_name.size() - 10); // "index.json"
         const QJsonDocument index_document = QJsonDocument::fromJson(ReadEntry(zip, index_name));
         if (!index_document.isObject()) {
-            throw ImportFailure{QStringLiteral("index.json cannot be read")};
+            throw ImportFailure{QStringLiteral("Couldn't read the dictionary's index. Download the dictionary again")};
         }
         const QJsonObject index = index_document.object();
         const QString title = index.value(QStringLiteral("title")).toString().trimmed();
         if (title.isEmpty()) {
-            throw ImportFailure{QStringLiteral("index.json has no title")};
+            throw ImportFailure{QStringLiteral("This dictionary has no title, so it can't be imported")};
         }
         result.title = title;
         const int format = index.value(QStringLiteral("format"))
                                .toInt(index.value(QStringLiteral("version")).toInt(3));
         if (format != 1 && format != 3) {
-            throw ImportFailure{QStringLiteral("Unsupported dictionary format %1").arg(format)};
+            throw ImportFailure{QStringLiteral("This dictionary's format (%1) isn't one Furoshiki reads. Use a Yomitan dictionary").arg(format)};
         }
 
         const auto banks = [&entries, &prefix](const QString& kind) {
@@ -141,7 +141,7 @@ DictionaryImporter::Result DictionaryImporter::Import(const QString& archive_pat
         const QStringList meta_banks = banks(QStringLiteral("term_meta_bank"));
         if (term_banks.isEmpty() && meta_banks.isEmpty()) {
             throw ImportFailure{
-                QStringLiteral("\"%1\" has no term or frequency data").arg(title)};
+                QStringLiteral("\"%1\" has no words or frequencies in it").arg(title)};
         }
         const int total = static_cast<int>(term_banks.size() + meta_banks.size());
         const auto wanted = [&keep_going] {
@@ -272,7 +272,7 @@ DictionaryImporter::Result DictionaryImporter::Import(const QString& archive_pat
     } catch (const SqliteError& error) {
         result.error = result.title.isEmpty()
                            ? QString::fromUtf8(error.what())
-                           : QStringLiteral("\"%1\" could not be imported: %2")
+                           : QStringLiteral("Couldn't import \"%1\": %2")
                                  .arg(result.title, QString::fromUtf8(error.what()));
     }
     if (!result.ok) {

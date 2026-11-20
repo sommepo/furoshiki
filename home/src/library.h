@@ -108,6 +108,12 @@ bool SaveShared(const QString& folder, const QJsonObject& settings);
 /// The console's label on the line: the short name an app of it gives, else Furoshiki's own
 /// for the consoles it knows, else the name in capitals.
 [[nodiscard]] QString ShortSystem(const Library& library, const QString& system);
+/// A console's name in a sentence or a statistics row: in full ("PlayStation 2"), but for the
+/// two known by their short names ("PSP", "PS Vita").
+[[nodiscard]] QString SystemFull(const QString& system);
+/// The same for a console the program plays, by its key ("ps2"): "PlayStation 2"; `otherwise`
+/// for a key it does not know.
+[[nodiscard]] QString ConsoleFull(const QString& key, const QString& otherwise);
 
 /// The games with every ID once (a game's discs, two copies of it, share their figures).
 [[nodiscard]] QList<Game> DistinctGames(const QList<Game>& games);

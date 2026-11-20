@@ -437,7 +437,7 @@ class ReaderOverlayTest {
         centreOf(text, 1).let { (x, y) -> tap(x, y) }
         val popup = awaitPopup()
         snapshot("lookup-no-dictionaries")
-        assertTrue(allText(popup).contains("No dictionaries installed"))
+        assertTrue(allText(popup).contains("No dictionaries yet"))
         val link = find<TextView>(popup) { it.text.toString() == "Open dictionaries" }
         assertNotNull(link)
         link!!.performClick()

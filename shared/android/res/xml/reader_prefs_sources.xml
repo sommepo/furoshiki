@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Where each line read goes besides the reader: the clipboard, a text server. The first 2 are shown; the rest stand behind "More"
-     (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
+<!-- Where each line read goes besides the reader: a text server (the dev line's; a published
+     build has no such page, and "Copy lines to clipboard" is on Reading). The first 2 are shown;
+     the rest stand behind "More" (initialExpandedChildrenCount), as on Furoshiki's pages on a computer. -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     app:initialExpandedChildrenCount="2">
 
-    <SwitchPreferenceCompat
-        app:key="reader_clipboard_auto"
-        app:defaultValue="false"
-        app:title="@string/reader_pref_clipboard_auto"
-        app:iconSpaceReserved="false" />
 </PreferenceScreen>

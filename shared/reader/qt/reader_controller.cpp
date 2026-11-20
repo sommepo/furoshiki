@@ -133,7 +133,7 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
     connect(&session, &ReaderSession::ProfileStatusChanged, this, [this] {
         const ProfileStatus& status = ReaderSession::Instance().Profile();
         if (!status.error.isEmpty()) {
-            Notify(tr("Script: %1").arg(status.error));
+            Notify(tr("Game script error: %1").arg(status.error));
         }
         cursor->SetArmed(ReaderSession::Instance().IsActive() && status.loaded);
         UpdateMenu();
@@ -151,6 +151,11 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
     connect(&sync_timer, &QTimer::timeout, this, &ReaderController::SyncWindows);
     render_window->installEventFilter(this);
     main_window->installEventFilter(this);
+
+    read_timer.setSingleShot(true);
+    read_timer.setInterval(ReadFollowMs);
+    connect(&read_timer, &QTimer::timeout, this, [this] { ReadLookup(); });
+    read_worker.setMaxThreadCount(1);
 
     hover_timer.setSingleShot(true);
     hover_timer.setInterval(HoverMs);
@@ -220,6 +225,8 @@ ReaderController::~ReaderController() {
     Reader::InputFilter::Instance().SetMenuButton(-1, nullptr);
     Reader::InputFilter::Instance().CaptureButtons(nullptr);
     host.set_pointer_filter(nullptr);
+    read_worker.clear();
+    read_worker.waitForDone();
     lookups.reset();
     delete overlay.data();
 }
@@ -248,11 +255,11 @@ void ReaderController::BuildMenu() {
         UpdateMenu();
         UpdateSessionLine();
     });
-    add(tr("Game &scripts…"), QStringLiteral("reader_games"), [this] {
+    add(tr("&Game scripts…"), QStringLiteral("reader_games"), [this] {
         RunDialog([](QWidget* parent) { RunGameScriptsDialog(parent); });
     });
     menu->addSeparator();
-    action_sentence_card = add(tr("Add &sentence card"),
+    action_sentence_card = add(tr("Add sentence &card"),
                                QStringLiteral("reader_sentence_card"), [this] { MineSentence(); });
     action_backlog = add(tr("&Backlog…"), QStringLiteral("reader_backlog"), [this] {
         RunDialog([](QWidget* parent) { RunBacklogDialog(parent); });
@@ -267,7 +274,7 @@ void ReaderController::BuildMenu() {
 #ifndef READER_NO_EXPLAIN // a published Furoshiki has no Explain
     action_explain = add(tr("&Explain line…"), QStringLiteral("reader_explain"), [this] {
         if (!ReaderSession::Instance().Current()) {
-            Notify(tr("No lines yet"));
+            Notify(tr("No lines read yet"));
             return;
         }
         RunDialog([](QWidget* parent) { RunExplainDialog(parent); });
@@ -284,7 +291,7 @@ void ReaderController::BuildMenu() {
         RunDialog([](QWidget* parent) { RunAnkiSetupDialog(parent); });
     });
     // A game's own choice comes before the general one in the settings.
-    menu_card_audio = menu->addMenu(tr("Card &audio for this game"));
+    menu_card_audio = menu->addMenu(tr("Card audi&o for this game"));
     auto* audio_group = new QActionGroup(menu_card_audio);
     const QStringList audio_names{QString(), tr("Always"), tr("Ask each time"),
                                   tr("Never")};
@@ -310,7 +317,7 @@ void ReaderController::BuildMenu() {
         });
     }
     // What the running game's profile offers to do in the game (reader.action).
-    menu_game_actions = menu->addMenu(tr("&This game"));
+    menu_game_actions = menu->addMenu(tr("Game ac&tions"));
     menu_game_actions->setObjectName(QStringLiteral("reader_game_actions"));
     add(tr("Reader s&ettings…"), QStringLiteral("reader_settings"), [this] {
         if (SettingsPages()) {
@@ -321,7 +328,7 @@ void ReaderController::BuildMenu() {
         OnSettingsChanged();
     });
     menu->addSeparator();
-    action_pause_stats = menu->addAction(tr("&Pause statistics"));
+    action_pause_stats = menu->addAction(tr("&Pause reading timer"));
     action_pause_stats->setObjectName(QStringLiteral("reader_pause_stats"));
     action_pause_stats->setCheckable(true);
     connect(action_pause_stats, &QAction::toggled, this, [this](bool paused) {
@@ -330,11 +337,12 @@ void ReaderController::BuildMenu() {
             session.Settings().SetStatsPaused(paused);
             session.OnSettingsChanged();
             UpdateSessionLine();
+            Notify(paused ? tr("Reading timer paused") : tr("Reading timer resumed"));
         }
     });
     // The game stands still and what it shows stays up, with every word still to be looked
     // up: for text that does not wait (a cutscene's lines).
-    action_pause_game = menu->addAction(tr("Pause &game"));
+    action_pause_game = menu->addAction(tr("Pause ga&me"));
     action_pause_game->setObjectName(QStringLiteral("reader_pause_game"));
     action_pause_game->setCheckable(true);
     connect(action_pause_game, &QAction::triggered, this, [this](bool paused) {
@@ -381,19 +389,19 @@ void ReaderController::BuildMenu() {
     });
     // Progress of the game's own set by hand (routes read elsewhere), when its script offers
     // it (reader.progress).
-    action_progress = add(tr("Routes and &progress…"), QStringLiteral("reader_progress"), [this] {
+    action_progress = add(tr("&Routes and progress…"), QStringLiteral("reader_progress"), [this] {
         if (!(host.is_running && host.is_running()) && !user_paused) {
             return;
         }
         RunDialog([](QWidget* parent) { RunProgressDialog(parent); });
     });
     action_reload_profile =
-        add(tr("&Reload script"), QStringLiteral("reader_reload_profile"), [this] {
+        add(tr("Re&load game script"), QStringLiteral("reader_reload_profile"), [this] {
             ReaderBridge::ReloadProfile();
             Games::Forget();
-            Notify(tr("Script reloaded"));
+            Notify(tr("Game script reloaded"));
         });
-    add(tr("Open &scripts folder"), QStringLiteral("reader_profiles_folder"), [] {
+    add(tr("Open game scripts &folder"), QStringLiteral("reader_profiles_folder"), [] {
         QDesktopServices::openUrl(QUrl::fromLocalFile(ReaderBridge::UserProfileDirectory()));
     });
     // Not in the menu: for the development control channel, after it changed a setting.
@@ -430,11 +438,17 @@ void ReaderController::UpdateMenu() {
     } else if (status.loaded) {
         text = tr("Now playing: %1").arg(session.GameTitle());
     } else if (!status.error.isEmpty()) {
-        text = tr("Script error: %1").arg(status.error.left(80));
+        text = tr("Game script error: %1").arg(status.error.left(80));
     } else {
-        text = tr("No script for this game (%1)").arg(session.GameKey());
+        text = tr("No game script for this game");
     }
     action_status->setText(text);
+    // Where the host has settings pages of its own (Furoshiki), this is its Quick menu and the
+    // settings are the host's: no second way into them from here.
+    menu->setTitle(SettingsPages() ? tr("&Quick menu") : tr("&Reader"));
+    if (QAction* settings_entry = menu->findChild<QAction*>(QStringLiteral("reader_settings"))) {
+        settings_entry->setVisible(!SettingsPages());
+    }
     // What was read today, in the entry that opens the statistics.
     QString today;
     try {
@@ -451,13 +465,13 @@ void ReaderController::UpdateMenu() {
     const auto audio_name = [](CardAudio choice) {
         switch (choice) {
         case CardAudio::Always:
-            return tr("always");
+            return tr("Always");
         case CardAudio::Never:
-            return tr("never");
+            return tr("Never");
         case CardAudio::Ask:
             break;
         }
-        return tr("ask");
+        return tr("Ask each time");
     };
     menu_card_audio->setEnabled(active);
     const std::optional<CardAudio> said =
@@ -618,6 +632,7 @@ void ReaderController::SourceEnded(ReadingSource* from) {
     }
     source.clear();
     source_has_game = true;
+    SetReading(false);
     lookups->CancelQuestions();
     lookups->Close();
     cursor->SetArmed(false);
@@ -700,12 +715,18 @@ void ReaderController::FirstStart() {
     if (save_sync != nullptr && !settings.SaveSyncAsked()) {
         if (wants(Settings::KeySaveSyncAsked, tr("Save sync"),
                   tr("Sync saves across your devices?"),
-                  tr("You can change this later in Reader > Save sync."),
+                  tr("You can change this later in Settings."),
                   tr("Set up save sync…"))) {
             save_sync->trigger();
         }
     }
 #endif
+    if (SettingsPages()) {
+        // A host with pages of its own (Furoshiki) has its own first steps for the dictionary
+        // and Anki, on its library: no questions from here.
+        settings.Sync();
+        return;
+    }
     if (!settings.SetupAsked(Settings::KeySetupDictionariesAsked)) {
         if (!session.Dictionaries().Dictionaries().isEmpty()) {
             settings.SetValue(Settings::KeySetupDictionariesAsked, true);
@@ -746,7 +767,7 @@ void ReaderController::FirstStart() {
             Notify(tr("Cards will be added to %1").arg(chosen));
         } else if (wants(Settings::KeySetupAnkiAsked, tr("Anki"),
                          tr("Set up Anki cards?"),
-                         tr("Requires Anki with the AnkiConnect add-on."),
+                         tr("You need Anki open, with the AnkiConnect add-on installed (in Anki: Tools, Add-ons, Get Add-ons, code 2055492159)."),
                          tr("Set up Anki…"))) {
             RunDialog([](QWidget* parent) { RunAnkiSetupDialog(parent); });
         }
@@ -989,6 +1010,7 @@ void ReaderController::RefreshPlaced() {
     placed.clear();
     if (!session.IsActive() || !session.Settings().ScreenText()) {
         overlay->SetOutlines({});
+        ReadRefresh();
         return;
     }
     for (const ReaderApp::ScreenText& text : session.OnScreen()) {
@@ -1003,6 +1025,7 @@ void ReaderController::RefreshPlaced() {
     }
     overlay->SetOutlines(session.Settings().ScreenTextOutline() ? placed
                                                                 : QList<PlacedText>{});
+    ReadRefresh();
 }
 
 const QList<PlacedText>& ReaderController::Placed() {
@@ -1034,14 +1057,23 @@ QRectF RowOf(const PlacedText& text, const PlacedText::Glyph& glyph) {
 
 void ReaderController::UpdateMarks() {
     QList<QRectF> marks;
-    if (mark_line >= 0 && mark_first >= 0) {
+    bool by_cursor = false;
+    const ReadState read_state = ReadingState();
+    if ((read_state == ReadState::Text || read_state == ReadState::Popup) && !read_words.at(read_at).place.isNull()) {
+        // Reading with the d-pad: the mark is the cursor, on its word whatever the popup found.
+        const ReaderApp::WordWalk::Word& word = read_words.at(read_at);
+        marks = placed.at(word.text).Marks(word.span.first, word.span.last);
+        by_cursor = true;
+    } else if (mark_line >= 0 && mark_first >= 0) {
         for (const PlacedText& text : std::as_const(placed)) {
             if (text.presented.backlog_id == mark_line) {
                 marks.append(text.Marks(mark_first, mark_last));
             }
         }
     }
-    overlay->SetMarkStyle(ReaderSession::Instance().Settings().WordMark());
+    const QString style = ReaderSession::Instance().Settings().WordMark();
+    // The cursor has to be seen, also where the word looked up is not marked.
+    overlay->SetMarkStyle(by_cursor && style == QStringLiteral("none") ? QStringLiteral("outline") : style);
     overlay->SetMarks(marks);
 }
 
@@ -1102,17 +1134,366 @@ LookupFlow::Anchor ReaderController::AnchorFor(const QRectF& rows, qreal near_x)
 }
 
 void ReaderController::LookUp(const PresentedLine& presented, int offset, const QRectF& rows,
-                              qreal near_x, bool quiet) {
+                              qreal near_x, bool quiet, int longest) {
     anchor_rows = rows;
     anchor_near_x = near_x;
     lookups->SetPopupParent(render_window->window());
-    lookups->Lookup(presented, offset, AnchorFor(rows, near_x), quiet);
+    lookups->Lookup(presented, offset, AnchorFor(rows, near_x), quiet, longest);
+}
+
+// ---- Reading with a controller's d-pad ----
+
+void ReaderController::ReadPointerUsed(const QPointF* position) {
+    if (!reading) {
+        return;
+    }
+    if (position != nullptr) {
+        // The first place seen is where the pointer lay; a tremble of a few pixels is no use of it.
+        if (!read_pointer_known) {
+            read_pointer_known = true;
+            read_pointer_from = *position;
+            return;
+        }
+        if (std::abs(position->x() - read_pointer_from.x()) <= ReadPointerSlop &&
+            std::abs(position->y() - read_pointer_from.y()) <= ReadPointerSlop) {
+            return;
+        }
+    }
+    ++read_pointer_ends;
+    SetReading(false);
+}
+
+void ReaderController::SetReading(bool on) {
+    if (reading == on) {
+        return;
+    }
+    reading = on;
+    read_pointer_known = false;
+    read_in_popup = false;
+    read_at = -1;
+    read_line = -1;
+    read_landed_for = -1;
+    read_looked_line = -1;
+    read_lines.clear();
+    read_words.clear();
+    read_timer.stop();
+    if (on) {
+        RefreshPlaced();
+    } else {
+        lookups->Close();
+    }
+    UpdateMarks();
+}
+
+ReaderController::ReadState ReaderController::ReadingState() const {
+    if (!reading) {
+        return ReadState::Off;
+    }
+    if (ReaderSession::Instance().CurrentChoices()) {
+        return ReadState::Game;
+    }
+    if (read_at < 0 || read_at >= read_words.size()) {
+        return ReadState::Idle;
+    }
+    return read_in_popup && lookups->IsOpen() ? ReadState::Popup : ReadState::Text;
+}
+
+void ReaderController::ReadRefresh() {
+    if (!reading) {
+        return;
+    }
+    QSet<qint64> seen;
+    for (const PlacedText& text : std::as_const(placed)) {
+        if (text.presented.line.IsChoice()) {
+            continue;
+        }
+        const qint64 id = text.presented.backlog_id;
+        seen.insert(id);
+        ReadLine& line = read_lines[id];
+        if (line.request == 0 || line.text != text.presented.line.text) {
+            line = ReadLine{};
+            line.text = text.presented.line.text;
+            ReadWalk(id, 0);
+        }
+    }
+    for (auto it = read_lines.begin(); it != read_lines.end();) {
+        it = seen.contains(it.key()) ? std::next(it) : read_lines.erase(it);
+    }
+    ReadRebuild();
+}
+
+void ReaderController::ReadWalk(qint64 id, int from) {
+    ReadLine& line = read_lines[id];
+    static int requests = 0;
+    const int request = line.request = ++requests;
+    const QString text = line.text;
+    auto& session = ReaderSession::Instance();
+    ReaderApp::DictionaryDatabase* dictionaries = &session.Dictionaries();
+    ReaderApp::DictionaryLookup* lookup = &session.Lookup();
+    const QString game = session.GameKey();
+    read_worker.start([this, id, from, request, text, dictionaries, lookup, game] {
+        QList<ReaderApp::WordWalk::Span> spans;
+        QList<ReaderApp::LookupResult> heads;
+        try {
+            QHash<int, ReaderApp::LookupResult> found;
+            const bool any = dictionaries->HasEnabledDictionaries();
+            spans = ReaderApp::WordWalk::Words(
+                text,
+                [&](int offset) {
+                    if (!any) {
+                        return 0;
+                    }
+                    // What a pointer's lookup finds at this character, its first word.
+                    const QList<ReaderApp::LookupResult> results =
+                        lookup->Lookup(text.mid(offset, ReaderApp::DictionaryLookup::MaxScanLength), 1, game);
+                    if (results.isEmpty()) {
+                        return 0;
+                    }
+                    found.insert(offset, results.first());
+                    return static_cast<int>(results.first().matched_text.size());
+                },
+                from);
+            for (const ReaderApp::WordWalk::Span& span : std::as_const(spans)) {
+                heads.append(found.value(span.first));
+            }
+        } catch (const std::exception&) {
+            spans.clear();
+            heads.clear();
+        }
+        QMetaObject::invokeMethod(
+            this,
+            [this, id, from, request, spans, heads] {
+                const auto found = read_lines.find(id);
+                if (found == read_lines.end() || found->request != request) {
+                    return; // the line went, or was asked about again
+                }
+                // What stood before `from` stays (a match made shorter or longer by hand).
+                while (!found->spans.isEmpty() && found->spans.last().last >= from) {
+                    found->spans.removeLast();
+                    found->heads.removeLast();
+                }
+                found->spans.append(spans);
+                found->heads.append(heads);
+                found->unknown.clear();
+                found->walked = true;
+                ReadRebuild();
+                UpdateMarks();
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void ReaderController::ReadRebuild() {
+    using ReaderApp::WordWalk::Word;
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    QList<Word> words;
+    read_vertical.clear();
+    bool all_walked = true;
+    qint64 newest = -1;
+    int newest_text = -1;
+    for (int t = 0; t < placed.size(); ++t) {
+        const PlacedText& text = placed.at(t);
+        if (text.presented.line.IsChoice()) {
+            continue;
+        }
+        const qint64 id = text.presented.backlog_id;
+        const auto line = read_lines.find(id);
+        if (line == read_lines.end() || !line->walked) {
+            all_walked = false;
+            continue;
+        }
+        if (id > newest) {
+            newest = id;
+            newest_text = t;
+        }
+        // Which words are not in Anki: asked of this computer's copy of the deck, now and then
+        // (it fills in the background, and a card just made changes it).
+        if (line->unknown.size() != line->spans.size() || now - line->known_at > 2000) {
+            line->unknown.clear();
+            for (int i = 0; i < line->spans.size(); ++i) {
+                const ReaderApp::LookupResult& head = line->heads.at(i);
+                line->unknown.append(!head.expression.isEmpty() &&
+                                     lookups->NotInAnki(text.presented, head, line->spans.at(i).first,
+                                                        line->spans.at(i).last) == 1);
+            }
+            line->known_at = now;
+        }
+        QList<QRectF> cells;
+        for (const PlacedText::Glyph& glyph : text.characters) {
+            cells.append(glyph.drawn);
+        }
+        const bool vertical = ReaderApp::WordWalk::Vertical(cells);
+        read_vertical.insert(t, vertical);
+        for (int i = 0; i < line->spans.size(); ++i) {
+            const ReaderApp::WordWalk::Span span = line->spans.at(i);
+            // Where it is drawn: its characters on the line (or column) it begins on.
+            QRectF place;
+            for (const PlacedText::Glyph& glyph : text.characters) {
+                if (glyph.offset < span.first || glyph.offset > span.last) {
+                    continue;
+                }
+                if (place.isNull()) {
+                    if (glyph.offset != span.first) {
+                        break; // its first character is not drawn yet
+                    }
+                    place = glyph.drawn;
+                } else if (vertical ? glyph.drawn.center().x() > place.left() && glyph.drawn.center().x() < place.right()
+                                    : glyph.drawn.center().y() > place.top() && glyph.drawn.center().y() < place.bottom()) {
+                    place = place.united(glyph.drawn);
+                }
+            }
+            words.append(Word{t, span, place, line->unknown.at(i)});
+        }
+    }
+    read_words = words;
+    read_at = -1;
+    for (int i = 0; i < read_words.size(); ++i) {
+        const Word& word = read_words.at(i);
+        if (placed.at(word.text).presented.backlog_id == read_line && word.span.first == read_span.first) {
+            read_at = i;
+            read_span = word.span;
+            break;
+        }
+    }
+    if (all_walked && !read_words.isEmpty() && (read_at < 0 || newest != read_landed_for)) {
+        // A new line: the cursor waits on its first word not in Anki, else on its first word.
+        read_landed_for = newest;
+        int land = ReaderApp::WordWalk::Landing(read_words, newest_text);
+        if (land < 0) {
+            land = ReaderApp::WordWalk::Landing(read_words);
+        }
+        read_at = -1;
+        ReadGo(land);
+        return;
+    }
+    // The cursor's word has been drawn since (a line typed out), or its line moved.
+    if (read_at >= 0 && !read_words.at(read_at).place.isNull() &&
+        (read_looked_line != read_line || !(read_looked == read_span)) && !read_timer.isActive()) {
+        read_timer.start();
+    }
+}
+
+void ReaderController::ReadGo(int to) {
+    if (to < 0 || to >= read_words.size() || to == read_at) {
+        return;
+    }
+    const ReaderApp::WordWalk::Word& word = read_words.at(to);
+    read_at = to;
+    read_line = placed.at(word.text).presented.backlog_id;
+    read_span = word.span;
+    read_in_popup = false;
+    UpdateMarks();
+    if (!word.place.isNull()) {
+        // The popup follows a moment later: a d-pad held down passes over words without it.
+        read_timer.start();
+    }
+}
+
+void ReaderController::ReadLookup() {
+    if (ReadingState() != ReadState::Text || read_at < 0 || read_at >= read_words.size()) {
+        return;
+    }
+    const ReaderApp::WordWalk::Word& word = read_words.at(read_at);
+    const PlacedText& text = placed.at(word.text);
+    for (const PlacedText::Glyph& glyph : text.characters) {
+        if (glyph.offset == word.span.first) {
+            read_looked_line = read_line;
+            read_looked = word.span;
+            // The pointer's own lookup at that character, no further than the cursor's word.
+            LookUp(text.presented, word.span.first, RowOf(text, glyph), glyph.drawn.left(), false,
+                   word.span.last - word.span.first + 1);
+            return;
+        }
+    }
+}
+
+void ReaderController::ReadResize(int by) {
+    const auto line = read_lines.find(read_line);
+    if (read_at < 0 || line == read_lines.end()) {
+        return;
+    }
+    for (int i = 0; i < line->spans.size(); ++i) {
+        if (line->spans.at(i).first != read_span.first) {
+            continue;
+        }
+        const ReaderApp::WordWalk::Span resized = ReaderApp::WordWalk::Resized(
+            line->text, line->spans.at(i), by, ReaderApp::DictionaryLookup::MaxScanLength);
+        if (resized == line->spans.at(i)) {
+            return;
+        }
+        // The words after it are found again from its new end.
+        line->spans.resize(i + 1);
+        line->heads.resize(i + 1);
+        line->spans[i] = resized;
+        line->heads[i] = ReaderApp::LookupResult{};
+        line->unknown.clear();
+        read_span = resized;
+        ReadWalk(read_line, resized.last + 1);
+        ReadRebuild();
+        UpdateMarks();
+        read_timer.start();
+        return;
+    }
+}
+
+void ReaderController::ReadKeyPressed(ReadKey key) {
+    using ReaderApp::WordWalk::Way;
+    if (!reading) {
+        return;
+    }
+    if (key == ReadKey::Popup || key == ReadKey::Text) {
+        read_in_popup = key == ReadKey::Popup && lookups->IsOpen();
+        return;
+    }
+    if (read_at < 0 || read_at >= read_words.size() || ReadingState() == ReadState::Game) {
+        return;
+    }
+    switch (key) {
+    case ReadKey::Left:
+    case ReadKey::Right:
+    case ReadKey::Up:
+    case ReadKey::Down: {
+        const Way way = key == ReadKey::Left ? Way::Left : key == ReadKey::Right ? Way::Right : key == ReadKey::Up ? Way::Up : Way::Down;
+        ReadGo(ReaderApp::WordWalk::Move(read_words, read_at, way, read_vertical.value(read_words.at(read_at).text)));
+        break;
+    }
+    case ReadKey::UnknownBefore:
+    case ReadKey::UnknownNext:
+        ReadGo(ReaderApp::WordWalk::StepUnknown(read_words, read_at, key == ReadKey::UnknownNext ? 1 : -1));
+        break;
+    case ReadKey::Shorter:
+    case ReadKey::Longer:
+        ReadResize(key == ReadKey::Longer ? 1 : -1);
+        break;
+    default:
+        break;
+    }
+}
+
+QString ReaderController::ReadingSaid() const {
+    static const char* const states[] = {"off", "idle", "text", "popup", "game"};
+    QString said = QStringLiteral("reading %1").arg(QLatin1String(states[static_cast<int>(ReadingState())]));
+    if (read_at >= 0 && read_at < read_words.size()) {
+        const ReaderApp::WordWalk::Word& word = read_words.at(read_at);
+        int unknown = 0;
+        for (const ReaderApp::WordWalk::Word& each : read_words) {
+            unknown += each.unknown ? 1 : 0;
+        }
+        said += QStringLiteral(", word %1 of %2 \"%3\"%4, %5 not in Anki, popup %6")
+                    .arg(read_at + 1)
+                    .arg(read_words.size())
+                    .arg(placed.at(word.text).presented.line.text.mid(word.span.first, word.span.last - word.span.first + 1),
+                         word.unknown ? QStringLiteral(" (not in Anki)") : QString())
+                    .arg(unknown)
+                    .arg(lookups->IsOpen() ? QStringLiteral("open") : QStringLiteral("closed"));
+    }
+    return said;
 }
 
 void ReaderController::MineSentence() {
     auto& session = ReaderSession::Instance();
     if (!session.Current()) {
-        Notify(tr("No lines yet"));
+        Notify(tr("No lines read yet"));
         return;
     }
     session.NoteInteraction();
@@ -1122,6 +1503,7 @@ void ReaderController::MineSentence() {
 // ---- The pointer ----
 
 bool ReaderController::OnPointerPress(const QPointF& position, bool left_button) {
+    ReadPointerUsed(nullptr); // a pointer's button: reading with the d-pad is over
     hover_timer.stop();
     resting.reset();
     down = Down{};
@@ -1186,6 +1568,7 @@ bool ReaderController::OnPointerPress(const QPointF& position, bool left_button)
 }
 
 void ReaderController::OnPointerMove(const QPointF& position) {
+    ReadPointerUsed(&position);
     if (down.kind != DownKind::None) {
         if (std::abs(position.x() - down.position.x()) > ClickSlop ||
             std::abs(position.y() - down.position.y()) > ClickSlop) {
@@ -1505,6 +1888,9 @@ void ReaderController::ShowCursor() {
 void ReaderController::OnCursorMoved(bool by_player) {
     if (!cursor->IsActive()) {
         return;
+    }
+    if (by_player) {
+        ReadPointerUsed(nullptr); // the stick pointer in use (not a cursor put on a new line)
     }
     if (by_player && !cursor_pointed) {
         // Moved by the player: from here on, what it rests on was pointed at.

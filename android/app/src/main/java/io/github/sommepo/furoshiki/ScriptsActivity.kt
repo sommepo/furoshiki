@@ -20,7 +20,10 @@ class ScriptsActivity : Activity() {
         super.onCreate(state)
         Console.use(intent.getStringExtra(EXTRA_CONSOLE).orEmpty())
         ScriptStore.indexUrl = Console.SCRIPT_INDEX_URL
-        startActivity(Intent(this, ReaderGamesActivity::class.java))
+        startActivity(
+            Intent(this, ReaderGamesActivity::class.java)
+                .putExtra(ReaderGamesActivity.EXTRA_CONSOLE_NAME, Places.fullName(intent.getStringExtra(EXTRA_CONSOLE).orEmpty()))
+        )
         finish()
     }
 

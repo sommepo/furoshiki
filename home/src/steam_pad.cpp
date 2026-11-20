@@ -426,6 +426,14 @@ void SteamPad::SetTuning(const Bridge::Tuning& tuning) {
     ++d->tuning_count;
 }
 
+bool SteamPad::Connected() const {
+#if defined(_WIN32)
+    return !d->steam_runs.load() && d->controllers.load() > 0;
+#else
+    return false;
+#endif
+}
+
 QString SteamPad::Describe() const {
 #if defined(_WIN32)
     if (d->steam_runs.load()) {

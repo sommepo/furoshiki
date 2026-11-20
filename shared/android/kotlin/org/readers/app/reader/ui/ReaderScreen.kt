@@ -44,6 +44,7 @@ abstract class ReaderScreen : AppCompatActivity() {
         toolbar = MaterialToolbar(this).apply {
             setTitle(titleRes)
             setNavigationIcon(R.drawable.ic_reader_x_back)
+            setNavigationContentDescription(R.string.reader_back)
             setNavigationOnClickListener { finish() }
         }
         root.addView(toolbar, LinearLayout.LayoutParams(MATCH, WRAP))

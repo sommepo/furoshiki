@@ -55,6 +55,8 @@ class ReaderGamesActivity : ReaderScreen() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Whose list this is, where the app opens it for one console of several (Furoshiki).
+        intent?.getStringExtra(EXTRA_CONSOLE_NAME)?.takeIf { it.isNotEmpty() }?.let { toolbar.subtitle = it }
         folder = ScriptStore.Folder(File(getExternalFilesDir(null), ReaderNative.PROFILE_USER_DIR))
         column = scrollingColumn()
         column.addView(note(getString(R.string.reader_games_about)).apply { setPadding(0, dp(8f), 0, dp(4f)) })
@@ -261,6 +263,11 @@ class ReaderGamesActivity : ReaderScreen() {
                 changed(ids, said.joinToString("\n"))
             }
         }
+    }
+
+    companion object {
+        /** The console's name, shown under the title. */
+        const val EXTRA_CONSOLE_NAME = "reader_console_name"
     }
 
     /** After an install or a removal: the game list's badges, and the running game's script at once. */

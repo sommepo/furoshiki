@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Furoshiki</title>
 <link rel="stylesheet" href="front.css">
 </head>
@@ -26,9 +26,9 @@
       <div class="keys">
         <button id="go" type="button"></button>
         <button id="also" type="button" hidden></button>
-        <button id="pin" type="button" hidden>Pin</button>
-        <button id="before" type="button" hidden>‹</button>
-        <button id="after" type="button" hidden>›</button>
+        <button id="pin" type="button" hidden>Add to Home screen</button>
+        <button id="before" type="button" aria-label="Lower" hidden>‹</button>
+        <button id="after" type="button" aria-label="Higher" hidden>›</button>
       </div>
     </section>
     <section id="list" class="panel">
@@ -49,11 +49,11 @@
       <div id="stage-far" class="far" hidden><i></i></div>
       <dl id="stage-facts"></dl>
       <div class="keys more">
-        <button id="stage-before" type="button">‹</button>
-        <button id="stage-after" type="button">›</button>
-        <button id="stage-log" type="button" hidden>Log</button>
+        <button id="stage-before" type="button" aria-label="Previous game">‹</button>
+        <button id="stage-after" type="button" aria-label="Next game">›</button>
+        <button id="stage-log" type="button" hidden>Backlog</button>
         <button id="stage-settings" type="button">Game settings</button>
-        <button id="stage-pin" type="button">Pin</button>
+        <button id="stage-pin" type="button">Add to Home screen</button>
       </div>
     </div>
     <div id="stage-art"><img id="stage-cover" alt=""></div>
@@ -62,9 +62,9 @@
     <span class="lr">L</span>
     <nav id="tabs"></nav>
     <span class="lr">R</span>
-    <button id="add-game" type="button" hidden>+ Add a game</button>
+    <button id="add-game" type="button" hidden>+ Add game</button>
   </footer>
-  <div id="pick" hidden><div id="pick-box" class="panel"><h2 id="pick-title"></h2><p id="pick-note"></p><ol id="pick-rows"></ol></div></div>
+  <div id="pick" hidden><div id="pick-box" class="panel" role="dialog" aria-labelledby="pick-title"><h2 id="pick-title"></h2><p id="pick-note"></p><ol id="pick-rows"></ol></div></div>
   <!-- The second display with something else in front (front.js, Lower.tell): the device itself. -->
   <section id="away">
     <div id="away-head"><span>Furoshiki</span><span id="away-status"></span></div>
@@ -72,15 +72,15 @@
     <div id="away-date"></div>
     <div id="away-keys">
       <button id="away-home" type="button">Home</button>
-      <div class="dial"><span>Volume</span><button type="button" data-dial="volume" data-by="-1">−</button><b id="away-volume"></b><button type="button" data-dial="volume" data-by="1">+</button></div>
-      <div class="dial" id="away-dim"><span>Brightness</span><button type="button" data-dial="brightness" data-by="-1">−</button><b id="away-brightness"></b><button type="button" data-dial="brightness" data-by="1">+</button></div>
+      <div class="dial"><span>Volume</span><button type="button" data-dial="volume" data-by="-1" aria-label="Volume down">−</button><b id="away-volume"></b><button type="button" data-dial="volume" data-by="1" aria-label="Volume up">+</button></div>
+      <div class="dial" id="away-dim"><span>Brightness</span><button type="button" data-dial="brightness" data-by="-1" aria-label="Brightness down">−</button><b id="away-brightness"></b><button type="button" data-dial="brightness" data-by="1" aria-label="Brightness up">+</button></div>
     </div>
   </section>
   <!-- The controller mapping screen (map.js): the consoles, the controller drawn, what each button does. -->
   <section id="map" hidden>
     <header id="map-head">
       <button id="map-back" type="button">‹ Settings</button>
-      <span><i>Furoshiki  ·  </i>Controller</span>
+      <span><i>Furoshiki · </i>Controller</span>
       <span id="map-pad-name"></span>
     </header>
     <div id="map-bar">

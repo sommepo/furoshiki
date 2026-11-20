@@ -362,7 +362,7 @@ void SettingsWindow::ShowSyncStatus() {
         }
     }
     const quint64 generation = SaveSync::Host::Started() ? SaveSync::Host::Generation() : 0;
-    const QString when = last.isValid() ? QStringLiteral("Last synced: %1").arg(last.toString(QStringLiteral("yyyy-MM-dd HH:mm")))
+    const QString when = last.isValid() ? QStringLiteral("Last synced: %1").arg(last.toString(QStringLiteral("yyyy/MM/dd HH:mm")))
                                         : QStringLiteral("Not synced yet");
     if (generation == sync_seen && sync_status->text().startsWith(when)) {
         return;
@@ -387,14 +387,14 @@ QWidget* SettingsWindow::AchievementsTab() {
                            page));
     auto* form = new QFormLayout;
     ra_user = new QLineEdit(page);
-    form->addRow(QStringLiteral("User name"), ra_user);
+    form->addRow(QStringLiteral("Username"), ra_user);
     auto* token_row = new QHBoxLayout;
     ra_token = new QLineEdit(page);
     ra_token->setEchoMode(QLineEdit::PasswordEchoOnEdit);
     token_row->addWidget(ra_token, 1);
     auto* login = new QPushButton(QStringLiteral("Sign in with password…"), page);
     token_row->addWidget(login);
-    form->addRow(QStringLiteral("Token"), token_row);
+    form->addRow(QStringLiteral("API token"), token_row);
     ra_hardcore = new QCheckBox(QStringLiteral("Hardcore mode"), page);
     form->addRow(QString(), ra_hardcore);
     layout->addLayout(form);
@@ -415,7 +415,7 @@ QWidget* SettingsWindow::AchievementsTab() {
                                                : hardcore == QStringLiteral("1"));
     filling = false;
     if (ra_user->text().isEmpty() && !qEnvironmentVariable("READER_RA_USER").isEmpty()) {
-        ra_note->setText(QStringLiteral("Signed in as %1 (from front end)")
+        ra_note->setText(QStringLiteral("Signed in as %1 (set by the launcher)")
                              .arg(qEnvironmentVariable("READER_RA_USER")));
     }
     for (QLineEdit* field : {ra_user, ra_token}) {
@@ -454,7 +454,7 @@ void SettingsWindow::StoreAchievements() {
 void SettingsWindow::LogInAchievements() {
     const QString user = ra_user->text().trimmed();
     if (user.isEmpty()) {
-        ra_note->setText(QStringLiteral("Enter your user name first."));
+        ra_note->setText(QStringLiteral("Enter your username first"));
         return;
     }
     bool ok = false;
@@ -486,7 +486,7 @@ void SettingsWindow::LogInAchievements() {
             ra_note->setText(QStringLiteral("Signed in"));
         } else {
             const QString why = answer.value(QStringLiteral("Error")).toString();
-            ra_note->setText(QStringLiteral("Couldn't sign in: %1").arg(!why.isEmpty() ? why : reply->errorString()));
+            ra_note->setText(QStringLiteral("Couldn't sign in: %1. Check the username and password").arg(!why.isEmpty() ? why : reply->errorString()));
         }
         reply->deleteLater();
         network->deleteLater();
@@ -498,7 +498,7 @@ void SettingsWindow::LogInAchievements() {
 QWidget* SettingsWindow::ControllerTab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    layout->addWidget(Note(QStringLiteral("Hold this button to move the lookup pointer with the sticks."),
+    layout->addWidget(Note(QStringLiteral("Hold this button to move the pointer with the sticks."),
                            page));
     auto* form = new QFormLayout;
     pointer_button = new QComboBox(page);
@@ -595,7 +595,7 @@ QString TidyReportText(const ReaderApp::TidyReport& report) {
     if (report.sessions == 0) {
         return QStringLiteral("No sessions to recalculate");
     }
-    return QStringLiteral("%1 sessions checked, %2 shortened: %3 → %4 (%5 → %6 characters/hour)")
+    return QStringLiteral("%1 sessions checked, %2 shortened: %3 → %4 (%5 → %6 characters an hour)")
         .arg(report.sessions)
         .arg(report.changed)
         .arg(minutes(report.before_ms), minutes(report.after_ms), speed(report.before_ms), speed(report.after_ms));

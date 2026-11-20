@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A view of the reader's screens that has its face and colours already (ConsoleLook.dressScreen). -->
+    <item name="shelf_dressed" type="id" />
+</resources>

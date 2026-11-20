@@ -66,8 +66,6 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     /** The result whose plus asked about a card's audio: its question comes up over it. */
     private var askingResult: LookupResult? = null
 
-    /** The words counted, by line: each once per line. */
-    private val counted = HashSet<String>()
 
     /** A popup up this long counts its word as looked up. */
     private val countLater = Runnable { countLookup() }
@@ -327,7 +325,12 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 MeasureSpec.makeMeasureSpec(popup.maxHeight, MeasureSpec.AT_MOST)
             )
         }
-        measure(if (fillRoom) maxOf(above, below) else minOf(height * settings.popupHeightPercent / 100, maxOf(above, below)))
+        // As tall as the entry in hand (the default), else as the content up to the height set;
+        // never so short that the definition's first lines are out of sight.
+        val toEntry = settings.popupFitEntry && popup.isPage
+        popup.fitEntry = toEntry && !fillRoom
+        val share = if (toEntry) ReaderSettings.POPUP_FIT_LIMIT_PERCENT else settings.popupHeightPercent
+        measure(if (fillRoom) maxOf(above, below) else minOf(maxOf(height * share / 100, popup.needHeight), maxOf(above, below)))
         val goesAbove = popup.measuredHeight <= above || above >= below
         val room = if (goesAbove) above else below
         if (popup.measuredHeight > room) measure(room)
@@ -619,6 +622,10 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     }
 
     /** A step through the open popup (PopupKeys: the left stick). */
+    fun entry(step: Int, fallback: Int) {
+        if (isOpen) popup.entry(step, fallback)
+    }
+
     fun scrollBy(dy: Int) {
         if (isOpen) popup.scrollBy(dy)
     }
@@ -664,15 +671,14 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         if (pin.counted) return
         pin.counted = true
         val word = pin.word
-        val key = "${pin.presented.backlogId}\u001f${word.expression}\u001f${word.reading}"
-        if (!counted.add(key)) return
-        if (counted.size > 5000) counted.clear()
         val database = ReaderSession.database(context)
         val game = ReaderSession.gameKey
+        val line = pin.presented.line.text
         val now = System.currentTimeMillis()
         worker.execute {
             try {
-                database.countLookup(word.expression, word.reading, game, now)
+                // Once a line, whichever layer or display looked it up (the database keeps which).
+                database.countLookupOnLine(word.expression, word.reading, game, line, now)
             } catch (e: Exception) {
                 ReaderLog.warning("[Reader] Could not count a lookup: ${e.message}")
             }
@@ -724,6 +730,8 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 is Miner.Outcome.Failed -> context.getString(R.string.reader_card_failed, outcome.message)
                 Miner.Outcome.Cancelled -> return
             }
+            // A card made is felt, whichever popup or key made it (the page's own ask is the same tick).
+            if (outcome is Miner.Outcome.Added) ReaderHaptics.tick(context, ReaderHaptics.LAND)
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }

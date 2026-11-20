@@ -152,6 +152,9 @@ if [ -f "$out/cores/reader_core_ppsspp.so" ]; then
   cp -r "$forks/ppsspp/assets" "$out/cores/ppsspp"
   rm -rf "$out/cores/ppsspp/debugger" "$out/cores/ppsspp/reader"
 fi
+# SDL's mappings of controllers it has none of its own for (SDL_GameControllerDB, zlib licence;
+# publish/NOTICES.md), beside the program, which reads it at start.
+install -m 644 "$root/../ppsspp/assets/gamecontrollerdb.txt" "$out/gamecontrollerdb.txt"
 # Vita3K's data and built-in shaders beside its core.
 if [ -f "$out/cores/reader_core_vita3k.so" ]; then
   cp -r "$forks/vita3k/build-core/bin/vita3k" "$out/cores/vita3k"

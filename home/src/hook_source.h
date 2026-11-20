@@ -43,10 +43,12 @@ public:
     [[nodiscard]] const QString& Title() const {
         return title.title;
     }
-    /// "HOOK  ·  AGENT", for the strip's head.
+    /// "TEXT HOOK · AGENT", for the strip's head.
     [[nodiscard]] QString Label() const;
-    /// For the user: "waiting for game.exe", "hooked  ·  game.exe", a fault.
+    /// For the log and the tests: "waiting for game.exe", "hooked · game.exe", a fault.
     [[nodiscard]] QString Status() const;
+    /// For the user, as a sentence.
+    [[nodiscard]] QString Said() const;
     [[nodiscard]] const Hooks::Runner& Engine() const {
         return runner;
     }

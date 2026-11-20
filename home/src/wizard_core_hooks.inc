@@ -30,14 +30,14 @@ QString UserProfiles(const QString& shared) {
 /// What is known of a game for its row: "AGENT · 3 HOOKS", or nothing.
 QString KnownOf(const QList<CoreHooks::Game>& found) {
     if (found.isEmpty()) {
-        return QStringLiteral("NO HOOK FOUND");
+        return QStringLiteral("NO TEXT HOOK KNOWN");
     }
     const int hooks = static_cast<int>(found.first().hooks.size());
-    return QStringLiteral("%1  ·  %2 HOOK%3%4")
+    return QStringLiteral("%1 · %2 TEXT HOOK%3%4")
         .arg(found.first().source.toUpper())
         .arg(hooks)
         .arg(hooks == 1 ? QString() : QStringLiteral("S"))
-        .arg(found.size() > 1 ? QStringLiteral("  ·  +%1").arg(found.size() - 1) : QString());
+        .arg(found.size() > 1 ? QStringLiteral(" · +%1").arg(found.size() - 1) : QString());
 }
 
 } // namespace
@@ -97,7 +97,7 @@ void HomeWindow::CoreHookAccept() {
             return;
         }
         c.fetching = {QStringLiteral("scripts")};
-        c.said = QStringLiteral("DOWNLOADING LUNAHOOK TABLES");
+        c.said = QStringLiteral("DOWNLOADING THE TEXT HOOK LIST…");
         c.fetch.Start(QStringLiteral("luna-tables"), shared);
         sounds.Play(Sound::Select);
         update();
@@ -107,7 +107,7 @@ void HomeWindow::CoreHookAccept() {
     const QList<CoreHooks::Game> found = CoreHooks::Find(c.known, c.console, game.id);
     if (found.isEmpty()) {
         sounds.Play(Sound::Refuse);
-        c.said = c.known.isEmpty() ? QStringLiteral("DOWNLOAD HOOKS FIRST (LAST ROW)") : QStringLiteral("NO HOOK FOUND FOR %1").arg(game.id);
+        c.said = c.known.isEmpty() ? QStringLiteral("DOWNLOAD THE TEXT HOOK LIST FIRST: THE BOTTOM ROW") : QStringLiteral("NO TEXT HOOK IS KNOWN FOR %1. ADD IT AS ONE GAME, READ BY OCR.").arg(game.id);
         update();
         return;
     }
@@ -124,7 +124,7 @@ void HomeWindow::CoreHookAccept() {
     if (console_folders_changed) {
         console_folders_changed(console); // looked for again: it is listed now
     }
-    Say(QStringLiteral("Added %1 (hook from %2)").arg(title, found.first().source));
+    Say(QStringLiteral("Added %1 to the library").arg(title));
 }
 
 bool HomeWindow::CoreHookKey(int key) {
@@ -162,23 +162,23 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
     // The head, as every step of the wizard has it.
     double x = ShelfLeft;
     x += Put(p, small, x, 49, QStringLiteral("‹  LIBRARY"), l.muted);
-    x += Put(p, small, x, 49, QStringLiteral("  ·  "), l.muted);
+    x += Put(p, small, x, 49, QStringLiteral(" · "), l.muted);
     Put(p, small, x, 49, QStringLiteral("ADD GAME"), l.ink);
     double right = ShelfRight;
     right -= Put(p, small, right, 49, shelf_minute, l.ink, 1);
-    right -= Put(p, small, right, 49, QStringLiteral(" / 02  ·  "), l.muted, 1);
+    right -= Put(p, small, right, 49, QStringLiteral(" / 02 · "), l.muted, 1);
     right -= Put(p, small, right, 49, QStringLiteral("02"), l.accent, 1);
-    Put(p, small, right, 49, QStringLiteral("%1  ·  %2  ·  ").arg(QLatin1String(DoorLetters[0]), QLatin1String(DoorNames[0])), l.muted, 1);
+    Put(p, small, right, 49, QStringLiteral("%1 · %2 · ").arg(QLatin1String(DoorLetters[0]), QLatin1String(DoorNames[0])), l.muted, 1);
     p.fillRect(QRectF(ShelfLeft, 64, ShelfRight - ShelfLeft, 1), l.rule);
     shelf_hits.append({QRectF(ShelfLeft, 30, 140, 30), 20, 0});
 
     Put(p, ShelfFont(l.display, 27, 0.02), ShelfLeft, ShelfTop + 44, QStringLiteral("WHICH GAME?"), l.ink);
-    Put(p, small, ShelfLeft, ShelfTop + 72, QStringLiteral("%1 GAMES WITHOUT A SCRIPT  ·  ↑ ↓   ENTER   ESC").arg(c.console_name.toUpper()), l.muted);
+    Put(p, small, ShelfLeft, ShelfTop + 72, QStringLiteral("%1 GAMES WITHOUT A GAME SCRIPT").arg(c.console_name.toUpper()), l.muted);
 
     const bool fetch_row = w.row >= c.games.size();
     const QList<CoreHooks::Game> found = fetch_row ? QList<CoreHooks::Game>() : CoreHooks::Find(c.known, c.console, c.games[w.row].id);
-    const QString key_label = fetch_row ? (c.fetch.Busy() ? QStringLiteral("FETCHING") : QStringLiteral("DOWNLOAD AND CONVERT"))
-                              : found.isEmpty() ? QStringLiteral("NO HOOK FOUND") : QStringLiteral("USE HOOK");
+    const QString key_label = fetch_row ? (c.fetch.Busy() ? QStringLiteral("DOWNLOADING…") : QStringLiteral("DOWNLOAD"))
+                              : found.isEmpty() ? QStringLiteral("NO TEXT HOOK KNOWN") : QStringLiteral("USE THIS TEXT HOOK");
     const QRectF key(WizardSide, bottom - 44, ShelfRight - WizardSide, 44);
     p.fillRect(key, l.ink);
     Put(p, key_face, key.center().x(), key.center().y() + 4.6, key_label, l.ground, 2);
@@ -197,8 +197,8 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
             left = c.games[i].title.isEmpty() ? c.games[i].id : c.games[i].title;
             right_text = KnownOf(CoreHooks::Find(c.known, c.console, c.games[i].id));
         } else {
-            left = c.known.isEmpty() ? QStringLiteral("Download hooks (LunaHook, Agent)") : QStringLiteral("Download again");
-            right_text = c.known.isEmpty() ? QStringLiteral("NONE") : QStringLiteral("%1 DESCRIPTIONS").arg(c.known.size());
+            left = c.known.isEmpty() ? QStringLiteral("Download the text hook list (LunaHook, Agent)") : QStringLiteral("Download the text hook list again");
+            right_text = c.known.isEmpty() ? QStringLiteral("NOT DOWNLOADED YET") : QStringLiteral("%1 GAMES KNOWN").arg(c.known.size());
         }
         if (on) {
             p.fillRect(QRectF(ShelfLeft, y - 21, 3, 33), l.accent);
@@ -216,12 +216,12 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
     if (fetch_row) {
         const Hooks::Kit luna = Hooks::KitOf(QStringLiteral("luna-tables")), agent = Hooks::KitOf(QStringLiteral("scripts"));
         facts = {{QStringLiteral("LUNAHOOK"), luna.whose.toUpper()}, {QStringLiteral("AGENT"), agent.whose.toUpper()},
-                 {QStringLiteral("SIZE"), QStringLiteral("%1 + %2").arg(luna.size, agent.size)}, {QStringLiteral("SAVED IN"), QStringLiteral("PROGRAM/HOOKS")}};
+                 {QStringLiteral("DOWNLOAD SIZE"), QStringLiteral("%1 AND %2").arg(luna.size, agent.size)}};
     } else {
         facts.append({QStringLiteral("ID"), c.games[w.row].id});
         if (!found.isEmpty()) {
             const CoreHooks::Game& game = found.first();
-            facts.append({QStringLiteral("FROM"), game.source.toUpper() + QStringLiteral("  ·  ") + game.from});
+            facts.append({QStringLiteral("FROM"), game.source.toUpper() + QStringLiteral(" · ") + game.from});
             if (!game.version.isEmpty()) {
                 facts.append({QStringLiteral("VERSION"), game.version});
             }
@@ -229,19 +229,30 @@ void HomeWindow::PaintCoreHook(QPainter& p) {
             for (const CoreHooks::Hook& hook : game.hooks) {
                 names.append(hook.name);
             }
-            facts.append({QStringLiteral("HOOKS"), names.join(QStringLiteral("  ·  "))});
-            facts.append({QStringLiteral("ON THE SCREEN"), QStringLiteral("TEXT STRIP ONLY")});
+            facts.append({QStringLiteral("TEXT HOOKS"), names.join(QStringLiteral(" · "))});
+            facts.append({QStringLiteral("TEXT SHOWN"), QStringLiteral("IN THE TEXT STRIP")});
         }
-    }
-    if (!c.said.isEmpty()) {
-        facts.append({QStringLiteral("SAID"), c.fetch.Busy() ? c.fetch.Said().toUpper() : c.said});
     }
     double fy = WizardTop + 27;
     for (const auto& fact : facts) {
         p.fillRect(QRectF(WizardSide, fy - 19, ShelfRight - WizardSide, 1), l.rule);
         Put(p, tiny, WizardSide, fy, fact.first, l.muted);
-        Put(p, value, ShelfRight, fy, Paint::Fit(fact.second, value, ShelfRight - WizardSide - 110), l.ink, 1);
+        Put(p, value, ShelfRight, fy, Paint::Fit(fact.second, value, ShelfRight - WizardSide - 84), l.ink, 1);
         fy += 30;
     }
     p.fillRect(QRectF(WizardSide, fy - 19, ShelfRight - WizardSide, 1), l.rule);
+    // What a download or a refusal said, whole, under the table.
+    if (!c.said.isEmpty()) {
+        Wrapped(p, ShelfFont(l.mono, 11.5, 0.03), QRectF(WizardSide, fy - 6, ShelfRight - WizardSide, key.top() - fy - 6),
+                c.fetch.Busy() ? c.fetch.Said().toUpper() + QStringLiteral("…") : c.said, l.ink);
+    }
+
+    // The foot, as every step has it: the keys, or what the page has to say.
+    p.fillRect(QRectF(ShelfLeft, 646, ShelfRight - ShelfLeft, 1), l.rule);
+    if (!notice.isEmpty()) {
+        const QFont say = ShelfFont(l.text, 14);
+        Put(p, say, SheetW / 2, 676, Paint::Fit(notice, say, ShelfRight - ShelfLeft), l.ink, 2);
+        return;
+    }
+    PutFoot(p, tiny, QStringLiteral("↑ ↓ CHOOSE   ENTER USE   ESC BACK"));
 }

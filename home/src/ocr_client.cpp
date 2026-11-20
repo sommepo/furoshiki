@@ -64,7 +64,7 @@ QNetworkRequest OcrClient::Request(const QString& path, int timeout_ms) const {
 void OcrClient::Json(const QString& verb, const QString& path, const QJsonObject& body, int timeout_ms,
                      std::function<void(bool, const QJsonObject&, const QString&)> then) {
     if (!Configured()) {
-        then(false, {}, QStringLiteral("no OCR helper's address is set"));
+        then(false, {}, QStringLiteral("the OCR helper's address is not set"));
         return;
     }
     QNetworkRequest request = Request(path, timeout_ms);
@@ -102,7 +102,7 @@ void OcrClient::Say(const QString& state_, const QString& error) {
 
 QString OcrClient::Status() const {
     if (!Configured()) {
-        return QStringLiteral("no OCR helper's address is set");
+        return QStringLiteral("not set up");
     }
     if (waking && OcrHelper::Instance().Starting()) {
         return QStringLiteral("starting the helper · ") + helper.address;
@@ -112,6 +112,33 @@ QString OcrClient::Status() const {
         said += QStringLiteral(" · ") + last_error;
     }
     return said;
+}
+
+QString OcrClient::Said() const {
+    if (!Configured()) {
+        return QStringLiteral("The OCR helper isn't set up yet. Enter its address");
+    }
+    if (waking && OcrHelper::Instance().Starting()) {
+        return QStringLiteral("Starting the OCR helper…");
+    }
+    if (state.isEmpty()) {
+        return QStringLiteral("Connecting to the OCR helper at %1…").arg(helper.address);
+    }
+    if (state == QStringLiteral("reading")) {
+        return QStringLiteral("Reading");
+    }
+    if (state == QStringLiteral("answers")) {
+        return last_error.isEmpty() ? QStringLiteral("Connected to the OCR helper")
+                                    : QStringLiteral("The OCR helper has no picture source called \"%1\". Check the picture source").arg(helper.source);
+    }
+    if (state == QStringLiteral("refused")) {
+        return QStringLiteral("The OCR helper refused the token. Check the token");
+    }
+    if (state == QStringLiteral("waiting")) {
+        return QStringLiteral("The OCR helper is reading for another program. Close that one first");
+    }
+    return QStringLiteral("Couldn't reach the OCR helper at %1. Check that it is installed and running%2")
+        .arg(helper.address, last_error.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(last_error));
 }
 
 void OcrClient::Wake(std::function<void(bool, const QString&)> then) {
@@ -158,7 +185,7 @@ void OcrClient::AskSource() {
                 return;
             }
         }
-        const QString what = QStringLiteral("it has no pushed picture source \"%1\"").arg(helper.source);
+        const QString what = QStringLiteral("no picture source called \"%1\"").arg(helper.source);
         Say(QStringLiteral("answers"), what);
         emit Answered(false, what);
     });

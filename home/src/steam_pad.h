@@ -36,6 +36,8 @@ public:
     /// the game's (ButtonChanged, AxisChanged), not the menu's keys; its pads still move the
     /// pointer.
     void SetGameMode(bool on);
+    /// Whether a Steam Controller is connected to the bridge now (Windows only; never elsewhere).
+    [[nodiscard]] bool Connected() const;
     /// What it is doing, in a sentence (the Settings page shows it).
     [[nodiscard]] QString Describe() const;
 

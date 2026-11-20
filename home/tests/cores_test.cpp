@@ -19,10 +19,14 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QHash>
+#include "controller_map.h"
 #include "core_library.h"
+#include "pad_shortcuts.h"
 #include "core_session.h"
 #include "reader/core/console.h"
 #include "reader/core/registers.h"
+#include "reader/desktop/screen_text.h"
 
 namespace {
 
@@ -96,9 +100,182 @@ std::string MemoryText(uint64_t address) {
 
 } // namespace
 
+/// Reading with a controller: the walk from word to word (ReaderApp::WordWalk, screen_text.h).
+void TestWordWalk() {
+    using namespace ReaderApp::WordWalk;
+    // A made-up dictionary: the longest of these that begins at a character is its word.
+    const QStringList known{QStringLiteral("彼女"), QStringLiteral("は"), QStringLiteral("死ぬほど"), QStringLiteral("死ぬ"),
+                            QStringLiteral("疲れた"), QStringLiteral("疲れ"), QStringLiteral("と"), QStringLiteral("言った"),
+                            QStringLiteral("言")};
+    const QString text = QStringLiteral("彼女は「死ぬほど疲れた」と\n言った。𠮷x");
+    const auto match = [&](int offset) {
+        int longest = 0;
+        for (const QString& word : known) {
+            if (text.mid(offset).startsWith(word)) {
+                longest = std::max(longest, static_cast<int>(word.size()));
+            }
+        }
+        return longest;
+    };
+    const QList<Span> spans = Words(text, match);
+    const auto said = [&](const Span& span) { return text.mid(span.first, span.last - span.first + 1); };
+    QStringList words;
+    for (const Span& span : spans) {
+        words.append(said(span));
+    }
+    // The longest match, on from its end; brackets, the full stop and the line break are no
+    // words; a character no word begins at is one alone, a pair of units whole.
+    CHECK(words == (QStringList{QStringLiteral("彼女"), QStringLiteral("は"), QStringLiteral("死ぬほど"), QStringLiteral("疲れた"),
+                                QStringLiteral("と"), QStringLiteral("言った"), QStringLiteral("𠮷"), QStringLiteral("x")}));
+    CHECK(Words(text, match, spans.at(3).first).size() == 5);
+    CHECK(Words(QStringLiteral("、。 \n"), match).isEmpty());
+    CHECK(Words(QStringLiteral("ねこ"), nullptr).size() == 2);
+
+    // Shorter and longer at its end: a character at a time, never empty, not over a line break,
+    // not past the text or the longest stretch looked for.
+    const Span tired = spans.at(3); // 疲れた
+    CHECK(said(Resized(text, tired, -1, 20)) == QStringLiteral("疲れ"));
+    CHECK(said(Resized(text, Resized(text, tired, -1, 20), -1, 20)) == QStringLiteral("疲"));
+    CHECK(Resized(text, Span{tired.first, tired.first}, -1, 20) == (Span{tired.first, tired.first}));
+    CHECK(said(Resized(text, tired, 1, 20)) == QStringLiteral("疲れた」"));
+    CHECK(Resized(text, tired, 1, 3) == tired);
+    CHECK(Resized(text, spans.at(4), 1, 20) == spans.at(4)); // と, then the line break
+    CHECK(Resized(text, spans.at(7), 1, 20) == spans.at(7)); // the text's end
+    const Span pair = spans.at(6);                            // 𠮷: two units
+    CHECK(pair.last == pair.first + 1 && Resized(text, pair, -1, 20) == pair);
+    CHECK(said(Resized(text, Span{pair.first - 1, pair.last}, -1, 20)) == QStringLiteral("。"));
+    CHECK(said(Resized(text, Span{pair.first - 1, pair.first - 1}, 1, 20)) == QStringLiteral("。𠮷"));
+
+    // Two rows of text and a name plate above them, in a picture:
+    //   [plate]
+    //   [w0][w1 ][w2    ][w3]
+    //   [w4 ][w5][w6: not drawn yet]
+    QList<Word> placed{
+        {0, {0, 1}, QRectF(100, 100, 40, 20), false},  {0, {2, 2}, QRectF(140, 100, 20, 20), false},
+        {0, {3, 6}, QRectF(160, 100, 80, 20), true},   {0, {7, 9}, QRectF(240, 100, 60, 20), false},
+        {0, {10, 11}, QRectF(100, 130, 40, 20), true}, {0, {12, 14}, QRectF(140, 130, 60, 20), false},
+        {0, {15, 15}, QRectF(), true},                 {1, {0, 2}, QRectF(100, 60, 60, 20), false},
+    };
+    CHECK(Step(placed, 0, 1) == 1 && Step(placed, 1, -1) == 0);
+    CHECK(Step(placed, 0, -1) == 0);
+    CHECK(Step(placed, 5, 1) == 7); // over the word not drawn, to the next text
+    CHECK(Step(placed, 7, 1) == 7);
+    CHECK(StepUnknown(placed, 0, 1) == 2 && StepUnknown(placed, 2, 1) == 4);
+    CHECK(StepUnknown(placed, 4, 1) == 4); // the last one is not drawn
+    CHECK(StepUnknown(placed, 4, -1) == 2 && StepUnknown(placed, 2, -1) == 2);
+    // The line below and above, to the word nearest across.
+    CHECK(Nearest(placed, 0, Way::Down) == 4);
+    CHECK(Nearest(placed, 2, Way::Down) == 5);
+    CHECK(Nearest(placed, 3, Way::Down) == 5); // nothing under it: the row's nearest
+    CHECK(Nearest(placed, 5, Way::Up) == 2);
+    CHECK(Nearest(placed, 4, Way::Down) == 4);
+    CHECK(Nearest(placed, 1, Way::Up) == 7); // the name plate is the line above
+    CHECK(Nearest(placed, 7, Way::Down) == 0);
+    CHECK(Nearest(placed, 6, Way::Up) == 6); // from a word not drawn: nowhere
+    // Text in rows: left and right are the words in order, also over the row's end.
+    CHECK(Move(placed, 3, Way::Right, false) == 4 && Move(placed, 4, Way::Left, false) == 3);
+    CHECK(Move(placed, 2, Way::Down, false) == 5 && Move(placed, 5, Way::Up, false) == 2);
+    // Landing: the first word not in Anki, of one text or of all; else the first word.
+    CHECK(Landing(placed) == 2 && Landing(placed, 0) == 2 && Landing(placed, 1) == 7);
+    for (Word& word : placed) {
+        word.unknown = false;
+    }
+    CHECK(Landing(placed) == 0 && Landing(placed, 1) == 7 && Landing({}) == -1);
+
+    // Text in columns, read down and from the right column to the left:
+    //   column 2 (x 100)   column 1 (x 140)
+    //   [v2]               [v0]
+    //   [v3]               [v1]
+    const QList<Word> columns{
+        {0, {0, 1}, QRectF(140, 100, 20, 40), false}, {0, {2, 3}, QRectF(140, 140, 20, 40), false},
+        {0, {4, 5}, QRectF(100, 100, 20, 40), false}, {0, {6, 8}, QRectF(100, 140, 20, 60), false},
+    };
+    CHECK(Move(columns, 0, Way::Down, true) == 1 && Move(columns, 1, Way::Up, true) == 0);
+    CHECK(Move(columns, 1, Way::Down, true) == 2); // on to the next column's top
+    CHECK(Move(columns, 1, Way::Left, true) == 3 && Move(columns, 3, Way::Right, true) == 1);
+    CHECK(Move(columns, 0, Way::Left, true) == 2 && Move(columns, 0, Way::Right, true) == 0);
+    QList<QRectF> down_cells;
+    QList<QRectF> across_cells;
+    for (int column = 0; column < 2; ++column) {
+        for (int i = 0; i < 5; ++i) {
+            down_cells.append(QRectF(140 - column * 40, 100 + i * 20, 20, 20));
+            across_cells.append(QRectF(100 + i * 20, 100 + column * 30, 20, 20));
+        }
+    }
+    CHECK(Vertical(down_cells) && !Vertical(across_cells) && !Vertical({}));
+}
+
+/// The setup's reading shortcuts, kept as the controller map keeps them (pad_shortcuts.h): one
+/// button, a button already taken, two held together, and "Start reading with"'s own buttons.
+void TestShortcuts() {
+    using namespace Home;
+    QHash<QString, QString> kept; // "console|key" to value
+    ControllerMap::Store store;
+    store.get = [&](const QString& key, const QString& console) { return kept.value(console + QLatin1Char('|') + key); };
+    store.set = [&](const QString& key, const QString& value, const QString& console) {
+        if (value.isEmpty()) {
+            kept.remove(console + QLatin1Char('|') + key);
+        } else {
+            kept.insert(console + QLatin1Char('|') + key, value);
+        }
+    };
+    const auto action = [](const QString& id) {
+        for (const ControllerMap::Action& one : ControllerMap::Load().actions) {
+            if (one.id == id) {
+                return one;
+            }
+        }
+        return ControllerMap::Action{};
+    };
+    const auto on = [&](const QString& id) {
+        QStringList out;
+        for (const ControllerMap::Binding& binding : ControllerMap::BindingsOf(store, action(id), {})) {
+            out.append(binding.input);
+        }
+        return out;
+    };
+    QString start;
+    const auto set_start = [&](const QString& value) { start = value; };
+    // Every row of the setup is an action of the map's Shortcuts.
+    for (const QString& id : PadShortcuts::Rows()) {
+        CHECK(action(id).id == id);
+    }
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("reader_backlog"), QStringLiteral("l3"), set_start));
+    CHECK(on(QStringLiteral("reader_backlog")) == QStringList{QStringLiteral("l3")});
+    // A button already taken: the new action has it, the old one leaves it.
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("reader_pause_game"), QStringLiteral("l3"), set_start));
+    CHECK(on(QStringLiteral("reader_pause_game")) == QStringList{QStringLiteral("l3")});
+    CHECK(on(QStringLiteral("reader_backlog")).isEmpty());
+    // Two buttons held together, in either order, kept once; an action moves from a button to them.
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("reader_pause_game"), QStringLiteral("r3+select"), set_start));
+    CHECK(on(QStringLiteral("reader_pause_game")) == QStringList{QStringLiteral("r3+select")} ||
+          on(QStringLiteral("reader_pause_game")) == QStringList{QStringLiteral("select+r3")});
+    const QList<ControllerMap::ChordBinding> chords = ControllerMap::Chords(store, {});
+    CHECK(chords.size() == 1 && chords.value(0).action == QStringLiteral("reader_pause_game"));
+    CHECK(chords.value(0).a == 107 && chords.value(0).b == 109); // R3 and Select, by the reader's numbers
+    // The same chord for another action: that one has it now.
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("reader_backlog"), QStringLiteral("select+r3"), set_start));
+    CHECK(ControllerMap::Chords(store, {}).size() == 1 && ControllerMap::Chords(store, {}).value(0).action == QStringLiteral("reader_backlog"));
+    // A held action cannot be two buttons.
+    CHECK(!ControllerMap::Assign(store, action(QStringLiteral("pointer")), QStringLiteral("l3+r3"), {}));
+    // Start or stop reading on "Start reading with"'s own buttons sets that setting.
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("furoshiki_read"), QStringLiteral("south+select"), set_start) &&
+          start == QStringLiteral("select+a"));
+    CHECK(on(QStringLiteral("furoshiki_read")).isEmpty());
+    CHECK(PadShortcuts::Assign(store, QStringLiteral("furoshiki_read"), QStringLiteral("l1+r3"), set_start));
+    CHECK(on(QStringLiteral("furoshiki_read")).size() == 1);
+    CHECK(PadShortcuts::ReadStartOf(QStringLiteral("r1+l1")) == QStringLiteral("lb+rb") &&
+          PadShortcuts::ReadStartOf(QStringLiteral("l3")) == QStringLiteral("l3") && PadShortcuts::ReadStartOf(QStringLiteral("north")).isEmpty());
+    // What reading already does with a button, and chords free.
+    CHECK(!PadShortcuts::Conflict(QStringLiteral("east")).isEmpty() && !PadShortcuts::Conflict(QStringLiteral("up")).isEmpty());
+    CHECK(PadShortcuts::Conflict(QStringLiteral("l3")).isEmpty() && PadShortcuts::Conflict(QStringLiteral("select+east")).isEmpty());
+}
+
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QTemporaryDir folder;
+    TestWordWalk();
+    TestShortcuts();
 
     // Found by its name, loaded, checked.
     const QString built = QStringLiteral(HOME_TEST_CORE);
@@ -212,7 +389,7 @@ int main(int argc, char** argv) {
         const auto missing = [&](const QString& path) {
             return Home::CoreSession::MissingGame(path.toStdString());
         };
-        CHECK(missing(folder.filePath(QStringLiteral("no-such-game.iso"))).find("not found") != std::string::npos);
+        CHECK(missing(folder.filePath(QStringLiteral("no-such-game.iso"))).find("Couldn't find") != std::string::npos);
         CHECK(!missing(QString()).empty());
         CHECK(missing(QStringLiteral("game.test")).empty());
         CHECK(missing(QStringLiteral("PCSG00488")).empty());

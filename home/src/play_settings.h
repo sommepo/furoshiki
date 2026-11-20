@@ -47,6 +47,9 @@ struct PlaySetting {
     [[nodiscard]] QString Moved(const QString& value, int steps) const;
     /// The value as a page shows it ("ON", "3×", "4:3").
     [[nodiscard]] QString Shown(const QString& value) const;
+    /// The same in its own case, for a window ("Yomitan dark", "Count and first seen",
+    /// "Default" for the number that leaves a popup's theme as it is).
+    [[nodiscard]] QString Said(const QString& value) const;
 };
 
 /// A console the program has a core for, and what that core understands.

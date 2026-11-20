@@ -141,6 +141,23 @@ void ReaderDatabase::CountLookup(const QString& expression, const QString& readi
     statement.Bind(1, expression).Bind(2, reading).Bind(3, game).Bind(4, ts).Bind(5, ts).Run();
 }
 
+bool ReaderDatabase::CountLookupOnce(const QString& expression, const QString& reading, const QString& game,
+                                     const QString& line, qint64 ts) {
+    {
+        QMutexLocker lock(&mutex);
+        const QString key = game + QChar(0x1f) + line + QChar(0x1f) + expression + QChar(0x1f) + reading;
+        if (lookups_counted.contains(key)) {
+            return false;
+        }
+        if (lookups_counted.size() > 5000) {
+            lookups_counted.clear();
+        }
+        lookups_counted.insert(key);
+    }
+    CountLookup(expression, reading, game, ts);
+    return true;
+}
+
 LookupHistory ReaderDatabase::Lookups(const QString& expression, const QString& reading) {
     QMutexLocker lock(&mutex);
     LookupHistory history;

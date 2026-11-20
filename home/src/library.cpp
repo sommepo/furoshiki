@@ -31,8 +31,8 @@ struct KnownSystem {
 };
 constexpr KnownSystem KnownSystems[] = {
     {"Nintendo Switch", "SWITCH"}, {"Nintendo 3DS", "3DS"},        {"PlayStation", "PS1"},
-    {"PlayStation Portable", "PSP"}, {"PlayStation Vita", "VITA"}, {"PlayStation 2", "PS2"},
-    {"Dreamcast", "DREAMCAST"},
+    {"PlayStation Portable", "PSP"}, {"PlayStation Vita", "PS VITA"}, {"PlayStation 2", "PS2"},
+    {"Dreamcast", "DREAMCAST"},      {"Nintendo DS", "DS"},
 };
 constexpr int KnownCount = static_cast<int>(sizeof(KnownSystems) / sizeof(KnownSystems[0]));
 
@@ -325,6 +325,27 @@ QString ShortSystem(const Library& library, const QString& system) {
         }
     }
     return system.toUpper();
+}
+
+QString SystemFull(const QString& system) {
+    return system == QStringLiteral("PlayStation Portable") ? QStringLiteral("PSP")
+           : system == QStringLiteral("PlayStation Vita")   ? QStringLiteral("PS Vita")
+                                                            : system;
+}
+
+QString ConsoleFull(const QString& key, const QString& otherwise) {
+    static const QList<QPair<QString, QString>> known{
+        {QStringLiteral("ps1"), QStringLiteral("PlayStation")},   {QStringLiteral("ps2"), QStringLiteral("PlayStation 2")},
+        {QStringLiteral("psp"), QStringLiteral("PSP")},           {QStringLiteral("psvita"), QStringLiteral("PS Vita")},
+        {QStringLiteral("3ds"), QStringLiteral("Nintendo 3DS")},  {QStringLiteral("nds"), QStringLiteral("Nintendo DS")},
+        {QStringLiteral("dc"), QStringLiteral("Dreamcast")},      {QStringLiteral("switch"), QStringLiteral("Nintendo Switch")},
+    };
+    for (const auto& [known_key, name] : known) {
+        if (key == known_key) {
+            return name;
+        }
+    }
+    return otherwise;
 }
 
 QList<Game> DistinctGames(const QList<Game>& games) {

@@ -632,7 +632,7 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
-            android:label="@string/reader_games" />
+            android:label="@string/reader_crt" />
         <activity
             android:name=".reader.ui.DictionaryManagerActivity"
             android:process=":game"

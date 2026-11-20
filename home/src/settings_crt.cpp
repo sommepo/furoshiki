@@ -86,7 +86,7 @@ QWidget* SettingsWindow::CrtTab() {
     for (const Reader::Crt::Preset& preset : Reader::Crt::Presets()) {
         crt_looks->addItem(QString::fromUtf8(preset.name), QString::fromLatin1(preset.key));
     }
-    crt_looks->addItem(QStringLiteral("Your own"), QString());
+    crt_looks->addItem(QStringLiteral("Custom"), QString());
     head->addRow(QStringLiteral("Preset"), crt_looks);
     layout->addLayout(head);
     auto* state = new QHBoxLayout;
@@ -238,19 +238,19 @@ void SettingsWindow::FillCrtRows() {
     filling = false;
     const bool own = play.IsSet(CrtLayers::Key, layer.console, layer.game);
     if (layer.console.isEmpty()) {
-        crt_note->setText(own ? QStringLiteral("Applies to all consoles unless overridden.")
-                              : QStringLiteral("Applies to all consoles unless overridden."));
+        crt_note->setText(own ? QStringLiteral("Custom settings for all consoles")
+                              : QStringLiteral("Default settings for all consoles"));
         crt_follow->setText(QStringLiteral("Reset to defaults"));
         crt_follow->setEnabled(own);
     } else if (layer.game.isEmpty()) {
-        crt_note->setText(own ? QStringLiteral("Custom settings for this console.")
-                              : QStringLiteral("Using all-consoles settings."));
-        crt_follow->setText(QStringLiteral("Use all-consoles settings"));
+        crt_note->setText(own ? QStringLiteral("Custom settings for this console")
+                              : QStringLiteral("Using the settings for all consoles"));
+        crt_follow->setText(QStringLiteral("Use the settings for all consoles"));
         crt_follow->setEnabled(own);
     } else {
-        crt_note->setText(own ? QStringLiteral("Custom settings for this game.")
-                              : QStringLiteral("Using console settings."));
-        crt_follow->setText(QStringLiteral("Use console settings"));
+        crt_note->setText(own ? QStringLiteral("Custom settings for this game")
+                              : QStringLiteral("Using the console's settings"));
+        crt_follow->setText(QStringLiteral("Use the console's settings"));
         crt_follow->setEnabled(own);
     }
 }

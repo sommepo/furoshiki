@@ -438,7 +438,16 @@ void ReaderOverlay::ShowMessage(const QString& text, const QRectF& picture) {
 
 bool ReaderOverlay::HasContent() const {
     return !marks.isEmpty() || mark_glide.Visible() || !crt_frame.Image().isNull() || !outline_boxes.isEmpty() || !session_line.isEmpty() || session_paused ||
-           cursor_visible || !message.isEmpty();
+           cursor_visible || !message.isEmpty() || hud != nullptr;
+}
+
+void ReaderOverlay::SetHud(std::function<void(QPainter& painter, const QRect& window)> paint) {
+    const bool changed = (hud != nullptr) != (paint != nullptr);
+    hud = std::move(paint);
+    update();
+    if (changed) {
+        emit ContentChanged();
+    }
 }
 
 void ReaderOverlay::paintEvent(QPaintEvent*) {
@@ -526,6 +535,11 @@ void ReaderOverlay::paintEvent(QPaintEvent*) {
         } else {
             Style::DrawPointer(painter, cursor_position, Style::PointerSize(this));
         }
+    }
+    if (hud) {
+        painter.save();
+        hud(painter, rect());
+        painter.restore();
     }
 }
 

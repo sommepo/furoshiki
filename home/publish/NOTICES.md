@@ -14,6 +14,7 @@ Furoshiki (the program, `Furoshiki.exe`) and its cores are distributed together 
 | PS Vita core: Vita3K with the reader, with OpenSSL's two DLLs | `vita3k/` | GPL-2.0-or-later (OpenSSL: Apache-2.0) | `licenses/Vita3K-COPYING.txt`, `licenses/OpenSSL-LICENSE.txt` |
 | Qt 6 (Core, Gui, Widgets, Multimedia, Network), as its own DLLs | the package's `Qt6*.dll` and plugins | LGPL-3.0 | `licenses/LGPL-3.0.txt` with `COPYING` |
 | SDL 2, as its own DLL | `SDL2.dll` | zlib | `licenses/SDL2-LICENSE.txt` |
+| SDL_GameControllerDB (controller mappings) | `gamecontrollerdb.txt` | zlib | below |
 | The compiler's runtime (MinGW-w64, GCC) | `libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll` | GPL-3.0 with the GCC Runtime Library Exception; MinGW-w64's own terms | |
 | Lua 5.4 | built in | MIT | below |
 | SQLite | built in | public domain | |
@@ -72,6 +73,25 @@ it will be provided there at no charge beyond the cost of hosting.
 
 Qt and SDL are separate DLLs: you may replace them with versions of your own (same major
 version and the same compiler) and the program will use them.
+
+## SDL_GameControllerDB
+
+`gamecontrollerdb.txt` is the community's list of controller mappings for SDL
+(`https://github.com/mdqinc/SDL_GameControllerDB`), as PPSSPP carries it (`ppsspp/assets`), under
+the zlib licence:
+
+This software is provided 'as-is', without any express or implied warranty. In no event will
+the authors be held liable for any damages arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose, including commercial
+applications, and to alter it and redistribute it freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not claim that you wrote
+   the original software. If you use this software in a product, an acknowledgment in the
+   product documentation would be appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be misrepresented as
+   being the original software.
+3. This notice may not be removed or altered from any source distribution.
 
 ## Lua
 

@@ -60,7 +60,7 @@ ControllerScreen::ControllerScreen(QWidget* over, Look look_, ControllerMap::Sto
         }
         if (learning >= 0 && now - learn_since >= LearnWait) {
             Stop();
-            Say(QStringLiteral("No button pressed. Unchanged"));
+            Say(QStringLiteral("No button pressed, so nothing changed"));
         }
         update();
     });
@@ -93,9 +93,68 @@ int ControllerScreen::Rows() const {
     return static_cast<int>(lines.size());
 }
 
+const ControllerMap::Pad& ControllerScreen::ShownPad() const {
+    // Every tab draws the controller in the hand, with its own letters by place (the maintainer,
+    // 2026-11-20: the bottom button is the same button on every tab): the Steam Controller while
+    // the bridge has one, else a common gamepad.
+    const ControllerMap::Data& data = ControllerMap::Load();
+    if (hand_steam) {
+        return ControllerMap::PadOf({});
+    }
+    const auto generic = data.pads.constFind(QStringLiteral("generic"));
+    return generic != data.pads.constEnd() ? *generic : ControllerMap::PadOf({});
+}
+
+const ControllerMap::Pad& ControllerScreen::ConsolePad() const {
+    // The console's own buttons and their names (Cross, ZL), where the tab is a console's.
+    const QString console = ConsoleKey();
+    if (!console.isEmpty() && ControllerMap::Load().pad_of.contains(console)) {
+        return ControllerMap::PadOf(console);
+    }
+    return ShownPad();
+}
+
+QString ControllerScreen::LabelIn(const ControllerMap::Pad& pad, const QString& id) const {
+    // The common gamepad has the letters of the pad in the hand (pad_names.h).
+    if (pad.id == QStringLiteral("generic")) {
+        if (const QString own = PadNames::Label(hand_names, id); !own.isEmpty()) {
+            return own;
+        }
+    }
+    return pad.LabelOf(id);
+}
+
+void ControllerScreen::SetHand(const QString& name, const PadNames::Names& names, bool steam) {
+    if (name == hand_name && names == hand_names && steam == hand_steam) {
+        return;
+    }
+    const bool redraw_list = steam != hand_steam || !(names == hand_names);
+    hand_name = name;
+    hand_names = names;
+    hand_steam = steam;
+    if (redraw_list && wizard_steps.isEmpty()) {
+        Build();
+    }
+    update();
+}
+
 QString ControllerScreen::HandName(const QString& input) const {
-    // The controller in the hand is all consoles' (the Steam Controller), whatever the tab draws.
-    return ControllerMap::NameOf(ControllerMap::PadOf({}), input);
+    if (input.contains(QLatin1Char('+'))) { // two buttons held together
+        QStringList names;
+        for (const QString& part : input.split(QLatin1Char('+'))) {
+            names.append(HandName(part));
+        }
+        return names.join(QStringLiteral(" + "));
+    }
+    // What the controller in the hand calls a button, whatever the tab draws: the Steam
+    // Controller's own names (its grips) while the bridge has one, else the pad's letters.
+    if (hand_steam) {
+        return ControllerMap::NameOf(ControllerMap::PadOf({}), input);
+    }
+    if (const QString own = PadNames::Label(hand_names, input); !own.isEmpty()) {
+        return own;
+    }
+    return ControllerMap::NameOf(ShownPad(), input);
 }
 
 QString ControllerScreen::GameName(const QString& id) const {
@@ -105,7 +164,12 @@ QString ControllerScreen::GameName(const QString& id) const {
                                                {QStringLiteral("r3"), QStringLiteral("Right stick click")}};
     QString name = words.value(id);
     if (name.isEmpty()) {
-        name = ControllerMap::PadOf(ConsoleKey()).LabelOf(id);
+        // A face button by what the console's core is handed for that place (the bottom one
+        // is the Switch's and the 3DS's A, by name), not by where the console's own pad has it.
+        name = PadNames::ConsoleFaceName(ConsoleKey(), id);
+        if (name.isEmpty()) {
+            name = LabelIn(ConsolePad(), id);
+        }
         if (name.size() > 2) {
             name = name.left(1).toUpper() + name.mid(1).toLower(); // SELECT as Select
         }
@@ -115,7 +179,7 @@ QString ControllerScreen::GameName(const QString& id) const {
 
 void ControllerScreen::StartWizard() {
     Stop();
-    wizard_steps = ControllerMap::GameButtons(ControllerMap::PadOf(ConsoleKey()));
+    wizard_steps = ControllerMap::GameButtons(ConsolePad());
     wizard_at = 0;
     wizard_got.clear();
     wizard_held.clear();
@@ -134,7 +198,7 @@ void ControllerScreen::WizardStep(const QString& input) {
         wizard_got.remove(id);
     } else {
         wizard_got.insert(id, input);
-        lit_at.insert(id, clock.elapsed());
+        lit_at.insert(input, clock.elapsed());
     }
     wizard_note.clear();
     wizard_since = clock.elapsed();
@@ -175,7 +239,7 @@ void ControllerScreen::EndWizard(bool keep) {
 
 void ControllerScreen::Build() {
     lines.clear();
-    const ControllerMap::Pad& pad = ControllerMap::PadOf(ConsoleKey());
+    const ControllerMap::Pad& pad = ConsolePad();
     lines.append({Line::Head, {}, ConsoleKey().isEmpty() ? QStringLiteral("Game buttons") : QStringLiteral("%1's buttons").arg(consoles.value(tab).name)});
     for (const QString& id : ControllerMap::GameButtons(pad)) {
         lines.append({Line::Game, id, GameName(id)});
@@ -194,6 +258,18 @@ void ControllerScreen::Build() {
 void ControllerScreen::Say(const QString& text) {
     notice = text;
     notice_at = clock.elapsed();
+}
+
+void ControllerScreen::ShowShortcuts() {
+    for (int i = 0; i < Rows(); ++i) {
+        if (lines[i].kind == Line::Shortcut) {
+            row = i; // go down to it, so that its head shows above it
+            const int visible = static_cast<int>((ListBottom - ListTop) / RowH);
+            top = std::max(0, std::min(i - 1, Rows() - visible));
+            update();
+            return;
+        }
+    }
 }
 
 void ControllerScreen::ShowRow(int index) {
@@ -273,7 +349,7 @@ void ControllerScreen::Pressed(const QString& input, bool down, bool from_pad) {
                 return;
             }
             Say(QStringLiteral("%1 on %2").arg(line.label, name));
-            lit_at.insert(line.id, clock.elapsed());
+            lit_at.insert(input, clock.elapsed());
             return;
         }
         const ControllerMap::Action& action = ActionAt(learning);
@@ -336,7 +412,7 @@ void ControllerScreen::Key(int key) {
     if (learning >= 0) {
         if (key == Qt::Key_Escape) {
             Stop();
-            Say(QStringLiteral("Unchanged"));
+            Say(QStringLiteral("Nothing changed"));
         }
         return;
     }
@@ -378,7 +454,7 @@ void ControllerScreen::Key(int key) {
         if (store.save) {
             store.save();
         }
-        Say(QStringLiteral("%1 is on no button").arg(ActionAt(row).label));
+        Say(QStringLiteral("%1 has no button now").arg(ActionAt(row).label));
         break;
     case Qt::Key_W:
         StartWizard();
@@ -387,7 +463,7 @@ void ControllerScreen::Key(int key) {
         if (!ConsoleKey().isEmpty()) {
             ControllerMap::Reset(store, ConsoleKey());
             Build();
-            Say(QStringLiteral("%1 as all consoles").arg(consoles.value(tab).name));
+            Say(QStringLiteral("%1 uses the buttons of all consoles again").arg(consoles.value(tab).name));
         }
         break;
     case Qt::Key_Escape:
@@ -436,7 +512,7 @@ void ControllerScreen::mousePressEvent(QMouseEvent* event) {
     }
     if (learning >= 0) {
         Stop();
-        Say(QStringLiteral("Unchanged"));
+        Say(QStringLiteral("Nothing changed"));
         update();
         return;
     }
@@ -483,45 +559,30 @@ void ControllerScreen::wheelEvent(QWheelEvent* event) {
 }
 
 void ControllerScreen::PaintPad(QPainter& p, const QRectF& area) {
-    const ControllerMap::Pad& pad = ControllerMap::PadOf(ConsoleKey());
+    const ControllerMap::Pad& pad = ShownPad();
     const double k = std::min(area.width() / 400.0, area.height() / 260.0);
     const QPointF origin(area.center().x() - 200 * k, area.center().y() - 130 * k);
     const qint64 now = clock.elapsed();
     QSet<QString> chosen;
-    // The console's buttons by the controller's button each is on: a press lights what it presses.
-    QHash<QString, QString> source;
-    for (const ControllerMap::Item& item : pad.draw) {
-        if (item.kind == ControllerMap::Item::Key) {
-            source.insert(item.id, ControllerMap::GameSource(store, item.id, ConsoleKey()));
-        }
-    }
+    // The drawing is the controller in the hand: a console's button is lit where it is on that
+    // controller (its source), a shortcut on the buttons it is on.
     QSet<QString> given;
     if (!wizard_steps.isEmpty()) {
-        chosen.insert(wizard_steps[wizard_at]);
         for (auto it = wizard_got.cbegin(); it != wizard_got.cend(); ++it) {
-            given.insert(it.key());
+            given.insert(it.value());
         }
     } else if (lines.value(row).kind == Line::Game) {
-        chosen.insert(lines[row].id);
+        chosen.insert(ControllerMap::GameSource(store, lines[row].id, ConsoleKey()));
     } else {
         for (const ControllerMap::Binding& binding : ControllerMap::BindingsOf(store, ActionAt(row), ConsoleKey())) {
             chosen.insert(binding.input);
-            for (auto it = source.cbegin(); it != source.cend(); ++it) {
-                if (it.value() == binding.input) {
-                    chosen.insert(it.key());
-                }
-            }
-            if (source.value(binding.input, binding.input) != binding.input) {
-                chosen.remove(binding.input);
-            }
         }
     }
     const auto glow = [&](const QString& drawn) {
-        const QString id = source.value(drawn, drawn);
-        if (lit.contains(id)) {
+        if (lit.contains(drawn)) {
             return 1.0;
         }
-        const qint64 at = lit_at.value(id, -GlowTime * 2);
+        const qint64 at = lit_at.value(drawn, -GlowTime * 2);
         return std::clamp(1.0 - static_cast<double>(now - at) / GlowTime, 0.0, 1.0);
     };
     p.save();
@@ -565,7 +626,7 @@ void ControllerScreen::PaintPad(QPainter& p, const QRectF& area) {
                 p.setBrush(Qt::NoBrush);
                 p.setPen(pen(mark, 1.1));
                 p.drawPath(item.glyph);
-            } else if (!item.quiet && !item.label.isEmpty()) {
+            } else if (const QString label = LabelIn(pad, item.id); !item.quiet && !label.isEmpty()) {
                 QFont face = look.font(2, 10, 0.02);
                 face.setPixelSize(100); // set by the painter's scale below: whole pixels would jump
                 p.save();
@@ -573,7 +634,7 @@ void ControllerScreen::PaintPad(QPainter& p, const QRectF& area) {
                 p.scale(item.label_size / 100.0, item.label_size / 100.0);
                 p.setFont(face);
                 p.setPen(mark);
-                p.drawText(QRectF(-400, -100, 800, 200), Qt::AlignCenter, item.label);
+                p.drawText(QRectF(-400, -100, 800, 200), Qt::AlignCenter, label);
                 p.restore();
             }
             break;
@@ -582,12 +643,14 @@ void ControllerScreen::PaintPad(QPainter& p, const QRectF& area) {
     }
     p.restore();
 
-    // The Steam Controller's back: its grips and its "..." button, under any console's pad.
-    const QList<ControllerMap::Input>& inputs = ControllerMap::Load().inputs;
+    // Under the drawing, the controller in the hand by its name; with a Steam Controller on the
+    // bridge, its back too: its grips and its "..." button, under any console's pad.
     QList<const ControllerMap::Input*> back;
-    for (const ControllerMap::Input& input : inputs) {
-        if (input.back > 0) {
-            back.append(&input);
+    if (hand_steam) {
+        for (const ControllerMap::Input& input : ControllerMap::Load().inputs) {
+            if (input.back > 0) {
+                back.append(&input);
+            }
         }
     }
     const double chip_w = 86, gap = 10;
@@ -595,8 +658,9 @@ void ControllerScreen::PaintPad(QPainter& p, const QRectF& area) {
     const double y = area.bottom() + 34;
     p.setFont(look.font(2, 10, 0.12));
     p.setPen(look.muted);
+    const QString hand = hand_name.isEmpty() ? QStringLiteral("No controller found") : hand_name;
     p.drawText(QRectF(area.left(), area.bottom() + 6, area.width(), 20), Qt::AlignHCenter | Qt::AlignVCenter,
-               (pad.name + QStringLiteral("   ·   back buttons")).toUpper());
+               (hand_steam ? hand + QStringLiteral(" · back buttons") : hand).toUpper());
     for (const ControllerMap::Input* input : back) {
         const QRectF chip(x, y, chip_w, 26);
         const bool on = chosen.contains(input->id);
@@ -628,7 +692,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     const QFont small = look.font(2, 11, 0.14);
     p.setFont(small);
     p.setPen(look.muted);
-    const QString back = QStringLiteral("‹  SETTINGS  ·  ");
+    const QString back = QStringLiteral("‹  SETTINGS · ");
     p.drawText(QPointF(Left, 49), back);
     p.setPen(look.ink);
     p.drawText(QPointF(Left + QFontMetricsF(small).horizontalAdvance(back), 49), QStringLiteral("CONTROLLER"));
@@ -637,7 +701,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     const bool asking = !wizard_steps.isEmpty();
     if (!asking) {
         // The wizard's way in: every button of the tab's console asked for in turn.
-        const QString setup = QStringLiteral("START  MAP ALL BUTTONS");
+        const QString setup = QStringLiteral("START MAP ALL BUTTONS");
         const double w = QFontMetricsF(small).horizontalAdvance(setup) + 24;
         const QRectF button(Right - w, 32, w, 24);
         p.setPen(QPen(look.ink, 1));
@@ -667,7 +731,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     }
     if (!console.isEmpty() && !asking) {
         const bool own = ControllerMap::HasOwn(store, console);
-        const QString same = own ? QStringLiteral("Y  RESET TO ALL CONSOLES") : QStringLiteral("ALL CONSOLES");
+        const QString same = own ? hand_names.north.toUpper() + QStringLiteral(" RESET TO ALL CONSOLES") : QStringLiteral("ALL CONSOLES");
         const double w = QFontMetricsF(tab_face).horizontalAdvance(same);
         p.setPen(own ? look.ink : look.muted);
         p.drawText(QPointF(Right - w, 102), same);
@@ -683,13 +747,13 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     const QFont number_face = look.font(2, 10, 0.1);
     const QFont label_face = look.font(1, 15, 0);
     const QFont chip_face = look.font(2, 11, 0.06);
-    const ControllerMap::Pad& pad = ControllerMap::PadOf(console);
+    const ControllerMap::Pad& pad = ShownPad();
     if (asking) {
         // One button asked for at a time, with the time left to press it.
         const QString id = wizard_steps[wizard_at];
         p.setFont(number_face);
         p.setPen(look.muted);
-        p.drawText(QPointF(ListLeft, 190), QStringLiteral("%1 / %2  ·  %3").arg(wizard_at + 1).arg(wizard_steps.size()).arg(consoles.value(tab).name.toUpper()));
+        p.drawText(QPointF(ListLeft, 190), QStringLiteral("%1 / %2 · %3").arg(wizard_at + 1).arg(wizard_steps.size()).arg(consoles.value(tab).name.toUpper()));
         p.setFont(look.font(1, 20, 0));
         p.drawText(QPointF(ListLeft, 250), QStringLiteral("Press a button for"));
         p.setFont(look.font(0, 58, 0.01));
@@ -701,7 +765,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
         const double left_share = std::clamp(1.0 - static_cast<double>(now - wizard_since) / WizardWait, 0.0, 1.0);
         p.fillRect(QRectF(ListLeft, 414, Right - ListLeft, 2), look.rule);
         p.fillRect(QRectF(ListLeft, 414, (Right - ListLeft) * left_share, 2), look.ink);
-        const char* const keys[] = {"BACKSPACE  BACK ONE", "SPACE  SKIP", "ESC  CANCEL"};
+        const char* const keys[] = {"BACKSPACE BACK ONE", "SPACE SKIP", "ESC CANCEL"};
         double kx = ListLeft;
         p.setFont(number_face);
         for (int i = 0; i < 3; ++i) {
@@ -753,7 +817,7 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
             const double pulse = 0.55 + 0.45 * std::sin(now / 160.0);
             p.setPen(Faded(look.accent, pulse));
             p.drawText(QRectF(ListLeft + 380, y, Right - ListLeft - 380, RowH), Qt::AlignVCenter | Qt::AlignRight,
-                       QStringLiteral("PRESS A BUTTON  ·  %1").arg(std::max<qint64>(1, (LearnWait - (now - learn_since) + 999) / 1000)));
+                       QStringLiteral("PRESS A BUTTON · %1").arg(std::max<qint64>(1, (LearnWait - (now - learn_since) + 999) / 1000)));
             hits.append({line, 1, i});
             continue;
         }
@@ -813,9 +877,12 @@ void ControllerScreen::paintEvent(QPaintEvent*) {
     }
     p.setPen(look.muted);
     const QString keys = asking ? QStringLiteral("WAIT TO SKIP A BUTTON")
-                         : learning >= 0 ? QStringLiteral("PRESS ANY BUTTON   ·   ESC OR CLICK  CANCEL")
-                         : console.isEmpty() ? QStringLiteral("A  CHANGE   ·   X  CLEAR   ·   L1 R1  CONSOLE   ·   B  BACK")
-                                             : QStringLiteral("A  CHANGE   ·   X  CLEAR   ·   Y  RESET   ·   L1 R1  CONSOLE   ·   B  BACK");
+                         : learning >= 0 ? QStringLiteral("PRESS ANY BUTTON · ESC OR CLICK CANCEL")
+                         : QStringLiteral("%1 CHANGE · %2 CLEAR · %3%4 %5 CONSOLE · %6 BACK")
+                               .arg(hand_names.south, hand_names.west,
+                                    console.isEmpty() ? QString() : hand_names.north + QStringLiteral(" RESET · "), hand_names.l1,
+                                    hand_names.r1, hand_names.east)
+                               .toUpper();
     p.drawText(QRectF(Left + 640, 656, Right - Left - 640, 28), Qt::AlignVCenter | Qt::AlignRight, keys);
 }
 

@@ -18,6 +18,9 @@ option(HOME_CORES "Build the cores' host and its tests" OFF)
 # (READER_NO_SAVE_SYNC, as in the forks; their sources are not in a public tree). Eden's core
 # is left out of its package (tools/package-windows.sh).
 option(HOME_PUBLIC "A published build: nothing private built in" OFF)
+# The version the program says of itself (Settings, Furoshiki, Version) and, on Windows, in its
+# file's properties: a release's number, passed by what builds it (-DFUROSHIKI_VERSION=0.2.7).
+set(FUROSHIKI_VERSION "dev" CACHE STRING "The version shown in Settings and in the Windows file's properties")
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia Network)
 
@@ -32,6 +35,10 @@ add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp
 	src/look.cpp src/look.h
 	src/app_icon.cpp src/app_icon.h
 	src/steam_bridge.cpp src/steam_bridge.h
+	# What the controller in the hand calls its buttons, by its kind (Select or View, A or ×).
+	src/pad_names.cpp src/pad_names.h
+	# A controller's Bluetooth address and name on Windows (pads that claim another's id told apart).
+	src/pad_bluetooth.cpp src/pad_bluetooth.h
 	src/addons.cpp src/addons.h
 	# Lines from a source that is no core (docs/furoshiki-3.md, "Sources"): what makes them lines,
 	# the WebSocket they come over, the titles read that way.
@@ -67,6 +74,10 @@ add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp
 	src/updater.cpp src/updater.h)
 target_include_directories(home_core PUBLIC src)
 target_link_libraries(home_core PUBLIC Qt6::Core Qt6::Gui Qt6::Multimedia Qt6::Network)
+if(WIN32)
+	target_link_libraries(home_core PRIVATE setupapi cfgmgr32) # pad_bluetooth.cpp
+endif()
+target_compile_definitions(home_core PUBLIC FUROSHIKI_VERSION="${FUROSHIKI_VERSION}")
 # The icon's mark and colours (icon/icon.json; tools/icon.py makes the rest from it).
 qt_add_resources(home_core "icon" PREFIX "/icon" BASE "${CMAKE_CURRENT_SOURCE_DIR}/icon" FILES icon/icon.json)
 # Furoshiki's stand-in for Agent's host, put in front of Agent's own runtime in a script's bundle.
@@ -125,13 +136,32 @@ file(GLOB HOME_SHELF_THEMES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_D
 qt_add_resources(reader-home "shelf" PREFIX "/shelf" BASE "${CMAKE_CURRENT_SOURCE_DIR}/shelf" FILES ${HOME_SHELF_THEMES})
 # The controller map's pads, inputs and actions: the Android app's too (controller_map.h).
 qt_add_resources(reader-home "controllers" PREFIX "/controllers" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../shared/controllers" FILES ../shared/controllers/controllers.json)
+# SDL's mappings of controllers it has none of its own for (SDL_GameControllerDB, zlib licence;
+# PPSSPP's copy): beside the program, where it is read at start (MainWindow), as in the packages.
+configure_file(../ppsspp/assets/gamecontrollerdb.txt "${CMAKE_CURRENT_BINARY_DIR}/gamecontrollerdb.txt" COPYONLY)
 if(HOME_PUBLIC)
 	# Explain (a line by Claude Code or Furochibi's service) is the dev line's too: READER_NO_EXPLAIN.
 	target_compile_definitions(home_core PUBLIC HOME_PUBLIC READER_NO_SAVE_SYNC READER_NO_EXPLAIN)
 endif()
 if(WIN32)
 	enable_language(RC)
-	target_sources(reader-home PRIVATE icon/furoshiki.rc)
+	# The icon and the version of the file's properties, in one resource file made here
+	# (icon/furoshiki.rc.in): the four numbers Windows wants are the version's own, 0 where it has
+	# none ("dev").
+	set(HOME_VERSION_NUMBERS "0,0,0,0")
+	if(FUROSHIKI_VERSION MATCHES "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))?(\\.([0-9]+))?")
+		set(HOME_VERSION_NUMBERS "${CMAKE_MATCH_1},${CMAKE_MATCH_2}")
+		foreach(part "${CMAKE_MATCH_4}" "${CMAKE_MATCH_6}")
+			if(part STREQUAL "")
+				string(APPEND HOME_VERSION_NUMBERS ",0")
+			else()
+				string(APPEND HOME_VERSION_NUMBERS ",${part}")
+			endif()
+		endforeach()
+	endif()
+	set(HOME_ICON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/icon/furoshiki.ico")
+	configure_file(icon/furoshiki.rc.in "${CMAKE_CURRENT_BINARY_DIR}/furoshiki.rc" @ONLY)
+	target_sources(reader-home PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/furoshiki.rc")
 	target_link_options(reader-home PRIVATE -mwindows)
 	# The Steam Controller is read from the device itself.
 	target_link_libraries(reader-home PRIVATE hid setupapi)
@@ -386,6 +416,8 @@ if(HOME_CORES)
 		src/reader_rows.cpp src/reader_rows.h
 		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h
 		src/ocr_source.cpp src/ocr_source.h src/core_ocr.cpp src/core_ocr.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h src/choice_picker.cpp src/choice_picker.h src/controller_map.cpp src/controller_map.h src/controller_screen.cpp src/controller_screen.h
+		src/pad_setup.cpp src/pad_setup.h
+		src/pad_shortcuts.cpp src/pad_shortcuts.h
 		src/hook_source.cpp src/hook_source.h
 		# The computer's sound for those titles' cards, without OBS (Windows' WASAPI loopback).
 		src/loopback_audio.cpp src/loopback_audio.h)
@@ -398,8 +430,12 @@ if(HOME_CORES)
 		set_source_files_properties(src/feedback_dialog.cpp PROPERTIES COMPILE_DEFINITIONS HOME_BUILD="${PROJECT_VERSION}")
 	endif()
 
-	add_executable(reader-home-cores-tests tests/cores_test.cpp)
-	target_link_libraries(reader-home-cores-tests PRIVATE home_cores)
+	add_executable(reader-home-cores-tests tests/cores_test.cpp
+		# The controller map's bindings and the setup's shortcuts, with the map's data.
+		src/controller_map.cpp src/controller_map.h src/pad_shortcuts.cpp src/pad_shortcuts.h)
+	qt_add_resources(reader-home-cores-tests "controllers" PREFIX "/controllers" BASE "${CMAKE_CURRENT_SOURCE_DIR}/../shared/controllers" FILES ../shared/controllers/controllers.json)
+	# reader_desktop: the walk from word to word of reading with a controller (screen_text.h).
+	target_link_libraries(reader-home-cores-tests PRIVATE home_cores reader_desktop)
 	target_compile_definitions(reader-home-cores-tests PRIVATE HOME_TEST_CORE="$<TARGET_FILE:reader_core_test>")
 	add_dependencies(reader-home-cores-tests reader_core_test)
 endif()

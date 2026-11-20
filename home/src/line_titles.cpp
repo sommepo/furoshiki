@@ -396,13 +396,13 @@ QString ReadByOf(const QString& path) {
         return {};
     }
     if (way == QStringLiteral("OCR")) {
-        return QStringLiteral("WINDOW  ·  OCR");
+        return QStringLiteral("OCR · WINDOW");
     }
     if (way.startsWith(QStringLiteral("HOOK-"))) {
         const QString engine = way.mid(5);
-        return QStringLiteral("HOOK  ·  ") + (engine == QStringLiteral("LUNA") ? QStringLiteral("LUNAHOOK") : engine);
+        return QStringLiteral("TEXT HOOK · ") + (engine == QStringLiteral("LUNA") ? QStringLiteral("LUNAHOOK") : engine);
     }
-    return QStringLiteral("LINES  ·  ") + way;
+    return way == QStringLiteral("WEBSOCKET") ? QStringLiteral("TEXTHOOKER") : way;
 }
 
 QString EmulatorConsole(const QString& name) {

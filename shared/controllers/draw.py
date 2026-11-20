@@ -468,8 +468,31 @@ def steam():
     return {"name": "Steam Controller", "draw": draw}
 
 
+def generic():
+    """Any controller in the hand that is not a Steam Controller: the common gamepad, with the
+    left stick high and the d-pad low on the left, the face buttons high and the right stick low on
+    the right; no grips. The desktop program writes the face letters of the pad in use over these."""
+    half = [(0, 40), (42, 39.4), (84, 39.6), (118, 43), (142, 53), (157, 71), (165, 97), (168.5, 128), (168, 160),
+            (164, 192), (156, 220), (144, 241), (128, 251), (111, 247.5), (99, 233), (90, 219), (74, 213), (48, 212.4),
+            (22, 212.2), (0, 212.2)]
+    draw = [
+        tab("l2", "LT", 78, 13, 54, 30, 13), tab("r2", "RT", 268, 13, 54, 30, 13),
+        tab("l1", "LB", 68, 26, 74, 30, 13.5), tab("r1", "RB", 258, 26, 74, 30, 13.5),
+        body(spline(both(half))),
+    ]
+    draw += stick("l3", 92, 100, 25, 18.5)
+    draw += cross(148, 160, 19, 13)
+    draw += face(308, 100, 21.5, 10, "Y", "B", "A", "X")
+    draw += stick("r3", 252, 160, 25, 18.5)
+    draw += [key("select", "Select", rrect(166, 92, 16, 9, 4.5), quiet=True),
+             key("start", "Start", rrect(218, 92, 16, 9, 4.5), quiet=True),
+             line(dot(200, 70, 8))]
+    return {"name": "Controller", "draw": draw}
+
+
 def pads():
     return {
+        "generic": generic(),
         "steam": steam(), "dualshock2": dualshock2(), "dualshock": {"name": "DualShock", "same_as": "dualshock2"},
         "psp": psp(), "vita": vita(), "dreamcast": dreamcast(), "3ds": n3ds(), "pro": pro(),
     }

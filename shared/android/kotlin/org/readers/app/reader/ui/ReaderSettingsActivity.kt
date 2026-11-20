@@ -50,7 +50,7 @@ class ReaderSettingsActivity : ReaderScreen() {
         if (savedInstanceState == null) {
             // Asked for one section (the app's setup screen asks for Save sync): its page
             // alone, and Back leaves.
-            val first = directSection?.let { SectionPage.of(it) } ?: FirstPage()
+            val first = directSection?.let { SectionPage.of(it, intent?.getStringExtra(FOCUS)) } ?: FirstPage()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.reader_fragment_container, first)
                 .commit()
@@ -141,8 +141,20 @@ class ReaderSettingsActivity : ReaderScreen() {
             super.onDestroy()
         }
 
+        private var findAsked = false
+
+        // Opened to find a setting (the app's "Search settings" row): the search at once, and
+        // put away without a choice it leaves with it, so the row does what it says.
+        override fun onStart() {
+            super.onStart()
+            if (!findAsked && activity?.intent?.getBooleanExtra(FIND, false) == true) {
+                findAsked = true
+                findDialog(leaveIfNone = true)
+            }
+        }
+
         /** What is typed finds settings by name; one tapped opens its page at it. */
-        private fun findDialog() {
+        private fun findDialog(leaveIfNone: Boolean = false) {
             val context = requireContext()
             val field = android.widget.EditText(context).apply {
                 hint = getString(R.string.reader_find_setting)
@@ -161,20 +173,24 @@ class ReaderSettingsActivity : ReaderScreen() {
                 addView(list)
             }
             val dialog = androidx.appcompat.app.AlertDialog.Builder(context)
+                .setTitle(R.string.reader_find_setting)
                 .setView(box)
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
+            var went = false
+            dialog.setOnDismissListener { if (leaveIfNone && !went) activity?.finish() }
             field.addTextChangedListener(object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
                 override fun afterTextChanged(s: android.text.Editable?) {
                     found = find(context, s?.toString().orEmpty())
                     adapter.clear()
-                    adapter.addAll(found.map { "${it.title}  ·  ${getString(it.section.title)}" })
+                    adapter.addAll(found.map { "${it.title} · ${getString(it.section.title)}" })
                 }
             })
             list.setOnItemClickListener { _, _, position, _ ->
                 val chosen = found.getOrNull(position) ?: return@setOnItemClickListener
+                went = true
                 dialog.dismiss()
                 (activity as? ReaderSettingsActivity)?.open(chosen.section, chosen.key)
             }
@@ -221,6 +237,45 @@ class ReaderSettingsActivity : ReaderScreen() {
             }.onSuccess {
                 Toast.makeText(context, R.string.reader_popup_style_exported, Toast.LENGTH_SHORT).show()
             }
+        }
+
+        /**
+         * The sliders whose lowest value is a word, not a number: the value beside the slider
+         * says "Never", "Default" or "All" there (never "0" or "-1").
+         */
+        private val valueWords = mapOf(
+            ReaderSettings.KEY_POPUP_AUTOHIDE to (0 to R.string.reader_value_never),
+            ReaderSettings.KEY_POPUP_OPACITY to (0 to R.string.reader_value_default),
+            ReaderSettings.KEY_POPUP_RADIUS to (-1 to R.string.reader_value_default),
+            ReaderSettings.KEY_POPUP_COMPACT to (0 to R.string.reader_value_all),
+        )
+
+        override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            val list = listView
+            list.addOnChildAttachStateChangeListener(object : androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
+                override fun onChildViewAttachedToWindow(row: android.view.View) {
+                    val label = row.findViewById<android.widget.TextView>(androidx.preference.R.id.seekbar_value) ?: return
+                    fun word() {
+                        val key = (list.adapter as? androidx.preference.PreferenceGroupAdapter)
+                            ?.getItem(list.getChildAdapterPosition(row))?.key
+                        val (lowest, name) = valueWords[key] ?: return
+                        if (label.text.toString() == lowest.toString()) label.setText(name)
+                    }
+                    // Once a row: a row's view is used again for another slider, which is looked up each time.
+                    if (label.getTag(R.id.reader_fragment_container) == null) {
+                        label.setTag(R.id.reader_fragment_container, true)
+                        label.addTextChangedListener(object : android.text.TextWatcher {
+                            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                            override fun afterTextChanged(s: android.text.Editable?) = word()
+                        })
+                    }
+                    word()
+                }
+
+                override fun onChildViewDetachedFromWindow(row: android.view.View) = Unit
+            })
         }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -290,6 +345,12 @@ class ReaderSettingsActivity : ReaderScreen() {
         private const val SECTION = "section"
         private const val FOCUS = "focus"
 
+        /** Asks for the search of settings at once ([findIntent]). */
+        const val FIND = "find"
+
+        /** Opens the screen with "Search settings" already asked. */
+        fun findIntent(context: Context): Intent = Intent(context, ReaderSettingsActivity::class.java).putExtra(FIND, true)
+
         /** A setting as "Find a setting" lists it: its name, and the page it is on. */
         data class Found(val section: Section, val key: String, val title: String)
 
@@ -300,9 +361,21 @@ class ReaderSettingsActivity : ReaderScreen() {
         fun find(context: Context, text: String): List<Found> {
             val wanted = text.trim()
             if (wanted.isEmpty()) return emptyList()
-            val manager = androidx.preference.PreferenceManager(context)
             val starts = ArrayList<Found>()
             val holds = ArrayList<Found>()
+            for (found in all(context)) {
+                when {
+                    found.title.split(' ').any { it.startsWith(wanted, ignoreCase = true) } -> starts += found
+                    found.title.contains(wanted, ignoreCase = true) -> holds += found
+                }
+            }
+            return starts + holds
+        }
+
+        /** Every setting of every page, in the pages' order, those the app does not show left out. */
+        fun all(context: Context): List<Found> {
+            val manager = androidx.preference.PreferenceManager(context)
+            val every = ArrayList<Found>()
             for (section in Section.values()) {
                 if (section == Section.CONSOLE && !org.readers.app.reader.Console.CONSOLE_PAGE) continue
                 val screen = manager.inflateFromResource(context, section.preferences, null)
@@ -312,21 +385,17 @@ class ReaderSettingsActivity : ReaderScreen() {
                     val title = preference.title?.toString().orEmpty()
                     if (key == ReaderSettings.KEY_NEXT_CHOICE_BUTTON && !org.readers.app.reader.Console.HAS_NEXT_CHOICE) continue
                     if (key == ReaderSettings.KEY_SECOND_SCREEN && !org.readers.app.reader.Console.SECOND_DISPLAY_FREE) continue
-                    val found = Found(section, key, title)
-                    when {
-                        title.split(' ').any { it.startsWith(wanted, ignoreCase = true) } -> starts += found
-                        title.contains(wanted, ignoreCase = true) -> holds += found
-                    }
+                    if (title.isNotEmpty()) every += Found(section, key, title)
                 }
             }
-            return starts + holds
+            return every
         }
 
 
         private fun section(name: String?): Section? = Section.values().firstOrNull { it.name == name }
 
         /** Opens the screen at one section's page instead of its first page. */
-        fun intent(context: Context, section: Section): Intent =
-            Intent(context, ReaderSettingsActivity::class.java).putExtra(SECTION, section.name)
+        fun intent(context: Context, section: Section, focus: String? = null): Intent =
+            Intent(context, ReaderSettingsActivity::class.java).putExtra(SECTION, section.name).putExtra(FOCUS, focus)
     }
 }

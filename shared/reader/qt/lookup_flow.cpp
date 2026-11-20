@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <cmath>
 #include <exception>
 #include <utility>
 #include <QDateTime>
@@ -108,6 +109,59 @@ bool LookupFlow::IsOpen() const {
     return popup->isVisible();
 }
 
+bool LookupFlow::OnPad(PadKey key) {
+    if (!IsOpen()) {
+        return false;
+    }
+    KeepOpen();
+    // The question about a card's audio, where it stands in the popup: north without, east with,
+    // south neither.
+    if (asking_on_page) {
+        switch (key) {
+        case PadKey::Card:
+            AnswerQuestion(false);
+            break;
+        case PadKey::CardWithAudio:
+            AnswerQuestion(true);
+            break;
+        case PadKey::Close:
+            AnswerQuestion(std::nullopt);
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
+    switch (key) {
+    case PadKey::EntryBefore:
+    case PadKey::EntryNext:
+        popup->PadEntry(key == PadKey::EntryNext ? 1 : -1);
+        break;
+    case PadKey::TabBefore:
+    case PadKey::TabNext:
+        popup->PadTab(key == PadKey::TabNext ? 1 : -1);
+        break;
+    case PadKey::Card:
+    case PadKey::CardWithAudio:
+        CountLookup();
+        popup->PadAdd(key == PadKey::CardWithAudio);
+        break;
+    case PadKey::Close:
+        Close();
+        break;
+    }
+    return true;
+}
+
+void LookupFlow::PadScroll(float y) {
+    if (!IsOpen() || std::abs(y) < 0.25F) {
+        return;
+    }
+    // Further over, faster: the square of how far the stick is pushed (as on Android).
+    KeepOpen();
+    popup->ScrollBy(static_cast<int>(y * std::abs(y) * 26.0F));
+}
+
 bool LookupFlow::IsAbout(qint64 backlog_id, int offset) const {
     return IsOpen() && backlog_id == word_line && offset >= word_first && offset <= word_last;
 }
@@ -176,8 +230,17 @@ void LookupFlow::SetPopupParent(QWidget* parent) {
     }
 }
 
+int LookupFlow::NotInAnki(const PresentedLine& presented, const LookupResult& word, int first,
+                          int last) {
+    const Miner::Known known = miner.KnownNow(presented, word, first, last);
+    if (!known.set_up) {
+        return -1;
+    }
+    return known.answer == ReaderApp::AnkiIndex::Answer::Absent ? 1 : 0;
+}
+
 void LookupFlow::Lookup(const PresentedLine& presented, int offset, const Anchor& beside,
-                        bool quiet) {
+                        bool quiet, int longest) {
     const QString& text = presented.line.text;
     if (offset < 0 || offset >= text.size()) {
         return;
@@ -189,7 +252,7 @@ void LookupFlow::Lookup(const PresentedLine& presented, int offset, const Anchor
     auto& session = ReaderSession::Instance();
     session.NoteInteraction();
     const int request = ++asked;
-    const QString rest = text.mid(offset);
+    const QString rest = longest > 0 ? text.mid(offset, longest) : text.mid(offset);
     anchor = beside;
     ReaderApp::DictionaryDatabase* dictionaries = &session.Dictionaries();
     ReaderApp::DictionaryLookup* lookup = &session.Lookup();
@@ -322,7 +385,12 @@ void LookupFlow::Position() {
     const int above = anchor.keep_clear.top() - bounds.top() - 2 * Margin;
     const int below = bounds.bottom() - anchor.keep_clear.bottom() - 2 * Margin;
     const auto fit = [this, widest](int tallest) { return popup->Fit(widest, std::max(tallest, 56)); };
-    QSize size = fit(std::min(bounds.height() * settings.PopupHeightPercent() / 100,
+    // As tall as the entry in hand (the default), else as its content up to the height set; and
+    // in either case never so short that the definition's first lines are out of sight.
+    const bool to_entry = settings.PopupFitEntry() && popup->IsPage(); // the classic popup keeps the height set
+    popup->SetFitEntry(to_entry);
+    const int share = to_entry ? ReaderApp::ReaderSettings::PopupFitLimitPercent : settings.PopupHeightPercent();
+    QSize size = fit(std::min(std::max(bounds.height() * share / 100, popup->Need()),
                               std::max(above, below)));
     const bool goes_above = size.height() <= above || above >= below;
     const int room = goes_above ? above : below;
@@ -546,22 +614,14 @@ void LookupFlow::CountLookup() {
     }
     pinned->counted = true;
     const LookupResult& word = pinned->results.first();
-    const QString key = QStringLiteral("%1\x1f%2\x1f%3")
-                            .arg(pinned->presented.backlog_id)
-                            .arg(word.expression, word.reading);
-    if (counted.contains(key)) {
-        return;
-    }
-    if (counted.size() > 5000) {
-        counted.clear();
-    }
-    counted.insert(key);
+    // Once a line, by the line's own text (ReaderDatabase::CountLookupOnce): a line shown again
+    // has another number in the backlog, and the backlog's window looks words up by itself.
     auto& session = ReaderSession::Instance();
     ReaderApp::ReaderDatabase* database = &session.Database();
-    worker.start([database, expression = word.expression, reading = word.reading,
+    worker.start([database, expression = word.expression, reading = word.reading, line = pinned->presented.line.text,
                   game = session.GameKey(), now = QDateTime::currentMSecsSinceEpoch()] {
         try {
-            database->CountLookup(expression, reading, game, now);
+            database->CountLookupOnce(expression, reading, game, line, now);
         } catch (const std::exception& error) {
             LOG_WARNING(Frontend, "[Reader] Could not count a lookup: {}", error.what());
         }

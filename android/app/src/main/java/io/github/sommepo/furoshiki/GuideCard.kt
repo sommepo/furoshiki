@@ -156,7 +156,7 @@ class GuideCard(private val activity: Activity, private val gameId: String) {
         note.visibility = if (noteText.isEmpty()) View.GONE else View.VISIBLE
         val done = json.optInt("done")
         val total = json.optInt("total")
-        foot.text = (if (total > 0) "$done / $total   ·   " else "") + activity.getString(R.string.guide_keys)
+        foot.text = (if (total > 0) "$done / $total · " else "") + activity.getString(R.string.guide_keys)
     }
 
     /** Ticks the step shown and asks for where the checklist stands now. */

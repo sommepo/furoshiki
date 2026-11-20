@@ -73,12 +73,12 @@ bool Unzip(const QString& file, const QString& into, QString& why) {
 #ifndef HOME_QUAZIP
     (void)file;
     (void)into;
-    why = QStringLiteral("this build has no zip reader (it is built without cores)");
+    why = QStringLiteral("this build of Furoshiki can't unpack downloads");
     return false;
 #else
     QuaZip zip(file);
     if (!zip.open(QuaZip::mdUnzip)) {
-        why = QStringLiteral("what was fetched is not a zip");
+        why = QStringLiteral("the download isn't a zip file. Try again");
         return false;
     }
     const QString root = QDir(into).absolutePath() + QLatin1Char('/');
@@ -100,14 +100,14 @@ bool Unzip(const QString& file, const QString& into, QString& why) {
         QuaZipFile in(&zip);
         QFile out(path);
         if (!in.open(QIODevice::ReadOnly) || !out.open(QIODevice::WriteOnly)) {
-            why = QStringLiteral("%1 could not be written").arg(name);
+            why = QStringLiteral("couldn't write %1. Check that Furoshiki's data folder can be written").arg(name);
             return false;
         }
         out.write(in.readAll());
         ++count;
     }
     if (count == 0) {
-        why = QStringLiteral("the zip was empty");
+        why = QStringLiteral("the download was empty. Try again");
         return false;
     }
     return true;
@@ -171,7 +171,7 @@ qint64 ScriptsFetched(const QString& shared) {
 
 Kit KitOf(const QString& key) {
     if (key == QStringLiteral("scripts")) {
-        return {key, QStringLiteral("0xDC00's scripts"), Address(key), QStringLiteral("1.5 MB"), QStringLiteral("0xDC00 and contributors, MIT")};
+        return {key, QStringLiteral("0xDC00's hook scripts"), Address(key), QStringLiteral("1.5 MB"), QStringLiteral("0xDC00 and contributors, MIT")};
     }
     if (key == QStringLiteral("frida")) {
         return {key, QStringLiteral("Frida %1 (frida-inject)").arg(FridaVersion), Address(key), OnWindows ? QStringLiteral("20 MB") : QStringLiteral("18.5 MB"),
@@ -184,7 +184,7 @@ Kit KitOf(const QString& key) {
         return {key, QStringLiteral("LunaHook (LunaTranslator %1)").arg(LunaVersion), Address(key), QStringLiteral("67 MB"), QStringLiteral("HIllya51, GPL-3.0")};
     }
     if (key == QStringLiteral("luna-tables")) {
-        return {key, QStringLiteral("LunaHook emulator tables"), Address(key), QStringLiteral("0.5 MB"), QStringLiteral("HIllya51 and contributors, GPL-3.0")};
+        return {key, QStringLiteral("LunaHook's list for emulators"), Address(key), QStringLiteral("0.5 MB"), QStringLiteral("HIllya51 and contributors, GPL-3.0")};
     }
     return {};
 }
@@ -208,7 +208,7 @@ Fetch::Fetch(QObject* parent) : QObject(parent) {
         const Step done = steps.takeFirst();
         if (status != QProcess::NormalExit || code != 0) {
             const QString tail = QString::fromLocal8Bit(process.readAll()).trimmed().section(QLatin1Char('\n'), -1);
-            End(false, QStringLiteral("%1 failed%2").arg(done.what, tail.isEmpty() ? QString() : QStringLiteral(": ") + tail));
+            End(false, QStringLiteral("%1 failed%2. Check the internet connection and try again").arg(done.what, tail.isEmpty() ? QString() : QStringLiteral(": ") + tail));
             return;
         }
         Next();
@@ -216,7 +216,7 @@ Fetch::Fetch(QObject* parent) : QObject(parent) {
     connect(&process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart && !steps.isEmpty()) {
             const Step failed = steps.takeFirst();
-            End(false, QStringLiteral("%1 is not on this computer").arg(failed.program));
+            End(false, QStringLiteral("Couldn't download: this computer has no %1 program").arg(failed.program));
         }
     });
 }
@@ -248,7 +248,7 @@ bool Fetch::Start(const QString& key_, const QString& shared_) {
                           {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
                            work + QStringLiteral("/files/") + name, kit.from + u'/' + name}});
         }
-        steps.append({QStringLiteral("Downloading licence"), QStringLiteral("curl"),
+        steps.append({QStringLiteral("Downloading the licence"), QStringLiteral("curl"),
                       {QStringLiteral("-fsSL"), QStringLiteral("--retry"), QStringLiteral("2"), QStringLiteral("--connect-timeout"), QStringLiteral("20"), QStringLiteral("-o"),
                        work + QStringLiteral("/files/LICENSE"), kit.from.section(QStringLiteral("/src/"), 0, 0) + QStringLiteral("/LICENSE")}});
         Next();
@@ -308,11 +308,11 @@ bool Fetch::Finish(QString& why) {
     };
     if (key == QStringLiteral("scripts")) {
         if (!QFileInfo(work + QStringLiteral("/scripts/libLoader.js")).isFile()) {
-            why = QStringLiteral("Download isn't a script package");
+            why = QStringLiteral("The download isn't a set of hook scripts. Try again");
             return false;
         }
         if (!swap(work + QStringLiteral("/scripts"), ScriptsFolder(shared))) {
-            why = QStringLiteral("Couldn't save scripts to %1").arg(ScriptsFolder(shared));
+            why = QStringLiteral("Couldn't save the hook scripts to %1. Check that the folder can be written").arg(ScriptsFolder(shared));
             return false;
         }
         QFile out(hooks + QStringLiteral("/scripts.json"));
@@ -320,19 +320,19 @@ bool Fetch::Finish(QString& why) {
             out.write(QJsonDocument(QJsonObject{{QStringLiteral("fetched"), QDateTime::currentMSecsSinceEpoch()}, {QStringLiteral("from"), KitOf(key).from}}).toJson());
         }
         const int count = static_cast<int>(QDir(ScriptsFolder(shared)).entryList({QStringLiteral("*.js")}, QDir::Files).size());
-        why = QStringLiteral("%1 script files fetched").arg(count);
+        why = QStringLiteral("%1 hook scripts downloaded").arg(count);
         return true;
     }
     if (key == QStringLiteral("luna-tables")) {
         if (!QFileInfo(work + QStringLiteral("/files/ppsspp_1.cpp")).isFile()) {
-            why = QStringLiteral("Download isn't a LunaHook table");
+            why = QStringLiteral("The download isn't LunaHook's list. Try again");
             return false;
         }
         if (!swap(work + QStringLiteral("/files"), hooks + QStringLiteral("/luna-tables"))) {
-            why = QStringLiteral("Couldn't save LunaHook tables to %1").arg(hooks);
+            why = QStringLiteral("Couldn't save LunaHook's list to %1. Check that the folder can be written").arg(hooks);
             return false;
         }
-        why = QStringLiteral("LunaHook tables downloaded");
+        why = QStringLiteral("LunaHook's list downloaded");
         return true;
     }
     if (key == QStringLiteral("frida")) {
@@ -340,7 +340,7 @@ bool Fetch::Finish(QString& why) {
         QDir().mkpath(folder);
         QFile::remove(file);
         if (!QFile::rename(work + QStringLiteral("/download"), file)) {
-            why = QStringLiteral("Couldn't save frida-inject to %1").arg(folder);
+            why = QStringLiteral("Couldn't save frida-inject to %1. Check that the folder can be written").arg(folder);
             return false;
         }
         QFile::setPermissions(file, QFile::permissions(file) | QFileDevice::ExeOwner | QFileDevice::ExeUser);
@@ -349,10 +349,10 @@ bool Fetch::Finish(QString& why) {
     }
     const QString folder = hooks + (key == QStringLiteral("textractor") ? QStringLiteral("/textractor-") + TextractorVersion : QStringLiteral("/luna-") + LunaVersion);
     if (!swap(work + QStringLiteral("/files"), folder)) {
-        why = QStringLiteral("%1 could not be put in %2").arg(KitOf(key).name, folder);
+        why = QStringLiteral("Couldn't save %1 to %2. Check that the folder can be written").arg(KitOf(key).name, folder);
         return false;
     }
-    why = QStringLiteral("%1 fetched").arg(KitOf(key).name);
+    why = QStringLiteral("%1 downloaded").arg(KitOf(key).name);
     return true;
 }
 

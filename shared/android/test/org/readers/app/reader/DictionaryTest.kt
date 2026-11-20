@@ -134,7 +134,7 @@ class DictionaryTest {
         val again = assertThrows(DictionaryImporter.ImportException::class.java) {
             importer.import(mainArchive())
         }
-        assertTrue(again.message!!.contains("already installed"))
+        assertTrue(again.message!!.contains("already imported"))
         assertThrows(DictionaryImporter.ImportException::class.java) {
             importer.import(archive("empty.zip", mapOf("readme.txt" to "hello")))
         }

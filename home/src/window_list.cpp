@@ -117,7 +117,8 @@ QList<Entry> List() {
 #endif
     found.append(Fakes());
 #ifndef _WIN32
-    if (own_grab) {
+    // The program's own window is no game: it stands in for one only where a test asks for it.
+    if (own_grab && qEnvironmentVariableIntValue("READER_HOME_OWN_WINDOW") != 0) {
         found.append({own_title, 0, QStringLiteral("own")});
     }
 #endif

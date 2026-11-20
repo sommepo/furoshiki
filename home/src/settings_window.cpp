@@ -62,11 +62,31 @@ QString JsString(const QString& text) {
 
 /// How a value of a setting reads in the window.
 QString Shown(const PlaySetting& setting, const QString& value) {
-    if (setting.kind == PlaySetting::Switch) {
-        return value == QStringLiteral("1") ? QStringLiteral("On") : QStringLiteral("Off");
-    }
-    return setting.Shown(value).toLower();
+    return setting.Said(value);
 }
+
+/// A number box that says its values as the setting does ("Default", "All", "90%").
+class SaidSpin final : public QSpinBox {
+public:
+    SaidSpin(QWidget* parent, std::function<QString(int)> say_, QString lowest_) : QSpinBox(parent), say{std::move(say_)}, lowest{std::move(lowest_)} {}
+
+protected:
+    QString textFromValue(int value) const override {
+        return value == minimum() ? lowest : say(value);
+    }
+    int valueFromText(const QString& text) const override {
+        static const QRegularExpression figure(QStringLiteral("-?\\d+"));
+        const QRegularExpressionMatch found = figure.match(text);
+        return found.hasMatch() ? found.captured(0).toInt() : value();
+    }
+    QValidator::State validate(QString&, int&) const override {
+        return QValidator::Acceptable;
+    }
+
+private:
+    std::function<QString(int)> say;
+    QString lowest;
+};
 
 } // namespace
 
@@ -96,7 +116,7 @@ SettingsWindow::SettingsWindow(QWidget* parent, PlaySettings& play_, const QList
     auto* layout = new QVBoxLayout(this);
     layout->addWidget(tabs);
     auto* foot = new QHBoxLayout;
-    close->setToolTip(QStringLiteral("Changes apply immediately (F2)"));
+    close->setToolTip(QStringLiteral("Changes apply at once"));
 #ifndef HOME_PUBLIC
     auto* feedback = new QPushButton(QStringLiteral("Send feedback…"), this);
     connect(feedback, &QPushButton::clicked, this, [this] {
@@ -150,7 +170,11 @@ void SettingsWindow::ShowTab(const QString& name) {
             tabs->setCurrentIndex(i);
             // One editor, opened from its row of the settings pages: the other tabs are rows there.
             tabs->tabBar()->hide();
-            setWindowTitle(name);
+            // Titled as the row that opened it is called.
+            setWindowTitle(name == QStringLiteral("CRT") ? QStringLiteral("CRT filter")
+                           : name == QStringLiteral("Achievements") ? QStringLiteral("RetroAchievements")
+                           : name == QStringLiteral("Reading") ? QStringLiteral("Reading time")
+                                                                : name);
         }
     }
 }
@@ -209,11 +233,11 @@ void SettingsWindow::AddSettingRow(QFormLayout* form, const PlaySetting& setting
                                                  : QStringLiteral("Console setting (%1)");
     const QString key = setting.key;
     if (setting.kind == PlaySetting::Number) {
-        auto* box = new QSpinBox(this);
         const int step = static_cast<int>(setting.step > 0 ? setting.step : 1);
+        // Under its lowest value stands "as the layer below has it", said with that value.
+        auto* box = new SaidSpin(this, [setting](int value) { return setting.Said(QString::number(value)); }, same.arg(setting.Said(next)));
         box->setRange(static_cast<int>(setting.low) - step, static_cast<int>(setting.high));
         box->setSingleStep(step);
-        box->setSpecialValueText(same.arg(next));
         box->setValue(own ? play.Raw(key, layer.console, layer.game).toInt() : box->minimum());
         connect(box, &QSpinBox::valueChanged, this, [this, box, key, layer](int value) {
             if (!filling) {
@@ -976,7 +1000,7 @@ void SettingsWindow::FillConsoleRows() {
         }
     }
     if (keys.isEmpty()) {
-        console_form->addRow(new QLabel(QStringLiteral("No emulator cores loaded."), this));
+        console_form->addRow(new QLabel(QStringLiteral("No emulators are installed"), this));
     }
     filling = false;
 }
@@ -1014,13 +1038,14 @@ QWidget* SettingsWindow::LookTab() {
     motion->setChecked(home->ChosenMotion());
     connect(motion, &QCheckBox::toggled, this, [this](bool on) { home->ChooseMotion(on); });
     form->addRow(QStringLiteral("Animated cursor"), motion);
-    // Furoshiki 3's shelf asks the study tracker what was read of each title (docs/furoshiki-3.md).
+#ifndef HOME_PUBLIC
+    // Furoshiki 3's shelf asks the study tracker what was read of each title (docs/furoshiki-3.md):
+    // the dev line's, as the tracker is the maintainer's own service.
     auto* tracker = new QLineEdit(home->TrackerUrl(), page);
     tracker->setPlaceholderText(QStringLiteral("http://…:8788"));
     connect(tracker, &QLineEdit::editingFinished, this, [this, tracker] { home->SetTrackerUrl(tracker->text().trimmed()); });
     form->addRow(QStringLiteral("Study tracker"), tracker);
-    form->addRow(new QLabel(QStringLiteral("More settings are in the Reader menu during a game."),
-                            page));
+#endif
     return page;
 }
 

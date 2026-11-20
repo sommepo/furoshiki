@@ -23,8 +23,16 @@ import android.widget.TextView
 object LowerKeys {
     private const val KEY = "lower_keys"
 
-    /** A key: its word, whether it is on now (a switch), and what a touch does. */
-    class Key(val label: String, val on: (() -> Boolean)? = null, val act: () -> Unit)
+    /**
+     * A key: its word, whether it is on now (a switch), the word it has while on where that says
+     * more than the fill does ("Resume" for "Pause"), and what a touch does.
+     */
+    class Key(
+        val label: String, val on: (() -> Boolean)? = null, val labelOn: String? = null,
+        /** What a screen reader says where the word on the key is short for it ("Menu": "Game menu"). */
+        val says: String? = null,
+        val act: () -> Unit,
+    )
 
     fun wanted(context: Context): Boolean = context.getSharedPreferences("game", Context.MODE_PRIVATE).getBoolean(KEY, true)
 
@@ -45,6 +53,10 @@ object LowerKeys {
         fun paint() {
             for ((key, view) in views) {
                 val on = key.on?.invoke() == true
+                // The word says the state too, not the fill alone.
+                val word = (if (on) key.labelOn else null) ?: key.label
+                if (view.text.toString() != word.uppercase()) view.text = word.uppercase()
+                view.contentDescription = key.says ?: word
                 view.setTextColor(if (on) 0xFF101A3A.toInt() else 0xFFECE5D3.toInt())
                 view.background = GradientDrawable().apply {
                     setColor(if (on) 0xFFD9472B.toInt() else Color.TRANSPARENT)
@@ -56,11 +68,12 @@ object LowerKeys {
             val view = TextView(context).apply {
                 text = key.label.uppercase()
                 typeface = Typeface.MONOSPACE
-                // A row of many keys (the DS and 3DS, with HIDE) in smaller, closer letters, each word on one line.
-                textSize = if (keys.size > 8) 10f else 11f
-                letterSpacing = if (keys.size > 8) .04f else .12f
+                // 12sp where the key has room for it, smaller only as far as a word needs to fit
+                // (a row of many keys on a narrow display): a word of its own stays on one line.
+                letterSpacing = if (keys.size > 8) .04f else .08f
                 gravity = Gravity.CENTER
-                maxLines = 2
+                maxLines = if (' ' in key.label || key.labelOn?.contains(' ') == true) 2 else 1
+                setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
                 setOnClickListener {
                     key.act()
                     // What it switched is told a moment later (the statistics' through the session).

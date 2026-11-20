@@ -509,6 +509,14 @@ void RunAction(const QString& name) {
     }
 }
 
+LookupFlow* GameLookups() {
+    return g_controller != nullptr ? &g_controller->Lookups() : nullptr;
+}
+
+ReaderController* GameController() {
+    return g_controller;
+}
+
 void CaptureBackButtons(std::function<bool(int)> capture) {
     ReaderController::BackButtonCapture() = std::move(capture);
 }

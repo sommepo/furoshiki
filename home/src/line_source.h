@@ -40,8 +40,10 @@ public:
     [[nodiscard]] const QString& Title() const {
         return title;
     }
-    /// For the user: where the lines come from and whether they can come now.
+    /// For the log and the tests: where the lines come from and whether they can come now.
     [[nodiscard]] QString Status() const;
+    /// For the user, as a sentence.
+    [[nodiscard]] QString Said() const;
     /// Text as if it had arrived (a test's, the development channel's).
     void Arrived(const QString& raw);
 

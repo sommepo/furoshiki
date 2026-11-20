@@ -161,7 +161,7 @@ class DictionaryManagerActivity : ReaderScreen() {
                 note(
                     getString(R.string.reader_dict_entry_counts, info.termCount, info.metaCount) +
                         (if (info.revision.isNotEmpty()) " · ${info.revision}" else "") +
-                        " · " + kindName(kindOf(info))
+                        " · " + getString(R.string.reader_dict_kind_tab, kindName(kindOf(info)))
                 )
             )
             row.addView(text, LinearLayout.LayoutParams(0, WRAP, 1f))
@@ -180,6 +180,7 @@ class DictionaryManagerActivity : ReaderScreen() {
             row.addView(
                 MaterialSwitch(this).apply {
                     isChecked = info.enabled
+                    contentDescription = getString(R.string.reader_dict_enabled, info.title)
                     setOnCheckedChangeListener { _, checked ->
                         worker.execute { store.database.setEnabled(info.id, checked) }
                     }

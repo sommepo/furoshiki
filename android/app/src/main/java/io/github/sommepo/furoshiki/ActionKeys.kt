@@ -3,112 +3,102 @@
 
 package io.github.sommepo.furoshiki
 
-import android.app.Activity
 import android.content.Context
 import android.view.KeyEvent
-import androidx.appcompat.app.AlertDialog
 import org.json.JSONObject
 import java.io.File
 
 /**
- * What can be done over a game without its menu, each by a key on the second display
- * ([LowerKeys]) and by a button of the controller given to it here: what a computer's controller
- * has on its back buttons (the desktop's `reader_back_button_N`, whose actions these are). A
- * button given to an action is no longer the game's. Kept in `files/action-keys.json` as
- * `{"<action>": <Android key code>}`, a file both of the app's processes read: the page's
- * Settings and the menu over a game open the same list.
+ * The buttons of "Shortcut buttons", as they were until 2026-11-20: a list of its own
+ * (`files/action-keys.json`, `{"<action>": <Android key code>}`) beside the controller screen's
+ * shortcuts (ButtonMap), so that an action could be given a button in two places. There is one
+ * place now, Settings › Controls › Controller: what a user had set here is given to the same
+ * actions there once ([migrate]) and the file is gone. Every action the list had is one of the
+ * controller screen's ([TO_MAP]; map.js lists them, GameActivity.runAction does them).
+ *
+ * What is still used of it: how a button is called ([name]), the same on every screen.
  */
 object ActionKeys {
-    /** An action: its name in the file, and what the list calls it. */
-    class Action(val id: String, val label: Int)
-
-    val ALL = listOf(
-        Action("pause", R.string.action_pause),
-        Action("stats", R.string.action_stats),
-        Action("card", R.string.action_card),
-        Action("log", R.string.action_log),
-        Action("ocr_now", R.string.action_ocr_now),
-        Action("panel", R.string.action_panel),
-        Action("next_choice", R.string.action_next_choice),
-        Action("fast", R.string.action_fast),
-        Action("quick_menu", R.string.action_quick_menu),
-        Action("menu", R.string.action_menu),
+    /** Each action of the old list, and the controller screen's action it is. */
+    val TO_MAP = linkedMapOf(
+        "pause" to "reader_pause_game",
+        "stats" to "reader_pause_stats",
+        "card" to "reader_sentence_card",
+        "log" to "reader_backlog",
+        "explain" to "reader_explain",
+        "ocr_now" to "furoshiki_ocr_read",
+        "panel" to "reader_toggle_panel",
+        "next_choice" to "reader_next_choice",
+        "fast" to "furoshiki_fast_forward",
+        "guide" to "furoshiki_guide",
+        "guide_done" to "furoshiki_guide_done",
+        "quick_menu" to "reader_menu",
+        "menu" to "furoshiki_game_menu",
     )
 
     private fun file(context: Context) = File(context.filesDir, "action-keys.json")
 
-    /** What the file says: each action's key code. */
-    fun assigned(context: Context): Map<String, Int> = parse(runCatching { file(context).readText() }.getOrDefault(""))
-
     /** The file's text as actions and their keys; what is no action of ours, or no key, is left out. */
     fun parse(text: String): Map<String, Int> {
         val kept = runCatching { JSONObject(text) }.getOrNull() ?: return emptyMap()
-        val known = ALL.map { it.id }.toSet()
-        return kept.keys().asSequence().filter { it in known && kept.optInt(it, 0) > 0 }.associateWith { kept.getInt(it) }
+        return kept.keys().asSequence().filter { it in TO_MAP && kept.optInt(it, 0) > 0 }.associateWith { kept.getInt(it) }
     }
-
-    /** Each key and the action it does, for the game's own look at a key. */
-    fun byKey(context: Context): Map<Int, String> = assigned(context).entries.associate { it.value to it.key }
 
     /**
-     * [action] given [key] (null: none) in what was [assigned] before: one action a key, so the
-     * action that key had loses it.
+     * What the old list had ([assigned]) put into the controller screen's values, all consoles'
+     * layer: each action on its button, as it was. A button given here did its action before
+     * anything the controller screen had on it, so it wins there too (ButtonMap.assign takes the
+     * button from what had it, and the action off any other button). True when anything was set.
      */
-    fun give(assigned: Map<String, Int>, action: String, key: Int?): Map<String, Int> {
-        val next = assigned.filter { it.key != action && it.value != key }.toMutableMap()
-        if (key != null) next[action] = key
-        return next
+    fun migrateInto(values: MutableMap<String, Any?>, assigned: Map<String, Int>): Boolean {
+        var changed = false
+        for ((old, key) in assigned) {
+            val action = TO_MAP[old] ?: continue
+            if (io.github.sommepo.furoshiki.reader.ButtonMap.assign(values, action, key, null)) changed = true
+        }
+        return changed
     }
 
-    private fun save(context: Context, assigned: Map<String, Int>) {
-        val next = File(file(context).path + ".new")
-        next.writeText(JSONObject(assigned).toString())
-        next.renameTo(file(context))
-    }
-
-    /** A key as a person says it: "R2", "THUMBL", "F5". */
-    fun name(key: Int): String = KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_").removePrefix("BUTTON_")
-
-    /** Keys that stay what they are: the way out of every dialog, and the volume. */
-    private fun fixed(key: Int) = key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_HOME ||
-        key == KeyEvent.KEYCODE_VOLUME_UP || key == KeyEvent.KEYCODE_VOLUME_DOWN
-
-    /** The list: each action with its button; a tap, then the button to give it. [done] when it is shut. */
-    fun pick(activity: Activity, done: () -> Unit) {
-        val themed = android.view.ContextThemeWrapper(activity, R.style.Theme_Reader)
-        val assigned = assigned(activity)
-        val labels = ALL.map { activity.getString(it.label) + "  ·  " + (assigned[it.id]?.let(::name) ?: "—") } +
-            activity.getString(R.string.action_keys_none)
-        var again = false
-        AlertDialog.Builder(themed)
-            .setTitle(R.string.action_keys_title)
-            .setItems(labels.toTypedArray()) { _, which ->
-                again = true
-                if (which >= ALL.size) {
-                    save(activity, emptyMap())
-                    pick(activity, done)
-                    return@setItems
-                }
-                val action = ALL[which]
-                val waiting = AlertDialog.Builder(themed)
-                    .setTitle(action.label)
-                    .setMessage(R.string.action_keys_press)
-                    .setNeutralButton(R.string.action_keys_no_button) { _, _ -> save(activity, give(assigned(activity), action.id, null)) }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setOnDismissListener { pick(activity, done) }
-                    .create()
-                // The dialog's own window takes the keys: the first that is not a fixed one is the answer.
-                waiting.setOnKeyListener { _, code, event ->
-                    if (fixed(code)) return@setOnKeyListener false
-                    if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                        save(activity, give(assigned(activity), action.id, code))
-                        waiting.dismiss()
-                    }
-                    true
-                }
-                waiting.show()
+    /** [migrateInto] on the reader's preferences, once: the old file is taken away after. */
+    fun migrate(context: Context) {
+        val file = file(context)
+        if (!file.isFile) return
+        runCatching {
+            val assigned = parse(file.readText())
+            if (assigned.isNotEmpty()) {
+                val preferences = io.github.sommepo.furoshiki.reader.ReaderSettings.fresh(context)
+                val values = io.github.sommepo.furoshiki.reader.ButtonMap.read(preferences)
+                if (migrateInto(values, assigned)) io.github.sommepo.furoshiki.reader.ButtonMap.write(preferences, values)
             }
-            .setOnDismissListener { if (!again) done() }
-            .show()
+        }
+        file.delete()
+    }
+
+    /** The buttons whose name is not Android's own with its prefix taken off. */
+    private val NAMES = mapOf(
+        KeyEvent.KEYCODE_BUTTON_THUMBL to "L3", KeyEvent.KEYCODE_BUTTON_THUMBR to "R3",
+        KeyEvent.KEYCODE_BUTTON_START to "Start", KeyEvent.KEYCODE_BUTTON_SELECT to "Select",
+        KeyEvent.KEYCODE_BUTTON_MODE to "Home",
+        KeyEvent.KEYCODE_DPAD_UP to "D-pad up", KeyEvent.KEYCODE_DPAD_DOWN to "D-pad down",
+        KeyEvent.KEYCODE_DPAD_LEFT to "D-pad left", KeyEvent.KEYCODE_DPAD_RIGHT to "D-pad right",
+        KeyEvent.KEYCODE_DPAD_CENTER to "D-pad centre",
+    )
+
+    /**
+     * A key as the controller screen says it: "R2", "L3", "D-pad up", "Start"; a numbered button
+     * "Button 3"; any other key its Android name in plain words ("Volume mute", "F5").
+     */
+    fun name(key: Int): String = NAMES[key] ?: plainName(KeyEvent.keyCodeToString(key))
+
+    /** "KEYCODE_BUTTON_R2" as "R2", "KEYCODE_BUTTON_3" as "Button 3", "KEYCODE_MEDIA_PLAY" as "Media play". */
+    fun plainName(android: String): String {
+        val name = android.removePrefix("KEYCODE_")
+        val button = name.removePrefix("BUTTON_")
+        return when {
+            button != name && button.all { it.isDigit() } -> "Button $button"
+            // A1, L1, R2, X, F5: said as they are printed.
+            button.length <= 2 || button.matches(Regex("[A-Z][0-9]{1,2}")) -> button
+            else -> button.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        }
     }
 }

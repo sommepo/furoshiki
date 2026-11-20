@@ -97,6 +97,10 @@ public:
         console_setup = std::move(setup);
         console_folders_changed = std::move(folders_changed);
     }
+    /// The game scripts of one console, installed and removed (the CONSOLES page's Game scripts row).
+    void SetConsoleScripts(std::function<void(const QString& console)> open) {
+        console_scripts = std::move(open);
+    }
     /// The window's look, for the settings window: its themes' names, the chosen one, the fuzz,
     /// the moving cursor; a change is kept and shown at once.
     [[nodiscard]] QStringList ThemeNames() const;
@@ -122,6 +126,12 @@ public:
     /// ("Save sync", "Achievements", "Text server"), or as it was (empty).
     void SetSettingsWindow(std::function<void(const QString& tab)> open) {
         open_settings = std::move(open);
+    }
+    /// Where the popup's live preview stands on the Popup page, in this widget's own pixels; an
+    /// empty rectangle when that page is not shown. Called when it changes (the main window
+    /// draws the preview there with the reader's popup page).
+    void SetPopupPreview(std::function<void(const QRect& place)> place) {
+        popup_preview = std::move(place);
     }
     /// What the Settings page's rows of the settings window's pages show (RetroAchievements,
     /// Text server, Pair a device), by the row's name.
@@ -278,6 +288,30 @@ public:
         lines_changed = std::move(changed);
     }
     /// A script's words the page does not know go here (the program's: lines-say, strip-lookup).
+    /// The first steps (welcome_page.inc): a dictionary, the games, Anki. Opened by itself on a
+    /// first start with nothing set up (WelcomeIfFirst, once the program's parts are in place),
+    /// and from Settings, About, Setup.
+    void OpenWelcome();
+    void WelcomeIfFirst();
+    /// No welcome by itself in this run (a test's, a picture's).
+    void SetWelcomeOff(bool off) {
+        dry_welcome_off = off;
+    }
+    /// A soft tick for something that happened in the popup over a game (a card landed, the
+    /// d-pad went to another entry): the menu's own sounds, under its Menu sounds switch.
+    void Tick(bool landed) {
+        sounds.Play(landed ? Sound::Select : Sound::Move);
+    }
+    /// Which controller is the input, if one is (PadStyle), and what to do when the keyboard or
+    /// the mouse is used on the page instead: the program's own knowledge (main_window.cpp).
+    void SetPadInput(std::function<int()> style, std::function<void()> keyboard_used_) {
+        pad_style = std::move(style);
+        keyboard_used = std::move(keyboard_used_);
+    }
+    /// Reading with a controller over a game (main_window.cpp's PollPads): the state mark at the
+    /// picture's top and the hints along its foot, in the feet's own caps. `picture` is where the
+    /// game is drawn in the painter's window; a hint is its buttons, then what they do.
+    void PaintReadingHud(QPainter& p, const QRectF& picture, const QString& mark, const QList<QPair<QStringList, QString>>& hints);
     void SetScriptCommands(std::function<bool(const QString& word, const QString& rest)> commands) {
         script_commands = std::move(commands);
     }
@@ -475,6 +509,14 @@ private:
     /// Keys along a page's foot, right-aligned at `right`: each a word the pointer can take
     /// (a key of -1 is only said). Returns where the first begins.
     double PutKeys(QPainter& p, const QFont& font, double right, double baseline, const QList<QPair<QString, int>>& keys);
+    /// A wizard step's foot: its keys as one line ("↑ ↓ CHOOSE   ENTER NEXT   ESC BACK"), or, while
+    /// a controller is the input, the same with the controller's buttons.
+    void PutFoot(QPainter& p, const QFont& font, const QString& keys);
+    /// The controller whose buttons the feet show: -1 none (the keyboard and mouse are the
+    /// input), 0 one lettered A B X Y, 1 a PlayStation's, 2 a Nintendo's.
+    [[nodiscard]] int PadStyle() const {
+        return pad_forced >= -1 ? pad_forced : pad_style ? pad_style() : -1;
+    }
     /// A title's front cover: its app's picture, else the one built in for its title record.
     QPixmap TitleCover(const Game& game);
     /// The spine a game stands with: its box's own (built in, or found here), else one made in its
@@ -531,6 +573,11 @@ public:
     void CoreHookOpen();
     void CoreHookAccept();
     bool CoreHookKey(int key);
+    [[nodiscard]] int WelcomeRows() const;
+    void WelcomeNext();
+    void WelcomeAccept();
+    bool WelcomeKey(int key);
+    void PaintWelcome(QPainter& p);
     void PaintCoreHook(QPainter& p);
     std::function<QList<UnscriptedGame>(const QString&)> unscripted_games;
     /// Adds a title read by a hook Furoshiki starts (line_titles.h; `hook` has its engine,
@@ -592,6 +639,8 @@ private:
     double shelf_at{};     ///< Where the open spine is on its way to the chosen one
     bool shelf_stage{};    ///< The stage is shown, not the shelf
     bool shelf_pages{};    ///< The pages are shown
+    bool pages_rows{};     ///< On the pages, the rows have the keys (else the sections at the left)
+    bool pages_visited{};  ///< They were shown before in this run: they open where they were left
     QHash<QString, QPair<QString, QString>> elsewhere; ///< A game's ID: the device, the day
     QSet<QString> more_open; ///< The settings pages whose More is opened
     QString find_text;       ///< What is typed to find a setting; null while nothing is looked for
@@ -649,6 +698,7 @@ private:
     double pages_at{};     ///< 0 the shelf, 1 the pages
     std::shared_ptr<Wizard> wizard; ///< Adding a title: what was chosen so far
     bool wizard_on{};
+    bool dry_welcome_off{};
     QImage own_picture;    ///< This window as it was when the wizard opened (the stand-in window list)
     double wizard_at{};    ///< 0 what is under it, 1 the wizard
     QString shelf_want;    ///< A title just added: chosen on the shelf once it is listed
@@ -721,11 +771,7 @@ private:
     /// The CONSOLES page's rows before its settings: "Settings for", and with one console
     /// chosen its game, its folders and its system files.
     [[nodiscard]] int ConsoleHeadRows() const {
-        return PopupHeadRow() + 2;
-    }
-    /// The CONSOLES page's two rows for the popup style: export, then import.
-    [[nodiscard]] int PopupHeadRow() const {
-        return console_layer > 0 ? 4 : 1;
+        return console_layer > 0 ? 5 : 1;
     }
     /// The game whose own settings the page shows (empty: the console's).
     [[nodiscard]] QString LayerGame() const;
@@ -739,6 +785,9 @@ private:
     QSet<QString> ocr_games;
     std::function<void()> lines_changed;
     std::function<bool(const QString&, const QString&)> script_commands;
+    std::function<int()> pad_style;
+    std::function<void()> keyboard_used;
+    int pad_forced{-2}; ///< A script's "pad": -2 as the program says, else the style shown
     QList<PlayConsole> consoles;
     PlaySettings* play{};
     int console_layer{}; ///< 0 all consoles, else the console's place in `consoles` plus one
@@ -746,9 +795,13 @@ private:
     QHash<QString, QList<ConsoleGame>> console_games;
     std::function<ConsoleSetup(const QString&)> console_setup;
     std::function<void(const QString&)> console_folders_changed;
+    std::function<void(const QString&)> console_scripts;
     std::function<QString()> save_sync_state;
     std::function<void()> save_sync_open;
     std::function<void(const QString&)> open_settings;
+    std::function<void(const QRect&)> popup_preview;
+    QRectF popup_preview_area; ///< On the sheet, as PaintPages last left it
+    QRect popup_preview_said;
     std::function<QString(const QString&)> setting_value;
     std::function<void(const QString&, int)> setting_step;
     std::function<std::pair<QStringList, int>(const QString&)> setting_choices;

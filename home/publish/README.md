@@ -3,12 +3,12 @@
 <h1 align="center">Furoshiki</h1>
 
 <p align="center"><b>A game launcher with sentence mining built in, for Japanese games.</b><br>
-Point at a word in the game's own text to look it up, then add it to Anki. For Windows and Android.</p>
+Look up a word in the game's own text and add it to Anki, from the couch with a controller. For Windows and Android.</p>
 
 <p align="center"><b>Latest releases:</b>
-<a href="../../releases/download/v0.2.6/Furoshiki-0.2.6-android.apk">Android 0.2.6</a> ·
-<a href="../../releases/download/v0.2.3/Furoshiki-0.2.3-windows.zip">Windows 0.2.3</a> ·
-<a href="../../releases/download/v0.2.3/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
+<a href="../../releases/download/v0.3.0/Furoshiki-0.3.0-android.apk">Android 0.3.0</a> ·
+<a href="../../releases/download/v0.3.0/Furoshiki-0.3.0-windows.zip">Windows 0.3.0</a> ·
+<a href="../../releases/download/v0.3.0/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Remember11 on the PS2: the pointer moves along a line and 視線, そらし, 肩越し and 目を向けた each open in a popup the moment it reaches them"></p>
@@ -28,6 +28,32 @@ A game's text is read in one of three ways:
 | **OCR** of the picture | The text as an OCR engine reads it. Good for any game, with the odd misread character. | Windows and Android |
 | A **text hook**, or lines from another tool | The exact text of a PC game, shown in a strip at the edge of the screen. | Windows |
 
+## Made for a controller
+
+Furoshiki is meant to be used from a sofa or a handheld, with a controller in your hands and no
+keyboard or mouse. The library, every settings page, the game menu, the dictionary popup and
+making cards all work from the controller alone. The mouse and keyboard still work everywhere.
+
+- **Any controller.** An Xbox, PlayStation, Switch or 8BitDo pad, or the Steam Controller, works
+  as soon as it is plugged in or paired. The first time a controller is used, Furoshiki asks one
+  question, "Press the button marked A", so it knows whether your pad has Xbox, Nintendo or
+  PlayStation letters. From then on every hint on screen shows the letters printed on your
+  controller.
+- **Shortcuts in the same setup.** The next step sets the buttons you read with: backlog, pause
+  the reading timer, pause the game, the Quick menu, a card for the line. A button that reading
+  already uses gets a warning, and the free ones are suggested.
+- **The popup takes the controller.** While a popup is open the game hears nothing. The d-pad
+  goes from entry to entry, the shoulder buttons from tab to tab (Words, Grammar, Kanji, Names),
+  and the top and right face buttons make a card, without and with the line's audio. The game gets the
+  controller back when the popup closes.
+- **Reading without a pointer** (Windows). Tap Select in a game and a cursor lands on the first
+  word of the line you do not know yet. The d-pad moves word by word, the bumpers jump to the next
+  word not in Anki, and the bottom button still advances the game. See
+  [Reading with a controller](#reading-with-a-controller).
+- **A pointer when you want one.** The Steam Controller's trackpad, or any button you give the
+  *Pointer (hold)* action, moves a pointer over the game, and on the AYN Thor the lower screen is a
+  trackpad. Using a pointer ends controller reading at once.
+
 ## Consoles
 
 | Console | Emulator | Windows | Android |
@@ -45,14 +71,13 @@ else to install. Settings can be made for all consoles, for one console or for o
 
 ## Download
 
-The Windows and Android versions are released separately, so use these links instead of the
-newest release page, which has only the files that changed.
+Version 0.3.0 has both, and the OCR helper for Windows.
 
 | File | For | Notes |
 | --- | --- | --- |
-| [Furoshiki-0.2.3-windows.zip](../../releases/download/v0.2.3/Furoshiki-0.2.3-windows.zip) | Windows 10 or 11, 64-bit | Unzip it anywhere and run `Furoshiki.exe`. |
-| [Furoshiki-0.2.6-android.apk](../../releases/download/v0.2.6/Furoshiki-0.2.6-android.apk) | Android 10 or later, 64-bit ARM | Open the file to install it, and allow installs from your browser or file manager when Android asks. |
-| [Furoshiki-ocr-helper.zip](../../releases/download/v0.2.3/Furoshiki-ocr-helper.zip) | Windows, optional | Only if you want OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
+| [Furoshiki-0.3.0-windows.zip](../../releases/download/v0.3.0/Furoshiki-0.3.0-windows.zip) | Windows 10 or 11, 64-bit | Unzip it anywhere and run `Furoshiki.exe`. |
+| [Furoshiki-0.3.0-android.apk](../../releases/download/v0.3.0/Furoshiki-0.3.0-android.apk) | Android 10 or later, 64-bit ARM | Open the file to install it, and allow installs from your browser or file manager when Android asks. |
+| [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.0/Furoshiki-ocr-helper.zip) | Windows, optional | Only if you want OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
 
 On Windows, the PS2 and Vita cores need the
 [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe). The
@@ -67,19 +92,24 @@ cartridges you own, and the BIOS files listed below.
 
 ## Setting up on Windows
 
-1. Start `Furoshiki.exe`. It offers to download [Jitendex](https://jitendex.org), a free
-   dictionary (39 MB). You can choose your own Yomitan dictionary zips instead, or add more later
-   in Settings › Reading › Dictionaries.
-2. If Anki is open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on,
-   Furoshiki offers to set up cards. It uses a deck and note type you already have: the deck with
-   "mining" in its name (or the first that is not Default), and the note type most of that deck's
-   notes use. It fills the fields it recognises by name. Settings › Cards › Anki setup changes
-   any of this.
-3. Put the BIOS files your consoles need in the folders in the table below.
-4. Choose **Add game** at the end of the shelf, then *Disc or file*, and pick the folder your
-   games are in.
-5. Start a game. To install its script, open the Quick menu (F1 or right-click), choose
-   *Game scripts…*, install the script, and start the game again.
+1. Start `Furoshiki.exe`. The program is not signed, so Windows may show "Windows protected your
+   PC": choose *More info*, then *Run anyway*. The first start opens Setup, three steps you can
+   skip. The first, Dictionary, downloads [Jitendex](https://jitendex.org), a free dictionary
+   (39 MB), or takes your own Yomitan dictionary zips. Lookups need at least one dictionary. You
+   can add more later in Settings › Reading › Dictionaries.
+2. The second step, Games, asks for the folder your games are in. Put the BIOS files your
+   consoles need in the folders in the table below first, or come back to this later with
+   **Add game** at the end of the shelf, then *Disc or file*.
+3. The third step, Anki, is optional. With Anki open and the
+   [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on installed, Furoshiki sets up
+   cards with a deck and note type you already have: the deck with "mining" in its name (or the
+   first that is not Default), and the note type most of that deck's notes use. It fills the
+   fields it recognises by name. Settings › Cards › Anki setup changes any of this.
+4. To install a game's script, open Settings › Consoles, choose the console, then *Game scripts*.
+   The Quick menu in a game (F1 or right-click) has *Game scripts…* too. Start the game again
+   after installing its script.
+
+Settings › About › Setup opens the three steps again.
 
 | Console | You need | Folder in `%LOCALAPPDATA%\Furoshiki` |
 | --- | --- | --- |
@@ -94,8 +124,8 @@ cartridges you own, and the BIOS files listed below.
 
 1. Install the APK and open Furoshiki. Tap *Allow file access* when it asks, so it can find your
    games where they are.
-2. Setup asks where your games are. Choose one folder, or add one after another if each console
-   has its own. A `Games` folder on the device or its SD card is found without asking.
+2. Setup asks where your games are. Choose *Add games folder*, once or once for each console if
+   each has its own. A `Games` folder on the device or its SD card is found without asking.
 3. Put BIOS files in `Games/BIOS/PS1`, `Games/BIOS/PS2` and `Games/BIOS/Vita`. The other consoles
    need none.
 4. Put Yomitan dictionary zips in `Games/Dictionaries`. They are imported the next time
@@ -104,7 +134,7 @@ cartridges you own, and the BIOS files listed below.
    asks for its permission once, then uses your mining deck and its note type, as on Windows.
 
 Every game found is listed, and the scripts for supported games are downloaded for you. Box art
-is fetched too. *Game scripts* in Settings shows each console's list.
+is fetched too. Settings › Library › Game scripts shows each console's list.
 
 ## Reading a game
 
@@ -125,9 +155,9 @@ voice. On Android the card buttons are in the popup. On Windows these are the ke
 | Ctrl+D | Add a card for the sentence |
 | Ctrl+W | Add a card for the word you looked up |
 | Ctrl+Z | Undo the last card |
-| Ctrl+H | Open the backlog |
-| Ctrl+G | Pause the game |
-| Ctrl+T | Pause the reading timer |
+| Ctrl+H | Backlog |
+| Ctrl+G | Pause game |
+| Ctrl+T | Pause reading timer |
 | Ctrl+N | Skip to the next choice |
 | F1 or right-click | Quick menu |
 | Esc | Game menu |
@@ -137,9 +167,41 @@ The backlog keeps every line you have read, with its speaker where the game give
 can make a card from several lines of it. For each game Furoshiki counts the characters you read,
 the time, and your speed in characters per hour. The count stays on your device.
 
-Furoshiki was developed with a Steam Controller, whose trackpad moves the pointer with no setup.
-With another controller, give a button the *Pointer (hold)* action in Settings › Controller ›
-Button mapping. While you hold that button, the sticks move the pointer.
+With a controller, the Steam Controller's trackpad moves the pointer with no setup. With another
+controller, give a button the *Pointer (hold)* action in Settings › Controls › Button mapping.
+While you hold that button, the sticks move the pointer. Or read without a pointer, below.
+
+### Reading with a controller
+
+On Windows you can also read with a plain controller and no pointer. In a game, tap Select to
+start reading. A cursor lands on the first word of the line that is not in Anki yet, or on its
+first word, and the popup opens beside it.
+
+| Button | What it does |
+| --- | --- |
+| D-pad left and right | Previous or next word. Hold it to keep going. |
+| D-pad up and down | The line above or below. In vertical text the two pairs swap. |
+| LB and RB | Previous or next word that is not in Anki |
+| Right stick left and right | Make the match one character shorter or longer |
+| Right stick up and down | Scroll the popup |
+| LT and RT | Previous or next tab of the popup (Words, Grammar, Kanji, Names) |
+| A | Advance the game, with the console's own confirm button. The cursor lands on the new line. |
+| Y | Add a card for the word |
+| B | Add a card with the line's audio |
+| X | Go into the popup to pick another entry or tab. X or A comes back to the text. |
+
+The letters are those of an Xbox pad, by place: A is the bottom button, B the right, X the left
+and Y the top. On a pad with other letters, the hints over the game show its own.
+| Select | Stop reading |
+
+Start and the left stick stay the game's. When the game shows a choice, every button goes back
+to the game until the next line. Moving the mouse or pressing one of its buttons stops reading,
+and the pointer works as before. This works in games with a script, and in
+console games read by OCR, where nothing reports a choice.
+
+Settings › Controls › *Start reading with* changes the button: Select, L3, R3, two buttons
+together (Select + A, L3 + R3, LB + RB), or *Always during dialogue*, which needs no button. The
+same page turns the *Reading mark* and the *Reading hints* over the game on and off.
 
 ## Games without a script
 
@@ -177,7 +239,7 @@ OCR model of about 1 GB. Unzip `Furoshiki-ocr-helper.zip` into Furoshiki's folde
 You choose the engine. [meikiocr](https://github.com/rtr46/meikiocr) is the default; OneOCR and
 Chrome Screen AI also read on your computer, while Google Lens sends each text area to Google.
 
-To read a console game by OCR, open the game menu (Esc) and choose *Use OCR for this game*, then
+To read a console game by OCR, open the Game menu (Esc) and choose *Use OCR for this game*, then
 *Set text area…*. A game can have several text areas, and an area can be read only when you press
 Ctrl+Shift+R, which suits a menu or a status screen.
 
@@ -187,7 +249,7 @@ Ctrl+Shift+R, which suits a menu or a status screen.
 
 On Android, OCR needs nothing extra. It runs on the device with meikiocr and sends nothing
 anywhere. Google Lens reads better and sends each text area to Google. Choose between them in
-Settings › *OCR engine*.
+Settings › Reading › OCR engine.
 
 ## The library
 
@@ -224,15 +286,16 @@ F2 opens the settings on Windows. Each page shows a few rows and keeps the other
 Press `/` to search for a setting by name, and Backspace to reset the selected row. Everything
 can be reached with the keyboard, the mouse or a controller alone.
 
-The popup has its own page, with several looks, an opacity slider so the game shows through, and
-a place for your own CSS.
+The pages are Statistics, Library, Reading, Popup, Cards, Consoles, Controls, Keys, Display and
+About. The Popup page has several themes, an *Opacity* row so the game shows through,
+*Fit height to entry*, and a popup editor with a place for your own CSS.
 
 ## On Android
 
 Furoshiki works by touch or with a controller. Where the device has no buttons it shows a stick
 and buttons over the game, and a game can be pinned to the home screen.
 
-The game menu has save states, fast forward and skip to the next choice.
+The Game menu has save states, fast forward and skip to the next choice.
 
 <p align="center"><img src="home/publish/media/thor-menu.jpg" width="620" alt="The game menu over STEINS;GATE on Android: Resume, More settings, Save state, Load state, Fast forward, Skip to next choice, Shortcut buttons, Quit game"></p>
 
@@ -253,13 +316,13 @@ looked up, and the popup opens over the game.
 
 <p align="center"><img src="home/publish/media/thor-trackpad.jpg" width="620" alt="STEINS;GATE on the AYN Thor: 会見 outlined in the game's message window and looked up over the game, かいけん, interview; the lower display is a trackpad above the keys Pause, Pause stats, Log, Line and Menu"></p>
 
-With **Line**, the sentence is also shown below the trackpad. Tap a word in it, and the popup
-opens on the lower display, so nothing covers the game.
+With **Text panel**, the sentence is also shown below the trackpad. Tap a word in it, and the
+popup opens on the lower display, so nothing covers the game.
 
 <p align="center"><img src="home/publish/media/thor-lookup.jpg" width="620" alt="The same sentence with Line on: it is shown on the lower display under the trackpad, and 会見 tapped there opens its entry on the lower display"></p>
 
-**Pause** stops the game, **Pause stats** stops the reading timer, **Log** opens the backlog and
-**Menu** opens the game menu. In the popup, `+` adds the card and the speaker button adds it with
+**Pause** stops the game, **Pause timer** stops the reading timer, **Backlog** opens the backlog
+and **Menu** opens the Game menu. In the popup, `+` adds the card and the speaker button adds it with
 the line's audio.
 
 ### GameNative and other apps
@@ -267,8 +330,8 @@ the line's audio.
 [GameNative](https://github.com/utkarshdalal/GameNative) runs Windows games from Steam and other
 stores on Android. Furoshiki can read those games, and games in any other app, by OCR. It starts
 the game, asks once for permission to capture the screen, and reads the text. You look words up
-over the game, or in the line on a second display. If the screen has much on it besides the
-game's text, **Area** marks where the text is.
+over the game, or in the text panel on a second display. If the screen has much on it besides
+the game's text, **Text area** marks where the text is.
 
 <p align="center"><img src="home/publish/media/thor-gamenative.jpg" width="620" alt="The AYN Thor's two displays: the GameNative shelf with nine PC games above; below, PARANORMASIGHT's reading count and Continue"></p>
 
@@ -278,11 +341,11 @@ To have your GameNative games listed and started from Furoshiki:
 
 1. In GameNative, open Settings › Interface › Frontend Sync, turn it on and choose a folder. A
    new one such as `Games/GameNative` is a good choice.
-2. In Furoshiki, choose the same folder. Setup asks for it, and Settings has
+2. In Furoshiki, choose the same folder. Setup asks for it, and Settings › Library has
    *Add GameNative folder*.
 
-The games then have a GameNative shelf. A game from any other app is added with **Add a game**:
-choose the app and give the game a name.
+The games then have a GameNative shelf. A game from any other app is added with **Add game**,
+then *Add game from another app*: choose the app and give the game a name.
 
 ## Supported games
 

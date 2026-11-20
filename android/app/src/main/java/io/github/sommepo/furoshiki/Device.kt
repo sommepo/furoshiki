@@ -96,20 +96,32 @@ object Device {
 
     // ---- The other apps ----
 
-    /** Every app with a way in from a launcher, but this one: `[{label, package, activity}]`, by name. */
+    /**
+     * Every app with a way in from a launcher, but this one: `[{label, package, activity, game}]`,
+     * by name. `game`: what Android itself calls a game (its category, or the older flag), for
+     * the list an added game's app is chosen from.
+     */
     fun apps(context: Context): JSONArray {
         val packages = context.packageManager
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val found = packages.queryIntentActivities(launcher, 0)
             .filter { it.activityInfo.packageName != context.packageName }
-            .map { Triple(it.loadLabel(packages).toString(), it.activityInfo.packageName, it.activityInfo.name) }
-            .sortedBy { it.first.lowercase() }
+            .sortedBy { it.loadLabel(packages).toString().lowercase() }
         val list = JSONArray()
-        for ((label, name, activity) in found) {
-            list.put(JSONObject().put("label", label).put("package", name).put("activity", activity))
+        for (one in found) {
+            val app = one.activityInfo.applicationInfo
+            list.put(
+                JSONObject().put("label", one.loadLabel(packages).toString()).put("package", one.activityInfo.packageName)
+                    .put("activity", one.activityInfo.name).put("game", isGame(app?.category ?: -1, app?.flags ?: 0))
+            )
         }
         return list
     }
+
+    /** Whether Android marks an app as a game: its category, or the flag older apps set. */
+    @Suppress("DEPRECATION")
+    fun isGame(category: Int, flags: Int): Boolean =
+        category == android.content.pm.ApplicationInfo.CATEGORY_GAME || flags and android.content.pm.ApplicationInfo.FLAG_IS_GAME != 0
 
     fun openApp(context: Context, name: String, activity: String) {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)

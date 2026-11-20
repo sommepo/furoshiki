@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QWidget>
 #include "controller_map.h"
+#include "pad_names.h"
 
 namespace Home {
 
@@ -41,8 +42,13 @@ public:
     /// A button of the controller went down or up (an input's id: "south", "grip1"): learnt
     /// while learning, else lit on the drawing and, from a controller, the screen's own keys.
     void Pressed(const QString& input, bool down, bool from_pad = true);
+    /// The controller in the hand: SDL's name of it (empty: none), what it calls its buttons,
+    /// and whether the Steam Controller bridge has a Steam Controller (its drawing and grips).
+    void SetHand(const QString& name, const PadNames::Names& names, bool steam);
     /// A key (the keyboard's, or a controller's turned into one).
     void Key(int key);
+    /// The row in hand on the first shortcut (the list's Shortcuts), as the setup opens it.
+    void ShowShortcuts();
     void Close();
 
 protected:
@@ -92,6 +98,15 @@ private:
     [[nodiscard]] QString GameName(const QString& id) const;
     void Build();
     [[nodiscard]] QString HandName(const QString& input) const;
+    /// The pad every tab draws: the controller in the hand.
+    [[nodiscard]] const ControllerMap::Pad& ShownPad() const;
+    /// The console's own pad (its buttons and their names), else the controller in the hand.
+    [[nodiscard]] const ControllerMap::Pad& ConsolePad() const;
+    /// A button's name on a drawn pad (the common gamepad's by the pad in the hand).
+    [[nodiscard]] QString LabelIn(const ControllerMap::Pad& pad, const QString& id) const;
+    QString hand_name;
+    PadNames::Names hand_names = PadNames::OfFamily(PadNames::Xbox);
+    bool hand_steam{};
     int tab{0};
     int row{0};
     int hover{-1};

@@ -157,7 +157,7 @@ class CompanionActivity : Activity() {
         // mark, the cursor) is left out of the look, so the game moving on is seen with the popup
         // open; the popup then closes, and the new line is read once nothing lies over it (the
         // maintainer, 2026-11-17, Paranormasight: the popup stayed over the next line).
-        ocr = OcrSource(this, frames, gameId) { frames.capturing && !setting && !ended }.also { source ->
+        ocr = OcrSource(this, frames, gameId, R.string.ocr_off_here_companion) { frames.capturing && !setting && !ended }.also { source ->
             source.drawn = {
                 val layer = above
                 val width = layer?.width ?: 0
@@ -249,7 +249,7 @@ class CompanionActivity : Activity() {
         params.title = "Furoshiki over the game"
         runCatching { windowContext.getSystemService(WindowManager::class.java).addView(layer, params) }
             .onSuccess { above = layer }
-            .onFailure { Toast.makeText(this, it.message ?: "Overlay unavailable", Toast.LENGTH_LONG).show() }
+            .onFailure { Toast.makeText(this, R.string.companion_overlay_failed, Toast.LENGTH_LONG).show() }
     }
 
     private fun removeAbove() {
@@ -662,7 +662,7 @@ class CompanionActivity : Activity() {
             frames.capturing -> ""
             else -> getString(R.string.companion_allow)
         }
-        status.text = (if (what.isEmpty()) title else "$title  ·  $what").uppercase()
+        status.text = (if (what.isEmpty()) title else "$title · $what").uppercase()
     }
 
     private fun showKeys() {
@@ -671,9 +671,12 @@ class CompanionActivity : Activity() {
             LowerKeys.Key(getString(R.string.companion_key_over), { over }) { toggleWay() }.takeIf { !oneScreen },
             LowerKeys.Key(getString(R.string.lower_key_line), { line }) { toggleLine() }.takeIf { !oneScreen },
             LowerKeys.Key(getString(R.string.lower_key_read)) { ocr?.readNow() },
-            // A "?" while the game still has the first guess of where its text is (the lower third).
-            LowerKeys.Key(getString(R.string.companion_key_area) + if (ocr?.areaSet == false) " ?" else "") { setUpArea() },
-            LowerKeys.Key(getString(R.string.lower_key_stats)) { ReaderSession.toggleStatsPaused() },
+            // "Set text area" while the game still has the first guess of where its text is (the lower third).
+            LowerKeys.Key(getString(if (ocr?.areaSet == false) R.string.companion_key_area_unset else R.string.companion_key_area)) { setUpArea() },
+            LowerKeys.Key(
+                getString(R.string.lower_key_stats), { io.github.sommepo.furoshiki.reader.ReaderSettings(this).statsPaused },
+                getString(R.string.lower_key_stats_on)
+            ) { ReaderSession.toggleStatsPaused() },
             LowerKeys.Key(getString(R.string.lower_key_log), { backlog != null }) { showBacklog(backlog == null) },
             // A game started by itself is not started again (GameNative would be asked to launch
             // it a second time): its app is brought to the front.

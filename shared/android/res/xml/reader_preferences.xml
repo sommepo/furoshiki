@@ -42,11 +42,6 @@
             app:summary="@string/reader_section_cards_summary"
             app:iconSpaceReserved="false" />
         <Preference
-            app:key="reader_section_sources"
-            app:title="@string/reader_section_sources"
-            app:summary="@string/reader_section_sources_summary"
-            app:iconSpaceReserved="false" />
-        <Preference
             app:key="reader_section_controller"
             app:title="@string/reader_section_controller"
             app:summary="@string/reader_section_controller_summary"
@@ -55,8 +50,8 @@
              (reader/ui/CrtSettings.kt). -->
         <Preference
             app:key="reader_open_crt"
-            app:title="CRT filter"
-            app:summary="Scanlines, phosphor, curvature"
+            app:title="@string/reader_crt"
+            app:summary="@string/reader_crt_summary"
             app:iconSpaceReserved="false" />
         <!-- The app's own page (Console.CONSOLE_PAGE, reader_prefs_console.xml): hidden where
              it has none. -->

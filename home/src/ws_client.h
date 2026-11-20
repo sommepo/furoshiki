@@ -28,8 +28,10 @@ public:
     [[nodiscard]] bool Connected() const {
         return upgraded;
     }
-    /// For the user: "connected · ws://…", "waiting · ws://… · connection refused".
+    /// For the log and the tests: "connected · ws://…", "waiting · ws://… · connection refused".
     [[nodiscard]] QString Status() const;
+    /// For the user, as a sentence.
+    [[nodiscard]] QString Said() const;
     /// How long after a failure it tries again.
     int retry_ms{2000};
 

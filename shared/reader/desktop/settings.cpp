@@ -21,6 +21,7 @@ const QString ReaderSettings::KeyWordMark = QStringLiteral("reader_word_mark");
 const QString ReaderSettings::KeyCardCorner = QStringLiteral("reader_card_corner");
 const QString ReaderSettings::KeyPopupScale = QStringLiteral("reader_popup_scale");
 const QString ReaderSettings::KeyPopupHeight = QStringLiteral("reader_popup_height");
+const QString ReaderSettings::KeyPopupFit = QStringLiteral("reader_popup_fit");
 const QString ReaderSettings::KeyPopupAutoHide = QStringLiteral("reader_popup_autohide");
 const QString ReaderSettings::KeyPopupHideOnExit = QStringLiteral("reader_popup_hide_on_exit");
 const QString ReaderSettings::KeyPopupMarkUnknown = QStringLiteral("reader_popup_mark_unknown");
@@ -41,6 +42,9 @@ const QString ReaderSettings::KeyDictionariesShared = QStringLiteral("reader_dic
 const QString ReaderSettings::KeyBackButton = QStringLiteral("reader_back_button_");
 const QString ReaderSettings::KeyStatsInstall = QStringLiteral("reader_stats_install");
 const QString ReaderSettings::KeyCursorToggle = QStringLiteral("reader_cursor_toggle");
+const QString ReaderSettings::KeyReadStart = QStringLiteral("reader_read_start");
+const QString ReaderSettings::KeyReadHints = QStringLiteral("reader_read_hints");
+const QString ReaderSettings::KeyReadMark = QStringLiteral("reader_read_mark");
 const QString ReaderSettings::KeyCursorSpeed = QStringLiteral("reader_cursor_speed");
 const QString ReaderSettings::KeyCursorFrame = QStringLiteral("reader_cursor_frame");
 const QString ReaderSettings::KeyCursorHome = QStringLiteral("reader_cursor_home");
@@ -235,6 +239,9 @@ int ReaderSettings::PopupScale() const {
 int ReaderSettings::PopupHeightPercent() const {
     return Int(KeyPopupHeight, 27, 10, 80);
 }
+bool ReaderSettings::PopupFitEntry() const {
+    return Bool(KeyPopupFit, true);
+}
 int ReaderSettings::PopupAutoHideSeconds() const {
     return Int(KeyPopupAutoHide, 15, 0, 120);
 }
@@ -331,6 +338,21 @@ int ReaderSettings::StatsButton() const {
 }
 bool ReaderSettings::CursorToggle() const {
     return Bool(KeyCursorToggle, false);
+}
+QString ReaderSettings::ReadStart() const {
+    const QString value = String(KeyReadStart, QStringLiteral("select"));
+    for (const char* known : {"l3", "r3", "select+a", "l3+r3", "lb+rb", "always"}) {
+        if (value == QLatin1String(known)) {
+            return value;
+        }
+    }
+    return QStringLiteral("select");
+}
+bool ReaderSettings::ReadMark() const {
+    return Bool(KeyReadMark, true);
+}
+bool ReaderSettings::ReadHints() const {
+    return Bool(KeyReadHints, true);
 }
 int ReaderSettings::CursorSpeed() const {
     return Int(KeyCursorSpeed, 100, 25, 300);

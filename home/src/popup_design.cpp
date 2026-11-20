@@ -309,16 +309,18 @@ const Property* PropertyOf(const QString& key) {
 
 const QList<QPair<QString, QString>>& Blocks() {
     static const QList<QPair<QString, QString>> blocks{
-        {QStringLiteral("head"), QStringLiteral("Header")},   {QStringLiteral("lookups"), QStringLiteral("Times looked up")},
+        // The definition before how often the word was looked up (2026-11-20: never out of sight).
+        {QStringLiteral("head"), QStringLiteral("Header")},
         {QStringLiteral("card"), QStringLiteral("Name card")}, {QStringLiteral("senses"), QStringLiteral("Meanings")},
-        {QStringLiteral("forms"), QStringLiteral("Other forms")}, {QStringLiteral("buttons"), QStringLiteral("Card buttons")}};
+        {QStringLiteral("forms"), QStringLiteral("Other forms")}, {QStringLiteral("lookups"), QStringLiteral("Times looked up")},
+        {QStringLiteral("buttons"), QStringLiteral("Card buttons")}};
     return blocks;
 }
 
 const QList<QPair<QString, QString>>& HeadParts() {
     static const QList<QPair<QString, QString>> parts{
         {QStringLiteral("headword"), QStringLiteral("Headword")}, {QStringLiteral("reading"), QStringLiteral("Reading")},
-        {QStringLiteral("name"), QStringLiteral("名前")},          {QStringLiteral("reasons"), QStringLiteral("Inflection")},
+        {QStringLiteral("name"), QStringLiteral("Name")},          {QStringLiteral("reasons"), QStringLiteral("Inflection")},
         {QStringLiteral("pitch"), QStringLiteral("Pitch")},        {QStringLiteral("frequencies"), QStringLiteral("Frequencies")}};
     return parts;
 }

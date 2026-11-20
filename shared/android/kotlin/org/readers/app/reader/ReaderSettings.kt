@@ -146,6 +146,13 @@ class ReaderSettings(context: Context) {
 
     val popupHeightPercent get() = preferences.getInt(KEY_POPUP_HEIGHT, 27).coerceIn(10, 80)
 
+    /**
+     * The popup is as tall as the entry in hand (the first, or the one the d-pad is on), up to
+     * [POPUP_FIT_LIMIT_PERCENT] of the screen; off: as its content up to [popupHeightPercent].
+     * On by default (the maintainer, 2026-11-20: a definition must never be out of sight).
+     */
+    val popupFitEntry get() = preferences.getBoolean(KEY_POPUP_FIT, true)
+
     // ---- Cursor ----
     /**
      * The button that, held, turns the second display, or else the game's screen, into a
@@ -420,6 +427,9 @@ class ReaderSettings(context: Context) {
         }
 
         const val KEY_TOUCH_BUTTONS = "reader_touch_buttons"
+
+        /** A tick in the hand when a card lands and as the popup steps to another entry (ReaderHaptics). */
+        const val KEY_HAPTICS = "reader_haptics"
         const val KEY_SCREEN_TEXT = "reader_screen_text"
         const val KEY_SCREEN_TEXT_OUTLINE = "reader_screen_text_outline"
         const val KEY_CARD_CORNER = "reader_card_corner"
@@ -430,6 +440,8 @@ class ReaderSettings(context: Context) {
         const val WORD_MARK_NONE = "none"
         const val KEY_POPUP_SCALE = "reader_popup_scale"
         const val KEY_POPUP_HEIGHT = "reader_popup_height"
+        const val KEY_POPUP_FIT = "reader_popup_fit"
+        const val POPUP_FIT_LIMIT_PERCENT = 70
         const val KEY_POPUP_AUTOHIDE = "reader_popup_autohide"
         const val KEY_POPUP_HIDE_ON_EXIT = "reader_popup_hide_on_exit"
         const val KEY_POPUP_MARK_UNKNOWN = "reader_popup_mark_unknown"

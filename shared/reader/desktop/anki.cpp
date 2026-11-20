@@ -23,7 +23,7 @@ constexpr qsizetype MaxReplyBytes = 8 * 1024 * 1024;
 
 QStringList Strings(const QJsonValue& value) {
     if (!value.isArray()) {
-        throw AnkiError(QStringLiteral("Unexpected reply from AnkiConnect"));
+        throw AnkiError(QStringLiteral("Couldn't understand AnkiConnect's answer. Update the AnkiConnect add-on"));
     }
     QStringList out;
     for (const QJsonValue& item : value.toArray()) {
@@ -222,7 +222,7 @@ qint64 AnkiConnectClient::AddNote(const QString& deck, const QString& model,
     const QJsonObject params{{QStringLiteral("note"), note}};
     const QJsonValue result = Invoke(QStringLiteral("addNote"), &params);
     if (!result.isDouble()) {
-        throw AnkiError(QStringLiteral("Anki did not create the note"));
+        throw AnkiError(QStringLiteral("Anki didn't add the card. Check the deck and note type in Anki setup"));
     }
     return result.toInteger();
 }
@@ -235,7 +235,7 @@ QList<qint64> AnkiConnectClient::FindNotes(const QString& deck, const QString& f
 namespace {
 QList<qint64> Ids(const QJsonValue& result) {
     if (!result.isArray()) {
-        throw AnkiError(QStringLiteral("Unexpected reply from AnkiConnect"));
+        throw AnkiError(QStringLiteral("Couldn't understand AnkiConnect's answer. Update the AnkiConnect add-on"));
     }
     QList<qint64> out;
     for (const QJsonValue& id : result.toArray()) {
@@ -261,7 +261,7 @@ QList<QList<qint64>> AnkiConnectClient::FindNotesEach(const QString& deck, const
     const QJsonObject params{{QStringLiteral("actions"), actions}};
     const QJsonValue result = Invoke(QStringLiteral("multi"), &params);
     if (!result.isArray() || result.toArray().size() != values.size()) {
-        throw AnkiError(QStringLiteral("Unexpected reply from AnkiConnect"));
+        throw AnkiError(QStringLiteral("Couldn't understand AnkiConnect's answer. Update the AnkiConnect add-on"));
     }
     QList<QList<qint64>> out;
     for (const QJsonValue& item : result.toArray()) {
@@ -298,7 +298,7 @@ QList<AnkiConnectClient::NoteFields> AnkiConnectClient::NotesInfo(const QList<qi
     const QJsonObject params{{QStringLiteral("notes"), ids}};
     const QJsonValue result = Invoke(QStringLiteral("notesInfo"), &params);
     if (!result.isArray()) {
-        throw AnkiError(QStringLiteral("Unexpected reply from AnkiConnect"));
+        throw AnkiError(QStringLiteral("Couldn't understand AnkiConnect's answer. Update the AnkiConnect add-on"));
     }
     QList<NoteFields> out;
     for (const QJsonValue& item : result.toArray()) {
@@ -341,7 +341,7 @@ void AnkiConnectClient::DeleteNotes(const QList<qint64>& note_ids) {
 int AnkiConnectClient::Version() {
     const QJsonValue result = Invoke(QStringLiteral("version"));
     if (!result.isDouble()) {
-        throw AnkiError(QStringLiteral("Unexpected reply from AnkiConnect"));
+        throw AnkiError(QStringLiteral("Couldn't understand AnkiConnect's answer. Update the AnkiConnect add-on"));
     }
     return result.toInt();
 }
@@ -361,7 +361,7 @@ QJsonValue AnkiConnectClient::Invoke(const QString& action, const QJsonObject* p
     const QByteArray text = Post(RequestBody(action, params));
     const QJsonDocument reply = QJsonDocument::fromJson(text);
     if (!reply.isObject()) {
-        throw AnkiError(QStringLiteral("AnkiConnect sent something that is not JSON"));
+        throw AnkiError(QStringLiteral("Couldn't understand the answer. Check that the address is AnkiConnect's"));
     }
     const QJsonObject object = reply.object();
     const QJsonValue error = object.value(QStringLiteral("error"));
@@ -378,7 +378,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
     const QString address = url.trimmed();
     if (address.isEmpty()) {
         throw AnkiError(QStringLiteral(
-            "Enter the address of AnkiConnect, for example http://127.0.0.1:8765"));
+            "Enter AnkiConnect's address, for example http://127.0.0.1:8765"));
     }
     const QUrl target(address.contains(QStringLiteral("://")) ? address
                                                              : QStringLiteral("http://") + address);
@@ -390,11 +390,11 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
     }
     const QString host = target.host();
     if (host.isEmpty()) {
-        throw AnkiError(QStringLiteral("The AnkiConnect address has no host name"));
+        throw AnkiError(QStringLiteral("The AnkiConnect address has no host name. Enter one such as http://127.0.0.1:8765"));
     }
     const int port = target.port(secure ? 443 : 80);
     const auto unreachable = [this](const QString& why) {
-        return AnkiError(QStringLiteral("Cannot reach AnkiConnect at %1: %2").arg(url, why));
+        return AnkiError(QStringLiteral("Couldn't reach Anki at %1 (%2). Check that Anki is open with the AnkiConnect add-on").arg(url, why));
     };
 
     std::unique_ptr<QTcpSocket> socket;
@@ -443,7 +443,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
             break;
         }
         if (head.size() > MaxHeaderBytes) {
-            throw AnkiError(QStringLiteral("AnkiConnect sent an overlong header"));
+            throw AnkiError(QStringLiteral("Couldn't understand the answer. Check that the address is AnkiConnect's"));
         }
         if (!WaitForBytes(*socket, 1, timer, read_timeout_ms)) {
             if (head.isEmpty()) {
@@ -451,7 +451,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
                                       ? QStringLiteral("the connection was closed")
                                       : QStringLiteral("no answer in time"));
             }
-            throw AnkiError(QStringLiteral("AnkiConnect sent something that is not HTTP"));
+            throw AnkiError(QStringLiteral("Couldn't understand the answer. Check that the address is AnkiConnect's"));
         }
         // One byte at a time near the end keeps the body in the socket.
         head += socket->read(1);
@@ -461,7 +461,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
     bool status_ok = false;
     const int status = status_line.value(1).toInt(&status_ok);
     if (!status_ok) {
-        throw AnkiError(QStringLiteral("AnkiConnect sent something that is not HTTP"));
+        throw AnkiError(QStringLiteral("Couldn't understand the answer. Check that the address is AnkiConnect's"));
     }
     qsizetype length = -1;
     bool chunked = false;
@@ -482,7 +482,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
         }
     }
     if (status != 200) {
-        throw AnkiError(QStringLiteral("AnkiConnect answered HTTP %1").arg(status));
+        throw AnkiError(QStringLiteral("AnkiConnect refused the request (HTTP %1). Check its API key").arg(status));
     }
 
     const auto read_exactly = [&](qsizetype count) {
@@ -500,7 +500,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
             }
             line += socket->read(1);
             if (line.size() > MaxHeaderBytes) {
-                throw AnkiError(QStringLiteral("AnkiConnect sent an overlong header"));
+                throw AnkiError(QStringLiteral("Couldn't understand the answer. Check that the address is AnkiConnect's"));
             }
         }
         return line.trimmed();
@@ -516,7 +516,7 @@ QByteArray AnkiConnectClient::Post(const QByteArray& body) {
                 break;
             }
             if (reply.size() + size > MaxReplyBytes) {
-                throw AnkiError(QStringLiteral("AnkiConnect's reply is too large"));
+                throw AnkiError(QStringLiteral("AnkiConnect's answer was too large to read"));
             }
             reply += read_exactly(size);
             read_line(); // the line break after the chunk

@@ -98,7 +98,7 @@ QList<PlaySetting> Settings(const QString& folder) {
     // The design over the look (popup_design.h): "none", the look as it is, or one of the designs.
     PlaySetting design;
     design.key = QStringLiteral("popup.design");
-    design.label = QStringLiteral("Design");
+    design.label = QStringLiteral("Custom theme");
     design.kind = PlaySetting::Choice;
     design.default_value = QStringLiteral("none");
     design.choices = {QStringLiteral("none")};
@@ -133,9 +133,9 @@ QList<PlaySetting> Settings(const QString& folder) {
             design,
             mark,
             lookups,
-            number("popup.opacity", "Opacity (%, 0: the look's own)", 0, 100, 5, "90"),
-            number("popup.radius", "Corners (px, -1: default)", -1, 28, 1, "-1"),
-            number("popup.compact", "Senses before \"more\" (0: all)", 0, 9, 1, "0"),
+            number("popup.opacity", "Opacity", 0, 100, 5, "90"),
+            number("popup.radius", "Corner radius", -1, 28, 1, "-1"),
+            number("popup.compact", "Meanings before \"more\"", 0, 9, 1, "0"),
             hide,
             portrait};
 }

@@ -67,11 +67,11 @@ ReaderUi::ReadingSource::About OcrSource::Describe() const {
 bool OcrSource::Start(const Lines::Title& title_, const Lines::Helper& helper, QString& error) {
     Stop();
     if (Lines::CleanHelperAddress(helper.address).isEmpty()) {
-        error = QStringLiteral("OCR helper not set up");
+        error = QStringLiteral("The OCR helper isn't set up yet. Set it up in Settings, Library");
         return false;
     }
     if (title_.window.isEmpty() || !title_.area.isValid()) {
-        error = QStringLiteral("%1 names no window and area to read").arg(title_.title);
+        error = QStringLiteral("%1 has no window or text area yet. Add it again").arg(title_.title);
         return false;
     }
     title = title_;
@@ -112,6 +112,13 @@ QString OcrSource::Status() const {
         return {};
     }
     return window_there ? client.Status() : QStringLiteral("Window \"%1\" isn't open").arg(title.window);
+}
+
+QString OcrSource::Said() const {
+    if (!running) {
+        return {};
+    }
+    return window_there ? client.Said() : QStringLiteral("Waiting for the window \"%1\" to open").arg(title.window);
 }
 
 void OcrSource::Tick() {

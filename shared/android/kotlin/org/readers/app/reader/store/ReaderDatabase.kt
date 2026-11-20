@@ -129,6 +129,27 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
         ) WITHOUT ROWID"""
     )
 
+    /** The lookups counted of late, by game, line and word ([countLookupOnLine]). */
+    private val countedOnLine = LinkedHashSet<String>()
+
+    /**
+     * One more lookup of a word, unless that word was already counted on that line of that game:
+     * a word looked up again while its line is still being read is one lookup (seen on the Thor,
+     * 2026-11-20: the popup's count went up at each look). The line is told by its text, not by
+     * the entry it got in the backlog: a line shown again, read again by OCR or looked at on
+     * another display is the same line. Kept in memory for the last [COUNTED_LINES] lookups.
+     * True when it was counted.
+     */
+    fun countLookupOnLine(expression: String, reading: String, game: String, line: String, ts: Long): Boolean {
+        val key = listOf(game, line.filterNot { it.isWhitespace() }, expression, reading).joinToString("\u001f")
+        synchronized(countedOnLine) {
+            if (!countedOnLine.add(key)) return false
+            if (countedOnLine.size > COUNTED_LINES) countedOnLine.iterator().let { it.next(); it.remove() }
+        }
+        countLookup(expression, reading, game, ts)
+        return true
+    }
+
     /** One more lookup of a word (by its expression and reading) in [game], at [ts]. */
     fun countLookup(expression: String, reading: String, game: String, ts: Long) {
         writableDatabase.execSQL(
@@ -226,6 +247,12 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
     }
 
     // ---- Games ----
+
+    /** A game's title as it is shown, or "" where none was kept. */
+    fun gameTitle(game: String): String =
+        readableDatabase.rawQuery("SELECT title FROM games WHERE game = ?", arrayOf(game)).use {
+            if (it.moveToFirst()) org.readers.app.reader.TitleText.clean(it.getString(0).orEmpty()) else ""
+        }
 
     fun setGameTitle(game: String, title: String) {
         writableDatabase.execSQL(
@@ -457,7 +484,8 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
             emptyArray()
         ).use { c ->
             while (c.moveToNext()) {
-                out.add(GameTotals(c.getString(0), c.getString(1), countersFrom(c, 2)))
+                // Tidied as it is shown: a title kept before titles were tidied still has its file's tags.
+                out.add(GameTotals(c.getString(0), org.readers.app.reader.TitleText.clean(c.getString(1)), countersFrom(c, 2)))
             }
         }
         return out
@@ -657,6 +685,9 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
 
         /** The most words a record carries (the keeper takes records up to 4 MB). */
         const val RECORD_LOOKUPS = 20000
+
+        /** How many lookups are remembered by their line, so that one line counts a word once. */
+        const val COUNTED_LINES = 5000
         private const val VERSION = 3
         private const val SUM_COLUMNS =
             "COALESCE(SUM(active_ms), 0), COALESCE(SUM(chars), 0), " +

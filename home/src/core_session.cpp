@@ -165,7 +165,7 @@ bool CoreSession::Start(const reader_core_paths& paths, std::string& error) {
         return true;
     }
     if (core.api->init(&host, &paths) != 0) {
-        error = std::string(core.info->name) + " did not start";
+        error = "Couldn't start the " + std::string(core.info->name) + " emulator. Unzip Furoshiki again with its cores folder";
         return false;
     }
     started = true;
@@ -174,7 +174,7 @@ bool CoreSession::Start(const reader_core_paths& paths, std::string& error) {
 
 bool CoreSession::LoadGame(const std::string& game, std::string& error) {
     if (!started) {
-        error = "the core was not started";
+        error = "Couldn't start the game: its emulator isn't running";
         return false;
     }
     Stop();
@@ -182,7 +182,7 @@ bool CoreSession::LoadGame(const std::string& game, std::string& error) {
     ended = false;
     if (core.api->load_game(game.c_str()) != 0) {
         ended = true;
-        error = std::string(core.info->name) + " could not start " + game;
+        error = "Couldn't start " + game + ". Check that the file is a " + std::string(core.info->name) + " game";
         return false;
     }
     return true;
@@ -191,7 +191,7 @@ bool CoreSession::LoadGame(const std::string& game, std::string& error) {
 std::string CoreSession::MissingGame(const std::string& game) {
     namespace fs = std::filesystem;
     if (game.empty()) {
-        return "No game selected";
+        return "Choose a game first";
     }
     const fs::path path{std::u8string(game.begin(), game.end())};
     std::error_code failed;
@@ -205,13 +205,13 @@ std::string CoreSession::MissingGame(const std::string& game) {
         if (fs::is_symlink(link)) {
             const fs::path to = fs::read_symlink(path, failed);
             const std::u8string named = to.u8string();
-            return "Broken link: " + game +
-                   (failed ? std::string() : " (to " + std::string(named.begin(), named.end()) + ")");
+            return "Couldn't find the game's file: " + game + " is a link to a file that is gone" +
+                   (failed ? std::string() : " (" + std::string(named.begin(), named.end()) + ")");
         }
-        return "Game file not found: " + game;
+        return "Couldn't find the game's file: " + game;
     }
     if (fs::is_regular_file(target) && !std::ifstream(path, std::ios::binary).is_open()) {
-        return "Couldn't read game file: " + game;
+        return "Couldn't read the game's file: " + game + ". Check its permissions";
     }
     return {};
 }

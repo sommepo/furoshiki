@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Furoshiki contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <deque>
+#include <utility>
 #include <algorithm>
 #include <cstdlib>
 #include <QApplication>
@@ -49,17 +51,22 @@
 #include "line_titles.h"
 #include "text_strip.h"
 #include "reader/qt/lookup_flow.h"
+#include "reader/qt/reader_controller.h"
 #include "library.h"
 #include "addons.h"
 #include "app_folders.h"
 #include "main_window.h"
 #include "controller_screen.h"
+#include "pad_setup.h"
+#include "pad_shortcuts.h"
+#include <QCryptographicHash>
 #include "old_settings.h"
 #include "reader/core/input_filter.h"
 #include "reader/qt/host.h"
 #include "reader/qt/install.h"
 #include "reader/qt/reader_link.h"
 #include "reader/qt/reader_dialogs.h"
+#include "reader/qt/reader_games.h"
 #include "reader_rows.h"
 #include "services.h"
 #ifndef READER_NO_SAVE_SYNC // the guides come with save sync's pairing: the dev line's
@@ -68,6 +75,8 @@
 #include "updater.h"
 #include "reader/qt/reader_session.h"
 #include "reader/qt/lookup_popup.h"
+#include "reader/desktop/popup_model.h"
+#include "reader/qt/popup_web.h"
 #include "crt_layers.h"
 #include "popup_style.h"
 #include "reader/qt/reader_crt_page.h"
@@ -90,6 +99,13 @@ QStringList ExplainModels() {
     return {QStringLiteral("claude-sonnet-5-5"), QStringLiteral("claude-opus-5-5"), QStringLiteral("claude-haiku-5-5"),
             QStringLiteral("claude-fable-5-2")};
 }
+
+} // namespace
+
+namespace {
+
+QHash<QString, int>& LayoutCache();
+void SetStoredLayout(const QString& key, int family);
 
 } // namespace
 
@@ -407,6 +423,9 @@ void GameScreen::resizeEvent(QResizeEvent* event) {
 }
 
 void GameScreen::keyPressEvent(QKeyEvent* event) {
+    if (event->spontaneous()) {
+        ReaderUi::LookupPopup::SetPadInUse(false); // the keyboard is the input: no controller marks
+    }
     if ((event->modifiers() & Qt::ControlModifier) != 0 && (event->modifiers() & Qt::ShiftModifier) != 0 && event->key() == Qt::Key_R) {
         emit ReadAskedWanted(); // the boxes read only on request, of a game read by OCR
         return;
@@ -596,6 +615,46 @@ MainWindow::MainWindow() {
     });
     ReaderCrtPage::Load(ReaderUi::ReaderSession::Instance().Settings()); // all consoles' layer
     home->SetSettingsWindow([this](const QString& tab) { OpenSettings(tab); });
+    home->SetPopupPreview([this](const QRect& place) {
+        popup_preview_place = place;
+        if (place.isEmpty()) {
+            if (popup_preview != nullptr) {
+                popup_preview->hide();
+            }
+            if (popup_preview_timer != nullptr) {
+                popup_preview_timer->stop();
+            }
+            return;
+        }
+        if (popup_preview == nullptr) {
+            popup_preview = ReaderUi::PopupWeb::Create(home, ReaderUi::ReaderSession::DataDirectory() + QStringLiteral("/webview2"));
+            if (popup_preview == nullptr) {
+                return; // no web engine here: the classic popup has no page to show
+            }
+            // As tall as the popup would be over a game: its entry, or the height set.
+            connect(popup_preview, &ReaderUi::PopupWeb::Message, this, [this](const QJsonObject& message) {
+                if (message.value(QStringLiteral("type")).toString() != QStringLiteral("size") || popup_preview_place.isEmpty()) {
+                    return;
+                }
+                auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+                const int content = static_cast<int>(std::ceil(message.value(QStringLiteral("height")).toDouble()));
+                const int entry = static_cast<int>(std::ceil(message.value(QStringLiteral("fit")).toDouble(content)));
+                const int need = static_cast<int>(std::ceil(message.value(QStringLiteral("need")).toDouble(0)));
+                const int tall = settings.PopupFitEntry() ? std::min(entry, height() * ReaderApp::ReaderSettings::PopupFitLimitPercent / 100)
+                                                          : std::min(content, std::max(need, height() * settings.PopupHeightPercent() / 100));
+                popup_preview->resize(popup_preview->width(), std::clamp(tall, 40, popup_preview_place.height()));
+            });
+            popup_preview_timer = new QTimer(this);
+            popup_preview_timer->setInterval(350);
+            connect(popup_preview_timer, &QTimer::timeout, this, &MainWindow::ShowPopupPreview);
+        }
+        popup_preview->setGeometry(place.x(), place.y(), std::min(place.width(), std::max(360, place.width() * 62 / 100)), popup_preview->isVisible() ? popup_preview->height() : 60);
+        popup_preview->show();
+        popup_preview->raise();
+        popup_preview_shown.clear();
+        ShowPopupPreview();
+        popup_preview_timer->start();
+    });
     // The Reader settings' popup page opens this program's customiser (the settings window's Popup tab).
     ReaderUi::PopupCustomiser() = [this] { OpenSettings(QStringLiteral("Popup")); };
     // What the paired save sync service says of the user's other services, a moment after the start.
@@ -664,12 +723,37 @@ MainWindow::MainWindow() {
             OpenSettings(QStringLiteral("Popup"));
         } else if (row == QStringLiteral("Map the controller")) {
             OpenControllerMap();
+        } else if (row == QStringLiteral("Controller layout")) {
+            // The letters on the controller in use, changed by hand (its setup's answer).
+            if (SDL_GameController* pad = ActivePad(); pad != nullptr && !steam_last) {
+                const int now = StoredLayout(PadKey(pad)) >= 0 ? StoredLayout(PadKey(pad)) : ReportedLayout();
+                static constexpr int order[] = {Home::PadNames::Xbox, Home::PadNames::Nintendo, Home::PadNames::PlayStation};
+                const int at = static_cast<int>(std::find(std::begin(order), std::end(order), now) - std::begin(order));
+                SetStoredLayout(PadKey(pad), order[((at + step) % 3 + 3) % 3]);
+            }
+        } else if (row == QStringLiteral("Set up this controller again")) {
+            if (SDL_GameController* pad = ActivePad(); pad != nullptr && !steam_last) {
+                const QString key = PadKey(pad);
+                SetStoredLayout(key, -1);
+                pad_setup_skipped.remove(key);
+                OpenPadSetup(key, PadInUseName(), ReportedLayout());
+            } else {
+                home->Say(QStringLiteral("No controller found. Connect one and press a button on it."));
+            }
         } else if (row == QStringLiteral("CRT picture")) {
             OpenSettings(QStringLiteral("CRT"));
         } else if (row == QStringLiteral("Tidy reading time")) {
             OpenSettings(QStringLiteral("Reading"));
         } else if (row == QStringLiteral("Dictionaries")) {
             ReaderUi::RunDictionariesDialog(this);
+        } else if (row == QStringLiteral("Download Jitendex")) {
+            // The first steps' dictionary (welcome_page.inc): fetched and installed, and said.
+            QString problem;
+            if (ReaderUi::FetchStarterDictionary(this, &problem)) {
+                home->Say(QStringLiteral("Jitendex installed"));
+            } else if (!problem.isEmpty()) {
+                home->Say(QStringLiteral("Couldn't install Jitendex: %1").arg(problem));
+            }
         } else if (row == QStringLiteral("Anki")) {
             ReaderUi::RunAnkiSetupDialog(this);
         } else if (row == QStringLiteral("Discord application ID")) {
@@ -711,6 +795,15 @@ MainWindow::MainWindow() {
     });
     home->SetSettingChoices([this](const QString& row) -> std::pair<QStringList, int> {
         const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
+        if (row == QStringLiteral("Controller layout")) {
+            SDL_GameController* pad = ActivePad();
+            if (pad == nullptr || steam_last) {
+                return {};
+            }
+            const int now = StoredLayout(PadKey(pad)) >= 0 ? StoredLayout(PadKey(pad)) : ReportedLayout();
+            return {{QStringLiteral("Xbox"), QStringLiteral("Nintendo"), QStringLiteral("PlayStation")},
+                    now == Home::PadNames::Nintendo ? 1 : now == Home::PadNames::PlayStation ? 2 : 0};
+        }
         if (row == QStringLiteral("Pointer button")) {
             QStringList said;
             const QList<int> buttons = ReaderUi::PointerButtons();
@@ -770,15 +863,43 @@ MainWindow::MainWindow() {
         return reading;
     });
     home->SetSettingValue([this](const QString& row) -> QString {
+        if (row == QStringLiteral("Start or stop reading")) {
+            // The Keys page's row: what Settings, Controls has for it, in the controller's words.
+            const QStringList caps = ReadStartCaps();
+            return caps.isEmpty() ? QStringLiteral("Always during dialogue") : QStringLiteral("Controller: ") + caps.join(QStringLiteral(" + "));
+        }
+        if (row == QStringLiteral("Controller layout")) {
+            SDL_GameController* pad = ActivePad();
+            if (pad == nullptr || steam_last) {
+                return home->Steam().Connected() ? QStringLiteral("STEAM CONTROLLER") : QStringLiteral("NO CONTROLLER");
+            }
+            const int now = StoredLayout(PadKey(pad)) >= 0 ? StoredLayout(PadKey(pad)) : ReportedLayout();
+            return now == Home::PadNames::Nintendo ? QStringLiteral("NINTENDO") : now == Home::PadNames::PlayStation ? QStringLiteral("PLAYSTATION") : QStringLiteral("XBOX");
+        }
+        if (row == QStringLiteral("Guide's next step over the game")) {
+            return QStringLiteral("Ctrl+Shift+G · ") + pad_names.select + QLatin1Char('+') + pad_names.l1;
+        }
+        if (row == QStringLiteral("Tick the guide's step shown")) {
+            return QStringLiteral("Ctrl+Shift+N · ") + pad_names.select + QLatin1Char('+') + pad_names.r1;
+        }
         if (row == QStringLiteral("RetroAchievements")) {
             const QString user = play_settings.Raw(QStringLiteral(READER_CORE_SETTING_ACHIEVEMENTS_USER));
             if (!user.isEmpty()) {
                 return user.toUpper();
             }
-            return qEnvironmentVariable("READER_RA_USER").isEmpty() ? QStringLiteral("OFF") : QStringLiteral("FROM FRONT END");
+            return qEnvironmentVariable("READER_RA_USER").isEmpty() ? QStringLiteral("NOT SIGNED IN") : QStringLiteral("SET BY THE LAUNCHER");
         }
         if (row == QStringLiteral("Pointer button")) {
             return ReaderUi::PointerButtonName(ReaderUi::ReaderSession::Instance().Settings().CursorButton()).toUpper();
+        }
+        if (row == QStringLiteral("Dictionaries")) {
+            // How many are installed: with none, no word can be looked up.
+            try {
+                const qsizetype count = ReaderUi::ReaderSession::Instance().Dictionaries().Dictionaries().size();
+                return count == 0 ? QStringLiteral("NONE INSTALLED") : QStringLiteral("%1 INSTALLED").arg(count);
+            } catch (const std::exception&) {
+                return QString();
+            }
         }
         const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
         if (const QString said = ReaderRows::Value(settings, row); !said.isEmpty()) {
@@ -814,7 +935,7 @@ MainWindow::MainWindow() {
             // Cards that wait for an Anki that answers are said with the deck.
             const int waiting = ReaderUi::Miner::Waiting();
             const QString deck = settings.AnkiDeck().isEmpty() ? QStringLiteral("NOT SET") : settings.AnkiDeck();
-            return waiting > 0 ? QStringLiteral("%1  ·  %2 WAITING").arg(deck).arg(waiting) : deck;
+            return waiting > 0 ? QStringLiteral("%1 · %2 WAITING").arg(deck).arg(waiting) : deck;
         }
         return {};
     });
@@ -867,7 +988,30 @@ MainWindow::MainWindow() {
         [this] { OpenSaveSync(); });
 #endif
     home->SetConsoleSetup([this](const QString& key) { return SetupOf(key); },
-                          [this](const QString&) { FindGames(); });
+                          [this](const QString& key) {
+                              announce_console = key; // what was found there is said once it is known
+                              FindGames();
+                          });
+    home->SetConsoleScripts([this](const QString& key) { OpenGameScripts(key); });
+    // The feet of the pages show a controller's buttons while one is the input (as the popup marks
+    // its own: LookupPopup::PadInUse, set in PollPads), and keys again once the keyboard or mouse is used.
+    // The first steps, on a first start with nothing set up: once the window is up and the
+    // library was read. Not in a test run, which asks for them itself.
+    if (qEnvironmentVariableIsEmpty("READER_DESKTOP_CONTROL")) {
+        QTimer::singleShot(900, this, [this] {
+            if (current == nullptr) {
+                home->WelcomeIfFirst();
+            }
+        });
+    }
+    ReaderUi::LookupPopup::SetFeedback([this](const QString& kind) {
+        // A card made has its tick; going from entry to entry is silent (the maintainer, 2026-11-20).
+        if (kind == QStringLiteral("land")) {
+            home->Tick(true);
+        }
+    });
+    home->SetPadInput([this] { return ReaderUi::LookupPopup::PadInUse() ? pad_style : -1; },
+                      [] { ReaderUi::LookupPopup::SetPadInUse(false); });
     // The titles read from lines, listed as a console's games are; the page's own commands for them.
     home->SetLinesChanged([this] { WriteLinesFile(); });
     // A console's games that no script reads, for the wizard's way of reading one by hook.
@@ -885,12 +1029,102 @@ MainWindow::MainWindow() {
         watch->start();
     }
     home->SetScriptCommands([this](const QString& word, const QString& rest) {
+        // pad-setup [NAME]: a controller's first-use setup, for pictures (nothing is kept);
+        // pad-setup-press south: a button pressed in it, by place. controller-map: the map.
+        if (word == QStringLiteral("pad-setup")) {
+            OpenPadSetup({}, rest.trimmed().isEmpty() ? QStringLiteral("8BitDo Pro 2") : rest.trimmed(), Home::PadNames::Xbox);
+            return true;
+        }
+        if (word == QStringLiteral("pad-setup-press")) {
+            if (pad_setup != nullptr) {
+                static_cast<Home::PadSetup*>(pad_setup.data())->Pressed(rest.trimmed());
+            }
+            if (pad_setup != nullptr) {
+                static_cast<Home::PadSetup*>(pad_setup.data())->Released(rest.trimmed());
+            }
+            return true;
+        }
+        // pad-setup-chord south select: two buttons held together in the setup, then let go.
+        if (word == QStringLiteral("pad-setup-chord")) {
+            const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            for (const QString& part : parts) {
+                if (pad_setup != nullptr) {
+                    static_cast<Home::PadSetup*>(pad_setup.data())->Pressed(part);
+                }
+            }
+            for (const QString& part : parts) {
+                if (pad_setup != nullptr) {
+                    static_cast<Home::PadSetup*>(pad_setup.data())->Released(part);
+                }
+            }
+            return true;
+        }
+        if (word == QStringLiteral("controller-map")) {
+            OpenControllerMap(rest.trimmed() == QStringLiteral("shortcuts"));
+            return true;
+        }
+        // pad-virtual [NAME]: a made-up controller plugged in (SDL's virtual joystick), so that a
+        // test goes through everything a real pad's press does; pad-virtual-button N 1|0 presses
+        // or lets go its button N (SDL's number); pad-virtual-off unplugs it.
+        if (word == QStringLiteral("pad-virtual")) {
+            static QByteArray name;
+            name = (rest.trimmed().isEmpty() ? QStringLiteral("Test Pad") : rest.trimmed()).toUtf8();
+            SDL_VirtualJoystickDesc desc;
+            SDL_zero(desc);
+            desc.version = SDL_VIRTUAL_JOYSTICK_DESC_VERSION;
+            desc.type = SDL_JOYSTICK_TYPE_GAMECONTROLLER;
+            desc.naxes = SDL_CONTROLLER_AXIS_MAX;
+            desc.nbuttons = SDL_CONTROLLER_BUTTON_MAX;
+            desc.vendor_id = 0x1234;
+            desc.product_id = 0x5678;
+            desc.name = name.constData();
+            qInfo("controllers: virtual pad attached at %d", SDL_JoystickAttachVirtualEx(&desc));
+            return true;
+        }
+        if (word == QStringLiteral("pad-virtual-button")) {
+            const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+                if (SDL_JoystickIsVirtual(i)) {
+                    if (SDL_Joystick* joystick = SDL_JoystickFromInstanceID(SDL_JoystickGetDeviceInstanceID(i))) {
+                        SDL_JoystickSetVirtualButton(joystick, parts.value(0).toInt(), static_cast<Uint8>(parts.value(1).toInt()));
+                    }
+                }
+            }
+            return true;
+        }
+        if (word == QStringLiteral("pad-virtual-off")) {
+            for (int i = SDL_NumJoysticks() - 1; i >= 0; --i) {
+                if (SDL_JoystickIsVirtual(i)) {
+                    SDL_JoystickDetachVirtual(i);
+                }
+            }
+            return true;
+        }
         // map-press south: a controller's button pressed on the controller map, as a test has it.
         if (word == QStringLiteral("map-press")) {
             if (controller_screen != nullptr) {
                 controller_screen->Pressed(rest.trimmed(), true);
                 controller_screen->Pressed(rest.trimmed(), false);
             }
+            return true;
+        }
+        // pad-hold N: the controller's button N (SDL's number) held, as the development channel's
+        // pad-hold has it; -1 lets all go. Then what the console is handed, in the log.
+        if (word == QStringLiteral("pad-hold")) {
+            const int button = rest.trimmed().toInt();
+            steam_buttons = button >= 0 && button < 32 ? 1U << button : 0;
+            steam_seen = true;
+            return true;
+        }
+        // read WHAT: reading with the d-pad, a button's doing said by its name (ReadCommand).
+        if (word == QStringLiteral("read")) {
+            qInfo("read %s: %s", qPrintable(rest.trimmed()), qPrintable(ReadCommand(rest.trimmed())));
+            return true;
+        }
+        if (word == QStringLiteral("pad-say")) {
+            std::scoped_lock lock{pads_mutex};
+            qInfo("pad: buttons=0x%llx, popup %s", static_cast<unsigned long long>(gamepads[0].buttons),
+                  OpenPopup() != nullptr ? "open" : "closed");
             return true;
         }
         return LinesCommand(word, rest);
@@ -938,17 +1172,73 @@ MainWindow::MainWindow() {
     // Qt has the program's events: SDL's own handling of SIGINT and SIGTERM (a quit event
     // nobody reads) would keep the program from ending when it is asked to.
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    // SDL's buttons by their place (south, east, west, north) on every pad, a Nintendo one too:
+    // the program names them by the pad's kind (pad_names.h), and the game has them by place.
+    SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
+    // SDL's own ways of finding controllers are left as SDL has them (XInput, raw input and
+    // HIDAPI on Windows): SDL makes sure one pad is opened once. The log says which way found
+    // each (its GUID and path), so a pad seen twice would show there.
+#if defined(_WIN32)
+    // On Windows SDL 2 reads pads through raw input by default, whose messages go to a window of
+    // the thread that started it and are lost when nothing hands them on (the maintainer's
+    // 8BitDo, 2026-11-20: added through raw input, then not one press in the log). XInput pads
+    // (the 8BitDo in X-input mode, Xbox pads) are read through XInput instead, which is asked
+    // for each time; SDL's own thread takes the device messages that are left.
+    SDL_SetHint(SDL_HINT_JOYSTICK_RAWINPUT, "0");
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+#endif
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
+    {
+        // Mappings for pads SDL knows no layout of: the bundled SDL_GameControllerDB beside the
+        // program (PPSSPP's assets in an older package), then the user's own file in the
+        // program's folder, whose lines win.
+        const QString beside = QCoreApplication::applicationDirPath();
+        QStringList files;
+        for (const QString& file : {beside + QStringLiteral("/gamecontrollerdb.txt"), beside + QStringLiteral("/cores/ppsspp/gamecontrollerdb.txt")}) {
+            if (QFileInfo::exists(file)) {
+                files.append(file);
+                break;
+            }
+        }
+        if (const QString own = ProgramFolder() + QStringLiteral("/gamecontrollerdb.txt"); QFileInfo::exists(own)) {
+            files.append(own);
+        }
+#if defined(_WIN32)
+        const QString platform = QStringLiteral("platform:Windows");
+#elif defined(__APPLE__)
+        const QString platform = QStringLiteral("platform:Mac OS X");
+#else
+        const QString platform = QStringLiteral("platform:Linux");
+#endif
+        for (const QString& file : std::as_const(files)) {
+            const int added = SDL_GameControllerAddMappingsFromFile(QDir::toNativeSeparators(file).toUtf8().constData());
+            qInfo("controllers: %d mappings from %s%s", std::max(added, 0), qPrintable(QDir::toNativeSeparators(file)),
+                  added < 0 ? qPrintable(QStringLiteral(" (%1)").arg(QString::fromUtf8(SDL_GetError()))) : "");
+            if (QFile in(file); in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                while (!in.atEnd()) {
+                    const QString line = QString::fromUtf8(in.readLine()).trimmed();
+                    if (!line.startsWith(QLatin1Char('#')) && line.contains(platform)) {
+                        bundled_mappings.insert(line.section(QLatin1Char(','), 0, 0).toLower());
+                    }
+                }
+            }
+        }
+        if (files.isEmpty()) {
+            qInfo("controllers: no gamecontrollerdb.txt beside the program; SDL's own mappings only");
+        }
+    }
     connect(&home->Steam(), &SteamPad::ButtonChanged, this, [this](int button, bool down) {
         if (button >= 0 && button < 32) {
             steam_buttons = down ? steam_buttons | (1U << button) : steam_buttons & ~(1U << button);
             steam_seen = true;
+            steam_last = steam_last || down; // the Steam Controller is the one in the hand now
         }
     });
     connect(&home->Steam(), &SteamPad::AxisChanged, this, [this](int axis, int value) {
         if (axis >= 0 && axis < static_cast<int>(std::size(steam_axes))) {
             steam_axes[axis] = value;
             steam_seen = true;
+            steam_last = steam_last || std::abs(value) > 16000;
         }
     });
     pads_timer.setInterval(8);
@@ -997,6 +1287,9 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    // Why the program ends, for a log that otherwise stops as a crash would (2026-11-20).
+    qInfo("quitting: the window %s%s", event->spontaneous() ? "was closed by Windows or its close button" : "was closed by the program",
+          current != nullptr && current->session && current->session->Running() ? ", a game running" : "");
     EndLines();
     if (current != nullptr && current->session && current->session->Running()) {
         current->session->Stop();
@@ -1094,7 +1387,7 @@ bool MainWindow::StartSession(Loaded* entry, QString& error) {
     });
     // A core's message for the player (RetroAchievements' unlocks), where the game is shown.
     entry->session->SetNotifyCallback([this](const std::string& title, const std::string& text) {
-        ReaderUi::PostToGui([this, line = QString::fromStdString(title.empty() ? text : text.empty() ? title : title + " — " + text)] {
+        ReaderUi::PostToGui([this, line = QString::fromStdString(title.empty() ? text : text.empty() ? title : title + " · " + text)] {
             // A game that has ended (or never started) is on its way back to the page.
             const bool game_shown = pages->currentWidget() == screen && current != nullptr && !current->session->Ended();
             game_shown ? ReaderUi::Notify(line) : home->Notify(line);
@@ -1104,7 +1397,7 @@ bool MainWindow::StartSession(Loaded* entry, QString& error) {
         ReaderUi::PostToGui([what, slot, result, why = QString::fromStdString(message)] {
             if (result == 0) {
                 ReaderUi::Notify(what == 0 ? QStringLiteral("Saved to slot %1").arg(slot)
-                                           : QStringLiteral("Slot %1 loaded").arg(slot));
+                                           : QStringLiteral("Loaded slot %1").arg(slot));
             } else {
                 ReaderUi::Notify((what == 0 ? QStringLiteral("Couldn't save to slot %1") : QStringLiteral("Couldn't load slot %1"))
                                      .arg(slot) +
@@ -1456,8 +1749,8 @@ MainWindow::Loaded* MainWindow::CoreFor(const QString& app, const QString& path,
     if (!by_type.isEmpty()) {
         return by_type.first();
     }
-    error = app.isEmpty() ? QStringLiteral("Unsupported file type: .%1").arg(suffix)
-                          : QStringLiteral("%1 games aren't supported").arg(app);
+    error = app.isEmpty() ? QStringLiteral("Couldn't open this file: no installed emulator plays .%1 files").arg(suffix)
+                          : QStringLiteral("Couldn't start the game: no emulator for it is installed");
     return nullptr;
 }
 
@@ -1544,7 +1837,7 @@ bool MainWindow::Play(const QString& chosen, const QString& app, QString& error)
                 // The wizard's game: it says which it is now, and goes on the shelf read by OCR.
                 ocr_pending.clear();
                 if (HasScript(id)) {
-                    ReaderUi::Notify(QStringLiteral("This game already has a script"));
+                    ReaderUi::Notify(QStringLiteral("This game already has a game script, so it needs no OCR"));
                 } else if (Lines::Sources sources = Lines::Load(SharedFolder()); Lines::GameOf(sources, id) == nullptr) {
                     Lines::SetGame(sources, PlayingCoreGame());
                     Lines::Save(SharedFolder(), sources);
@@ -1652,7 +1945,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
         title = Lines::PathOf(known) == path ? &known : title;
     }
     if (title == nullptr) {
-        error = QStringLiteral("No game uses %1").arg(path);
+        error = QStringLiteral("Couldn't find this game in the library. Add it again");
         return false;
     }
     const bool by_ocr = title->by == QStringLiteral("ocr");
@@ -1692,7 +1985,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
         ReaderUi::UseSource(lines);
         connect(lines, &LineSource::StatusChanged, strip, [this] {
             if (lines->Running()) {
-                strip->SetHead(lines->Title(), QStringLiteral("LINES  ·  ") + lines->Describe().label, lines->Status());
+                strip->SetHead(lines->Title(), lines->Describe().label.toUpper(), lines->Said());
             }
         });
     }
@@ -1705,7 +1998,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
         overlay = new OcrOverlay(this);
         connect(ocr, &OcrSource::StatusChanged, strip, [this] {
             if (ocr->Running()) {
-                strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), ocr->Status());
+                strip->SetHead(ocr->Title(), QStringLiteral("OCR · WINDOW"), ocr->Said());
             }
         });
         connect(ocr, &OcrSource::ScreenChanged, this, [this] { PlaceOverlay(); });
@@ -1717,7 +2010,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
             }
             ocr->ReadAsked([this](bool ok, const QString& what) {
                 if (!ok && ocr != nullptr && ocr->Running()) {
-                    strip->SetHead(ocr->Title(), QStringLiteral("WINDOW  ·  OCR"), what.isEmpty() ? QStringLiteral("No text read") : what);
+                    strip->SetHead(ocr->Title(), QStringLiteral("OCR · WINDOW"), what.isEmpty() ? QStringLiteral("No text found in the text areas") : what);
                 }
             });
         };
@@ -1748,8 +2041,7 @@ bool MainWindow::ReadLines(const QString& path, QString& error) {
     strip->SetLine({});
     strip->Place();
     strip->show();
-    home->Notify(by_ocr ? QStringLiteral("%1 · Window \"%2\": %3").arg(title->title, title->window, ocr->Status())
-                        : QStringLiteral("%1 · Lines: %2").arg(title->title, lines->Status()));
+    home->Notify(QStringLiteral("%1 · %2").arg(title->title, by_ocr ? ocr->Said() : lines->Said()));
     return true;
 }
 
@@ -1774,7 +2066,7 @@ bool MainWindow::ReadHook(const Lines::Title& title, QString& error) {
         connect(hook, &ReaderUi::ReadingSource::Ended, this, [] { Loopback::Instance().Stop(); });
         connect(hook, &HookSource::StatusChanged, strip, [this] {
             if (hook->Running()) {
-                strip->SetHead(hook->Title(), hook->Label(), hook->Status());
+                strip->SetHead(hook->Title(), hook->Label(), hook->Said());
             }
         });
     }
@@ -1807,7 +2099,7 @@ bool MainWindow::ReadHook(const Lines::Title& title, QString& error) {
     strip->SetLine({});
     strip->Place();
     strip->show();
-    home->Notify(QStringLiteral("%1 · Hook: %2").arg(title.title, hook->Status()));
+    home->Notify(QStringLiteral("%1 · %2").arg(title.title, hook->Said()));
     return true;
 }
 
@@ -1963,7 +2255,7 @@ void MainWindow::StartCoreOcr() {
             const QString state = status.section(QStringLiteral(" · "), 0, 0);
             if (core_ocr->Running() && !state.isEmpty() && state != ocr_said && state != QStringLiteral("not asked yet") && state != QStringLiteral("answers")) {
                 ocr_said = state;
-                ReaderUi::Notify(QStringLiteral("OCR: ") + status);
+                ReaderUi::Notify(state == QStringLiteral("reading") ? QStringLiteral("OCR is reading this game") : core_ocr->Said());
             }
         });
     }
@@ -2008,7 +2300,7 @@ void MainWindow::AskCoreArea() {
             return;
         }
         if (picture.isNull()) {
-            ReaderUi::Notify(QStringLiteral("No game image to select from"));
+            ReaderUi::Notify(QStringLiteral("Couldn't take a picture of the game. Try again once it shows something"));
             return;
         }
         StopCoreOcr();
@@ -2054,7 +2346,7 @@ void MainWindow::ReadAskedBoxes() {
     }
     core_ocr->ReadAsked([](bool ok, const QString& what) {
         if (!ok) {
-            ReaderUi::Notify(what.isEmpty() ? QStringLiteral("No text read") : what);
+            ReaderUi::Notify(what.isEmpty() ? QStringLiteral("No text found in the text areas") : what);
         }
     });
 }
@@ -2296,7 +2588,7 @@ Home::ControllerMap::Store MainWindow::ControllerStore() {
     return store;
 }
 
-void MainWindow::OpenControllerMap() {
+void MainWindow::OpenControllerMap(bool shortcuts) {
     if (controller_screen != nullptr) {
         return;
     }
@@ -2314,6 +2606,9 @@ void MainWindow::OpenControllerMap() {
                                                  home->setFocus();
                                                  home->Refresh();
                                              });
+    if (shortcuts) {
+        controller_screen->ShowShortcuts();
+    }
     // While it is open every button comes to it as it is: the Steam Controller's too, and its back.
     home->Steam().SetGameMode(true);
     ReaderUi::CaptureBackButtons([this](int back) {
@@ -2358,9 +2653,31 @@ void MainWindow::MakeGuideKeys() {
     auto* full_key = new QAction(this);
     full_key->setObjectName(QStringLiteral("furoshiki_full_screen"));
     connect(full_key, &QAction::triggered, this, [this] { ToggleFullScreen(); });
+    auto* read_key = new QAction(this);
+    read_key->setObjectName(QStringLiteral("furoshiki_read"));
+    connect(read_key, &QAction::triggered, this, [this] { ReadCommand(QStringLiteral("toggle")); });
+    // The text panel (the strip of lines from a hook, OCR or the clipboard) shown or hidden.
+    auto* panel_key = new QAction(this);
+    panel_key->setObjectName(QStringLiteral("furoshiki_text_panel"));
+    connect(panel_key, &QAction::triggered, this, [this] { ToggleTextPanel(); });
+    addAction(panel_key);
     auto* settings_key = new QAction(this);
     settings_key->setObjectName(QStringLiteral("furoshiki_settings"));
     connect(settings_key, &QAction::triggered, this, [this] { OpenSettings(); });
+    // Ctrl+Q quits from anywhere: the library, a page, over a game (as Quit Furoshiki in its menu).
+    auto* quit_key = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Q), this);
+    quit_key->setContext(Qt::ApplicationShortcut);
+    connect(quit_key, &QShortcut::activated, this, [this] {
+        qInfo("quitting: Ctrl+Q");
+        close();
+    });
+}
+
+void MainWindow::ToggleTextPanel() {
+    if (strip == nullptr) {
+        return; // no text panel: nothing is read from lines, a window or a hook now
+    }
+    strip->setVisible(!strip->isVisible());
 }
 
 void MainWindow::ToggleGuide() {
@@ -2612,8 +2929,37 @@ void MainWindow::FindGames() {
             home->SetUnreadGames(unread);
             ShelveOcrGames(); // one read by OCR whose file is in no folder looked through
             home->Refresh();
+            if (!announce_console.isEmpty()) {
+                // A folder was added or a game script installed: what the library has of that console now.
+                const QString key = std::exchange(announce_console, QString());
+                const QString name = ConsoleFull(key, key.toUpper());
+                const qsizetype have = own_games[key].size();
+                const qsizetype without = std::count_if(unread.cbegin(), unread.cend(), [&](const HomeWindow::UnreadGame& game) { return game.console == key; });
+                home->Say(have > 0      ? (have == 1 ? QStringLiteral("1 %1 game in the library") : QStringLiteral("%2 %1 games in the library").arg(have)).arg(name)
+                          : without > 0 ? QStringLiteral("No %1 game there has a game script yet. Install game scripts in Settings, Consoles, or add one game to read by OCR").arg(name)
+                                        : QStringLiteral("No %1 games found in the game folders").arg(name));
+            }
         }, Qt::QueuedConnection);
     });
+}
+
+void MainWindow::OpenGameScripts(const QString& key) {
+    if (current != nullptr && key != QString::fromUtf8(current->core.info->key)) {
+        home->Say(QStringLiteral("Quit the game first: it is another console's"));
+        return;
+    }
+    for (auto& [file, entry] : loaded) {
+        if (key != QString::fromUtf8(entry->core.info->key)) {
+            continue;
+        }
+        if (current == nullptr) {
+            ApplyConsole(*entry->core.info); // the list asked for is this console's
+        }
+        ReaderUi::RunGameScriptsDialog(this);
+        announce_console = key;
+        FindGames();
+        return;
+    }
 }
 
 void MainWindow::StatsChanged() {
@@ -2683,17 +3029,17 @@ HomeWindow::ConsoleSetup MainWindow::SetupOf(const QString& key) const {
         const QStringList bios = files({QStringLiteral("*.bin"), QStringLiteral("*.BIN")}, key == QStringLiteral("ps1") ? 512 * 1024 : 4 * 1024 * 1024);
         setup.ready = !bios.isEmpty();
         setup.status = setup.ready ? QStringLiteral("BIOS %1").arg(bios.join(QStringLiteral(", ")))
-                                   : QStringLiteral("BIOS REQUIRED");
+                                   : QStringLiteral("BIOS MISSING");
     } else if (key == QStringLiteral("switch")) {
         setup.ready = folder.exists(QStringLiteral("prod.keys"));
         const bool firmware = QDir(setup.system_folder + QStringLiteral("/nand/system/Contents/registered")).isEmpty() == false;
         setup.status = setup.ready ? QStringLiteral("KEYS FOUND%1").arg(firmware ? QStringLiteral(", FIRMWARE INSTALLED") : QStringLiteral(", NO FIRMWARE"))
-                                   : QStringLiteral("PROD.KEYS REQUIRED");
+                                   : QStringLiteral("PROD.KEYS MISSING");
     } else if (key == QStringLiteral("dc")) {
         const QStringList bios = files({QStringLiteral("dc_boot.bin"), QStringLiteral("dc/dc_boot.bin")}, 0);
         setup.status = bios.isEmpty() && !folder.exists(QStringLiteral("dc/dc_boot.bin"))
-                           ? QStringLiteral("OPTIONAL (DC_BOOT.BIN)")
-                           : QStringLiteral("YOUR DREAMCAST'S BIOS");
+                           ? QStringLiteral("NO BIOS (OPTIONAL)")
+                           : QStringLiteral("BIOS FOUND");
     } else if (key == QStringLiteral("3ds")) {
         setup.status = folder.exists(QStringLiteral("sysdata/aes_keys.txt")) || folder.exists(QStringLiteral("aes_keys.txt"))
                            ? QStringLiteral("AES KEYS FOUND")
@@ -2833,6 +3179,41 @@ void MainWindow::SendWindow() {
     current->session->SetWindow(window);
 }
 
+void MainWindow::ShowPopupPreview() {
+    if (popup_preview == nullptr || popup_preview_place.isEmpty()) {
+        return;
+    }
+    auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+    const auto value = [&](const QString& key) { return settings.Value(key).toString(); };
+    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(value(QStringLiteral("reader_popup_theme")));
+    if (theme == QStringLiteral("classic")) {
+        theme = QStringLiteral("console");
+    }
+    const QString mark = value(QStringLiteral("reader_popup_mark_unknown"));
+    const QJsonObject model{{QStringLiteral("entries"), ReaderApp::PopupModel::Sample()},
+                            {QStringLiteral("corner"), settings.CardCorner()},
+                            {QStringLiteral("duplicates"), false},
+                            {QStringLiteral("markUnknown"), mark != QStringLiteral("false") && mark != QStringLiteral("0")},
+                            {QStringLiteral("scale"), settings.PopupScale()},
+                            {QStringLiteral("look"), PopupStyle::LookOf(value)},
+                            {QStringLiteral("labels"), QJsonObject{{QStringLiteral("forms"), QStringLiteral("forms")},
+                                                                   {QStringLiteral("more"), QStringLiteral("more")}}}};
+    const QString css = settings.PopupCss();
+    const QString now = theme + QLatin1Char('\n') + css + QLatin1Char('\n') + QString::number(settings.PopupFitEntry()) +
+                        QString::number(settings.PopupHeightPercent()) + QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact));
+    if (now == popup_preview_shown) {
+        return; // nothing changed since it was last drawn
+    }
+    popup_preview_shown = now;
+    const auto text = [](const QString& said) {
+        return QString::fromUtf8(QJsonDocument(QJsonArray{said}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
+    };
+    popup_preview->Call(QStringLiteral("Reader.setStyle(\"console\", %1)").arg(text(ReaderUi::LookupPopup::ConsoleStyle())));
+    popup_preview->Call(QStringLiteral("Reader.setStyle(\"theme\", %1)").arg(text(ReaderUi::LookupPopup::ThemeStyle(theme))));
+    popup_preview->Call(QStringLiteral("Reader.setStyle(\"user\", %1)").arg(text(css)));
+    popup_preview->Call(QStringLiteral("Reader.show(%1)").arg(QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact))));
+}
+
 void MainWindow::PollPads() {
     // The game ended (by itself, or it never started): Furoshiki's page again.
     if (current != nullptr && current->session && current->session->Ended() && pages->currentWidget() == screen) {
@@ -2840,34 +3221,103 @@ void MainWindow::PollPads() {
     }
 
     SDL_GameControllerUpdate();
-    // Controllers gone are let go; one that comes takes the next port, in the order they came.
-    std::erase_if(sdl_pads, [](SDL_GameController* pad) {
-        if (SDL_GameControllerGetAttached(pad)) {
-            return false;
-        }
-        SDL_GameControllerClose(pad);
-        return true;
-    });
-    for (int i = 0; i < SDL_NumJoysticks(); ++i) {
-        if (!SDL_IsGameController(i)) {
-            continue;
-        }
-        const SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
-        const bool open = std::any_of(sdl_pads.cbegin(), sdl_pads.cend(), [id](SDL_GameController* pad) {
-            return SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)) == id;
-        });
-        if (!open) {
-            if (SDL_GameController* pad = SDL_GameControllerOpen(i)) {
-                sdl_pads.push_back(pad);
+    OpenPads();
+    // The controller in use is the one last pressed (a button, a trigger or a stick pushed past
+    // halfway): any of SDL's, or the Steam Controller through the bridge.
+    for (SDL_GameController* each : sdl_pads) {
+        uint64_t now_in = 0;
+        for (int b = 0; b < SDL_CONTROLLER_BUTTON_MAX; ++b) {
+            if (SDL_GameControllerGetButton(each, static_cast<SDL_GameControllerButton>(b)) != 0) {
+                now_in |= uint64_t{1} << b;
             }
         }
+        for (int a = 0; a < SDL_CONTROLLER_AXIS_MAX; ++a) {
+            const int value = SDL_GameControllerGetAxis(each, static_cast<SDL_GameControllerAxis>(a));
+            if (value > 16000) {
+                now_in |= uint64_t{1} << (32 + 2 * a);
+            } else if (value < -16000) {
+                now_in |= uint64_t{1} << (33 + 2 * a);
+            }
+        }
+        const int id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(each));
+        uint64_t& before = pad_input_held[id];
+        if ((now_in & ~before) != 0) {
+            if (!pads_pressed.contains(id)) {
+                pads_pressed.insert(id); // the log says that its presses arrive, once
+                qInfo("controllers: first press from %s", qPrintable(PadName(each)));
+            }
+            if (active_pad != id) {
+                qInfo("controllers: in use now: %s", SDL_GameControllerName(each) != nullptr ? SDL_GameControllerName(each) : "(no name)");
+            }
+            active_pad = id;
+            steam_last = false;
+        }
+        before = now_in;
     }
-    SDL_GameController* pad = sdl_pads.empty() ? nullptr : sdl_pads.front();
+    SDL_GameController* pad = ActivePad();
+    // What its buttons are called, wherever they are shown: said again when it changes.
+    if (const Home::PadNames::Names names = NamesInUse(); !(names == pad_names)) {
+        pad_names = names;
+        pad_style = names.family;
+        Home::PadNames::SetCurrent(names);
+        SetPopupKeys();
+        if (ReaderUi::LookupFlow* open = OpenPopup(); open != nullptr && open->Popup() != nullptr) {
+            open->Popup()->RefreshPad();
+        }
+        home->update();
+    }
+    if (controller_screen != nullptr) {
+        controller_screen->SetHand(PadInUseName(), pad_names, home->Steam().Connected());
+    }
     // A controller's button by SDL's number: SDL's controller or the Steam Controller.
     const auto button = [this, pad](int sdl) {
         return (pad != nullptr && SDL_GameControllerGetButton(pad, static_cast<SDL_GameControllerButton>(sdl)) != 0) ||
                (steam_buttons & (1U << sdl)) != 0;
     };
+    // A controller used for the first time is asked which letters it has (pad_setup.h), once,
+    // before it does anything else; the Steam Controller has its own and is not asked.
+    if (pad != nullptr && !steam_last && pad_setup == nullptr && controller_screen == nullptr && active_pad >= 0) {
+        const QString key = PadKey(pad);
+        if (StoredLayout(key) < 0 && !pad_setup_skipped.contains(key)) {
+            OpenPadSetup(key, PadInUseName(), ReportedLayout());
+        }
+    }
+    if (pad_setup != nullptr) {
+        // Every button is the setup's while it is open, by place; what was held as it opened says
+        // nothing until it is let go. The game and the page hear nothing.
+        // Every button by its input's id ("south", "l3", "select"), pressed and let go, so that a
+        // shortcut can be learnt from one button or two held together.
+        uint32_t now_held = 0;
+        for (std::size_t i = 0; i < std::size(Roles); ++i) {
+            const Role& role = Roles[i];
+            const bool down = role.sdl >= 0 ? button(role.sdl)
+                                            : (pad != nullptr && SDL_GameControllerGetAxis(pad, role.filter == 104 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT
+                                                                                                                     : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000) ||
+                                                  steam_axes[role.filter == 104 ? ReaderApp::SteamBridge::LeftTrigger : ReaderApp::SteamBridge::RightTrigger] > 16000;
+            if (down) {
+                now_held |= 1U << i;
+            }
+        }
+        const uint32_t pressed = now_held & ~pad_setup_held;
+        const uint32_t released = pad_setup_held & ~now_held & ~pad_setup_ignored;
+        pad_setup_ignored &= now_held; // held as it opened: nothing until let go
+        pad_setup_held = now_held;
+        for (std::size_t i = 0; i < std::size(Roles); ++i) {
+            const Home::ControllerMap::Input* input = Home::ControllerMap::InputByNumber(Roles[i].filter);
+            if (input == nullptr || pad_setup == nullptr) {
+                continue;
+            }
+            auto* setup = static_cast<Home::PadSetup*>(pad_setup.data());
+            if ((pressed & (1U << i)) != 0) {
+                setup->Pressed(input->id);
+            } else if ((released & (1U << i)) != 0) {
+                setup->Released(input->id);
+            }
+        }
+        std::scoped_lock lock{pads_mutex};
+        std::fill(std::begin(gamepads), std::end(gamepads), reader_core_pad{});
+        return;
+    }
     // The controller map (controller_screen.h) has every button as it is while it is open:
     // learnt, lit on its drawing, or its own keys. What was held as it opened does nothing.
     if (controller_screen != nullptr) {
@@ -2970,6 +3420,302 @@ void MainWindow::PollPads() {
         std::fill(std::begin(gamepads), std::end(gamepads), reader_core_pad{});
         return;
     }
+    // An open dictionary popup is modal, as on Android (PopupKeys): the d-pad goes from entry to
+    // entry, L1 and R1 from tab to tab (words, grammar, kanji, names), north makes a card of the
+    // entry without the line's audio and east one with it, south closes it, and the left stick
+    // scrolls. By position, as SDL numbers them: on the Steam Controller Y is north, B east, A
+    // south, X west. The game hears none of the controller meanwhile, and a button pressed in the
+    // popup stays away from it until it is let go (A closing the popup does not press A in the
+    // game). The cursor's button, the menu's (Guide; Select and Start) and the back grips stay theirs.
+    static uint32_t popup_swallow = 0; // by SDL's number; bits 30 and 31 the triggers
+    ReaderUi::LookupFlow* const open_popup = OpenPopup();
+    // Reading with the d-pad (below): buttons kept from the game for now (what starts reading,
+    // and a button of a two-button start for a moment), ones it has a moment late, and whether
+    // the text has the buttons (an open popup is then not modal: the left stick is the game's).
+    uint32_t read_hide = 0;
+    uint32_t read_ghost = 0;
+    bool read_text = false;
+    {
+        const int cursor = ReaderUi::ReaderSession::Instance().Settings().CursorButton();
+        const auto trigger_down = [&](bool left) {
+            return (pad != nullptr && SDL_GameControllerGetAxis(pad, left ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000) ||
+                   steam_axes[left ? ReaderApp::SteamBridge::LeftTrigger : ReaderApp::SteamBridge::RightTrigger] > 16000;
+        };
+        uint32_t down_now = 0;
+        for (const Role& role : Roles) {
+            if (role.filter == cursor || role.sdl == SDL_CONTROLLER_BUTTON_GUIDE) {
+                continue;
+            }
+            if (role.sdl >= 0 ? button(role.sdl) : trigger_down(role.filter == 104)) {
+                down_now |= 1U << (role.sdl >= 0 ? role.sdl : role.filter == 104 ? 30 : 31);
+            }
+        }
+        // A controller is the input from its first press or push of a stick, whether or not a
+        // popup is open: the popup then comes up with its buttons marked (the maintainer,
+        // 2026-11-20: the marks only showed after a button was pressed in the popup).
+        bool pushed = false;
+        if (pad != nullptr) {
+            for (const SDL_GameControllerAxis axis : {SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_AXIS_LEFTY,
+                                                      SDL_CONTROLLER_AXIS_RIGHTX, SDL_CONTROLLER_AXIS_RIGHTY}) {
+                pushed = pushed || std::abs(SDL_GameControllerGetAxis(pad, axis)) > 16000;
+            }
+        }
+        for (const int axis : steam_axes) {
+            pushed = pushed || std::abs(axis) > 16000;
+        }
+        if ((down_now != 0 || pushed) && !ReaderUi::LookupPopup::PadInUse()) {
+            // A controller is the input: the popup marks its buttons, by the letters on them
+            // (pad_names, set above for the controller in use).
+            SetPopupKeys();
+            ReaderUi::LookupPopup::SetPadInUse(true);
+            home->update(); // its feet show the controller's buttons now
+        }
+        // Reading with the d-pad, no pointer (docs/furoshiki-3.md, 31; the cursor and its words are
+        // ReaderController's). On the text the d-pad goes from word to word and line to line, the
+        // bumpers to the next word not in Anki, the right stick makes the match shorter or longer
+        // and scrolls the popup, north and east make cards, west goes into the popup (the modal
+        // layer below, where west or south come back). South, Start, the left stick and the
+        // triggers stay the game's, so the game is advanced without leaving. While a choice is up
+        // every button is the game's. What the reader takes stays from the game until let go.
+        using ReadState = ReaderUi::ReaderController::ReadState;
+        using ReadKey = ReaderUi::ReaderController::ReadKey;
+        ReaderUi::ReaderController* const reader = ReaderUi::GameController();
+        const auto bit = [](int sdl) { return 1U << sdl; };
+        const QString read_start = ReaderUi::ReaderSession::Instance().Settings().ReadStart();
+        const bool read_always = read_start == QStringLiteral("always");
+        const uint32_t start_mask =
+            read_always                                  ? 0
+            : read_start == QStringLiteral("l3")         ? bit(SDL_CONTROLLER_BUTTON_LEFTSTICK)
+            : read_start == QStringLiteral("r3")         ? bit(SDL_CONTROLLER_BUTTON_RIGHTSTICK)
+            : read_start == QStringLiteral("select+a")   ? bit(SDL_CONTROLLER_BUTTON_BACK) | bit(SDL_CONTROLLER_BUTTON_A)
+            : read_start == QStringLiteral("l3+r3")      ? bit(SDL_CONTROLLER_BUTTON_LEFTSTICK) | bit(SDL_CONTROLLER_BUTTON_RIGHTSTICK)
+            : read_start == QStringLiteral("lb+rb")      ? bit(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) | bit(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
+                                                         : bit(SDL_CONTROLLER_BUTTON_BACK);
+        const bool can_read = reader != nullptr && game_shown && ReaderUi::ReaderSession::Instance().IsActive();
+        static uint32_t start_held = 0;
+        static bool start_tap = false;
+        static qint64 start_since = 0;
+        static bool start_fired = false;
+        static std::deque<std::pair<qint64, uint32_t>> start_history;
+        const uint32_t start_down = down_now & start_mask;
+        // A pointer really used ended reading (ReaderController::ReadPointerUsed): with "Always"
+        // it does not start again by itself.
+        static int pointer_ends = 0;
+        static bool always_waits = false;
+        static uint32_t always_held = 0;
+        if (reader != nullptr && reader->ReadPointerEnds() != pointer_ends) {
+            pointer_ends = reader->ReadPointerEnds();
+            always_waits = true;
+        }
+        if (!read_always || reader == nullptr || !game_shown) {
+            always_waits = false;
+        }
+        static bool was_always = false;
+        if (was_always && !read_always && reader != nullptr && reader->Reading()) {
+            reader->SetReading(false); // "Always" was just switched off in the settings
+        }
+        was_always = read_always;
+        if (!can_read) {
+            if (reader != nullptr && reader->Reading()) {
+                reader->SetReading(false);
+            }
+            start_history.clear();
+            start_fired = false;
+        } else if (read_always) {
+            // After a pointer ended it, "Always" waits for the d-pad or a bumper (with a line
+            // up): a pointer in use is not fought. That press starts reading and does no more.
+            const uint32_t wakes = bit(SDL_CONTROLLER_BUTTON_DPAD_UP) | bit(SDL_CONTROLLER_BUTTON_DPAD_DOWN) |
+                                   bit(SDL_CONTROLLER_BUTTON_DPAD_LEFT) | bit(SDL_CONTROLLER_BUTTON_DPAD_RIGHT) |
+                                   bit(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) | bit(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            const uint32_t woke = down_now & ~always_held & wakes;
+            if (!reader->Reading() && always_waits && woke != 0 && !ReaderUi::ReaderSession::Instance().OnScreen().isEmpty()) {
+                always_waits = false;
+                popup_swallow |= woke;
+            }
+            if (!reader->Reading() && !always_waits) {
+                reader->SetReading(true);
+            }
+            start_history.clear();
+        } else if ((start_mask & (start_mask - 1)) == 0) {
+            // One button: a tap of it alone, counted as it is let go (held with Start it is the
+            // menu's, with a bumper the guide's). The game never has it.
+            if ((start_down & ~start_held) != 0) {
+                start_tap = (down_now & ~start_mask) == 0;
+                start_since = now;
+            }
+            if (start_down != 0 && ((down_now & ~start_mask) != 0 || both)) {
+                start_tap = false;
+            }
+            if (start_down == 0 && start_held != 0 && start_tap && now - start_since < 700) {
+                reader->SetReading(!reader->Reading());
+            }
+            read_hide = start_down;
+            start_history.clear();
+        } else {
+            // Two buttons together: the game hears neither. Each alone is the game's, a moment
+            // late (the game has them as they were 70 ms ago), so that the second can still come.
+            if (start_down == start_mask && !start_fired) {
+                start_fired = true;
+                start_history.clear();
+                reader->SetReading(!reader->Reading());
+            }
+            if (start_fired) {
+                read_hide = start_down;
+                start_fired = start_down != 0;
+            } else {
+                start_history.emplace_back(now, start_down);
+                while (start_history.size() > 1 && start_history[1].first <= now - 70) {
+                    start_history.pop_front();
+                }
+                const uint32_t late = start_history.front().first <= now - 70 ? start_history.front().second : 0;
+                read_hide = start_down & ~late;
+                read_ghost = late & ~start_down;
+            }
+        }
+        start_held = start_down;
+        always_held = down_now;
+        // The buttons as the reading has them: without what starts it, with what comes late.
+        const uint32_t seen = (down_now & ~read_hide) | read_ghost;
+        static uint32_t seen_held = 0;
+        const uint32_t seen_pressed = seen & ~seen_held & ~popup_swallow;
+        seen_held = seen;
+        const ReadState read_state = reader != nullptr ? reader->ReadingState() : ReadState::Off;
+        static ReadState read_was = ReadState::Off;
+        if (read_state == ReadState::Game && read_was != ReadState::Game && read_was != ReadState::Off) {
+            reader->Lookups().Close(); // a choice is up: the buttons are the game's until the next line
+        }
+        read_was = read_state;
+        uint32_t popup_skip = 0;
+        if (read_state == ReadState::Text || (read_state == ReadState::Idle && !read_always)) {
+            read_text = true;
+            uint32_t taken = bit(SDL_CONTROLLER_BUTTON_DPAD_UP) | bit(SDL_CONTROLLER_BUTTON_DPAD_DOWN) | bit(SDL_CONTROLLER_BUTTON_DPAD_LEFT) |
+                             bit(SDL_CONTROLLER_BUTTON_DPAD_RIGHT) | bit(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) |
+                             bit(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) | bit(SDL_CONTROLLER_BUTTON_X) | bit(SDL_CONTROLLER_BUTTON_Y) |
+                             bit(SDL_CONTROLLER_BUTTON_B);
+            // The d-pad and the bumpers repeat while held, faster as they go.
+            static const std::pair<int, ReadKey> repeating[] = {
+                {SDL_CONTROLLER_BUTTON_DPAD_LEFT, ReadKey::Left},             {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, ReadKey::Right},
+                {SDL_CONTROLLER_BUTTON_DPAD_UP, ReadKey::Up},                 {SDL_CONTROLLER_BUTTON_DPAD_DOWN, ReadKey::Down},
+                {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, ReadKey::UnknownBefore}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, ReadKey::UnknownNext},
+            };
+            static int repeat_button = -1;
+            static qint64 repeat_at = 0;
+            static int repeats = 0;
+            for (const auto& [sdl, key] : repeating) {
+                if ((seen_pressed & bit(sdl)) != 0) {
+                    reader->ReadKeyPressed(key);
+                    repeat_button = sdl;
+                    repeat_at = now + 380;
+                    repeats = 0;
+                } else if (repeat_button == sdl) {
+                    if ((seen & bit(sdl)) == 0) {
+                        repeat_button = -1;
+                    } else if (now >= repeat_at) {
+                        reader->ReadKeyPressed(key);
+                        repeat_at = now + std::max(60, 170 - 18 * ++repeats);
+                    }
+                }
+            }
+            if (read_state == ReadState::Text) {
+                if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_X)) != 0) {
+                    reader->ReadKeyPressed(ReadKey::Popup);
+                }
+                if (open_popup != nullptr && open_popup == &reader->Lookups()) {
+                    if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_Y)) != 0) {
+                        open_popup->OnPad(ReaderUi::LookupFlow::PadKey::Card);
+                    }
+                    if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_B)) != 0) {
+                        open_popup->OnPad(ReaderUi::LookupFlow::PadKey::CardWithAudio);
+                    }
+                    if (open_popup->IsAsking()) {
+                        // A card's question about its audio is up: south answers "neither", and
+                        // does not go on in the game.
+                        taken |= bit(SDL_CONTROLLER_BUTTON_A);
+                        if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_A)) != 0) {
+                            open_popup->OnPad(ReaderUi::LookupFlow::PadKey::Close);
+                        }
+                    }
+                }
+                // The right stick: across, the match a character shorter or longer (once a
+                // flick); up and down scroll the popup.
+                const auto right_stick = [&](SDL_GameControllerAxis sdl_axis, int steam_axis) {
+                    const int from_sdl = pad != nullptr ? SDL_GameControllerGetAxis(pad, sdl_axis) : 0;
+                    const int from_steam = steam_axes[steam_axis];
+                    return std::abs(from_steam) > std::abs(from_sdl) ? from_steam : from_sdl;
+                };
+                static int flick = 0;
+                const int across = right_stick(SDL_CONTROLLER_AXIS_RIGHTX, ReaderApp::SteamBridge::RightX);
+                const int flick_now = across > 20000 ? 1 : across < -20000 ? -1 : std::abs(across) < 10000 ? 0 : flick;
+                if (flick_now != flick && flick_now != 0) {
+                    reader->ReadKeyPressed(flick_now > 0 ? ReadKey::Longer : ReadKey::Shorter);
+                }
+                flick = flick_now;
+                if (open_popup != nullptr) {
+                    open_popup->PadScroll(static_cast<float>(right_stick(SDL_CONTROLLER_AXIS_RIGHTY, ReaderApp::SteamBridge::RightY)) / 32767.0F);
+                }
+            }
+            popup_swallow |= down_now & taken;
+        } else if (read_state == ReadState::Popup) {
+            // In the popup west or south go back to the text (south does not close it here).
+            popup_skip = bit(SDL_CONTROLLER_BUTTON_A) | bit(SDL_CONTROLLER_BUTTON_X);
+            if ((seen_pressed & popup_skip) != 0) {
+                reader->ReadKeyPressed(ReadKey::Text);
+            }
+        }
+        if (read_state == ReadState::Text || read_state == ReadState::Popup || (read_state == ReadState::Idle && !read_always)) {
+            // While reading the triggers go from tab to tab of the popup (the bumpers are the
+            // words not in Anki on the text), and are kept from the game as long as they are held.
+            const uint32_t triggers = (1U << 30) | (1U << 31);
+            if (open_popup != nullptr && open_popup == &reader->Lookups()) {
+                if ((seen_pressed & (1U << 30)) != 0) {
+                    open_popup->OnPad(ReaderUi::LookupFlow::PadKey::TabBefore);
+                }
+                if ((seen_pressed & (1U << 31)) != 0) {
+                    open_popup->OnPad(ReaderUi::LookupFlow::PadKey::TabNext);
+                }
+            }
+            popup_swallow |= down_now & triggers;
+        }
+        // The popup's marks at the ends of its tabs: the triggers while reading, else the bumpers.
+        static int keys_reading = -1;
+        if (const int now_reading = read_state != ReadState::Off ? 1 : 0; now_reading != keys_reading) {
+            keys_reading = now_reading;
+            SetPopupKeys();
+            if (open_popup != nullptr && open_popup->Popup() != nullptr) {
+                open_popup->Popup()->RefreshPad();
+            }
+        }
+        ShowReadHud();
+        static uint32_t popup_held = 0;
+        if (open_popup != nullptr && !read_text) {
+            using Key = ReaderUi::LookupFlow::PadKey;
+            const std::pair<int, Key> popup_keys[] = {
+                {SDL_CONTROLLER_BUTTON_DPAD_UP, Key::EntryBefore},   {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Key::EntryNext},
+                {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Key::TabBefore}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Key::TabNext},
+                {SDL_CONTROLLER_BUTTON_Y, Key::Card},                {SDL_CONTROLLER_BUTTON_B, Key::CardWithAudio},
+                {SDL_CONTROLLER_BUTTON_A, Key::Close},
+            };
+            // Select held: its chords with L1 and R1 are the guide's, not the tabs'.
+            const uint32_t pressed = button(SDL_CONTROLLER_BUTTON_BACK) ? 0 : down_now & ~popup_held & ~popup_swallow & ~popup_skip;
+            for (const auto& [sdl, key] : popup_keys) {
+                if ((pressed & (1U << sdl)) != 0) {
+                    open_popup->OnPad(key);
+                    if (key == Key::Close) {
+                        break;
+                    }
+                }
+            }
+            const int stick_y = pad != nullptr ? SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY) : 0;
+            const int steam_y = steam_axes[ReaderApp::SteamBridge::LeftY]; // as SDL has it: down positive
+            const int y = std::abs(steam_y) > std::abs(stick_y) ? steam_y : stick_y;
+            if (!Reader::InputFilter::Instance().SticksHeld()) {
+                open_popup->PadScroll(static_cast<float>(y) / 32767.0F);
+            }
+            popup_swallow |= down_now;
+        }
+        popup_held = down_now;
+        popup_swallow &= down_now;
+    }
     // Furoshiki's page (and a window over it, such as Save sync) from SDL's controller, as the
     // Steam Controller works it on Windows (SteamPad): the d-pad or the left stick go along, A or
     // Start take, B goes back, the bumpers change page, Y reads the apps again. A press counts
@@ -3000,7 +3746,7 @@ void MainWindow::PollPads() {
             }
         };
         // On Windows the Steam Controller works the page itself; SDL may see it as well.
-        const bool page_shown = !game_shown && pad != nullptr && !steam_seen;
+        const bool page_shown = !game_shown && pad != nullptr && !steam_last && open_popup == nullptr;
         uint32_t now_held = 0;
         for (const auto& [sdl, key] : page_keys) {
             const uint32_t mask = 1U << sdl;
@@ -3061,13 +3807,57 @@ void MainWindow::PollPads() {
                     }
                 }
             }
+            chord_actions = Home::ControllerMap::Chords(ControllerStore(), QString::fromUtf8(info.key));
             button_actions_known = true;
+        }
+        // Two buttons held together that do an action: it is done as the second goes down, and
+        // neither reaches the game until it is let go (the first may have reached it a moment).
+        static uint64_t chord_kept = 0; // by role
+        static QSet<QString> chords_held;
+        {
+            uint64_t raw = 0;
+            for (std::size_t i = 0; i < std::size(Roles); ++i) {
+                const Role& role = Roles[i];
+                const bool down = role.sdl >= 0 ? button(role.sdl)
+                                                : (pad != nullptr && SDL_GameControllerGetAxis(pad, role.filter == 104 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT
+                                                                                                                         : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000);
+                raw |= down ? uint64_t{1} << i : 0;
+            }
+            const auto index_of = [](int filter) {
+                for (std::size_t i = 0; i < std::size(Roles); ++i) {
+                    if (Roles[i].filter == filter) {
+                        return static_cast<int>(i);
+                    }
+                }
+                return -1;
+            };
+            for (const Home::ControllerMap::ChordBinding& chord : std::as_const(chord_actions)) {
+                const int a = index_of(chord.a), b = index_of(chord.b);
+                if (a < 0 || b < 0) {
+                    continue;
+                }
+                const uint64_t both = (uint64_t{1} << a) | (uint64_t{1} << b);
+                if ((raw & both) == both) {
+                    if (!chords_held.contains(chord.id) && open_popup == nullptr) {
+                        ReaderUi::RunAction(chord.action);
+                    }
+                    chords_held.insert(chord.id);
+                    chord_kept |= both;
+                } else {
+                    chords_held.remove(chord.id);
+                }
+            }
+            chord_kept &= raw;
         }
         uint64_t usable = 0; // the controller's buttons down that the game may have
         for (std::size_t i = 0; i < std::size(Roles); ++i) {
             const Role& role = Roles[i];
             bool down = false;
-            if (role.sdl >= 0) {
+            const uint32_t role_bit = 1U << (role.sdl >= 0 ? role.sdl : role.filter == 104 ? 30 : 31);
+            if (((popup_swallow | read_hide) & role_bit) != 0 || ((chord_kept >> i) & 1) != 0) {
+                // The open popup's (or it was when it went down), or the reading's: not the
+                // game's, nor an action's.
+            } else if (role.sdl >= 0) {
                 // Select and Start held together are the menu's, not the game's.
                 down = button(role.sdl) && !(both && (role.sdl == SDL_CONTROLLER_BUTTON_BACK || role.sdl == SDL_CONTROLLER_BUTTON_START)) &&
                        !(guide_combo && (role.sdl == SDL_CONTROLLER_BUTTON_BACK || role.sdl == SDL_CONTROLLER_BUTTON_LEFTSHOULDER ||
@@ -3077,6 +3867,9 @@ void MainWindow::PollPads() {
                 const auto axis = left ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
                 down = (pad != nullptr && SDL_GameControllerGetAxis(pad, axis) > 16000) ||
                        steam_axes[left ? ReaderApp::SteamBridge::LeftTrigger : ReaderApp::SteamBridge::RightTrigger] > 16000;
+            }
+            if ((read_ghost & role_bit) != 0) {
+                down = true; // a button of a two-button start, let go within the moment it is kept back
             }
             const uint64_t mask = uint64_t{1} << i;
             if (down != ((held & mask) != 0)) {
@@ -3114,6 +3907,15 @@ void MainWindow::PollPads() {
                 state.buttons |= uint64_t{1} << bit;
             }
         }
+        // Reading with the d-pad: south goes on in the game, so where the console's "yes" is
+        // another button (○ on a Japanese PlayStation or PSP game) south presses that one, as
+        // Space does on the keyboard. East is the reader's there (a card with audio).
+        if (read_text && info.button_yes >= 0) {
+            const int south = BitOf(info, Roles[4]);
+            if (south >= 0 && south != info.button_yes && (state.buttons & (uint64_t{1} << south)) != 0) {
+                state.buttons = (state.buttons & ~(uint64_t{1} << south)) | (uint64_t{1} << info.button_yes);
+            }
+        }
         // SDL's controller and the Steam Controller together: the one pushed further counts.
         const auto axis = [this, pad](SDL_GameControllerAxis sdl_axis, int steam_axis) {
             const int from_sdl = pad != nullptr ? SDL_GameControllerGetAxis(pad, sdl_axis) : 0;
@@ -3121,32 +3923,40 @@ void MainWindow::PollPads() {
             return std::abs(from_steam) > std::abs(from_sdl) ? from_steam : from_sdl;
         };
         namespace Steam = ReaderApp::SteamBridge;
-        if (!filter.SticksHeld()) {
+        if (!filter.SticksHeld() && (open_popup == nullptr || read_text)) {
             state.sticks[0] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_LEFTX, Steam::LeftX));
             state.sticks[1] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_LEFTY, Steam::LeftY));
-            state.sticks[2] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTX, Steam::RightX));
-            state.sticks[3] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTY, Steam::RightY));
+            if (!read_text) { // reading: the right stick is the reader's
+                state.sticks[2] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTX, Steam::RightX));
+                state.sticks[3] = static_cast<int16_t>(axis(SDL_CONTROLLER_AXIS_RIGHTY, Steam::RightY));
+            }
         }
         // A trigger put on another button is all or nothing; on its own, as far as it is pulled.
         for (int side = 0; side < 2; ++side) {
             if (trigger_from[side] != -2) {
                 state.triggers[side] = trigger_from[side] >= 0 && (usable & (uint64_t{1} << trigger_from[side])) != 0 ? 255 : 0;
-            } else if (!trigger_taken[side]) {
+            } else if (!trigger_taken[side] && (popup_swallow & (1U << (side == 0 ? 30 : 31))) == 0) {
                 state.triggers[side] = static_cast<uint8_t>(std::max(
                     0, axis(side == 0 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT : SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
                             side == 0 ? Steam::LeftTrigger : Steam::RightTrigger) >> 7));
             }
         }
     }
-    // The other ports: SDL's next controllers, each as it is (the reader's buttons are the
+    // The other ports: SDL's other controllers, each as it is (the reader's buttons are the
     // first controller's only). The Steam Controller's own gamepad, where SDL sees it too, is
-    // the first controller already.
+    // the first controller already. While a popup is open or the d-pad reads, the game hears
+    // none of them: a second pad must not play the game under the popup either.
     reader_core_pad others[MaxPorts]{};
     std::fill(std::begin(port_pads), std::end(port_pads), nullptr);
     port_pads[0] = pad;
+    const ReaderUi::ReaderController* const reading_now = ReaderUi::GameController();
+    const bool others_quiet = open_popup != nullptr || (reading_now != nullptr && reading_now->Reading());
     const uint32_t ports = current != nullptr ? std::min<uint32_t>(PortCount(*current->core.info), MaxPorts) : 1;
-    for (uint32_t port = 1, next = 1; port < ports && next < sdl_pads.size(); ++next) {
+    for (uint32_t port = 1, next = 0; port < ports && next < sdl_pads.size(); ++next) {
         SDL_GameController* other = sdl_pads[next];
+        if (other == pad) {
+            continue;
+        }
         const char* name = SDL_GameControllerName(other);
         if (steam_seen && name != nullptr && QString::fromUtf8(name).contains(QStringLiteral("Steam"), Qt::CaseInsensitive)) {
             continue;
@@ -3154,6 +3964,9 @@ void MainWindow::PollPads() {
         port_pads[port] = other;
         reader_core_pad& to = others[port++];
         to.connected = 1;
+        if (others_quiet) {
+            continue;
+        }
         for (const Role& role : Roles) {
             const int bit = BitOf(*current->core.info, role);
             bool down = false;
@@ -3177,6 +3990,566 @@ void MainWindow::PollPads() {
     std::scoped_lock lock{pads_mutex};
     gamepads[0] = state;
     std::copy(std::begin(others) + 1, std::end(others), std::begin(gamepads) + 1);
+}
+
+void MainWindow::SetPopupKeys() {
+    const ReaderUi::ReaderController* reader = ReaderUi::GameController();
+    const bool reading = reader != nullptr && reader->Reading();
+    ReaderUi::LookupPopup::SetPadKeys(QJsonObject{
+        {QStringLiteral("add"), pad_names.north},
+        {QStringLiteral("addAudio"), pad_names.east},
+        {QStringLiteral("left"), reading ? pad_names.l2 : pad_names.l1},
+        {QStringLiteral("right"), reading ? pad_names.r2 : pad_names.r1}});
+}
+
+QStringList MainWindow::TriggerWords() const {
+    return {pad_names.l2, pad_names.r2};
+}
+
+QString MainWindow::SelectWord() const {
+    return pad_names.select;
+}
+
+QStringList MainWindow::ReadStartCaps() const {
+    const QString start = ReaderUi::ReaderSession::Instance().Settings().ReadStart();
+    if (start == QStringLiteral("always")) {
+        return {};
+    }
+    if (start == QStringLiteral("l3")) {
+        return {pad_names.l3};
+    }
+    if (start == QStringLiteral("r3")) {
+        return {pad_names.r3};
+    }
+    if (start == QStringLiteral("select+a")) {
+        return {pad_names.select, pad_names.south};
+    }
+    if (start == QStringLiteral("l3+r3")) {
+        return {pad_names.l3, pad_names.r3};
+    }
+    if (start == QStringLiteral("lb+rb")) {
+        return {pad_names.l1, pad_names.r1};
+    }
+    return {pad_names.select};
+}
+
+SDL_GameController* MainWindow::ActivePad() const {
+    for (SDL_GameController* each : sdl_pads) {
+        if (SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(each)) == active_pad) {
+            return each;
+        }
+    }
+    return sdl_pads.empty() ? nullptr : sdl_pads.front();
+}
+
+namespace {
+
+Home::PadNames::Kind KindOf(SDL_GameControllerType type) {
+    using Kind = Home::PadNames::Kind;
+    switch (type) {
+    case SDL_CONTROLLER_TYPE_XBOX360:
+        return Kind::Xbox360;
+    case SDL_CONTROLLER_TYPE_XBOXONE:
+        return Kind::XboxOne;
+    case SDL_CONTROLLER_TYPE_PS3:
+        return Kind::PS3;
+    case SDL_CONTROLLER_TYPE_PS4:
+        return Kind::PS4;
+    case SDL_CONTROLLER_TYPE_PS5:
+        return Kind::PS5;
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+        return Kind::SwitchPro;
+    case SDL_CONTROLLER_TYPE_VIRTUAL:
+        return Kind::Virtual;
+    case SDL_CONTROLLER_TYPE_UNKNOWN:
+        return Kind::Unknown;
+    default:
+        return Kind::Other;
+    }
+}
+
+const char* TypeName(SDL_GameControllerType type) {
+    switch (type) {
+    case SDL_CONTROLLER_TYPE_XBOX360:
+        return "Xbox 360";
+    case SDL_CONTROLLER_TYPE_XBOXONE:
+        return "Xbox One";
+    case SDL_CONTROLLER_TYPE_PS3:
+        return "PS3";
+    case SDL_CONTROLLER_TYPE_PS4:
+        return "PS4";
+    case SDL_CONTROLLER_TYPE_PS5:
+        return "PS5";
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
+        return "Switch Pro";
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+        return "Joy-Con";
+    case SDL_CONTROLLER_TYPE_VIRTUAL:
+        return "virtual";
+    case SDL_CONTROLLER_TYPE_UNKNOWN:
+        return "unknown";
+    default:
+        return "other";
+    }
+}
+
+} // namespace
+
+namespace {
+
+/// The layouts set up, by controller key, as read from or written to the program's QSettings.
+QHash<QString, int>& LayoutCache() {
+    static QHash<QString, int> known;
+    return known;
+}
+
+/// Keeps a controller's layout (-1: none, so it is asked again).
+void SetStoredLayout(const QString& key, int family) {
+    if (key.isEmpty()) {
+        return;
+    }
+    if (family < 0) {
+        QSettings().remove(QStringLiteral("pad_layouts/") + key);
+    } else {
+        QSettings().setValue(QStringLiteral("pad_layouts/") + key, Home::PadNames::LayoutKey(family));
+    }
+    LayoutCache().insert(key, family);
+}
+
+} // namespace
+
+Home::PadNames::Names MainWindow::NamesInUse() const {
+    SDL_GameController* pad = ActivePad();
+    if (pad == nullptr || steam_last) {
+        return Home::PadNames::Of({}); // the Steam Controller, or none: Select and Start, A B X Y
+    }
+    const Home::PadNames::Names names = Home::PadNames::Of({KindOf(SDL_GameControllerGetType(pad)), SDL_GameControllerGetVendor(pad),
+                                                            SDL_GameControllerGetProduct(pad), PadName(pad)});
+    // The letters its setup said are printed on it, where it was set up.
+    const int layout = StoredLayout(PadKey(pad));
+    return layout >= 0 ? Home::PadNames::WithLayout(names, layout) : names;
+}
+
+QString MainWindow::PadKey(SDL_GameController* pad) const {
+    if (pad == nullptr) {
+        return {};
+    }
+    // Pads that claim one id (an 8BitDo Pro 2, an SN30 Pro and a real Xbox One S all say
+    // 045E:02E0 over Bluetooth, with one GUID and one name) are told apart by their address.
+    const auto bluetooth = pad_bluetooth.find(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)));
+    if (bluetooth != pad_bluetooth.end() && !bluetooth->second.address.isEmpty()) {
+        return QStringLiteral("bt-") + bluetooth->second.address;
+    }
+    return PadKeyBySdl(pad);
+}
+
+QString MainWindow::PadName(SDL_GameController* pad) const {
+    if (pad == nullptr) {
+        return {};
+    }
+    const auto bluetooth = pad_bluetooth.find(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)));
+    if (bluetooth != pad_bluetooth.end() && !bluetooth->second.name.isEmpty()) {
+        return bluetooth->second.name;
+    }
+    const char* name = SDL_GameControllerName(pad);
+    return QString::fromUtf8(name != nullptr ? name : "");
+}
+
+QString MainWindow::PadKeyBySdl(SDL_GameController* pad) {
+    if (pad == nullptr) {
+        return {};
+    }
+    char guid[64] = {};
+    SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(SDL_GameControllerGetJoystick(pad)), guid, sizeof(guid));
+    const char* name = SDL_GameControllerName(pad);
+    const QByteArray both = QByteArray(guid) + '|' + QByteArray(name != nullptr ? name : "");
+    return QString::fromLatin1(QCryptographicHash::hash(both, QCryptographicHash::Sha1).toHex().left(16));
+}
+
+int MainWindow::StoredLayout(const QString& key) {
+    if (key.isEmpty()) {
+        return -1;
+    }
+    // Asked many times a second: kept in memory once read; QSettings is written on a change.
+    QHash<QString, int>& known = LayoutCache();
+    if (const auto found = known.constFind(key); found != known.constEnd()) {
+        return *found;
+    }
+    const int layout = Home::PadNames::LayoutOf(QSettings().value(QStringLiteral("pad_layouts/") + key).toString());
+    known.insert(key, layout);
+    return layout;
+}
+
+int MainWindow::ReportedLayout() const {
+    SDL_GameController* pad = ActivePad();
+    if (pad == nullptr) {
+        return Home::PadNames::Xbox;
+    }
+    return Home::PadNames::Of({KindOf(SDL_GameControllerGetType(pad)), SDL_GameControllerGetVendor(pad), SDL_GameControllerGetProduct(pad),
+                               PadName(pad)})
+        .family;
+}
+
+void MainWindow::OpenPadSetup(const QString& key, const QString& name, int reported) {
+    if (pad_setup != nullptr) {
+        return;
+    }
+    pad_setup_key = key;
+    // What is held now says nothing to it (the press that made the pad the one in use).
+    pad_setup_held = ~0U;
+    pad_setup_ignored = ~0U;
+    const HomeWindow::ScreenLook look = home->LookOfScreen();
+    // Over the page as the controller map is; over a game the whole window's, and a native
+    // window of its own, as the game's picture is one.
+    const bool over_game = current != nullptr && pages->currentWidget() == screen;
+    QWidget* over = over_game ? static_cast<QWidget*>(pages) : static_cast<QWidget*>(home);
+    // What its buttons are called by its kind (Select, LB); the setup sets the face letters.
+    Home::PadNames::Names base = Home::PadNames::Of({Home::PadNames::Kind::XboxOne, 0x045E, 0x02E0, name});
+    if (SDL_GameController* pad = ActivePad(); pad != nullptr && !key.isEmpty()) {
+        base = Home::PadNames::Of({KindOf(SDL_GameControllerGetType(pad)), SDL_GameControllerGetVendor(pad),
+                                   SDL_GameControllerGetProduct(pad), PadName(pad)});
+    }
+    qInfo("controllers: setup opened for %s", qPrintable(name));
+    // Its third step: the reading shortcuts, kept where the controller map keeps its Shortcuts,
+    // for all consoles (pad_shortcuts.h), so both show the same.
+    Home::PadSetup::Shortcuts shortcuts;
+    shortcuts.actions = Home::PadShortcuts::Rows();
+    shortcuts.label = [](const QString& action) {
+        for (const Home::ControllerMap::Action& one : Home::ControllerMap::Load().actions) {
+            if (one.id == action) {
+                return one.label;
+            }
+        }
+        return action;
+    };
+    const auto name_of = [](const QString& input, const Home::PadNames::Names& letters) {
+        QStringList out;
+        for (const QString& part : input.split(QLatin1Char('+'))) {
+            const QString own = Home::PadNames::Label(letters, part);
+            out.append(own.isEmpty() ? Home::ControllerMap::NameOf(Home::ControllerMap::PadOf({}), part) : own);
+        }
+        return out.join(QStringLiteral(" + "));
+    };
+    shortcuts.name = name_of;
+    shortcuts.current = [this, name_of](const QString& action, const Home::PadNames::Names& letters) {
+        QStringList said;
+        if (action == QStringLiteral("furoshiki_read")) {
+            // What "Start reading with" is now, in this controller's letters.
+            const QString start = ReaderUi::ReaderSession::Instance().Settings().ReadStart();
+            static const QHash<QString, QString> inputs{{QStringLiteral("select"), QStringLiteral("select")},
+                                                        {QStringLiteral("l3"), QStringLiteral("l3")},
+                                                        {QStringLiteral("r3"), QStringLiteral("r3")},
+                                                        {QStringLiteral("select+a"), QStringLiteral("select+south")},
+                                                        {QStringLiteral("l3+r3"), QStringLiteral("l3+r3")},
+                                                        {QStringLiteral("lb+rb"), QStringLiteral("l1+r1")}};
+            said.append(start == QStringLiteral("always") ? QStringLiteral("Always during dialogue") : name_of(inputs.value(start, QStringLiteral("select")), letters));
+        }
+        for (const Home::ControllerMap::Action& one : Home::ControllerMap::Load().actions) {
+            if (one.id == action) {
+                for (const Home::ControllerMap::Binding& binding : Home::ControllerMap::BindingsOf(ControllerStore(), one, {})) {
+                    said.append(name_of(binding.input, letters));
+                }
+            }
+        }
+        return said.isEmpty() ? QStringLiteral("None") : said.join(QStringLiteral(" · "));
+    };
+    shortcuts.conflict = [](const QString& input) { return Home::PadShortcuts::Conflict(input); };
+    shortcuts.assign = [this](const QString& action, const QString& input) {
+        const bool ok = Home::PadShortcuts::Assign(ControllerStore(), action, input, [](const QString& start) {
+            auto& settings = ReaderUi::ReaderSession::Instance().Settings();
+            settings.SetValue(ReaderApp::ReaderSettings::KeyReadStart, start);
+            settings.Sync();
+        });
+        button_actions_known = false;
+        qInfo("controllers: shortcut %s on %s%s", qPrintable(action), qPrintable(input), ok ? "" : " refused");
+        return ok;
+    };
+    shortcuts.free = home->Steam().Connected() ? QStringLiteral("L3, R3, Select with another button, the back grips")
+                                               : QStringLiteral("L3, R3, Select with another button");
+    // The Steam Controller's grips are learnt here too while it is open.
+    ReaderUi::CaptureBackButtons([this](int back) {
+        if (pad_setup == nullptr) {
+            return false;
+        }
+        for (const Home::ControllerMap::Input& input : Home::ControllerMap::Load().inputs) {
+            if (input.back == back) {
+                auto* setup = static_cast<Home::PadSetup*>(pad_setup.data());
+                setup->Pressed(input.id);
+                setup->Released(input.id);
+            }
+        }
+        return true;
+    });
+    auto* setup = new Home::PadSetup(
+        over, {look.ground, look.raised, look.ink, look.muted, look.accent, look.rule, look.font}, name, base, reported, shortcuts,
+        [this, key](int family) {
+            if (key.isEmpty()) {
+                return; // a page script's: nothing kept
+            }
+            SetStoredLayout(key, family);
+            qInfo("controllers: layout %s set up for %s", qPrintable(Home::PadNames::LayoutKey(family)), qPrintable(PadInUseName()));
+        },
+        [this, key](bool set_up) {
+            if (!key.isEmpty() && StoredLayout(key) < 0) {
+                pad_setup_skipped.insert(key); // closed without an answer: asked again next time
+            }
+            ReaderUi::CaptureBackButtons({});
+            home->setFocus();
+            if (set_up) {
+                OpenControllerMap(true); // on its Shortcuts
+            }
+        });
+    if (over_game) {
+        setup->setAttribute(Qt::WA_NativeWindow);
+    }
+    setup->raise();
+    setup->setFocus();
+    pad_setup = setup;
+}
+
+QString MainWindow::PadInUseName() const {
+    if (steam_last && home->Steam().Connected()) {
+        return QStringLiteral("Steam Controller");
+    }
+    SDL_GameController* pad = ActivePad();
+    if (pad == nullptr) {
+        return home->Steam().Connected() ? QStringLiteral("Steam Controller") : QString();
+    }
+    const QString name = PadName(pad);
+    return name.isEmpty() ? QStringLiteral("Controller") : name;
+}
+
+void MainWindow::OpenPads() {
+    // One line for a pad in the log: SDL's name, GUID, vendor:product, type, where it was found
+    // (XInput, HID, raw input: the path and the GUID's driver byte say) and its mapping.
+    const auto said = [this](SDL_Joystick* joystick, SDL_GameController* pad, int index) {
+        char guid[64] = {};
+        const SDL_JoystickGUID id = joystick != nullptr ? SDL_JoystickGetGUID(joystick) : SDL_JoystickGetDeviceGUID(index);
+        SDL_JoystickGetGUIDString(id, guid, sizeof(guid));
+        const char* name = joystick != nullptr ? SDL_JoystickName(joystick) : SDL_JoystickNameForIndex(index);
+        const char* path = joystick != nullptr ? SDL_JoystickPath(joystick) : SDL_JoystickPathForIndex(index);
+        const unsigned vendor = joystick != nullptr ? SDL_JoystickGetVendor(joystick) : SDL_JoystickGetDeviceVendor(index);
+        const unsigned product = joystick != nullptr ? SDL_JoystickGetProduct(joystick) : SDL_JoystickGetDeviceProduct(index);
+        QString mapping = QStringLiteral("no mapping");
+        if (char* text = SDL_GameControllerMappingForGUID(id)) {
+            mapping = bundled_mappings.contains(QString::fromLatin1(guid).toLower()) ? QStringLiteral("mapped by the bundled database")
+                                                                                     : QStringLiteral("mapped by SDL");
+            SDL_free(text);
+        } else if (pad != nullptr) {
+            mapping = QStringLiteral("mapped by SDL");
+        }
+        const SDL_GameControllerType type = pad != nullptr ? SDL_GameControllerGetType(pad) : SDL_GameControllerTypeForIndex(index);
+        return QStringLiteral("\"%1\", GUID %2, %3:%4, type %5, %6, path %7")
+            .arg(QString::fromUtf8(name != nullptr ? name : "(no name)"), QString::fromLatin1(guid))
+            .arg(vendor, 4, 16, QLatin1Char('0'))
+            .arg(product, 4, 16, QLatin1Char('0'))
+            .arg(QString::fromLatin1(TypeName(type)), mapping, QString::fromUtf8(path != nullptr ? path : "-"));
+    };
+    // Controllers gone are let go.
+    std::erase_if(sdl_pads, [&](SDL_GameController* pad) {
+        if (SDL_GameControllerGetAttached(pad)) {
+            return false;
+        }
+        SDL_Joystick* joystick = SDL_GameControllerGetJoystick(pad);
+        const int id = SDL_JoystickInstanceID(joystick);
+        qInfo("controllers: removed %s", qPrintable(said(joystick, pad, -1)));
+        pad_input_held.erase(id);
+        pad_bluetooth.erase(id);
+        if (active_pad == id) {
+            active_pad = -1;
+        }
+        SDL_GameControllerClose(pad);
+        return true;
+    });
+    // One that comes is opened: every joystick SDL has a mapping for, its own or the database's.
+    QSet<int> present;
+    for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+        const SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
+        present.insert(id);
+        const bool open = std::any_of(sdl_pads.cbegin(), sdl_pads.cend(), [id](SDL_GameController* pad) {
+            return SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)) == id;
+        });
+        if (open) {
+            continue;
+        }
+        if (!SDL_IsGameController(i)) {
+            if (!pads_unmapped.contains(id)) {
+                pads_unmapped.insert(id);
+                qInfo("controllers: not used (SDL has no mapping for it; a line for it in gamecontrollerdb.txt in the "
+                      "program's folder adds one): %s",
+                      qPrintable(said(nullptr, nullptr, i)));
+            }
+            continue;
+        }
+        if (SDL_GameController* pad = SDL_GameControllerOpen(i)) {
+            sdl_pads.push_back(pad);
+            SDL_Joystick* joystick = SDL_GameControllerGetJoystick(pad);
+            QString bluetooth;
+#if defined(_WIN32)
+            // Its Bluetooth device, once: the address tells alike pads apart, the name says what it is.
+            const char* path = SDL_JoystickPath(joystick);
+            const Home::PadBluetooth::Found found = Home::PadBluetooth::Find(QString::fromUtf8(path != nullptr ? path : ""),
+                                                                             SDL_JoystickGetVendor(joystick), SDL_JoystickGetProduct(joystick));
+            pad_bluetooth[id] = found;
+            bluetooth = found.address.isEmpty() ? QStringLiteral(", Bluetooth address unknown")
+                                                : QStringLiteral(", Bluetooth %1 \"%2\"").arg(found.address, found.name);
+            // An answer kept under the old key (GUID and name) is taken over once by the address's.
+            if (!found.address.isEmpty()) {
+                const QString by_address = PadKey(pad);
+                const int before = StoredLayout(PadKeyBySdl(pad));
+                if (StoredLayout(by_address) < 0 && before >= 0) {
+                    SetStoredLayout(by_address, before);
+                }
+            }
+#endif
+            qInfo("controllers: added %s%s", qPrintable(said(joystick, pad, i)), qPrintable(bluetooth));
+        } else if (!pads_unmapped.contains(id)) {
+            pads_unmapped.insert(id); // said once, tried again at every look
+            qWarning("controllers: couldn't open %s: %s", qPrintable(said(nullptr, nullptr, i)), SDL_GetError());
+        }
+    }
+    pads_unmapped.intersect(present);
+}
+
+void MainWindow::ShowReadHud() {
+    using ReadState = ReaderUi::ReaderController::ReadState;
+    ReaderUi::ReaderController* const reader = ReaderUi::GameController();
+    if (reader == nullptr || reader->Overlay() == nullptr) {
+        return;
+    }
+    const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
+    const ReadState state = reader->ReadingState();
+    const QString start = settings.ReadStart();
+    // With "Always" and nothing to read, nothing is said: the game is simply played.
+    const bool said = state != ReadState::Off && !(state == ReadState::Idle && start == QStringLiteral("always"));
+    QString mark;
+    QList<QPair<QStringList, QString>> hints;
+    if (said && settings.ReadMark()) {
+        mark = state == ReadState::Game ? QStringLiteral("GAME · A CHOICE IS UP") : QStringLiteral("READING");
+    }
+    if (said && settings.ReadHints() && (state == ReadState::Text || state == ReadState::Popup)) {
+        // The buttons by the letters on them, where they are (SDL numbers them by position).
+        const QString south = pad_names.south;
+        const QString east = pad_names.east;
+        const QString west = pad_names.west;
+        const QString north = pad_names.north;
+        const QStringList bumpers{pad_names.l1, pad_names.r1};
+        if (state == ReadState::Text) {
+            hints = {{{QStringLiteral("←"), QStringLiteral("→")}, QStringLiteral("WORD")},
+                     {{QStringLiteral("↑"), QStringLiteral("↓")}, QStringLiteral("LINE")},
+                     {bumpers, QStringLiteral("NOT IN ANKI")},
+                     {{south}, QStringLiteral("NEXT LINE")},
+                     {{north}, QStringLiteral("CARD")},
+                     {{east}, QStringLiteral("CARD + AUDIO")},
+                     {{west}, QStringLiteral("POPUP")}};
+        } else {
+            hints = {{{QStringLiteral("↑"), QStringLiteral("↓")}, QStringLiteral("ENTRY")},
+                     {{north}, QStringLiteral("CARD")},
+                     {{east}, QStringLiteral("CARD + AUDIO")},
+                     {{west}, QStringLiteral("TEXT")}};
+        }
+        // The triggers go from tab to tab, where the popup showing has more than one.
+        if (const ReaderUi::LookupPopup* popup = reader->Lookups().Popup();
+            popup != nullptr && reader->Lookups().IsOpen() && popup->Tabs() > 1) {
+            hints.insert(state == ReadState::Text ? 3 : 1, {TriggerWords(), QStringLiteral("TAB")});
+        }
+        if (const QStringList caps = ReadStartCaps(); !caps.isEmpty()) {
+            QStringList upper;
+            for (const QString& cap : caps) {
+                upper.append(cap.toUpper());
+            }
+            hints.append({upper, QStringLiteral("STOP")});
+        }
+    }
+    QString shown = mark;
+    for (const auto& [caps, action] : std::as_const(hints)) {
+        shown += QLatin1Char('|') + caps.join(QLatin1Char(' ')) + QLatin1Char(' ') + action;
+    }
+    if (shown == read_hud_shown) {
+        return;
+    }
+    read_hud_shown = shown;
+    if (shown.isEmpty()) {
+        reader->Overlay()->SetHud(nullptr);
+        return;
+    }
+    reader->Overlay()->SetHud([this, reader, mark, hints](QPainter& painter, const QRect&) {
+        home->PaintReadingHud(painter, reader->PictureArea(), mark, hints);
+    });
+}
+
+QString MainWindow::ReadCommand(const QString& what) {
+    using ReadState = ReaderUi::ReaderController::ReadState;
+    using ReadKey = ReaderUi::ReaderController::ReadKey;
+    ReaderUi::ReaderController* const reader = ReaderUi::GameController();
+    if (reader == nullptr || current == nullptr || !ReaderUi::ReaderSession::Instance().IsActive()) {
+        return QStringLiteral("no game is being read");
+    }
+    static const QHash<QString, ReadKey> keys{
+        {QStringLiteral("left"), ReadKey::Left},        {QStringLiteral("right"), ReadKey::Right},
+        {QStringLiteral("up"), ReadKey::Up},            {QStringLiteral("down"), ReadKey::Down},
+        {QStringLiteral("lb"), ReadKey::UnknownBefore}, {QStringLiteral("rb"), ReadKey::UnknownNext},
+        {QStringLiteral("shorter"), ReadKey::Shorter},  {QStringLiteral("longer"), ReadKey::Longer},
+    };
+    const ReadState state = reader->ReadingState();
+    if (what == QStringLiteral("start") || what == QStringLiteral("stop")) {
+        reader->SetReading(what == QStringLiteral("start"));
+    } else if (what == QStringLiteral("toggle")) {
+        reader->SetReading(!reader->Reading());
+    } else if (const auto key = keys.constFind(what); key != keys.constEnd()) {
+        if (state == ReadState::Text) {
+            reader->ReadKeyPressed(*key);
+        } else if (state == ReadState::Popup && (what == QStringLiteral("up") || what == QStringLiteral("down"))) {
+            reader->Lookups().OnPad(what == QStringLiteral("up") ? ReaderUi::LookupFlow::PadKey::EntryBefore : ReaderUi::LookupFlow::PadKey::EntryNext);
+        } else if (state == ReadState::Popup && (what == QStringLiteral("lb") || what == QStringLiteral("rb"))) {
+            reader->Lookups().OnPad(what == QStringLiteral("lb") ? ReaderUi::LookupFlow::PadKey::TabBefore : ReaderUi::LookupFlow::PadKey::TabNext);
+        }
+    } else if (what == QStringLiteral("lt") || what == QStringLiteral("rt")) {
+        if (state == ReadState::Text || state == ReadState::Popup) {
+            reader->Lookups().OnPad(what == QStringLiteral("lt") ? ReaderUi::LookupFlow::PadKey::TabBefore : ReaderUi::LookupFlow::PadKey::TabNext);
+        }
+    } else if (what == QStringLiteral("pointer")) {
+        // A pointer really used: two places far apart, as the game's window would say them.
+        reader->OnPointerMove(QPointF(40, 40));
+        reader->OnPointerMove(QPointF(140, 120));
+    } else if (what == QStringLiteral("x")) {
+        reader->ReadKeyPressed(state == ReadState::Popup ? ReadKey::Text : ReadKey::Popup);
+    } else if (what == QStringLiteral("y") || what == QStringLiteral("b")) {
+        if (state == ReadState::Text || state == ReadState::Popup) {
+            reader->Lookups().OnPad(what == QStringLiteral("y") ? ReaderUi::LookupFlow::PadKey::Card : ReaderUi::LookupFlow::PadKey::CardWithAudio);
+        }
+    } else if (what == QStringLiteral("a")) {
+        if (state == ReadState::Popup) {
+            reader->ReadKeyPressed(ReadKey::Text);
+        } else {
+            // South is the game's: its button held a moment, through the controller's own way.
+            steam_buttons |= 1U << SDL_CONTROLLER_BUTTON_A;
+            steam_seen = true;
+            QTimer::singleShot(120, this, [this] { steam_buttons &= ~(1U << SDL_CONTROLLER_BUTTON_A); });
+        }
+    } else if (what != QStringLiteral("say")) {
+        return QStringLiteral("read: start, stop, toggle, left, right, up, down, lb, rb, lt, rt, shorter, longer, x, y, b, a, pointer or say");
+    }
+    ShowReadHud();
+    return reader->ReadingSaid();
+}
+
+ReaderUi::LookupFlow* MainWindow::OpenPopup() const {
+    if (ReaderUi::LookupFlow* game = ReaderUi::GameLookups(); game != nullptr && game->IsOpen()) {
+        return game;
+    }
+    if (overlay != nullptr && overlay->Lookups().IsOpen()) {
+        return &overlay->Lookups();
+    }
+    if (strip != nullptr && strip->Lookups().IsOpen()) {
+        return &strip->Lookups();
+    }
+    return nullptr;
 }
 
 void MainWindow::OpenMenu() {
@@ -3254,7 +4627,7 @@ void MainWindow::OpenMenu() {
         ocr_area->setObjectName(QStringLiteral("ocr-area"));
         // Not before the menu has closed and let the game go on: the area step stops it itself.
         connect(ocr_area, &QAction::triggered, this, [this] { QTimer::singleShot(0, this, [this] { AskCoreArea(); }); });
-        QAction* ocr_read = menu->addAction(QStringLiteral("Read OCR areas"));
+        QAction* ocr_read = menu->addAction(QStringLiteral("Read text now"));
         ocr_read->setObjectName(QStringLiteral("ocr-read"));
         ocr_read->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R));
         connect(ocr_read, &QAction::triggered, this, [this] { ReadAskedBoxes(); });
@@ -3274,8 +4647,11 @@ void MainWindow::OpenMenu() {
         // Out of the program altogether, the game stopped as on closing the window (its last
         // save sent): where a front end such as EmulationStation started the game, the way
         // back to it from the controller.
-        QAction* exit = menu->addAction(QStringLiteral("Quit Furoshiki"));
-        connect(exit, &QAction::triggered, this, [this] { close(); });
+        QAction* exit = menu->addAction(QStringLiteral("Quit Furoshiki\tCtrl+Q"));
+        connect(exit, &QAction::triggered, this, [this] {
+            qInfo("quitting: Quit Furoshiki in the menu");
+            close();
+        });
         connect(menu, &QMenu::aboutToShow, this, [this, discs, ports, patches] {
             // What the running core cannot do is not offered.
             const uint32_t features = current != nullptr ? current->session->Features() : 0;
@@ -3355,13 +4731,14 @@ void MainWindow::FillStateMenu(QMenu* into, bool load) {
         const std::optional<CoreSession::StateSlot> info = current->session->StateInfo(slot);
         QString text = QStringLiteral("Slot %1").arg(slot);
         if (info && info->exists) {
-            text += QStringLiteral("    ") +
-                    QDateTime::fromMSecsSinceEpoch(info->saved_ms).toString(QStringLiteral("yyyy-MM-dd  HH:mm"));
+            text += QStringLiteral(" · ") +
+                    QDateTime::fromMSecsSinceEpoch(info->saved_ms).toString(QStringLiteral("yyyy/MM/dd HH:mm"));
         } else if (info) {
-            text += QStringLiteral("    empty");
+            text += QStringLiteral(" · Empty");
         }
         if (slot == state_slot) {
-            text += QStringLiteral("    (F5 / F8)");
+            // The slot the quick keys use: F5 saves to it, F8 loads it (the Keys page says so).
+            text += load ? QStringLiteral(" · Quick load (F8)") : QStringLiteral(" · Quick save (F5)");
         }
         QAction* action = into->addAction(text);
         const QString picture = StatePicture(slot);
@@ -3411,7 +4788,7 @@ void MainWindow::LoadStateFrom(int slot) {
     if (!current->session->LoadState(slot) && (current->session->Features() & READER_CORE_HAS_STATES) == 0) {
         ReaderUi::Notify(QStringLiteral("Couldn't load slot %1").arg(slot));
     } else if ((current->session->Features() & READER_CORE_HAS_STATES) == 0) {
-        ReaderUi::Notify(QStringLiteral("Slot %1 loaded").arg(slot));
+        ReaderUi::Notify(QStringLiteral("Loaded slot %1").arg(slot));
     }
 }
 
@@ -3615,7 +4992,7 @@ void MainWindow::OpenSaveFolder() {
         folder = console_folder + QStringLiteral("/saves");
     }
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(folder))) {
-        ReaderUi::Notify(QStringLiteral("Saves: %1").arg(QDir::toNativeSeparators(folder)));
+        ReaderUi::Notify(QStringLiteral("Couldn't open the save folder. It is %1").arg(QDir::toNativeSeparators(folder)));
     }
 }
 
@@ -3685,6 +5062,11 @@ bool MainWindow::ProgramCommand(const QString& name, const QStringList& parts,
         return true;
     }
 #endif
+    if (name == QStringLiteral("read")) {
+        // read WHAT: reading with the d-pad without a controller (ReadCommand says the words).
+        reply(QStringLiteral("OK ") + ReadCommand(parts.value(1)));
+        return true;
+    }
     if (name == QStringLiteral("ocr")) {
         // The playing game read by OCR: ocr (what it does); ocr area X Y W H [X Y W H ask|always]...
         // (its boxes, without the page that draws them); ocr on | off; ocr ask (that page);
@@ -3743,10 +5125,13 @@ bool MainWindow::ProgramCommand(const QString& name, const QStringList& parts,
         return true;
     }
     if (name == QStringLiteral("pad-hold")) {
-        // pad-hold N: the controller's button N (SDL's number) held, as the Steam Controller
+        // pad-hold N [N...]: the controller's buttons N (SDL's numbers) held, as the Steam Controller
         // would say it; -1 lets all go. For checking what the console is then handed (pad-sent).
-        const int button = parts.value(1).toInt();
-        steam_buttons = button >= 0 && button < 32 ? 1U << button : 0;
+        steam_buttons = 0;
+        for (const QString& part : parts.mid(1)) {
+            const int button = part.toInt();
+            steam_buttons |= button >= 0 && button < 32 ? 1U << button : 0;
+        }
         steam_seen = true;
         reply(QStringLiteral("OK"));
         return true;

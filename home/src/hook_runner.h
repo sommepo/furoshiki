@@ -57,8 +57,10 @@ public:
     [[nodiscard]] const QString& Fault() const {
         return fault;
     }
-    /// For the user: "hooked · 3 threads", "hooking", "ended: …".
+    /// For the log and the tests: "hooked · 3 threads", "hooking", "ended: …".
     [[nodiscard]] QString Status() const;
+    /// For the user: "Connected · 3 texts", "Connecting to the game…", "Stopped: …".
+    [[nodiscard]] QString Sentence() const;
 
 signals:
     void Line(const Home::Hooks::Thread& thread, const QString& text);

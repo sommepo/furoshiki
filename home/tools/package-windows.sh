@@ -156,6 +156,9 @@ if [ -f "$out/cores/reader_core_ppsspp.dll" ]; then
   cp -r "$forks/ppsspp/assets" "$out/cores/ppsspp"
   rm -rf "$out/cores/ppsspp/debugger" "$out/cores/ppsspp/reader"
 fi
+# SDL's mappings of controllers it has none of its own for (SDL_GameControllerDB, zlib licence;
+# publish/NOTICES.md), beside the program, which reads it at start.
+install -m 644 "$root/../ppsspp/assets/gamecontrollerdb.txt" "$out/gamecontrollerdb.txt"
 "$READER_HOST_PREFIX/bin/python3" "$here/pe_check.py" "$out"
 # PCSX2's core takes its libraries from cores/, beside it: checked there.
 [ -f "$out/cores/reader_core_pcsx2.dll" ] && "$READER_HOST_PREFIX/bin/python3" "$here/pe_check.py" "$out/cores"
@@ -170,6 +173,9 @@ if [ "$public" = 1 ]; then
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" \
       -e "s/@COMMIT@/${FUROSHIKI_COMMIT:-(not a release build)}/g" \
       "$root/publish/SOURCE.txt" > "$out/SOURCE.txt"
+  # What a new user reads first: how to start it, and why Windows warns about it.
+  sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" -e 's/$/\r/' \
+      "$root/publish/README-windows.txt" > "$out/README.txt"
   lic() { [ -f "$2" ] || { echo "no licence file $2" >&2; exit 1; }; install -m 644 "$2" "$licenses/$1"; }
   lic LGPL-3.0.txt "$root/publish/licenses/LGPL-3.0.txt"
   lic OFL-DotGothic16.txt "$root/fonts/OFL-DotGothic16.txt"

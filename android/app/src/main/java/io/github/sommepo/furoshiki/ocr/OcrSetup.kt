@@ -65,7 +65,7 @@ class OcrSetup(
         val head = TextView(activity).apply {
             text = activity.getString(R.string.ocr_setup_hint)
             setTextColor(TEXT)
-            textSize = 13f
+            textSize = 14f
             setPadding(dp(12), dp(8), dp(12), dp(8))
             background = GradientDrawable().apply { setColor(0xCC101A3A.toInt()); cornerRadius = dp(8).toFloat() }
         }
@@ -87,7 +87,15 @@ class OcrSetup(
         }
         foot.addView(said)
         val keys = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
+        // Save and Cancel first: the row scrolls sideways on a narrow screen, and the two that
+        // leave the screen must never be the ones out of sight.
+        key(keys, activity.getString(R.string.ocr_setup_save)) {
+            onSave(OcrGame(on, areas.map { it.fitted() }))
+            dialog.dismiss()
+        }
+        key(keys, activity.getString(android.R.string.cancel)) { dialog.dismiss() }
         onKey = key(keys, "") { on = !on; paint() }
+        key(keys, activity.getString(R.string.ocr_setup_try)) { tryIt() }
         key(keys, activity.getString(R.string.ocr_setup_lower_third)) {
             if (areas.size < OcrAreas.MOST) {
                 areas.add(OcrArea.LOWER_THIRD)
@@ -114,13 +122,12 @@ class OcrSetup(
                 paint()
             }
         }
-        key(keys, activity.getString(R.string.ocr_setup_try)) { tryIt() }
-        key(keys, activity.getString(R.string.ocr_setup_save)) {
-            onSave(OcrGame(on, areas.map { it.fitted() }))
-            dialog.dismiss()
-        }
-        key(keys, activity.getString(android.R.string.cancel)) { dialog.dismiss() }
-        foot.addView(HorizontalScrollView(activity).apply { isHorizontalScrollBarEnabled = false; addView(keys) })
+        foot.addView(HorizontalScrollView(activity).apply {
+            // The bar stays in sight: it is what says there are more keys to the side.
+            isHorizontalScrollBarEnabled = true
+            isScrollbarFadingEnabled = false
+            addView(keys)
+        })
         root.addView(foot, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
 
         dialog.setContentView(root)
@@ -137,8 +144,8 @@ class OcrSetup(
         val view = TextView(activity).apply {
             text = label.uppercase()
             typeface = Typeface.MONOSPACE
-            textSize = 12f
-            letterSpacing = .1f
+            textSize = 13f
+            letterSpacing = .08f
             gravity = Gravity.CENTER
             setTextColor(TEXT)
             setPadding(dp(14), 0, dp(14), 0)

@@ -40,9 +40,13 @@ public:
     [[nodiscard]] const QString& GameId() const {
         return game.id;
     }
-    /// For the user: what the helper says.
+    /// For the log and the tests: what the helper says.
     [[nodiscard]] QString Status() const {
         return running ? client.Status() : QString();
+    }
+    /// For the user, as a sentence.
+    [[nodiscard]] QString Said() const {
+        return running ? client.Said() : QString();
     }
     /// Reads the game's boxes that are read only on request, now, from the picture as it is.
     void ReadAsked(std::function<void(bool ok, const QString& what)> then = nullptr);

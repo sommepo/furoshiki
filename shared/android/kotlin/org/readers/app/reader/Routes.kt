@@ -48,7 +48,7 @@ object Routes {
     fun show(context: Context, onClose: () -> Unit = {}) {
         val offer = offer()
         if (offer == null) {
-            Toast.makeText(context, "The game's script offers nothing to mark", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.reader_routes_none, Toast.LENGTH_SHORT).show()
             onClose()
             return
         }
@@ -59,10 +59,10 @@ object Routes {
         val checked = offer.items.map { it.done }.toBooleanArray()
         val themed = ContextThemeWrapper(context, R.style.Theme_Reader)
         val dialog = AlertDialog.Builder(themed)
-            .setTitle(offer.title.ifEmpty { "Routes" })
+            .setTitle(offer.title.ifEmpty { context.getString(R.string.reader_routes) })
             .setMultiChoiceItems(labels, checked, null)
             .setPositiveButton(android.R.string.ok, null)
-            .apply { if (offer.note.isNotEmpty()) setNeutralButton("How the game keeps them", null) }
+            .apply { if (offer.note.isNotEmpty()) setNeutralButton(R.string.reader_routes_about, null) }
             .setOnDismissListener { onClose() }
             .create()
         dialog.setOnShowListener {
@@ -78,10 +78,10 @@ object Routes {
                 val error = try {
                     ReaderNative.markProgress(item.id, wanted)
                 } catch (_: UnsatisfiedLinkError) {
-                    "no emulator"
+                    context.getString(R.string.reader_routes_no_game)
                 }
                 if (error != null) {
-                    Toast.makeText(context, "Not changed: $error", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.reader_routes_failed, error), Toast.LENGTH_LONG).show()
                 }
                 // A mark may change others (a route's light): every box shows the game's state.
                 offer()?.items?.forEachIndexed { index, now -> view.setItemChecked(index, now.done) }

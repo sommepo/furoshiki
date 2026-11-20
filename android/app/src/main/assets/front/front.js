@@ -12,17 +12,34 @@
 const LOOKS = {
   'Nintendo Switch': ['Switch', '#c8323c'],
   'Nintendo 3DS': ['3DS', '#b03a48'],
+  'Nintendo DS': ['DS', '#7a8a99'],
   'PlayStation': ['PS1', '#8c8c96'],
   'PlayStation Portable': ['PSP', '#3d5a8c'],
-  'PlayStation Vita': ['Vita', '#3f6fb0'],
+  'PlayStation Vita': ['PS Vita', '#3f6fb0'],
   'PlayStation 2': ['PS2', '#2f4f7a'],
-  'Dreamcast': ['DC', '#d9752b'],
+  'Dreamcast': ['Dreamcast', '#d9752b'],
   // A title another app plays (Add game, read as its companion): the system's key stays
   // "Another app" (AppTitles.SYSTEM); the third is the name the page shows for it.
   'Another app': ['Other apps', '#5d6b5a', 'Other apps'],
   // GameNative's games on a shelf of their own, not among the other apps' (the maintainer, 2026-11-19).
   'GameNative': ['GameNative', '#4a6b7a', 'GameNative'],
 };
+
+/**
+ * What each console is called, by its key (Console.kt's; Places.NAMES in Kotlin has the same): on
+ * a tab or in a short place, then in a sentence. Never the key itself ("PSVITA", "NDS") nor a
+ * shortening of ours ("DC", "Vita").
+ */
+const CONSOLE_NAMES = {
+  psp: ['PSP', 'PSP'], dc: ['Dreamcast', 'Dreamcast'], '3ds': ['3DS', 'Nintendo 3DS'], nds: ['DS', 'Nintendo DS'],
+  ps1: ['PS1', 'PlayStation'], ps2: ['PS2', 'PlayStation 2'], psvita: ['PS Vita', 'PS Vita'], switch: ['Switch', 'Nintendo Switch'],
+};
+/** A console's name on a tab: by its key, else by its system's name, else what its emulator calls it. */
+const tabName = (key, system, short) => CONSOLE_NAMES[key]?.[0] || LOOKS[system]?.[0] || short || system || '';
+/** A console's name in a sentence or a header. */
+const fullName = (key, system) => CONSOLE_NAMES[key]?.[1] || LOOKS[system]?.[2] || system || '';
+/** The colour of a console's band on a spine. */
+const bandOf = game => (LOOKS[game.system] || LOOKS[fullName(game.console, game.system)] || [])[1] || '';
 
 const made_up = {
   asset(path) {
@@ -34,20 +51,37 @@ const made_up = {
   themes: () => JSON.stringify(['kon.json', 'mono.json', 'paper.json', 'solarized.json']),
   icon: () => '30 Solarized',
   pickIcon() { say('Choose an icon'); },
-  hasAccess: () => true,
+  // "#…,noaccess" shows the library before file access is allowed; "#…,empty" a library with no games.
+  hasAccess: () => !location.hash.includes('noaccess'),
   askAccess() {},
-  games: () => JSON.stringify([
-    {id: 'ULJM05887', title: 'STEINS;GATE', path: '/g/sg.iso', console: 'psp', system: 'PlayStation Portable', chars: 184220, activeMs: 25400000, last: '2026-11-01'},
-    {id: 'ULJS00219', title: '428 〜封鎖された渋谷で〜', path: '/g/428.iso', console: 'psp', system: 'PlayStation Portable', chars: 40212, activeMs: 7400000, last: '2026-10-28'},
-    {id: 'ULJM05821', title: 'CHAOS;HEAD らぶChu☆Chu!', path: '/g/ch.iso', console: 'psp', system: 'PlayStation Portable'},
+  games: () => JSON.stringify(location.hash.includes('empty') || location.hash.includes('noaccess') ? [] : [
+    {id: 'ULJM05887', title: 'STEINS;GATE', path: '/g/sg.iso', console: 'psp', system: 'PlayStation Portable', script: true, chars: 184220, activeMs: 25400000, last: '2026-11-01'},
+    {id: 'ULJS00219', title: '428 〜封鎖された渋谷で〜', path: '/g/428.iso', console: 'psp', system: 'PlayStation Portable', script: true, chars: 40212, activeMs: 7400000, last: '2026-10-28'},
+    {id: 'ULJM05821', title: 'CHAOS;HEAD らぶChu☆Chu!', path: '/g/ch.iso', console: 'psp', system: 'PlayStation Portable', script: true},
+    // Titles from file names, a game with no ID a user knows, and consoles named by their keys.
+    {id: 'SLUS-20395', title: 'CHULIP (USA) (1)', path: '/g/chulip.iso', console: 'ps2', system: 'PlayStation 2', script: false},
+    {id: 'PCSG00488', title: 'Sora no Kiseki FC Evolution (Japan) [!]', path: '/g/sora', console: 'psvita', system: 'PlayStation Vita', script: false},
+    {id: 'T-1234', title: 'July', path: '/g/july.gdi', console: 'dc', system: 'Dreamcast', script: true},
+    {id: 'APP-PARANORMASIGHT', title: 'PARANORMASIGHT_ THE SEVEN MYSTERIES OF HONJO', path: 'app:app.gamenative/a#1', console: 'app', system: 'Another app', via: 'GameNative', chars: 5120, activeMs: 1900000, last: '2026-11-18'},
   ]),
+  ocrSet: () => JSON.stringify(['PCSG00488']),
+  setupSteps: () => JSON.stringify(['folders', 'dictionaries', 'anki', 'gamenative']),
+  hasGameNative: () => true,
+  hasController: () => location.hash.includes('pad'),
+  version: () => '0.5.9',
+  addTitle(name, activity, label) { say('Add game from ' + label); },
   stats: () => JSON.stringify({
     today: {chars: 1186, activeMs: 620000, text: '1,186字 · 6,910/h · 10m'},
-    total: {chars: 224432, activeMs: 32800000, text: '224,432字 · 24,630/h · 9h06m'},
+    total: {chars: 224432, activeMs: 32800000, text: '224,432字 · 24,630/h · 9h 06m'},
     days: Array.from({length: 30}, (_, i) => ({day: 'd' + i, chars: 500 + (i * 7919) % 4000})),
-    games: [{title: 'STEINS;GATE', chars: 184220, activeMs: 25400000, text: '184,220字 · 7h03m'}],
+    games: [{id: 'ULJM05887', title: 'STEINS;GATE', chars: 184220, activeMs: 25400000, text: '184,220字 · 7h 03m'},
+      {id: 'APP-EVER17', title: 'ever 17 (Japan)', chars: 900, activeMs: 400000, text: '900字 · 6m'}],
+    daysRead: 12,
   }),
-  folders: () => JSON.stringify(['/storage/emulated/0/Games']),
+  folders: () => JSON.stringify(location.hash.includes('empty') ? [] : ['/storage/emulated/0/Games', '/storage/1A2B-3C4D/Games/PSP']),
+  ocr: () => JSON.stringify({chosen: '', using: 'device', address: '', named: '', token: false, device: true}),
+  pickOcrEngine() { say('OCR engine'); }, typeOcrService() { say('OCR helper'); },
+  allGames: () => true, setAllGames() {},
   // The build's own records where the page was laid out with them, else two made up.
   titles() {
     const request = new XMLHttpRequest();
@@ -65,8 +99,11 @@ const made_up = {
   trackerAddress: () => 'https://tracker.example:8788',
   askTrackerAddress() { say('Type the study tracker\'s address'); },
   reading: () => JSON.stringify({days: Array.from({length: 30}, (_, i) => ({day: 'd' + i, chars: (i * 7919) % 4000})), lines: 2140}),
-  openLog(game) { say('Log of ' + game); },
-  actionKeys: () => JSON.stringify([{id: 'pause', label: 'Pause the game', key: ''}, {id: 'card', label: 'Card of the line', key: 'BUTTON_R2'}]),
+  openLog(game) { say('Backlog of ' + game); },
+  haptics: () => true, setHaptics() {}, hasVibrator: () => true,
+  settingsIndex: () => JSON.stringify([{section: 'READING', page: 'Reading', key: 'reader_furigana', title: 'Furigana'},
+    {section: 'POPUP', page: 'Popup', key: 'reader_popup_theme', title: 'Popup theme'}, {section: 'CARDS', page: 'Cards', key: 'reader_open_anki', title: 'Anki setup'}]),
+  openSetting(section, key) { say('Open ' + section + ' at ' + key); },
   twoScreens: () => location.hash.includes('two'),
   // "#kon,0,home" shows the page as a device's home screen has it.
   homeScreen: () => location.hash.includes('home') || location.hash.startsWith('#lower') ? 'on' : 'off',
@@ -75,7 +112,9 @@ const made_up = {
   status: () => JSON.stringify({battery: 87, charging: true, wifi: true, online: true, volume: 60, brightness: 70, dim: true,
     storage: [{name: 'Device', free: 81e9, total: 256e9}, {name: 'Card', free: 310e9, total: 512e9}]}),
   volume: () => 60, brightness: () => 70, home() {},
-  apps: () => JSON.stringify([{label: 'AnkiDroid', package: 'com.ichi2.anki', activity: 'a'}, {label: 'Firefox', package: 'org.mozilla.firefox', activity: 'a'},
+  apps: () => JSON.stringify([{label: 'AnkiDroid', package: 'com.ichi2.anki', activity: 'a'}, {label: 'Calendar', package: 'com.android.calendar', activity: 'a'},
+    {label: 'Firefox', package: 'org.mozilla.firefox', activity: 'a'}, {label: 'GameNative', package: 'app.gamenative', activity: 'a'},
+    {label: 'Minecraft', package: 'com.mojang.minecraftpe', activity: 'a', game: true},
     {label: 'Syncthing-Fork', package: 'com.github.catfriend1.syncthingandroid', activity: 'a'}, {label: 'Tailscale', package: 'com.tailscale.ipn', activity: 'a'}]),
   openApp(name) { say('Open ' + name); }, system(what) { say('Android: ' + what); },
   remote(what) { say(what); },
@@ -83,20 +122,23 @@ const made_up = {
   wide: () => JSON.stringify({value: 'off', choices: ['off', '21:9', '32:9'], consoles: ['Switch']}), setWide() {},
   labels: () => JSON.stringify(location.hash.includes('renamed') ? {'Settings/Theme': 'Colours', 'Page/Settings': 'Options'} : {}),
   askLabel(key) { say('Rename ' + key); }, setLabel() {}, copyLabels() {},
-  pickActionKeys() { say('Buttons'); },
   // `#…,published` shows a published build's Update row (GitHub's releases) in place of the dev line's.
   update: () => location.hash.includes('published') ? '' : JSON.stringify({mine: '0.3.0', version: '0.3.1', url: 'x', newer: true}), openUpdate() {},
   release: () => JSON.stringify({mine: '0.2.5', version: '0.2.6', newer: true, checked: 1}), checkRelease() {}, installRelease() {},
-  consoles: () => JSON.stringify([{key: 'psp', short: 'PSP', system: 'PlayStation Portable'}, {key: 'ps2', short: 'PS2', system: 'PlayStation 2'}]),
+  consoles: () => JSON.stringify([{key: 'psp', short: 'PSP', system: 'PlayStation Portable'}, {key: 'ps2', short: 'PS2', system: 'PlayStation 2'},
+    {key: 'psvita', short: 'VITA', system: 'PlayStation Vita'}, {key: 'dc', short: 'DC', system: 'Dreamcast'}, {key: 'nds', short: 'NDS', system: 'Nintendo DS'}]),
   layer: (console, game) => JSON.stringify([
-    {key: 'picture.resolution', label: 'Internal resolution', kind: 1, value: '2', shown: '2×', set: !!console, from: console ? '' : 'As each console has it', low: 1, high: 8, step: 1, choices: []},
-    {key: 'sound.volume', label: 'Volume', kind: 1, value: '100', shown: '100', set: false, from: 'Same as all consoles', low: 0, high: 100, step: 1, choices: []},
-    {key: 'picture.aspect', label: 'Shape of the picture', kind: 2, value: 'auto', shown: 'auto', set: false, from: game ? 'Same as its console' : 'The console\'s own', choices: ['auto', '4:3', '16:9', 'stretch']},
-    {key: 'picture.vsync', label: 'Vertical sync', kind: 0, value: '1', shown: 'ON', set: false, from: 'The console\'s own', choices: []},
+    {key: 'picture.resolution', label: 'Internal resolution', kind: 1, value: '2', shown: '2×', set: !!console, from: console ? '' : 'Per console', low: 1, high: 8, step: 1, choices: []},
+    {key: 'sound.volume', label: 'Volume', kind: 1, value: '100', shown: '100', set: false, from: 'All consoles', low: 0, high: 100, step: 1, choices: []},
+    {key: 'picture.aspect', label: 'Aspect ratio', kind: 2, value: 'auto', shown: 'auto', set: false, from: game ? 'Console setting' : 'Default', choices: ['auto', '4:3', '16:9', 'stretch']},
+    {key: 'picture.vsync', label: 'Vertical sync', kind: 0, value: '1', shown: 'On', set: false, from: 'Default', choices: []},
+    {key: 'picture.frame_limit', label: 'Limit frame rate', kind: 0, value: '1', shown: 'On', set: false, from: 'Default', choices: []},
   ]),
   setSetting() {},
   openScripts(console) { say('Scripts of ' + console); },
-  addFolder() {}, removeFolder() {}, scan() {}, play(path) { say('Play ' + path); }, open(what) { say('Open ' + what); },
+  addFolder() { say('Choose a folder'); }, removeFolder() {}, play(path) { say('Play ' + path); }, open(what) { say('Open ' + what); },
+  // A scan as the app tells it: two consoles looked through, then over.
+  scan() { Front.scanning('PSP · 1 of 2'); setTimeout(() => Front.scanning('PS Vita · 2 of 2'), 300); setTimeout(() => Front.scanning(''), 600); },
 };
 
 const host = window.FuroshikiHost || made_up;
@@ -204,27 +246,36 @@ function fit() {
   document.documentElement.style.setProperty('--s', Math.max(.45, Math.min(scale, 2.6)).toFixed(3) + 'px');
 }
 
+/** A date as 2026/11/19, the one form everywhere; with a time, 2026/11/19 22:14. */
+const two = n => String(n).padStart(2, '0');
+const ymd = date => `${date.getFullYear()}/${two(date.getMonth() + 1)}/${two(date.getDate())}`;
+const ymdTime = date => `${ymd(date)} ${two(date.getHours())}:${two(date.getMinutes())}`;
+/** A place in a list as "01 / 73". */
+const counter = (at, count) => `${two(at)} / ${two(count)}`;
+
 function tick() {
   const now = new Date();
   const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
   $('clock').textContent = time;
   if (LOWER) {
     $('away-clock').textContent = time;
-    $('away-date').textContent = now.toLocaleDateString('en-GB', {weekday: 'short', day: 'numeric', month: 'short'});
+    $('away-date').textContent = ymd(now);
   }
 }
 
 // ---- The device, where Furoshiki is its home screen: said in the head, set on the System page ----
 
-const percent = n => n >= 0 ? n + '%' : '—';
+const percent = n => n >= 0 ? n + '%' : 'Not set';
 
 /** The battery and the network as the head says them. */
 function statusWords(status) {
   if (!status) return '';
+  // A phone's header has one line: the battery alone (the system's own bar has the rest).
+  if (document.body.classList.contains('tall')) return status.battery >= 0 ? status.battery + '%' : '';
   return [
     status.wifi ? 'Wi-Fi' : status.online ? 'Online' : 'No network',
     status.battery >= 0 ? status.battery + '%' + (status.charging ? ' charging' : '') : '',
-  ].filter(Boolean).join('  ·  ');
+  ].filter(Boolean).join(' · ');
 }
 
 function readStatus() {
@@ -239,17 +290,54 @@ const number = n => (n || 0).toLocaleString('en-US');
 
 function playTime(ms) {
   const minutes = Math.floor((ms || 0) / 60000);
-  return minutes < 60 ? minutes + 'm' : Math.floor(minutes / 60) + 'h' + String(minutes % 60).padStart(2, '0') + 'm';
+  return minutes < 60 ? minutes + 'm' : Math.floor(minutes / 60) + 'h ' + String(minutes % 60).padStart(2, '0') + 'm';
 }
 
 // ---- What a title is: its record, and whose figures are shown ----
 
 const recordOf = game => state.titles[game.id] || null;
 const hasJapanese = text => /[\u3040-\u30ff\u3400-\u9fff]/.test(text || '');
-const dayText = day => day ? day.replace(/-/g, '/') : '—';
+/**
+ * Text that may be Japanese (a game's name, a person's) put in an element: the page is English
+ * (lang="en"), and what is Japanese says so, for a screen reader's voice and the glyphs' forms.
+ */
+function putText(element, text) {
+  element.textContent = text || '';
+  if (hasJapanese(text)) element.lang = 'ja'; else element.removeAttribute('lang');
+}
+const dayText = day => day ? day.replace(/-/g, '/') : 'Not yet';
 
-/** What the shelf calls a game: its record's English name, else its own title (the desktop's ShelfName). */
-const shelfName = game => recordOf(game)?.english || game.title;
+/**
+ * A title taken from a file's name, as it is shown (the file is never renamed): the dump's tags at
+ * its end go ("CHULIP (USA) (1)", "Game (Japan) [!]"), and the "_ " a file name has in the place
+ * of ": " comes back ("PARANORMASIGHT_ THE SEVEN MYSTERIES"). A disc's number stays.
+ */
+const DUMP_TAG = /^(USA|Japan|Europe|World|Asia|Korea|China|Taiwan|Hong Kong|Australia|Brazil|Canada|France|Germany|Italy|Spain|Netherlands|Sweden|Russia|UK|NTSC(-[UJ])?|PAL|En|Ja|Fr|De|Es|It|Nl|Pt|Sv|Ko|Zh|Ru|Rev ?[0-9A-Z.]+|v?[0-9][0-9.]*|Beta ?[0-9]*|Demo|Proto(type)?|Unl|Alt ?[0-9]*|Sample)$/i;
+function cleanTitle(title) {
+  let text = String(title || '');
+  for (;;) {
+    // Square brackets at the end always; round ones only where every part is a dump's tag
+    // (a game script's "作り話 (A Made-up Game)" is a name). TitleText.kt has the same rule.
+    const square = /\s*\[[^\[\]]*\]\s*$/.exec(text);
+    const round = /\s*\(([^()]*)\)\s*$/.exec(text);
+    let cut;
+    if (square) cut = text.slice(0, square.index);
+    else if (round && round[1].split(',').every(part => DUMP_TAG.test(part.trim()))) cut = text.slice(0, round.index);
+    else break;
+    if (!cut.trim()) break;
+    text = cut;
+  }
+  return text.replace(/_ /g, ': ').replace(/\s{2,}/g, ' ').trim() || String(title || '');
+}
+
+/** What the shelf calls a game: its record's English name, else its own title tidied (the desktop's ShelfName). */
+const shelfName = game => recordOf(game)?.english || cleanTitle(game.title);
+
+/** A game's ID where it is one a user knows (a disc's serial), never one of ours ("APP-EVER17"). */
+const shownId = game => /^APP-/i.test(String(game?.id || '')) ? '' : String(game?.id || '');
+
+/** How a game's text is read, in words: its mark on the spine says the same. */
+const READ_BY = {script: 'Game script', ocr: 'OCR', unset: 'OCR, default text area'};
 
 /** The study tracker's figures of a game's title (by its Jiten deck, else the tracker's own title), or null. */
 function trackedOf(game) {
@@ -267,10 +355,10 @@ const timeOf = game => { const tracked = trackedOf(game); return tracked?.hours 
 function gameFigures(game) {
   const tracked = trackedOf(game);
   if (!tracked) {
-    return [['Characters', number(game.chars)], ['Play Time', playTime(game.activeMs)], ['Last Read', dayText(game.last)]];
+    return [['Characters', number(game.chars)], ['Play time', playTime(game.activeMs)], ['Last read', dayText(game.last)]];
   }
-  const share = tracked.total > 0 ? `  ·  ${Math.round(100 * tracked.read / tracked.total)}%` : '';
-  return [['Characters', number(tracked.read) + share], ['Time', playTime(timeOf(game))], ['Last Read', dayText(lastDay(game))]];
+  const share = tracked.total > 0 ? ` · ${Math.round(100 * tracked.read / tracked.total)}%` : '';
+  return [['Characters', number(tracked.read) + share], ['Play time', playTime(timeOf(game))], ['Last read', dayText(lastDay(game))]];
 }
 
 // ---- The pages along the foot ----
@@ -283,10 +371,10 @@ function makePages() {
     consoles.get(game.system).push(game);
   }
   // Every title on one shelf first, then each console's (the desktop's floors).
-  if (consoles.size > 1) pages.push({key: 'console:*', tab: 'All', head: 'Library', sub: 'All titles', shelf: true, rows: gameRows(state.games)});
+  if (consoles.size > 1) pages.push({key: 'console:*', tab: 'All games', head: 'Library', sub: 'All games', shelf: true, rows: gameRows(state.games)});
   for (const [system, games] of consoles) {
-    const look = LOOKS[system] || [system, ''];
-    pages.push({key: 'console:' + system, tab: look[0], head: 'Library', sub: look[2] || system, shelf: true, rows: gameRows(games)});
+    const key = games[0]?.console, short = games[0]?.short;
+    pages.push({key: 'console:' + system, tab: tabName(key, system, short), head: 'Library', sub: fullName(key, system), shelf: true, rows: gameRows(games)});
   }
   if (pages.length === 0) pages.push(libraryWithoutGames());
   pages.push(statisticsPage());
@@ -328,7 +416,7 @@ function pickOrder() {
   const chosen = orderKeys();
   const labels = ['Done', ...keys.map(key => {
     const at = chosen.findIndex(([one]) => one === key);
-    return at < 0 ? ORDERS[key][0] : `${at + 1}  ·  ${ORDERS[key][0]}${chosen[at][1] ? '  ·  Reversed' : ''}`;
+    return at < 0 ? ORDERS[key][0] : `${at + 1} · ${ORDERS[key][0]}${chosen[at][1] ? ' · Reversed' : ''}`;
   })];
   pick('Sort by', labels, 0, at => {
     if (at === 0) return;
@@ -341,7 +429,7 @@ function pickOrder() {
     try { localStorage.setItem('order', state.order); } catch (e) { /* for this run alone */ }
     rebuild();
     pickOrder();
-  });
+  }, '', {cancel: false});
 }
 
 function gameRows(games) {
@@ -363,27 +451,29 @@ function gameRows(games) {
     read: readBy(game),
     // Its English name, as the desktop's shelf sets it; its own name under it where that is another.
     title: shelfName(game),
-    about: shelfName(game) !== game.title ? game.title : '',
-    side: [dayText(lastDay(game)), timeOf(game) ? playTime(timeOf(game)) : ''].filter(Boolean).join('\n'),
-    file: game.id,
+    about: recordOf(game)?.english && shelfName(game) !== cleanTitle(game.title) ? cleanTitle(game.title) : '',
+    side: [lastDay(game) ? dayText(lastDay(game)) : '', timeOf(game) ? playTime(timeOf(game)) : ''].filter(Boolean).join('\n'),
+    file: shownId(game),
     // Its box's front where the build has it (its console's own), else what the device found.
     cover: recordOf(game)?.cover || game.cover,
     spine: recordOf(game)?.spine || '',
-    band: (LOOKS[game.system] || [])[1] || '',
-    figures: gameFigures(game),
+    band: bandOf(game),
+    // How its text is read, in words: the tick, the glasses and the "?" on its spine say no more.
+    figures: [...gameFigures(game), ['Read by', READ_BY[readBy(game)]]],
     // Whose figures they are, said in the card's first line.
     from: trackedOf(game) ? 'Study tracker' : game.chars ? 'This device' : '',
     far: shareOf(game),
-    go: state.playing?.path === game.path ? 'Resume' : readOf(game) > 0 ? 'Continue' : 'Start',
+    // Start (never played), Continue (played before); Resume only for the game held behind the home screen.
+    go: state.playing?.path === game.path ? 'Resume' : readOf(game) > 0 || timeOf(game) > 0 ? 'Continue' : 'Start',
     act() { play(game); },
     // A second tap on the spine in hand, or A: the title as a page of its own.
     open() { setStage(true); },
     id: game.path,
     game,
-    pin() { host.pin?.(game.path, game.console, game.id, game.title); say('Adding to home screen'); },
+    pin() { host.pin?.(game.path, game.console, game.id, shelfName(game)); say('Adding to the Home screen'); },
     also: 'Game settings',
     alsoAct() {
-      setScope({console: game.console, game: game.id, name: game.title, tag: 'Game'});
+      setScope({console: game.console, game: game.id, name: shelfName(game), tag: 'Game'});
       goTo(state.pages.findIndex(one => one.key === 'consoles'));
     },
     // A title another app plays: which app, and a way off the shelf instead of a console's settings.
@@ -391,44 +481,66 @@ function gameRows(games) {
       // In play: the clean way out, the companion ended (another app's game has no menu of ours).
       about: 'Plays in ' + (game.via || 'another app'),
       also: 'Quit game',
-      alsoAct() { host.quitPlaying(); say('Quitting ' + game.title); },
+      alsoAct() { host.quitPlaying(); say('Quitting ' + shelfName(game) + '…'); },
     } : {
       about: 'Plays in ' + (game.via || 'another app'),
       also: 'Remove from library',
       alsoAct() {
-        pick('Remove ' + game.title + ' from library?', ['Remove', 'Cancel'], 1, at => {
+        pick('Remove ' + shelfName(game) + ' from library?', ['Remove', 'Cancel'], 1, at => {
           if (at === 0) host.forgetTitle?.(game.id);
-        });
+        }, '', {cancel: false});
       },
     }) : {}),
   }));
 }
 
 /**
- * Add a title: a game another app plays (GameNative, Winlator…). Furoshiki stands on the second
- * display beside it, reading the screen by OCR, as with a console's game that has no script.
+ * Add game: the three ways a game comes to the library, asked first (a user, 2026-11-19: the
+ * button opened a list of every installed app at once, Calendar and Clock among them).
+ */
+function addGame() {
+  const ways = [['Add games folder', () => host.addFolder()]];
+  if (host.addTitle) ways.push(['Add game from another app', addTitle]);
+  ways.push(['Scan for games', () => scanForGames()]);
+  pick('Add game', ways.map(one => one[0]), 0, at => ways[at]?.[1]());
+}
+
+/** A scan the user asked for: what it found is said once it is over (Front.scanning). */
+function scanForGames() {
+  state.scanAsked = true;
+  host.scan();
+}
+
+/**
+ * Add game from another app: a game another app plays (GameNative, Winlator…). Furoshiki stands
+ * on the second display beside it, reading the screen by OCR, as with a console's game that has no
+ * game script. The apps Android itself marks as games first, the PC game apps at their head, then
+ * every other app under "Other apps".
  */
 function addTitle() {
   if (!host.addTitle) return;
   let apps = [];
   try { apps = JSON.parse(host.apps()); } catch (error) { console.error(error); }
   if (!apps.length) { say('No apps found'); return; }
-  // The apps that play games first.
-  const plays = app => /gamenative|winlator|mobox|gamehub|steam/i.test(app.package + ' ' + app.label) ? 2
-    : /emu|retroarch|game/i.test(app.package + ' ' + app.label) ? 1 : 0;
-  apps.sort((a, b) => plays(b) - plays(a));
-  pick('Add game  ·  Choose app', apps.map(app => app.label), 0, at => {
-    const app = apps[at];
+  const pcGames = app => /gamenative|winlator|winnative|mobox|gamehub|steam/i.test(app.package + ' ' + app.label);
+  const games = apps.filter(app => app.game || pcGames(app)).sort((a, b) => pcGames(b) - pcGames(a));
+  const others = apps.filter(app => !games.includes(app));
+  const listed = [...games, ...others];
+  // A heading only where there are both kinds: the games need none.
+  const labels = games.length && others.length
+    ? [...games.map(app => app.label), {head: 'Other apps'}, ...others.map(app => app.label)] : listed.map(app => app.label);
+  pick('Add game from another app', labels, 0, at => {
+    const app = listed[at > games.length && games.length && others.length ? at - 1 : at];
     if (app) host.addTitle(app.package, app.activity, app.label);
   });
 }
 
-/** The row that adds one, where the device has the second display the companion stands on. */
+/** The row that adds one. */
 function addTitleRows() {
   if (!host.addTitle) return [];
   return [{
-    title: 'Add game', id: 'add-title', go: 'Add',
-    about: 'From another app, like GameNative',
+    title: 'Add game from another app', id: 'add-title', go: 'Add',
+    about: 'For example GameNative',
     act() { addTitle(); },
   }];
 }
@@ -475,19 +587,41 @@ function systemPage() {
     dial('Volume', 'volume', '', 'sound', direction => host.volume(direction)),
     status.dim
       ? dial('Brightness', 'brightness', '', 'display', direction => host.brightness(direction))
-      : {title: 'Brightness', side: percent(status.brightness), value: percent(status.brightness), about: 'Needs permission', go: 'Allow', act() { host.system('dim'); }, id: 'brightness'},
+      : {title: 'Brightness', side: percent(status.brightness), value: percent(status.brightness), about: 'Allow Furoshiki to change system settings', go: 'Allow', act() { host.system('dim'); }, id: 'brightness'},
     open('Wi-Fi', status.wifi ? 'Connected' : 'Not connected', '', 'wifi'),
     open('Bluetooth', '', '', 'bluetooth'),
-    open('Battery', percent(status.battery ?? -1) + (status.charging ? '  ·  Charging' : ''), '', 'battery'),
+    open('Battery', percent(status.battery ?? -1) + (status.charging ? ' · Charging' : ''), '', 'battery'),
     ...(status.storage || []).map(one => ({
       ...open(one.name + ' storage', size(one.free) + ' free', size(one.total) + ' total', 'storage'), id: 'storage:' + one.name,
     })),
-    open('Date & time', new Date().toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}), '', 'date'),
+    open('Date & time', ymd(new Date()), '', 'date'),
     open('Notifications', '', '', 'notifications', 'Show'),
     open('Quick settings', '', '', 'quick', 'Show'),
     open('Android settings', '', '', 'android'),
   ];
   return {key: 'system', tab: 'System', head: 'System', sub: '', rows};
+}
+
+/** Where a scan looks, in words: the user's folders, and Games on the device and its SD card. */
+function lookedIn() {
+  let folders = [];
+  try { folders = JSON.parse(host.folders?.() || '[]'); } catch (e) { /* none */ }
+  const own = folders.map(shortPath);
+  return [...own, 'Games on internal storage and the SD card'].join(', ');
+}
+
+/**
+ * A folder as a row says it: without the device's own root ("Games/PSP" for
+ * /storage/emulated/0/Games/PSP), "SD card: Games/PSP" on a card, its last two parts where it is deep.
+ */
+function shortPath(path) {
+  const text = String(path);
+  const inside = /^\/storage\/emulated\/\d+\/?(.*)$/.exec(text) || /^\/sdcard\/?(.*)$/.exec(text);
+  const card = inside ? null : /^\/storage\/[^/]+\/?(.*)$/.exec(text);
+  const rest = (inside || card)?.[1] ?? text;
+  const parts = rest.split('/').filter(Boolean);
+  const shown = parts.slice(-2).join('/') || (card ? '' : 'Internal storage');
+  return card ? ('SD card' + (shown ? ': ' + shown : '')) : shown;
 }
 
 function libraryWithoutGames() {
@@ -497,16 +631,18 @@ function libraryWithoutGames() {
   return {
     key: 'library', tab: 'Library', head: 'Library', sub: '', art: '', fill: 8,
     rows: access ? [{
-      title: 'Add a games folder',
-      about: 'Any folder with your games',
+      title: 'Add games folder',
+      about: 'The folder your games are in',
       go: 'Add',
       act() { host.addFolder(); },
       id: 'add',
     }, {
       title: 'Scan for games',
-      about: 'Your folders, plus Games and Reader Games on this device and its card',
+      // After a scan that found nothing: said here, where it stays, and where it looked.
+      about: state.scanFoundNone ? 'No games found in ' + lookedIn() + '. Add the folder your games are in.'
+        : 'Looks in ' + lookedIn(),
       go: 'Scan',
-      act() { host.scan(); },
+      act() { scanForGames(); },
       id: 'scan',
     }, ...addTitleRows()] : [{
       title: 'Allow file access',
@@ -516,6 +652,12 @@ function libraryWithoutGames() {
       id: 'access',
     }],
   };
+}
+
+/** A game of the statistics by the library's name for it, where the library has it; else its own title tidied. */
+function statsName(counted) {
+  const game = counted.id ? state.games.find(one => String(one.id) === String(counted.id)) : null;
+  return game ? shelfName(game) : (counted.id && state.titles[counted.id]?.english) || cleanTitle(counted.title);
 }
 
 function statisticsPage() {
@@ -528,13 +670,14 @@ function statisticsPage() {
       value: String((stats.games || []).filter(game => game.chars > 0).length), file: '統計', id: 'begun', about: ''},
     // The games by what was read of them, the most first.
     ...(stats.games || []).slice().sort((a, b) => (b.chars || 0) - (a.chars || 0))
-      .map((game, i) => ({title: game.title, side: playTime(game.activeMs), file: '統計', figures: figuresOf(game), id: 'game' + i})),
-    {title: 'History', about: 'Sessions, export', file: '統計', go: 'Open', act() { host.open('statistics'); }, id: 'open'},
+      // Called what the library calls it (its record's name, its file's name tidied), by its ID.
+      .map((game, i) => ({title: statsName(game), side: playTime(game.activeMs), file: '統計', figures: figuresOf(game), id: 'game' + i})),
+    {title: 'Full statistics', about: 'Sessions, export', file: '統計', go: 'Open', act() { host.open('statistics'); }, id: 'open'},
   ];
   return {key: 'statistics', tab: 'Statistics', head: 'Statistics', sub: '', rows};
 }
 
-const figuresOf = c => [['Characters', number(c.chars)], ['Play Time', playTime(c.activeMs)]];
+const figuresOf = c => [['Characters', number(c.chars)], ['Play time', playTime(c.activeMs)]];
 
 // ---- The Consoles page: the settings in their layers, as the desktop's ----
 
@@ -548,12 +691,12 @@ function pickScope() {
   const consoles = JSON.parse(host.consoles());
   const choices = [{label: 'All consoles', scope: {console: '', game: '', name: 'All consoles', tag: 'All'}}];
   for (const one of consoles) {
-    const short = LOOKS[one.system]?.[0] || one.short;
+    const short = tabName(one.key, one.system, one.short);
     choices.push({label: short, scope: {console: one.key, game: '', name: short, tag: short}});
   }
   const game = state.lastGame;
   if (game) {
-    choices.push({label: game.title, scope: {console: game.console, game: game.id, name: game.title, tag: 'Game'}});
+    choices.push({label: shelfName(game), scope: {console: game.console, game: game.id, name: shelfName(game), tag: 'Game'}});
   }
   const now = choices.findIndex(one => one.scope.console === state.scope.console && one.scope.game === state.scope.game);
   pick('Settings for', choices.map(one => one.label), Math.max(now, 0), at => setScope(choices[at].scope));
@@ -564,6 +707,8 @@ function settingRow(setting) {
   const write = value => {
     host.setSetting(setting.key, value, console, game);
     rebuild();
+    // A renderer is taken as a game starts: said when it is changed, not in its label.
+    if (setting.key === 'picture.renderer') say('Applies from the next game you start');
   };
   const steps = setting.kind === 1 ? Math.round((setting.high - setting.low) / (setting.step || 1)) : 0;
   const numbers = Array.from({length: steps + 1}, (_, at) => String(setting.low + at * (setting.step || 1)));
@@ -592,7 +737,7 @@ function settingRow(setting) {
   };
   const row = {
     title: setting.label, side: setting.shown, same: !setting.set, about: setting.from || (game ? 'This game' : state.scope.name),
-    value: setting.shown, go: setting.kind === 0 ? 'Switch' : 'Change', act: change, step, id: setting.key,
+    value: setting.shown, go: setting.kind === 0 ? (setting.value === '1' ? 'Turn off' : 'Turn on') : 'Change', act: change, step, id: setting.key,
   };
   if (setting.set) {
     row.also = game ? 'Use console setting' : 'Reset to default';
@@ -614,51 +759,91 @@ function consolesPage() {
     console.error(error);
   }
   rows.push(...settings.map(settingRow));
-  return {key: 'consoles', tab: 'Consoles', head: 'Consoles', sub: '', rows: rows.map(row => ({file: '本体', ...row}))};
+  // Whose settings these are, in the header: a game's ("Game settings" on its card comes here), a console's, or all.
+  const head = scope.game ? 'Game settings · ' + scope.name : scope.console ? 'Consoles · ' + scope.name : 'Consoles';
+  return {key: 'consoles', tab: 'Consoles', head, name: 'Consoles', sub: '', rows: rows.map(row => ({file: '本体', ...row}))};
 }
 
 
 // ---- A choice among values, over the page ----
 
 /**
- * Setup, asked once (the maintainer, 2026-11-19: "ask the user for their game folders as a part of
- * the setup, also their gamenative folder and prompt them on how to setup frontend sync ... prompt
- * for existing users on update from old build"): where the games are, then GameNative's exported
- * games. Kept as the step reached (the page's storage), so a build that has this for the first
- * time asks, new library or old; a folder chosen comes back through Front.reload, which goes on.
+ * Setup, asked once, one sequence with a true count (the maintainer, 2026-11-19: "ask the user for
+ * their game folders as a part of the setup, also their gamenative folder and prompt them on how
+ * to setup frontend sync ... prompt for existing users on update from old build"): where the
+ * games are, a dictionary (needed for lookups), Anki (optional), then GameNative's exported games
+ * where its app is installed. The host says which steps this device has (host.setupSteps); the
+ * steps done are kept in the page's storage, so a build that has a step for the first time asks
+ * it, new library or old. A step put away with Back is asked again at the next start; a folder
+ * chosen or a screen left comes back through Front.reload, which goes on.
  */
-const SETUP_STEPS = 2;
-function setupStep() {
-  try { return Number(localStorage.getItem('setup-step') || 0); } catch (e) { return SETUP_STEPS; }
+const SETUP_NAMES = {folders: 'Game folders', dictionaries: 'Dictionaries', anki: 'Anki', gamenative: 'GameNative'};
+function setupSteps() {
+  try { return JSON.parse(host.setupSteps?.() || '["folders"]').filter(step => SETUP_NAMES[step]); } catch (e) { return ['folders']; }
+}
+function setupDone() {
+  let done = [];
+  if (!window.FuroshikiHost) {
+    const from = /setup:(\w+)/.exec(location.hash);
+    return from ? setupSteps().slice(0, Math.max(setupSteps().indexOf(from[1]), 0)) : [];
+  }
+  try {
+    done = JSON.parse(localStorage.getItem('setup-done') || 'null');
+    if (!done) {
+      // The setup before this one kept a number: 1 once the folders were asked, 2 once GameNative was.
+      const before = Number(localStorage.getItem('setup-step') || 0);
+      done = [...(before >= 1 ? ['folders'] : []), ...(before >= 2 ? ['gamenative'] : [])];
+    }
+  } catch (e) { return null; }
+  return done;
 }
 function runSetup() {
   if (LOWER || state.picking || !host.hasAccess?.() || !host.addFolder) return;
-  const step = setupStep();
+  // In a plain browser only when asked for ("#…,setup", "#…,setup:anki" for a later step).
+  if (!window.FuroshikiHost && !location.hash.includes('setup')) return;
+  const steps = setupSteps(), done = setupDone();
+  // No storage: nothing can be kept, so nothing is asked (it would be asked for ever).
+  if (!done) return;
+  const step = steps.find(one => !done.includes(one));
   // A step put away with Back is asked again at the next start, not at the next scan's news.
-  if (step >= SETUP_STEPS || state.setupAsked === step) return;
+  if (!step || state.setupAsked === step) return;
   state.setupAsked = step;
-  const next = () => { try { localStorage.setItem('setup-step', String(step + 1)); } catch (e) { /* this run */ } };
-  if (step === 0) {
+  const title = `Setup · ${steps.indexOf(step) + 1} of ${steps.length} · ${SETUP_NAMES[step]}`;
+  const next = () => {
+    try { localStorage.setItem('setup-done', JSON.stringify([...done, step])); } catch (e) { /* this run */ }
+  };
+  if (step === 'folders') {
     // A folder for each console is as good as one for all (the maintainer, 2026-11-19: "if their
     // game folders sit at root per console"; the system's chooser refuses a card's root): after a
     // folder, the folders so far and the question again, until Done.
     const folders = JSON.parse(host.folders?.() || '[]');
     const adding = !!state.setupAdding;
     const labels = adding ? ['Add another folder', 'Done']
-      : ['Choose a games folder', folders.length ? 'Keep my folders' : 'Use the Games folder', 'Skip'];
+      : ['Add games folder', folders.length ? 'Keep my folders' : 'Use the Games folder', 'Skip'];
     const note = adding ? folders.join('\n')
-      : 'Furoshiki looks in the folders you choose, and in Games and Reader Games on this device and its card. If each console has a folder of its own, add them one after another.';
-    pick('Setup  ·  1 of 2  ·  Your games', labels, adding ? 1 : 0, at => {
-      if (at === 0) { state.setupAdding = true; state.setupAsked = -1; host.addFolder(); return; }
+      : 'Furoshiki looks in the folders you add, and in a folder called Games on internal storage and on the SD card. If each console has its own folder, add them one after another.';
+    pick(title, labels, adding ? 1 : 0, at => {
+      if (at === 0) { state.setupAdding = true; state.setupAsked = null; host.addFolder(); return; }
       next();
-      if (!adding && at === 1) host.scan();
+      if (!adding && at === 1) scanForGames();
       setTimeout(runSetup, 350);
-    }, note);
+    }, note, {cancel: false});
+  } else if (step === 'dictionaries') {
+    pick(title, ['Import dictionaries', 'Skip'], 0, at => {
+      next();
+      // Its screen comes over the page (or on the second display): the next step once it is left.
+      if (at === 0) host.open('dictionaries'); else setTimeout(runSetup, 350);
+    }, 'A dictionary is needed to look up words. Download a Yomitan dictionary (.zip), such as Jitendex, then import the file.', {cancel: false});
+  } else if (step === 'anki') {
+    pick(title, ['Set up Anki', 'Skip'], 0, at => {
+      next();
+      if (at === 0) host.open('anki'); else setTimeout(runSetup, 350);
+    }, 'Optional. Add words to Anki as cards with the line, a screenshot and audio.', {cancel: false});
   } else {
-    pick('Setup  ·  2 of 2  ·  GameNative', ['Choose the GameNative folder', 'Not now'], 0, at => {
+    pick(title, ['Add GameNative folder', 'Skip'], 0, at => {
       next();
       if (at === 0) host.addFolder();
-    }, 'To list your GameNative games here and start them directly: in GameNative open Settings › Interface › Frontend Sync, turn it on and choose a folder (a new one such as Games/GameNative). Then choose that same folder here.');
+    }, 'To list your GameNative games here and start them directly: in GameNative, open Settings › Interface › Frontend Sync, turn it on and choose a folder (a new one such as Games/GameNative). Then add that same folder here.', {cancel: false});
   }
 }
 
@@ -667,25 +852,55 @@ function closePick() {
   $('pick').hidden = true;
 }
 
+/** A row that only shuts the list: every list has a way out a finger can see. */
+function cancelRow() {
+  const item = document.createElement('li');
+  item.textContent = 'Cancel';
+  item.className = 'cancel';
+  item.setAttribute('role', 'button');
+  item.onclick = closePick;
+  return item;
+}
+
 function drawPick() {
   const list = $('pick-rows');
   list.textContent = '';
-  state.picking.labels.forEach((label, index) => {
+  const picking = state.picking;
+  picking.labels.forEach((label, index) => {
     const item = document.createElement('li');
-    item.textContent = label;
-    item.className = index === state.picking.at ? 'on' : '';
-    item.onclick = () => {
-      const chosen = state.picking.chosen;
-      closePick();
-      chosen(index);
-    };
+    if (label && label.head) {
+      // A heading among the rows ("Other apps"): never chosen.
+      item.textContent = label.head;
+      item.className = 'head';
+    } else {
+      putText(item, label);
+      item.className = index === picking.at ? 'on' : '';
+      item.setAttribute('role', 'button');
+      item.onclick = () => {
+        const chosen = state.picking.chosen;
+        closePick();
+        chosen(index);
+      };
+    }
     list.append(item);
   });
-  list.children[state.picking.at]?.scrollIntoView({block: 'nearest'});
+  if (picking.cancel) {
+    const item = cancelRow();
+    if (picking.at === picking.labels.length) item.classList.add('on');
+    list.append(item);
+  }
+  list.children[picking.at]?.scrollIntoView({block: 'nearest'});
 }
 
-function pick(title, labels, at, chosen, note) {
-  state.picking = {labels, at: Math.max(at, 0), chosen};
+/**
+ * A list over the page: `labels` (a string a row, `{head}` a heading), the row marked at first,
+ * what a choice does, a note above the rows. It ends with a Cancel row unless `cancel: false`
+ * says its own rows have one (Skip, Done, Cancel).
+ */
+function pick(title, labels, at, chosen, note, options = {}) {
+  let first = Math.max(at, 0);
+  while (labels[first]?.head && first < labels.length - 1) first++;
+  state.picking = {labels, at: first, chosen, cancel: options.cancel !== false};
   $('pick-title').textContent = title;
   $('pick-note').textContent = note || '';
   $('pick').hidden = false;
@@ -705,12 +920,15 @@ function findTitle() {
   line.append(field);
   list.append(line);
   const show = () => {
-    while (list.children.length > 1) list.lastChild.remove();
+    // Between the field and Cancel: the games found.
+    while (list.children.length > 2) list.children[1].remove();
     const wanted = field.value.trim().toLowerCase();
     if (!wanted) return;
-    for (const game of state.games.filter(one => one.title.toLowerCase().includes(wanted)).slice(0, 12)) {
+    const holds = game => (shelfName(game) + '\n' + game.title).toLowerCase().includes(wanted);
+    for (const game of state.games.filter(holds).slice(0, 12)) {
       const item = document.createElement('li');
-      item.textContent = `${game.title}  ·  ${LOOKS[game.system]?.[0] || game.short || ''}`;
+      item.setAttribute('role', 'button');
+      item.textContent = `${shelfName(game)} · ${tabName(game.console, game.system, game.short)}`;
       item.onclick = () => {
         closePick();
         const at = state.pages.findIndex(one => one.key === 'console:' + game.system);
@@ -719,10 +937,12 @@ function findTitle() {
         state.lastGame = game;
         goTo(at);
       };
-      list.append(item);
+      list.lastChild.before(item);
     }
   };
   field.oninput = show;
+  $('pick-note').textContent = '';
+  list.append(cancelRow());
   $('pick').hidden = false;
   field.focus();
 }
@@ -746,23 +966,16 @@ function pickNumber(setting, write) {
     write(slider.value);
   };
   item.append(slider);
-  list.append(item);
+  list.append(item, cancelRow());
+  $('pick-note').textContent = '';
   $('pick').hidden = false;
 }
 
-function actionKeysCount() {
-  try { return JSON.parse(host.actionKeys()).filter(one => one.key).length; } catch (e) { return 0; }
-}
-function actionKeysText() {
-  try {
-    return JSON.parse(host.actionKeys()).filter(one => one.key).map(one => one.key).join(' ') || 'None';
-  } catch (e) { return ''; }
-}
 /** The OCR engine and the service's address: what a game without a script is read with. */
 function ocrRows() {
   if (!host.ocr) return [];
   const ocr = JSON.parse(host.ocr());
-  const using = {service: 'OCR service', device: 'meikiocr', lens: 'Google Lens'}[ocr.using] || 'None';
+  const using = {service: 'OCR helper', device: 'On this device', lens: 'Google Lens'}[ocr.using] || 'Not set';
   const where = ocr.address || ocr.named;
   return [
     {
@@ -771,7 +984,7 @@ function ocrRows() {
       act() { host.pickOcrEngine(); },
     },
     {
-      title: 'OCR service', id: 'ocr-service', go: 'Edit', side: where || 'Not set', value: where ? 'Set' : 'None',
+      title: 'OCR helper', id: 'ocr-service', go: 'Edit', side: where || 'Not set', value: where ? 'Set' : 'Not set',
       about: !ocr.address && ocr.named ? 'From home server' : '',
       act() { host.typeOcrService(); },
     },
@@ -805,9 +1018,9 @@ function updateRow() {
   let update = null;
   try { update = JSON.parse(host.update?.() || 'null'); } catch (e) { /* none */ }
   if (!update) return releaseRow();
-  const said = !update.version ? 'Unknown' : update.newer ? update.version + ' available' : 'Up to date';
+  const said = !update.version ? 'Not checked yet' : update.newer ? update.version + ' available' : 'Up to date';
   return [{
-    title: 'Update', id: 'update', side: `${update.mine}  ·  ${said}`, value: update.mine, go: update.newer ? 'Download' : 'Check now',
+    title: 'Update', id: 'update', side: said, value: update.newer ? update.version : said, go: update.newer ? 'Download' : 'Check now',
     about: '',
     act() { if (update.newer) host.openUpdate(update.url); else { host.askServices(); say('Checking for updates…'); } },
   }];
@@ -819,10 +1032,10 @@ function releaseRow() {
   if (!release) return [];
   const said = release.newer ? release.version + ' available' : release.checked ? 'Up to date' : 'Not checked yet';
   return [{
-    title: 'Update', id: 'update', side: `${release.mine}  ·  ${said}`, value: release.mine, go: release.newer ? 'Install' : 'Check now',
+    title: 'Update', id: 'update', side: said, value: release.newer ? release.version : said, go: release.newer ? 'Install' : 'Check now',
     about: '',
     act() {
-      if (release.newer) { host.installRelease(); say('Getting the update…'); } else { host.checkRelease(); say('Checking for updates…'); }
+      if (release.newer) { host.installRelease(); say('Downloading update…'); } else { host.checkRelease(); say('Checking for updates…'); }
     },
   }];
 }
@@ -864,10 +1077,10 @@ function developerPage() {
 const FORMER_TITLES = {
   'Scan for games': 'Look for games again',
   'Allow file access': 'Allow access to your games',
-  'Add game': 'Add a title',
+  'Add game from another app': 'Add game',
   'Reading days': 'Days with reading',
   'Games started': 'Games begun',
-  'History': 'Sessions and days',
+  'Full statistics': 'History',
   'Date & time': 'Date and time',
   'No apps': 'No other apps',
   'Shortcut buttons': 'Buttons in a game',
@@ -877,7 +1090,9 @@ const FORMER_TITLES = {
   'Search games': 'Find a title',
   'Sort by': 'Shelf order',
   'Show games': 'Games shown',
-  'Add folder': 'Add a game folder',
+  'Add games folder': 'Add folder',
+  'Reading settings': 'Reading',
+  'OCR helper': 'OCR service',
 };
 
 /** The pages' rows called what the user called them, and, while renaming, their key asking for a name. */
@@ -885,7 +1100,7 @@ function applyLabels(pages) {
   const mine = labels();
   for (const one of pages) {
     if (one.shelf) continue;
-    one.name = one.head;
+    one.name = one.name || one.head;
     const called = mine['Page/' + one.name];
     if (called) one.head = one.tab = called;
     if (one.key === 'developer') continue;
@@ -917,8 +1132,12 @@ function settingsPage() {
     act() { if (home === 'waiting') host.system('home'); else host.setHomeScreen(home === 'off'); },
     ...(home === 'waiting' ? {also: 'Turn off', alsoAct() { host.setHomeScreen(false); }} : {}),
   }] : [];
+  // The Sources page is the text server's: the dev line's alone ("Copy lines to clipboard" is on Reading).
+  let sources = [];
+  const user = host.achievementsUser?.() || '';
   const rows = [
     ...homeRow,
+    {title: 'Add games folder', about: '', go: 'Add', act() { host.addFolder(); }, id: 'add'},
     ...addTitleRows(),
     {
       title: 'Theme', side: theme.name, about: '', value: theme.name, go: 'Change', id: 'look',
@@ -930,47 +1149,55 @@ function settingsPage() {
         rebuild();
       },
     },
-    {title: 'Icon', side: host.icon(), about: '', value: host.icon(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
+    {title: 'Icon', side: iconName(), about: '', value: iconName(), go: 'Change', act() { host.pickIcon(); }, id: 'icon'},
     {
       title: 'Text size', side: TEXT_SIZES[textSizeIndex()][0], about: '', value: TEXT_SIZES[textSizeIndex()][0], go: 'Change', id: 'text-size',
       act() { pick('Text size', TEXT_SIZES.map(one => one[0]), textSizeIndex(), at => setTextSize(at)); },
       step(direction) { setTextSize(textSizeIndex() + direction); },
     },
-    // The reader's settings, by the pages Furoshiki has on a computer; each shows its few most
+    // The reading layer's settings, by the pages Furoshiki has on a computer; each shows its few most
     // changed and keeps the rest behind More.
-    open('Reading', 'Text panel, furigana, stats in the corner', 'settings:READING'),
-    open('Popup', 'Theme, size', 'settings:POPUP'),
+    open('Reading settings', 'Text panel, furigana, statistics in game, clipboard', 'settings:READING'),
+    open('Popup', 'Popup theme, size', 'settings:POPUP'),
     open('Dictionaries', 'Yomitan dictionaries', 'dictionaries'),
     open('Cards', 'Anki, screenshot, audio', 'settings:CARDS'),
-    open('Sources', 'Clipboard, text server', 'settings:SOURCES'),
+    ...sources,
     ...ocrRows(),
     // What each button does, for all consoles or each (map.js); the pointer's speed and the rest from there.
-    {title: 'Controller', about: 'Button mapping', go: 'Open', act() { openMap(); }, id: 'controller'},
-    ...(host.pickActionKeys ? [{
-      title: 'Shortcut buttons', id: 'action-keys', go: 'Choose',
-      side: actionKeysText(), value: String(actionKeysCount() || 'None'),
-      about: '',
-      act() { host.pickActionKeys(); },
+    // Game buttons and shortcuts, in the one place a shortcut is given a button.
+    {title: 'Controller', about: 'Game buttons, shortcuts', go: 'Open', act() { openMap(); }, id: 'controller'},
+    ...(host.haptics && host.hasVibrator?.() ? [{
+      title: 'Haptics', id: 'haptics', side: host.haptics() ? 'On' : 'Off', value: host.haptics() ? 'On' : 'Off',
+      about: '', go: host.haptics() ? 'Turn off' : 'Turn on',
+      act() { host.setHaptics(!host.haptics()); rebuild(); },
     }] : []),
     ...wideRow(),
     open('CRT filter', '', 'crt'),
-    open('Search settings', '', 'settings'),
+    // The search itself, not the page it is on: the row does what it says.
+    {title: 'Search settings', about: '', go: 'Search', act() { findSetting(); }, id: 'settings'},
+    // The Consoles page's own row among the groups: every console's settings, or one's.
+    {
+      title: 'Consoles', id: 'consoles-page', about: 'Resolution, aspect ratio, volume', go: 'Open',
+      act() { setScope({console: '', game: '', name: 'All consoles', tag: 'All'}); goTo(state.pages.findIndex(one => one.key === 'consoles')); },
+    },
     ...(host.saveSync?.() ? [open('Save sync', '', 'settings:SAVE_SYNC')] : []),
     ...(host.trackerAddress ? [{
       title: 'Study tracker', id: 'tracker', go: 'Edit', side: host.trackerAddress() || 'Not set', value: state.tracker ? 'On' : 'Off',
-      about: state.tracker ? 'Last synced ' + new Date(state.tracker.at).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})
+      about: state.tracker ? 'Last synced ' + ymdTime(new Date(state.tracker.at))
         : host.trackerAddress() ? 'Not connected' : '',
       act() { host.askTrackerAddress(); },
     }] : []),
+    {title: 'Version', id: 'version', side: appVersion(), value: appVersion(), about: ''},
     ...updateRow(),
     ...(host.services ? [{
-      title: 'Home server', id: 'services', go: 'Refresh', side: servicesText(), value: servicesText() ? 'Connected' : 'None',
+      title: 'Home server', id: 'services', go: 'Refresh', side: servicesText(), value: servicesText() ? 'Connected' : 'Not connected',
       about: '',
       act() { host.askServices(); say('Checking home server…'); },
     }] : []),
     {
-      title: 'RetroAchievements', side: host.achievementsUser?.() || 'Off', value: host.achievementsUser?.() || 'Off',
-      about: '', go: 'Log in', id: 'achievements',
+      title: 'RetroAchievements', side: user || 'Not logged in', value: user || 'Off',
+      // Logged in: the same box logs out.
+      about: '', go: user ? 'Account' : 'Log in', id: 'achievements',
       act() { host.achievementsLogin?.(); },
     },
     {
@@ -983,7 +1210,7 @@ function settingsPage() {
       act: pickOrder,
     },
     {
-      title: 'Show games', side: host.allGames?.() ? 'All games' : 'With scripts only', value: host.allGames?.() ? 'All' : 'Scripted',
+      title: 'Show games', side: host.allGames?.() ? 'All games' : 'With a game script only', value: host.allGames?.() ? 'All' : 'With script',
       about: '', go: 'Change', id: 'all',
       act() { host.setAllGames?.(!host.allGames?.()); rebuild(); },
     },
@@ -993,57 +1220,162 @@ function settingsPage() {
       act() {
         const consoles = JSON.parse(host.consoles());
         if (!consoles.length) { host.open('scripts'); return; }
-        const names = consoles.map(one => LOOKS[one.system]?.[0] || one.short);
-        pick('Choose console', names, 0, at => host.openScripts(consoles[at].key));
+        const names = consoles.map(one => fullName(one.key, one.system) || one.short);
+        pick('Game scripts · Choose console', names, 0, at => host.openScripts(consoles[at].key));
       },
     },
-    {title: 'Add folder', about: '', go: 'Add', act() { host.addFolder(); }, id: 'add'},
     // GameNative's Frontend Sync (and Winlator's shortcuts) leave a file a game in a folder: that
-    // folder added, each game is on the shelf and Start plays it at once (companion/FrontendExports).
-    ...(host.addTitle ? [{
-      title: 'Add GameNative folder', about: 'The folder its Frontend Sync exports to', go: 'Add',
+    // folder added, each game is in the library and Start plays it at once (companion/FrontendExports).
+    // Offered where GameNative is installed.
+    ...(host.addTitle && host.hasGameNative?.() ? [{
+      title: 'Add GameNative folder', about: 'GameNative\'s Frontend Sync folder', go: 'Add',
       act() { host.addFolder(); }, id: 'add-exports',
     }] : []),
+    // A folder by what it is, with enough of its path to tell it from the others; the whole path on its card.
     ...folders.map(folder => ({
-      title: folder, about: 'Game folder', go: 'Remove', id: folder,
-      act() { host.removeFolder(folder); Front.reload(); },
+      title: 'Games folder', side: shortPath(folder), value: shortPath(folder), about: folder, go: 'Remove', id: folder, folder: true,
+      act() {
+        pick('Remove this folder from the library?', ['Remove', 'Cancel'], 1, at => {
+          if (at === 0) { host.removeFolder(folder); Front.reload(); }
+        }, folder + '\nThe games stay on the device.', {cancel: false});
+      },
     })),
-    {title: 'Scan for games', about: '', go: 'Scan', act() { host.scan(); }, id: 'scan'},
+    {title: 'Scan for games', about: '', go: 'Scan', act() { scanForGames(); }, id: 'scan'},
   ];
   return groupedSettings(rows.map(row => ({file: '設定', ...row})));
 }
 
 /**
+ * Search settings: every setting by its name, wherever it is. The page's own rows (each group's,
+ * and the Consoles page's), and every row of the reading layer's pages (host.settingsIndex:
+ * Reading, Popup, Cards, Controller). A row found is opened where it is: a page's own is done
+ * as its key does, another's opens its page at it.
+ */
+function findSetting() {
+  // A row of the Settings page shown: its group opened, the row in hand, for the user to change.
+  const showRow = (group, id) => {
+    goTo(state.pages.findIndex(one => one.key === 'settings'));
+    if (group) { openSettingsGroup(group, id); return; }
+    state.chosen.settings = id;
+    setInList(true);
+    draw();
+  };
+  // The page's own rows, by what they are called now, each with the group it is in.
+  const own = [];
+  const before = state.settingsGroup;
+  state.settingsGroup = null;
+  for (const group of SETTING_GROUPS) {
+    state.settingsGroup = group.key;
+    const page = settingsPage();
+    // A group of one row is not opened by the page (it is that row): its row is among the groups.
+    for (const row of page.rows) {
+      if (row.id === 'group-back' || String(row.id).startsWith('group:') || row.id === 'settings' || !row.act) continue;
+      if (!own.some(one => one.id === row.id)) own.push({id: row.id, title: row.title, where: 'Settings · ' + group.title, act() { showRow(group.key, row.id); }});
+    }
+  }
+  state.settingsGroup = null;
+  for (const row of settingsPage().rows) {
+    if (String(row.id).startsWith('group:') && row.act && !own.some(one => one.title === row.title)) {
+      own.push({id: row.id, title: row.title, where: 'Settings', act() { showRow('', row.id); }});
+    }
+  }
+  state.settingsGroup = before;
+  const scope = state.scope;
+  state.scope = {console: '', game: '', name: 'All consoles', tag: 'All'};
+  for (const row of consolesPage().rows.slice(1)) {
+    own.push({id: 'consoles:' + row.id, title: row.title, where: 'Consoles', act() {
+      setScope({console: '', game: '', name: 'All consoles', tag: 'All'});
+      state.chosen.consoles = row.id;
+      goTo(state.pages.findIndex(one => one.key === 'consoles'));
+      setInList(true);
+      draw();
+    }});
+  }
+  state.scope = scope;
+  let theirs = [];
+  try { theirs = JSON.parse(host.settingsIndex?.() || '[]'); } catch (e) { /* the page's own alone */ }
+  const all = [...own, ...theirs.map(one => ({title: one.title, where: one.page, act() { host.openSetting(one.section, one.key); }}))];
+
+  state.picking = {slider: true};
+  $('pick-title').textContent = 'Search settings';
+  $('pick-note').textContent = '';
+  const list = $('pick-rows');
+  list.textContent = '';
+  const line = document.createElement('li');
+  const field = document.createElement('input');
+  field.type = 'search';
+  field.placeholder = 'Setting name';
+  line.append(field);
+  list.append(line, cancelRow());
+  field.oninput = () => {
+    while (list.children.length > 2) list.children[1].remove();
+    const wanted = field.value.trim().toLowerCase();
+    if (!wanted) return;
+    // A word that begins so first, then any that holds it.
+    const begins = all.filter(one => one.title.toLowerCase().split(' ').some(word => word.startsWith(wanted)));
+    const holds = all.filter(one => !begins.includes(one) && (one.title + ' ' + one.where).toLowerCase().includes(wanted));
+    for (const one of [...begins, ...holds].slice(0, 14)) {
+      const item = document.createElement('li');
+      item.setAttribute('role', 'button');
+      item.textContent = `${one.title} · ${one.where}`;
+      item.onclick = () => { closePick(); one.act(); };
+      list.lastChild.before(item);
+    }
+  };
+  $('pick').hidden = false;
+  field.focus();
+}
+
+/** The icon's name without its number ("Solarized", not "30 Solarized"). */
+const iconName = () => String(host.icon?.() || '').replace(/^\d+\s+/, '');
+
+/** This app's version, for About. */
+function appVersion() {
+  try { return host.version?.() || JSON.parse(host.release?.() || host.update?.() || '{}').mine || ''; } catch (e) { return ''; }
+}
+
+/**
  * The settings by kind rather than one long list (the maintainer, 2026-11-17: "categorised
  * instead of one big list"): the page lists Search settings and the groups, a group opens its
- * rows, and its first row or B goes back. A row is put in its group by its id.
+ * rows, and its first row or B goes back. A row is put in its group by its id. A group of one row
+ * is that row: it opens that row's page at once (no "Cards › Cards").
  */
+// The same groups in the same order as the desktop program's sections (2026-11-20).
 const SETTING_GROUPS = [
-  {key: 'library', title: 'Library', ids: ['add-title', 'find', 'order', 'all', 'scripts', 'add', 'add-exports', 'scan']},
-  {key: 'reading', title: 'Reading', ids: ['settings:READING', 'settings:POPUP', 'dictionaries', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
+  {key: 'library', title: 'Library', ids: ['add', 'add-title', 'find', 'order', 'all', 'scripts', 'add-exports', 'scan']},
+  {key: 'reading', title: 'Reading', ids: ['settings:READING', 'dictionaries', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
+  {key: 'popup', title: 'Popup', ids: ['settings:POPUP']},
   {key: 'cards', title: 'Cards', ids: ['settings:CARDS', 'tracker']},
-  {key: 'controls', title: 'Controls', ids: ['controller', 'action-keys']},
+  {key: 'consoles', title: 'Consoles', ids: ['consoles-page']},
+  {key: 'controls', title: 'Controls', ids: ['controller', 'haptics']},
   {key: 'display', title: 'Display', ids: ['look', 'icon', 'text-size', 'wide', 'crt', 'home']},
-  {key: 'accounts', title: 'Accounts', ids: ['settings:SAVE_SYNC', 'services', 'achievements', 'update']},
+  {key: 'about', title: 'About', ids: ['version', 'update', 'achievements', 'settings:SAVE_SYNC', 'services']},
 ];
 
 function groupedSettings(rows) {
-  const groupOf = row => row.about === 'Game folder' ? 'library'
+  const groupOf = row => row.folder ? 'library'
     : SETTING_GROUPS.find(group => group.ids.includes(row.id))?.key || (row.id === 'settings' ? '' : 'library');
   const open = SETTING_GROUPS.find(group => group.key === state.settingsGroup);
-  if (open) {
-    const back = {title: '‹  Settings', id: 'group-back', about: '', go: 'Back', file: '設定', act() { closeSettingsGroup(); }};
-    return {key: 'settings', tab: 'Settings', head: 'Settings  ·  ' + open.title, sub: '',
-      rows: [back, ...rows.filter(row => groupOf(row) === open.key)]};
+  const insideOf = group => rows.filter(row => groupOf(row) === group.key);
+  if (open && insideOf(open).length > 1) {
+    const back = {title: '‹ Settings', id: 'group-back', about: '', go: 'Back', file: '設定', act() { closeSettingsGroup(); }};
+    return {key: 'settings', tab: 'Settings', head: 'Settings · ' + open.title, sub: '',
+      rows: [back, ...insideOf(open)]};
   }
   const top = rows.filter(row => groupOf(row) === '');
   const groups = SETTING_GROUPS.map(group => {
-    const inside = rows.filter(row => groupOf(row) === group.key);
-    return inside.length ? {
+    const inside = insideOf(group);
+    if (!inside.length) return null;
+    // One row: the group is that row, under the group's name, with what the row says and does.
+    if (inside.length === 1) {
+      const only = inside[0];
+      return {...only, title: group.title, id: 'group:' + group.key, about: only.about || (only.title !== group.title ? only.title : '')};
+    }
+    return {
       title: group.title, id: 'group:' + group.key, file: '設定', go: 'Open',
-      side: String(inside.length), about: inside.map(row => row.title).join(', '),
+      side: String(inside.length), about: [...new Set(inside.map(row => row.title))].join(', '),
       act() { openSettingsGroup(group.key, inside[0]?.id); },
-    } : null;
+    };
   }).filter(Boolean);
   return {key: 'settings', tab: 'Settings', head: 'Settings', sub: '', rows: [...top, ...groups]};
 }
@@ -1191,15 +1523,16 @@ function fresh(element, name) {
 function rowElement(row, index, on) {
   const item = document.createElement('li');
   item.className = 'row' + (on ? ' on' : '');
+  item.setAttribute('role', 'button');
   const no = document.createElement('span');
   no.className = 'no';
   no.textContent = String(index + 1).padStart(2, '0');
   const name = document.createElement('span');
   name.className = 'name';
-  name.textContent = row.title;
+  putText(name, row.title);
   const side = document.createElement('span');
   side.className = 'side' + (row.same ? ' same' : '');
-  side.textContent = (row.side || '').replace(/\n/g, '  ·  ');
+  side.textContent = (row.side || '').replace(/\n/g, ' · ');
   // On a shelf: the console's colour at the spine's foot.
   const band = document.createElement('i');
   band.className = 'band';
@@ -1208,7 +1541,9 @@ function rowElement(row, index, on) {
   if (row.read) {
     const mark = document.createElement('i');
     mark.className = 'mark ' + row.read;
-    mark.title = {script: 'Read by its script', ocr: 'Read by OCR', unset: 'Set up OCR to read it'}[row.read];
+    // In words on the game's card too (its "Read by" line): a finger never sees a title.
+    mark.title = 'Read by: ' + READ_BY[row.read];
+    mark.setAttribute('aria-label', mark.title);
     mark.innerHTML = row.read === 'ocr'
       ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="6.5" cy="14" r="3.6"/><circle cx="17.5" cy="14" r="3.6"/><path d="M10.1 14h3.8M2.9 14 4.4 8M21.1 14 19.6 8"/></svg>'
       : row.read === 'script' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 10 18 19.5 6.5"/></svg>' : '?';
@@ -1240,14 +1575,15 @@ function drawCard() {
   const head = $('tab-text');
   head.textContent = '';
   const where = document.createElement('i');
-  where.textContent = current.shelf ? 'Library  ·  ' : 'Furoshiki  ·  ';
+  where.textContent = current.shelf ? 'Library · ' : 'Furoshiki · ';
   head.append(where, current.shelf ? current.sub : current.head);
+  // "01 / 73", then a game's own ID where it has one a user knows, whose figures, and whether it is in play.
   $('file').textContent = current.shelf
-    ? `${String(chosenIndex() + 1).padStart(2, '0')}／${String(current.rows.length).padStart(2, '0')}  ·  ${row?.file || ''}`
-      + (row?.from ? '  ·  ' + row.from : '') + (row?.game && state.playing?.path === row.game.path ? '  ·  Now playing' : '')
-    : `${String(chosenIndex() + 1).padStart(2, '0')}／${String(current.rows.length).padStart(2, '0')}`;
-  $('title').textContent = row?.title || '';
-  $('sub').textContent = row?.about || '';
+    ? [counter(chosenIndex() + 1, current.rows.length), row?.file, row?.from,
+      row?.game && state.playing?.path === row.game.path ? 'Now playing' : ''].filter(Boolean).join(' · ')
+    : counter(chosenIndex() + 1, current.rows.length);
+  putText($('title'), row?.title || '');
+  putText($('sub'), row?.about || '');
   const figures = $('figures');
   figures.textContent = '';
   for (const [label, value] of row?.figures || []) {
@@ -1321,40 +1657,45 @@ function drawStage() {
   const game = row?.game;
   if (!game) { state.stage = false; document.body.classList.remove('staged'); return; }
   const record = recordOf(game), tracked = trackedOf(game);
-  $('stage-where').textContent = `${String(chosenIndex() + 1).padStart(2, '0')} / ${String(current.rows.length).padStart(2, '0')}  ·  ${game.id}`;
+  $('stage-where').textContent = [counter(chosenIndex() + 1, current.rows.length), shownId(game)].filter(Boolean).join(' · ');
   const name = $('stage-name');
-  name.textContent = row.title;
+  putText(name, row.title);
   name.classList.toggle('latin', !hasJapanese(row.title));
-  $('stage-own').textContent = row.about || '';
+  putText($('stage-own'), row.about || '');
   $('stage-go').textContent = row.go;
+  // The second key says what it does for this game ("Game settings"; "Remove from library" for another app's).
+  $('stage-settings').textContent = row.also || 'Game settings';
+  $('stage-settings').hidden = !row.alsoAct;
   const day = lastDay(game);
-  $('stage-last').textContent = day ? 'Last read  ' + dayText(day) : 'Not started';
+  $('stage-last').textContent = day ? 'Last read ' + dayText(day) : 'Not started';
   showFar($('stage-far'), shareOf(game));
   $('stage-log').hidden = true;
 
   const facts = $('stage-facts');
   facts.textContent = '';
-  const short = LOOKS[game.system]?.[0] || game.system || '';
-  facts.append(fact('Console', game.script === false ? `${short}  ·  No script` : short));
+  // A console's game says its console; another app's game its app.
+  if (game.console === 'app') facts.append(fact('App', game.via || 'Another app'));
+  else facts.append(fact('Console', fullName(game.console, game.system)));
+  facts.append(fact('Read by', READ_BY[row.read] || READ_BY.unset));
   if (tracked) {
     facts.append(fact('Read', tracked.total > 0
-      ? `${number(tracked.read)} of ${number(tracked.total)} characters  ·  ${Math.round(100 * tracked.read / tracked.total)}%`
+      ? `${number(tracked.read)} of ${number(tracked.total)} characters · ${Math.round(100 * tracked.read / tracked.total)}%`
       : `${number(tracked.read)} characters`, 'Study tracker'));
     if (tracked.hours > 0) {
       facts.append(fact('Time', [playTime(tracked.hours * 3.6e6), tracked.speed > 0 ? number(tracked.speed) + '/h' : '',
-        tracked.sessions > 0 ? tracked.sessions + ' sessions' : ''].filter(Boolean).join('  ·  ')));
+        tracked.sessions > 0 ? tracked.sessions + ' sessions' : ''].filter(Boolean).join(' · ')));
     }
     const jiten = [tracked.difficulty > 0 ? 'Difficulty ' + tracked.difficulty.toFixed(2) : '', tracked.unique > 0 ? number(tracked.unique) + ' unique words' : '',
       tracked.coverage > 0 ? Math.round(tracked.coverage) + '% known' : ''].filter(Boolean);
-    if (jiten.length) facts.append(fact('Jiten', jiten.join('  ·  ')));
+    if (jiten.length) facts.append(fact('Jiten', jiten.join(' · ')));
   }
   if (game.chars > 0) {
     const hours = (game.activeMs || 0) / 3.6e6;
-    const here = [number(game.chars) + ' characters', playTime(game.activeMs), hours > .05 ? number(Math.round(game.chars / hours)) + '/h' : ''].filter(Boolean).join('  ·  ');
+    const here = [number(game.chars) + ' characters', playTime(game.activeMs), hours > .05 ? number(Math.round(game.chars / hours)) + '/h' : ''].filter(Boolean).join(' · ');
     facts.append(fact(tracked ? 'This device' : 'Read', here, tracked ? '' : 'This device'));
   }
   const other = state.elsewhere?.[game.id];
-  if (other && other.day > (game.last || '')) facts.append(fact('Last played on', `${other.device}  ·  ${dayText(other.day)}`));
+  if (other && other.day > (game.last || '')) facts.append(fact('Last played on', `${other.device} · ${dayText(other.day)}`));
   // The guides are the dev line's: they come with the home server's services (host.services).
   if (record?.guide && host.services) facts.append(fact('Guide', record.guide.replace(/-/g, ' ')));
   let reading = {days: [], lines: 0};
@@ -1372,7 +1713,7 @@ function drawStage() {
     facts.append(fact('30 days', bars, `Best day ${number(most)}`));
   }
   if (reading.lines > 0) {
-    facts.append(fact('Log', `${number(reading.lines)} lines`));
+    facts.append(fact('Backlog', `${number(reading.lines)} lines`));
     $('stage-log').hidden = false;
   }
   // Its people: as the game writes them, and how they are said.
@@ -1382,6 +1723,8 @@ function drawStage() {
     const said = document.createElement('small');
     said.textContent = person.romaji;
     who.append(person.name, said);
+    who.lang = 'ja';
+    said.lang = 'en';
     facts.append(fact(index === 0 ? 'Names' : '', who, index === all.length - 1 && record.more > 0 ? `+ ${record.more} more` : ''));
   });
 
@@ -1420,7 +1763,6 @@ function mirror() {
     file: $('file').textContent, title: row?.title || '', sub: row?.about || '', value: current.shelf ? '' : row?.value || '',
     figures: row?.figures || [], go: row?.act ? row.go || '' : '', also: row?.also || '', cover: current.shelf ? row?.cover || '' : '',
     tabs: state.pages.map(one => one.tab), shelves: state.pages.map(one => !!one.shelf), page: state.page, steps: !!row?.step,
-    add: !!host.addTitle,
     at: chosenIndex(), count: current.rows.length, far: current.shelf ? row?.far ?? -1 : -1,
     // A page of settings: its rows too, each a key for a finger on the second display.
     rows: current.shelf ? null : current.rows.map(one => ({title: one.title || '', value: one.value || ''})),
@@ -1529,7 +1871,7 @@ const Front = {
     if (at < 0) return;
     state.chosen[state.pages[at].key] = game.path;
     goTo(at);
-    say(game.title + ' added');
+    say(shelfName(game) + ' added');
   },
   /** The Home key with the page in front: the shelf, at the game in play or at its first. */
   home() {
@@ -1545,9 +1887,41 @@ const Front = {
       goTo(Math.max(state.pages.findIndex(one => one.key === state.lastShelf), 0));
     }
   },
-  /** A scan under way: what it is looking through now ("PSP  ·  2 of 9"), or '' once it is done. */
+  /**
+   * Android's Back: a list or box open over the page shuts first, then the page goes up one
+   * level (a game's page to its shelf, a group of settings to Settings, a page to the library).
+   * False from the top level: only there does Back leave the app (HomeActivity).
+   */
+  back() {
+    if (window.MapScreen?.open) { MapScreen.key('Backspace'); return true; }
+    if (state.picking) { closePick(); return true; }
+    if (state.stage) { setStage(false); return true; }
+    if (page().key === 'settings' && state.settingsGroup) { closeSettingsGroup(); return true; }
+    if (!page().shelf) {
+      const to = Math.max(state.pages.findIndex(one => one.key === state.lastShelf), 0);
+      if (to === state.page) return false;
+      goTo(to);
+      return true;
+    }
+    return false;
+  },
+  /** A scan under way: what it is looking through now ("PSP · 2 of 9"), or '' once it is done. */
   scanning(text) {
-    $('scan').textContent = text ? 'Scanning  ·  ' + text : '';
+    const was = !!$('scan').textContent;
+    $('scan').textContent = text ? 'Scanning · ' + text : '';
+    // A scan is over: with nothing found, said where it stays (the empty library's row) and once
+    // along the foot when the user asked for the scan.
+    if (was && !text) {
+      setTimeout(() => {
+        let games = [];
+        try { games = JSON.parse(host.games()); } catch (e) { /* as it was */ }
+        const none = games.length === 0;
+        if (none && state.scanAsked) say('No games found. Add the folder your games are in.');
+        else if (state.scanAsked) say(games.length === 1 ? '1 game in the library' : games.length + ' games in the library');
+        state.scanAsked = false;
+        if (none !== !!state.scanFoundNone) { state.scanFoundNone = none; rebuild(); }
+      }, 700);
+    }
   },
   /** What a finger did on the second display's page. */
   remote(what) {
@@ -1556,11 +1930,11 @@ const Front = {
     if (kind === 'home') { Front.home(); return; }
     if (kind === 'go') page().rows[index]?.act?.();
     else if (kind === 'also') page().rows[index]?.alsoAct?.();
-    else if (kind === 'add') addTitle();
+    else if (kind === 'add') addGame();
     else if (kind === 'askalso') {
       // A long press on the title in hand (the second display): its second key, asked first.
       const row = page().rows[index];
-      if (row?.alsoAct) pick(row.title, [row.also, 'Cancel'], 1, at => { if (at === 0) row.alsoAct(); });
+      if (row?.alsoAct) pick(row.title, [row.also, 'Cancel'], 1, at => { if (at === 0) row.alsoAct(); }, '', {cancel: false});
     }
     else if (kind === 'tab') goTo(Number(value));
     else if (kind === 'pick') {
@@ -1572,7 +1946,9 @@ const Front = {
     else if (kind === 'row') choose(Math.max(0, Math.min(page().rows.length - 1, index + Number(value))), false);
     else if (kind === 'step') page().rows[index]?.step?.(Number(value));
   },
-  key(name) {
+  key(name, byFinger) {
+    // A controller is in the hand: its hints (L, R, the buttons' letters) are shown from here on.
+    if (!byFinger) document.body.classList.add('pad');
     // The controller mapping screen over the page takes the keys (map.js).
     if (window.MapScreen?.open) {
       MapScreen.key(name);
@@ -1583,14 +1959,17 @@ const Front = {
       if (name === 'Escape' || picking.slider) {
         if (name === 'Escape') closePick();
       } else if (name === 'ArrowUp' || name === 'ArrowDown') {
-        const next = picking.at + (name === 'ArrowUp' ? -1 : 1);
-        if (next >= 0 && next < picking.labels.length) {
+        const by = name === 'ArrowUp' ? -1 : 1;
+        const last = picking.labels.length - (picking.cancel ? 0 : 1);
+        let next = picking.at + by;
+        while (picking.labels[next]?.head) next += by;
+        if (next >= 0 && next <= last) {
           picking.at = next;
           drawPick();
         }
       } else if (name === 'Enter' || name === 'Play') {
         closePick();
-        picking.chosen(picking.at);
+        if (picking.at < picking.labels.length) picking.chosen(picking.at);
       }
       return;
     }
@@ -1668,6 +2047,8 @@ window.Front = Front;
 
 if (!LOWER) {
   addEventListener('keydown', event => Front.key(event.key));
+  // A controller the device has or that is plugged in: its hints from the start.
+  try { if (host.hasController?.()) document.body.classList.add('pad'); } catch (e) { /* none */ }
   addEventListener('resize', () => { fit(); tick(); mirror(); });
 }
 if (!LOWER) {
@@ -1677,11 +2058,14 @@ if (!LOWER) {
   $('stage-settings').onclick = () => inHand()?.alsoAct?.();
   $('stage-pin').onclick = () => inHand()?.pin?.();
   $('stage-log').onclick = () => host.openLog?.(inHand()?.game?.id || '');
-  $('stage-before').onclick = () => Front.key('ArrowLeft');
-  $('stage-after').onclick = () => Front.key('ArrowRight');
+  $('stage-before').onclick = () => Front.key('ArrowLeft', true);
+  $('stage-after').onclick = () => Front.key('ArrowRight', true);
   $('pin').onclick = () => page().rows[chosenIndex()]?.pin?.();
   $('go').onclick = () => page().rows[chosenIndex()]?.act?.();
   $('also').onclick = () => page().rows[chosenIndex()]?.alsoAct?.();
+  // One display: "+ Add game" at the end of the tabs (two displays have it on the second).
+  $('add-game').hidden = false;
+  $('add-game').onclick = () => addGame();
 }
 $('pick').onclick = event => { if (event.target === $('pick')) closePick(); };
 
@@ -1725,11 +2109,11 @@ const Lower = {
     const head = $('tab-text');
     head.textContent = '';
     const where = document.createElement('i');
-    where.textContent = shown.shelf ? 'Library  ·  ' : 'Furoshiki  ·  ';
+    where.textContent = shown.shelf ? 'Library · ' : 'Furoshiki · ';
     head.append(where, shown.head);
     $('file').textContent = shown.file;
-    $('title').textContent = shown.title;
-    $('sub').textContent = shown.sub;
+    putText($('title'), shown.title);
+    putText($('sub'), shown.sub);
     $('value').textContent = '';
     $('card-text').dataset.value = shown.value || '';
     const figures = $('figures');
@@ -1784,7 +2168,8 @@ const Lower = {
       tabs.append(button);
     });
     tabs.querySelector('.on')?.scrollIntoView({block: 'nearest'});
-    $('add-game').hidden = !shown.add;
+    // "+ Add game" asks which way first (a folder, another app's game, a scan): always offered.
+    $('add-game').hidden = false;
     // Removing a title is kept behind a long press on it, not a key beside Continue.
     Lower.removeBehindPress = shown.shelf && /remove/i.test(shown.also || '');
     if (Lower.removeBehindPress) also.hidden = true;
@@ -1815,8 +2200,8 @@ if (LOWER) {
   for (const id of ['before', 'after']) $(id).onclick = () => host.remote($(id).dataset.what);
   // In a plain browser: something to look at.
   if (!window.FuroshikiHost) {
-    Lower.show(JSON.stringify({theme: {}, head: 'PlayStation Portable', shelf: true, file: '01／03  ·  ULJM05887', title: 'STEINS;GATE', sub: '', value: '',
-      figures: [['Characters', '184,220'], ['Play Time', '7h03m'], ['Last Read', '2026/11/01']], go: 'Continue', also: 'Game settings', cover: 'covers/steins-gate.psp.jpg', far: .2,
+    Lower.show(JSON.stringify({theme: {}, head: 'PSP', shelf: true, file: '01 / 03 · ULJM05887', title: 'STEINS;GATE', sub: '', value: '',
+      figures: [['Characters', '184,220'], ['Play time', '7h 03m'], ['Last read', '2026/11/01'], ['Read by', 'Game script']], go: 'Continue', also: 'Game settings', cover: 'covers/steins-gate.psp.jpg', far: .2,
       tabs: ['PSP', 'PS2', 'Statistics', 'Consoles', 'Settings'], page: 0, steps: false, at: 0, count: 3}));
   }
 } else {
@@ -1830,8 +2215,20 @@ document.fonts?.load('700 20px Text');
 swipes();
 Front.reload();
 if (startPage) goTo(Number(startPage));
-// In a plain browser "#look,page,stage" shows the title in hand as its page.
+// In a plain browser "#look,page,stage" shows the title in hand as its page; "group:library" a
+// group of the Settings page, "addgame" and "addapp" the two lists of Add game, "gamesettings"
+// the settings of the game in hand.
 if (!window.FuroshikiHost && location.hash.includes('stage')) setStage(true);
+if (!window.FuroshikiHost) {
+  const group = /group:(\w+)/.exec(location.hash);
+  if (group) openSettingsGroup(group[1]);
+  if (location.hash.includes('addgame')) addGame();
+  if (location.hash.includes('addapp')) addTitle();
+  if (location.hash.includes('gamesettings')) page().rows[chosenIndex()]?.alsoAct?.();
+  // "search:the" shows Search settings with that typed.
+  const search = /search:(\w+)/.exec(location.hash);
+  if (search) { findSetting(); const field = document.querySelector('#pick-rows input'); field.value = search[1]; field.oninput(); }
+}
 // The clock turns on the second, not somewhere within it.
 (function onTheSecond() {
   tick();

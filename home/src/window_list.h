@@ -9,7 +9,8 @@
 //
 // On Windows: the visible top-level windows that have a title (EnumWindows), each pictured by
 // PrintWindow, which also gives a window that lies under another. Elsewhere, and in tests, a
-// stand-in list: the program's own window (when one was named with SetOwn), and each picture
+// stand-in list: the program's own window (when one was named with SetOwn and a test asks for
+// it with READER_HOME_OWN_WINDOW=1: it is no game, so it is not offered as one), and each picture
 // file named in READER_HOME_FAKE_WINDOWS (a list as PATH is one; "Name=file" gives it a title,
 // else the file's own name is its title), read again at every picture, so that a test may
 // change the file as a game changes its screen.

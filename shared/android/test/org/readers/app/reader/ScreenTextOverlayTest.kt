@@ -463,7 +463,7 @@ class ScreenTextOverlayTest {
         val (x2, y2) = answerCentre(answers.indexOf('い', 3))
         tap(x2, y2)
         assertEquals(listOf(0, 2, 1), picked)
-        assertTrue(ShadowToast.getTextOfLatestToast().toString().contains("controller"))
+        assertTrue(ShadowToast.getTextOfLatestToast().toString().contains("On-screen buttons"))
     }
 
     @Test
@@ -1045,14 +1045,14 @@ class ScreenTextOverlayTest {
         assertNull(sessionLine())
         assertTrue(overlay.pauseShown)
         val mark = TestSupport.find(root, TextView::class.java) {
-            it.isShown && it.contentDescription == "Statistics paused"
+            it.isShown && it.contentDescription == "Reading timer paused"
         }
         assertNotNull(mark)
         prefs.edit().putBoolean(ReaderSettings.KEY_STATS_PAUSED, false).commit()
         TestSupport.idle()
         assertFalse(overlay.pauseShown)
         assertNull(TestSupport.find(root, TextView::class.java) {
-            it.isShown && it.contentDescription == "Statistics paused"
+            it.isShown && it.contentDescription == "Reading timer paused"
         })
         // Both settings back to what they are at first (removed, not cleared: clear() tells the
         // listeners nothing in an app that targets Android 10 or older, as Station Reader does).
@@ -1387,7 +1387,9 @@ class ScreenTextOverlayTest {
         val shown = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
         assertTrue(shown.isShowing)
         val entries = (0 until shown.listView.adapter.count).map { shown.listView.adapter.getItem(it).toString() }
-        assertTrue("the menu has the reload entry: $entries", entries.contains("Reload script"))
+        assertTrue("the menu has the reload entry: $entries", entries.contains("Reload game script"))
+        // The row that opens the settings says so (it was "Even more settings" under "More settings").
+        assertTrue("the menu has Settings: $entries", entries.contains("Settings"))
         shown.dismiss()
         menu.chooseCardAudio()
         TestSupport.idle()

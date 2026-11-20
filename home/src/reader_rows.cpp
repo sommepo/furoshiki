@@ -7,6 +7,8 @@
 #include "reader/core/console.h"
 #include "reader/desktop/settings.h"
 #include "reader_rows.h"
+#include "pad_names.h"
+#include <QHash>
 
 namespace ReaderRows {
 
@@ -90,6 +92,7 @@ const QList<Entry>& Entries() {
             Switch("Discord status", Settings::KeyDiscordEnabled, &Settings::DiscordEnabled),
             // Popup
             Number("Text size", Settings::KeyPopupScale, &Settings::PopupScale, 60, 200, 5, "%"),
+            Switch("Fit height to entry", Settings::KeyPopupFit, &Settings::PopupFitEntry),
             Number("Height, at most", Settings::KeyPopupHeight, &Settings::PopupHeightPercent, 10, 80, 5, "%"),
             Number("Close after", Settings::KeyPopupAutoHide, &Settings::PopupAutoHideSeconds, 0, 120, 5, "S"),
             Switch("Close when the pointer leaves", Settings::KeyPopupHideOnExit, &Settings::PopupHideOnExit),
@@ -101,7 +104,7 @@ const QList<Entry>& Entries() {
             // Cards
             Chosen("Line audio", Settings::KeyCardAudio,
                    [](const Settings& s) { return Settings::CardAudioValue(s.CardAudioGeneral()); },
-                   {{QStringLiteral("Ask"), QStringLiteral("ask")},
+                   {{QStringLiteral("Ask each time"), QStringLiteral("ask")},
                     {QStringLiteral("Always"), QStringLiteral("always")},
                     {QStringLiteral("Never"), QStringLiteral("never")}}),
             Switch("Cut the clip to the voice", Settings::KeyAudioVoiceTrim, &Settings::AudioVoiceTrim),
@@ -125,6 +128,17 @@ const QList<Entry>& Entries() {
 #endif
             // Controller
             Switch("Pointer button: press once", Settings::KeyCursorToggle, &Settings::CursorToggle),
+            // Reading with the d-pad (docs/furoshiki-3.md, 31).
+            Chosen("Start reading with", Settings::KeyReadStart, text(&Settings::ReadStart),
+                   {{QStringLiteral("Select"), QStringLiteral("select")},
+                    {QStringLiteral("L3"), QStringLiteral("l3")},
+                    {QStringLiteral("R3"), QStringLiteral("r3")},
+                    {QStringLiteral("Select + A"), QStringLiteral("select+a")},
+                    {QStringLiteral("L3 + R3"), QStringLiteral("l3+r3")},
+                    {QStringLiteral("LB + RB"), QStringLiteral("lb+rb")},
+                    {QStringLiteral("Always during dialogue"), QStringLiteral("always")}}),
+            Switch("Reading mark", Settings::KeyReadMark, &Settings::ReadMark),
+            Switch("Reading hints", Settings::KeyReadHints, &Settings::ReadHints),
             Number("Pointer speed", Settings::KeyCursorSpeed, &Settings::CursorSpeed, 25, 300, 5, "%"),
             Chosen("Reader menu button", Settings::KeyMenuButton, number(&Settings::MenuButton), Buttons(true)),
             Chosen("Reading clock button", Settings::KeyStatsButton, number(&Settings::StatsButton), Buttons(false)),
@@ -134,24 +148,26 @@ const QList<Entry>& Entries() {
         // The buttons on a controller's back, which no game uses.
         QList<Choice> actions{{QStringLiteral("Nothing"), QStringLiteral("none")},
                               {QStringLiteral("Pause game"), QStringLiteral("reader_pause_game")},
-                              {QStringLiteral("Pause timer"), QStringLiteral("reader_pause_stats")},
-                              {QStringLiteral("Sentence card"), QStringLiteral("reader_sentence_card")},
-                              {QStringLiteral("Word card"), QStringLiteral("reader_word_card")},
-                              {QStringLiteral("Undo card"), QStringLiteral("reader_undo_card")},
+                              {QStringLiteral("Pause reading timer"), QStringLiteral("reader_pause_stats")},
+                              {QStringLiteral("Add sentence card"), QStringLiteral("reader_sentence_card")},
+                              {QStringLiteral("Add word card"), QStringLiteral("reader_word_card")},
+                              {QStringLiteral("Undo last card"), QStringLiteral("reader_undo_card")},
                               {QStringLiteral("Backlog"), QStringLiteral("reader_backlog")},
 #ifndef READER_NO_EXPLAIN
-                              {QStringLiteral("Explain"), QStringLiteral("reader_explain")},
+                              {QStringLiteral("Explain line"), QStringLiteral("reader_explain")},
 #endif
                               {QStringLiteral("Close popup"), QStringLiteral("reader_close_popup")},
                               {QStringLiteral("Quick menu"), QStringLiteral("reader_menu")},
                               {QStringLiteral("Game menu"), QStringLiteral("furoshiki_game_menu")},
+                              {QStringLiteral("Start or stop reading"), QStringLiteral("furoshiki_read")},
+                              {QStringLiteral("Show or hide text panel"), QStringLiteral("furoshiki_text_panel")},
                               {QStringLiteral("Full screen"), QStringLiteral("furoshiki_full_screen")},
                               {QStringLiteral("Settings"), QStringLiteral("furoshiki_settings")},
 #ifndef READER_NO_SAVE_SYNC
-                              {QStringLiteral("Toggle guide step"), QStringLiteral("furoshiki_guide")},
+                              {QStringLiteral("Show next guide step"), QStringLiteral("furoshiki_guide")},
                               {QStringLiteral("Check off guide step"), QStringLiteral("furoshiki_guide_done")},
 #endif
-                              {QStringLiteral("Read OCR areas"), QStringLiteral("furoshiki_ocr_read")}};
+                              {QStringLiteral("Read text now"), QStringLiteral("furoshiki_ocr_read")}};
         if (Reader::ConsoleTraits::HasNextChoice) {
             actions.insert(3, {QStringLiteral("Skip to next choice"), QStringLiteral("reader_next_choice")});
         }
@@ -167,6 +183,24 @@ const QList<Entry>& Entries() {
         return out;
     }();
     return entries;
+}
+
+/// A choice as it is said: "Start reading with" in the words of the controller in use
+/// (pad_names.h: Select or View, LB or L1), the others as written.
+QString Said(const Entry& entry, const Choice& choice) {
+    if (entry.key != Settings::KeyReadStart) {
+        return choice.said;
+    }
+    const Home::PadNames::Names names = Home::PadNames::Current();
+    const QHash<QString, QString> words{
+        {QStringLiteral("select"), names.select},
+        {QStringLiteral("l3"), names.l3},
+        {QStringLiteral("r3"), names.r3},
+        {QStringLiteral("select+a"), names.select + QStringLiteral(" + ") + names.south},
+        {QStringLiteral("l3+r3"), names.l3 + QStringLiteral(" + ") + names.r3},
+        {QStringLiteral("lb+rb"), names.l1 + QStringLiteral(" + ") + names.r1},
+    };
+    return words.value(choice.value, choice.said);
 }
 
 const Entry* Find(const QString& name) {
@@ -198,7 +232,7 @@ QString Value(const Settings& settings, const QString& name) {
     case Entry::Chosen:
         for (const Choice& choice : entry->choices) {
             if (choice.value == now) {
-                return choice.said.toUpper();
+                return Said(*entry, choice).toUpper();
             }
         }
         return now.toUpper();
@@ -254,7 +288,7 @@ QStringList Choices(const Settings& settings, const QString& name, int* in_use) 
     const QString now = entry->now(settings);
     QStringList said;
     for (int i = 0; i < entry->choices.size(); ++i) {
-        said.append(entry->choices[i].said);
+        said.append(Said(*entry, entry->choices[i]));
         if (entry->choices[i].value == now) {
             *in_use = i;
         }

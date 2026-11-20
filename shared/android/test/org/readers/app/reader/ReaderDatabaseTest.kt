@@ -39,6 +39,22 @@ class ReaderDatabaseTest {
         db.close()
     }
 
+    @Test
+    fun aWordLookedUpAgainOnTheSameLineIsOneLookup() {
+        val line = "道を見張れ、悪魔が来る"
+        assertTrue(db.countLookupOnLine("悪魔", "あくま", game, line, 1000))
+        // Again while the line is still there, and the line as OCR reads it again (spaces differ): not counted.
+        assertFalse(db.countLookupOnLine("悪魔", "あくま", game, line, 2000))
+        assertFalse(db.countLookupOnLine("悪魔", "あくま", game, " 道を見張れ、\n悪魔が来る ", 3000))
+        assertEquals(1, db.lookups("悪魔", "あくま").count)
+        // Another word of the line, the word on another line, and the line in another game: each counts.
+        assertTrue(db.countLookupOnLine("道", "みち", game, line, 4000))
+        assertTrue(db.countLookupOnLine("悪魔", "あくま", game, "悪魔だ", 5000))
+        assertTrue(db.countLookupOnLine("悪魔", "あくま", other, line, 6000))
+        assertEquals(3, db.lookups("悪魔", "あくま").count)
+        assertEquals(1, db.lookups("道", "みち").count)
+    }
+
     private fun line(text: String, id: String, ts: Long, speaker: String = "", channel: String = "dialogue") =
         TextLine(
             sequence = 0, frame = 0, audioPosition = -1, channel = channel, speaker = speaker,

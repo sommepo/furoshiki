@@ -192,6 +192,10 @@ object ReaderSession {
         val db = database(app)
         appContext = app
         settings = prefs
+        // A title taken from a file's name, tidied once here: the cards' source, the statistics
+        // and the backlog all have it from this.
+        @Suppress("NAME_SHADOWING")
+        val title = TitleText.clean(title)
         this.title = title
         this.titleId = key
         current = null

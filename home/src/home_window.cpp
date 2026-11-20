@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QUrl>
 #include "core_hooks.h"
+#include "pad_names.h"
 #include "hook_fetch.h"
 #include "hook_processes.h"
 #include "art_fetch.h"
@@ -64,6 +65,9 @@ namespace Home {
 
 namespace {
 
+/// What the shelf calls a game (shelf_page.inc).
+QString ShelfTitleOf(const QString& id, const QString& title);
+
 // The look ("Save Menu", after the save screens of the visual novels of around 2000): on a
 // sheet of 1280x720, a tab with the page's name at the top left and a clock at the top
 // right; a card with the chosen row's details and its picture in a frame; under it a panel
@@ -100,7 +104,8 @@ struct SystemLook {
 constexpr SystemLook SystemLooks[] = {
     {"Nintendo Switch", "Switch", "linear-gradient(135deg,#b8323c,#3a1016)"},
     {"Nintendo 3DS", "3DS", "linear-gradient(135deg,#8a8f99,#2c2f36)"},
-    {"PlayStation", "PlayStation", "linear-gradient(135deg,#5b5b66,#16161c)"},
+    {"Nintendo DS", "DS", "linear-gradient(135deg,#9a9da6,#30333a)"},
+    {"PlayStation", "PS1", "linear-gradient(135deg,#5b5b66,#16161c)"},
     {"PlayStation Portable", "PSP", "linear-gradient(135deg,#2d3a52,#0c0f18)"},
     {"PSP", "PSP", "linear-gradient(135deg,#2d3a52,#0c0f18)"},
     {"PlayStation Vita", "PS Vita", "linear-gradient(135deg,#3b4a63,#10141c)"},
@@ -129,11 +134,14 @@ Fill SystemArt(const QString& system) {
     return ParseFill(QString::fromUtf8(known != nullptr ? known->art : "linear-gradient(135deg,#6b6f7a,#1c1e24)"));
 }
 
-/// Play time as a save screen has it: "12:05".
+/// Reading time as every page says it: "6m", "1h 05m".
 QString PlayClock(qint64 active_ms) {
     const qint64 minutes = active_ms / 60000;
-    return QStringLiteral("%1:%2").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
+    return minutes < 60 ? QStringLiteral("%1m").arg(minutes)
+                        : QStringLiteral("%1h %2m").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
 }
+
+
 
 /// "2026-10-22" as "2026/10/22", or "10/22" short.
 QString DayText(const QString& day, bool year) {
@@ -178,16 +186,17 @@ constexpr SettingRow SettingRows[] = {
     {"Idle after", "", nullptr, 0, 0, 0, 0, "Reading", 3, true},
     {"Tidy reading time", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
     {"Daily goal", "Characters a day", nullptr, 0, 0, 0, 0, "Reading", 0, true},
-    {"Discord status", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Discord application ID", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
     {"Customise the popup", "Theme and layout", nullptr, 0, 0, 0, 0, "Popup", 2, false},
     {"How solid", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Text size", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Fit height to entry", "", nullptr, 0, 0, 0, 0, "Popup", 1, false},
     {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Popup", 0, false},
     {"Close after", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
     {"Close when the pointer leaves", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
     {"Add button's corner", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Export popup style", "", nullptr, 0, 0, 0, 0, "Popup", 0, true},
+    {"Import popup style", "", nullptr, 0, 0, 0, 0, "Popup", 0, true},
     {"Anki", "Deck, note type and fields", nullptr, 0, 0, 0, 0, "Cards", 2, false},
     {"Line audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
     {"Cut the clip to the voice", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
@@ -198,43 +207,48 @@ constexpr SettingRow SettingRows[] = {
     {"Start the clip earlier by", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
     {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
-    {"Add a title", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR runs on", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR helper", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR service", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"OCR engine", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"Lines address", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"More", "", nullptr, 0, 0, 0, 0, "Sources", 0, false},
-    {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Add a title", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"OCR runs on", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"OCR helper", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"OCR service", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"OCR engine", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"Lines address", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #ifndef READER_NO_TEXT_SERVER
-    {"Text server", "For texthooker pages", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Text server", "For texthooker pages", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #endif
 #ifndef READER_NO_TEXT_SERVER
-    {"Text server's port", "", nullptr, 0, 0, 0, 0, "Sources", 3, true},
+    {"Text server's port", "", nullptr, 0, 0, 0, 0, "Library", 3, true},
 #endif
 #ifndef READER_NO_TEXT_SERVER
-    {"Other devices may connect", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Other devices may connect", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #endif
 #ifndef READER_NO_TEXT_SERVER
-    {"Text server's format", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Text server's format", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #endif
 #ifndef READER_NO_TEXT_SERVER
-    {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Sources", 1, true},
+    {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #endif
-    {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Sources", 0, true},
-    {"Map the controller", "", nullptr, 0, 0, 0, 0, "Controller", 2, false},
-    {"Pointer button: press once", "", nullptr, 0, 0, 0, 0, "Controller", 1, false},
-    {"Pointer speed", "", nullptr, 0, 0, 0, 0, "Controller", 3, false},
-    {"Trackpad speed", "Right trackpad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controller", 0, false},
-    {"More", "", nullptr, 0, 0, 0, 0, "Controller", 0, false},
-    {"Frame the character pointed at", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Pointer jumps to each new line", "", nullptr, 0, 0, 0, 0, "Controller", 1, true},
-    {"Trackpad acceleration", "", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controller", 0, true},
-    {"Scroll speed", "Left trackpad", "scroll", 0.2, 3.0, 0.1, 1.0, "Controller", 0, true},
-    {"Pointer rolls on", "", "trackball", 0, 0, 0, 1, "Controller", 0, true},
-    {"Pad ticks", "", "haptics", 0, 0, 0, 1, "Controller", 0, true},
-    {"Tick strength", "", "tick_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
-    {"Click strength", "", "click_strength", 0.0, 3.0, 0.25, 1.0, "Controller", 0, true},
+    {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Library", 0, true},
+    {"Map the controller", "", nullptr, 0, 0, 0, 0, "Controls", 2, false},
+    {"Controller layout", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
+    {"Set up this controller again", "", nullptr, 0, 0, 0, 0, "Controls", 2, false},
+    {"Pointer button: press once", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
+    {"Pointer speed", "", nullptr, 0, 0, 0, 0, "Controls", 3, false},
+    {"Start reading with", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
+    {"Reading mark", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
+    {"Reading hints", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
+    {"Trackpad speed", "Right trackpad", "sensitivity", 0.2, 3.0, 0.1, 1.0, "Controls", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Controls", 0, false},
+    {"Frame the character pointed at", "", nullptr, 0, 0, 0, 0, "Controls", 1, true},
+    {"Pointer jumps to each new line", "", nullptr, 0, 0, 0, 0, "Controls", 1, true},
+    {"Trackpad acceleration", "", "acceleration", 0.0, 2.0, 0.25, 1.0, "Controls", 0, true},
+    {"Scroll speed", "Left trackpad", "scroll", 0.2, 3.0, 0.1, 1.0, "Controls", 0, true},
+    {"Pointer rolls on", "", "trackball", 0, 0, 0, 1, "Controls", 0, true},
+    {"Pad ticks", "", "haptics", 0, 0, 0, 1, "Controls", 0, true},
+    {"Tick strength", "", "tick_strength", 0.0, 3.0, 0.25, 1.0, "Controls", 0, true},
+    {"Click strength", "", "click_strength", 0.0, 3.0, 0.25, 1.0, "Controls", 0, true},
     // Keys: what each does, said once (the controller's own are the Controller page's rows).
     {"A card of the sentence", "Ctrl+D", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"A card of the word looked up", "Ctrl+W", nullptr, 0, 0, 0, 0, "Keys", 0, false},
@@ -246,7 +260,8 @@ constexpr SettingRow SettingRows[] = {
     {"Pause the game", "Ctrl+G", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Pause the reading clock", "Ctrl+T", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Next choice", "Ctrl+N", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Read the on-request boxes (OCR)", "Ctrl+Shift+R · R on the text strip", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Start or stop reading", "Controller: Select", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Read the on-request boxes (OCR)", "Ctrl+Shift+R", nullptr, 0, 0, 0, 0, "Keys", 0, false},
 #ifndef READER_NO_SAVE_SYNC
     {"Guide's next step over the game", "Ctrl+Shift+G · Select+L1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Tick the guide's step shown", "Ctrl+Shift+N · Select+R1", nullptr, 0, 0, 0, 0, "Keys", 0, false},
@@ -259,34 +274,45 @@ constexpr SettingRow SettingRows[] = {
     {"Next look", "F4 in Library", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Sort the shelf", "S", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     {"Find box art", "F on a game", nullptr, 0, 0, 0, 0, "Keys", 0, false},
-    {"Look", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"Wide picture", "Supported PS2 and Switch games", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"CRT picture", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, false},
-    {"Full screen", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Quick save", "F5 in a game", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Quick load", "F8 in a game", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    {"Quit Furoshiki", "Ctrl+Q", nullptr, 0, 0, 0, 0, "Keys", 0, false},
+    // Display: how the program and the games look and sound.
+    {"Look", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Icon", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Wide picture", "Supported PS2 and Switch games", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"CRT picture", "", nullptr, 0, 0, 0, 0, "Display", 2, false},
+    {"Full screen", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Games start in a window", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Menu sounds", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    // About: the program itself, its first steps again, the accounts it signs in to.
+    {"Version", "", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"Setup", "", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"Discord status", "", nullptr, 0, 0, 0, 0, "About", 1, false},
+    {"Discord application ID", "", nullptr, 0, 0, 0, 0, "About", 2, false},
 #ifndef READER_NO_SAVE_SYNC
-    {"Save sync", "Keep saves in sync across devices", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
+    {"Save sync", "Keep saves in sync across devices", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"Pair a device", "Paste a pairing link", nullptr, 0, 0, 0, 0, "About", 0, false},
 #endif
-    {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"More", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, false},
-    {"Icon", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
-    {"Menu sounds", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
-    {"Games start in a window", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+#ifdef HOME_TRACKER // the study tracker is the dev line's (CMakeLists.txt): no row where nothing asks it
+    {"Study tracker", "", nullptr, 0, 0, 0, 0, "About", 2, false},
+#endif
 #ifndef READER_NO_SAVE_SYNC
-    {"Pair a device", "Paste a pairing link", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
+    {"Update", "", nullptr, 0, 0, 0, 0, "About", 2, false},
+    {"Home server's services", "", nullptr, 0, 0, 0, 0, "About", 2, false},
 #endif
-    {"Study tracker", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
-#ifndef READER_NO_SAVE_SYNC
-    {"Update", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
-    {"Home server's services", "", nullptr, 0, 0, 0, 0, "Furoshiki", 2, true},
-#endif
+    {"Exit", "", nullptr, 0, 0, 0, 0, "About", 0, false},
     {"Fuzz", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
     {"Moving cursor", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
-    {"Exit", "", nullptr, 0, 0, 0, 0, "Furoshiki", 0, true},
-    // Developer: the pages' own words, changed in place and handed back for the next build.
+#ifndef HOME_PUBLIC
+    // Developer: the pages' own words, changed in place and handed back for the next build. The
+    // maintainer's tool: a published build has no such page.
     {"Rename labels", "Click a row to rename it", nullptr, 0, 0, 0, 0, "Developer", 0, false},
     {"Copy my labels", "Copies them to the clipboard", nullptr, 0, 0, 0, 0, "Developer", 0, false},
     {"Open the labels file", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
     {"Put every label back", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
+#endif
 };
 constexpr int SettingCount = static_cast<int>(sizeof(SettingRows) / sizeof(SettingRows[0]));
 
@@ -298,7 +324,11 @@ bool IsSetting(int row, const char* name) {
 }
 
 /// The shelf's settings pages, in their order.
-constexpr const char* SettingSections[] = {"Reading", "Popup", "Cards", "Sources", "Controller", "Keys", "Furoshiki", "Developer"};
+constexpr const char* SettingSections[] = {"Library", "Reading", "Popup", "Cards", "Controls", "Keys", "Display", "About",
+#ifndef HOME_PUBLIC
+                                           "Developer",
+#endif
+};
 
 /// What a row is called on the shelf's pages, where that is not its name in the table (the
 /// maintainer, 2026-11-11: labels that say what the row does, and no "reader" in them). The
@@ -314,19 +344,20 @@ constexpr RowLabel RowLabels[] = {
     {"Look up by pointing", "Look up on hover"},
     {"Mark the word looked up", "Highlight looked-up word"},
     {"Explain with", "Explain lines with"},
-    {"Play by touch", "Tap to advance"},
+    {"Play by touch", "Click to advance"},
     {"Outline what can be clicked", "Outline clickable text"},
     {"Session line over the game", "Session stats overlay"},
     {"Session line's look", "Session overlay style"},
     {"Reading/Pause the reading clock", "Pause reading timer"},
     {"Idle after", "Idle timeout"},
     {"Tidy reading time", "Recalculate reading time"},
-    {"Customise the popup", "Popup design"},
+    {"Customise the popup", "Popup editor"},
     {"How solid", "Opacity"},
     {"Height, at most", "Maximum height"},
     {"Close after", "Auto-close after"},
-    {"Close when the pointer leaves", "Close when the mouse leaves"},
-    {"Add button's corner", "Add button position"},
+    {"Add button's corner", "Add to Anki button position"},
+    {"Export popup style", "Export popup theme"},
+    {"Import popup style", "Import popup theme"},
     {"Anki", "Anki setup"},
     {"Line audio", "Audio on cards"},
     {"Cut the clip to the voice", "Trim audio to the voice"},
@@ -338,7 +369,6 @@ constexpr RowLabel RowLabels[] = {
     {"Picture width, at most", "Maximum screenshot width"},
     {"Add a title", "Add game"},
     {"OCR runs on", "Run OCR on"},
-    {"OCR helper", "Local OCR helper"},
     {"Lines address", "Texthooker address"},
     {"Copy each line to the clipboard", "Copy lines to clipboard"},
     {"Text server's port", "Text server port"},
@@ -364,7 +394,7 @@ constexpr RowLabel RowLabels[] = {
     {"Pause the game", "Pause game"},
     {"Keys/Pause the reading clock", "Pause reading timer"},
     {"Next choice", "Skip to next choice"},
-    {"Read the on-request boxes (OCR)", "Read OCR areas"},
+    {"Read the on-request boxes (OCR)", "Read text now"},
     {"Guide's next step over the game", "Show next guide step"},
     {"Tick the guide's step shown", "Check off guide step"},
     {"Reader menu", "Quick menu"},
@@ -380,12 +410,14 @@ constexpr RowLabel RowLabels[] = {
     {"Update", "Check for updates"},
     {"Moving cursor", "Animated cursor"},
     {"Exit", "Quit Furoshiki"},
+    {"RetroAchievements", "Accounts"},
     {"Copy my labels", "Copy labels"},
     {"Open the labels file", "Open labels file"},
     {"Put every label back", "Reset labels"},
     {"Statistics/Days in a row", "Day streak"},
     {"Statistics/Days with reading", "Reading days"},
     {"Statistics/Games begun", "Games started"},
+    {"Statistics/Time spent reading", "Reading time"},
 };
 
 /// The label a row has by itself: RowLabels', else its name.
@@ -408,10 +440,13 @@ QString OwnLabel(const QString& page, const QString& name) {
 /// page (no section) has them all as one list, and no More rows.
 bool SettingShown(int index, const QString& section, bool more) {
     const SettingRow& row = SettingRows[index];
-    if (section.isEmpty()) {
-        return qstrcmp(row.name, "More") != 0;
+    // Every row of a page is shown (the maintainer, 2026-11-20: nothing hidden behind More on a
+    // computer): the More rows themselves are left out, and what stood behind them follows on.
+    Q_UNUSED(more);
+    if (qstrcmp(row.name, "More") == 0) {
+        return false;
     }
-    return section == QLatin1String(row.section) && (more || !row.more);
+    return section.isEmpty() || section == QLatin1String(row.section);
 }
 
 /// Which row of the table the page's `row` is, or -1.
@@ -917,7 +952,7 @@ QList<HomeWindow::Item> HomeWindow::Items() const {
     for (const char* section : SettingSections) {
         const QString name = QString::fromLatin1(section);
         items.append({Item::Settings, name.toUpper(), name});
-        if (name == QStringLiteral("Sources") && !consoles.isEmpty() && play != nullptr) {
+        if (name == QStringLiteral("Cards") && !consoles.isEmpty() && play != nullptr) {
             items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
         }
     }
@@ -963,15 +998,15 @@ QList<Game> HomeWindow::GamesOf(const QString& system) const {
 QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
     QList<Row> rows;
     const auto figures = [](qint64 chars, qint64 active_ms) {
-        return chars > 0 ? QStringLiteral("%1 CHARACTERS  ·  %2").arg(CountText(chars), TimeText(active_ms).toUpper())
+        return chars > 0 ? QStringLiteral("%1 CHARACTERS · %2").arg(CountText(chars), TimeText(active_ms).toUpper())
                          : QStringLiteral("NOT READ YET");
     };
     switch (item.kind) {
     case Item::System:
         for (const Game& game : GamesOf(item.system)) {
-            QString meta = game.id + QStringLiteral("  ·  ") + figures(game.chars, game.active_ms);
+            QString meta = game.id + QStringLiteral(" · ") + figures(game.chars, game.active_ms);
             if (!game.last_day.isEmpty()) {
-                meta += QStringLiteral("  ·  READ ") + game.last_day.mid(5).replace(QLatin1Char('-'), QStringLiteral(" / "));
+                meta += QStringLiteral(" · READ ") + game.last_day.mid(5).replace(QLatin1Char('-'), QStringLiteral(" / "));
             }
             const QString when = game.last_day.isEmpty() ? QStringLiteral("- -")
                                                          : DayText(game.last_day, false) + QLatin1Char(' ') + PlayClock(game.active_ms);
@@ -990,25 +1025,25 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             const qint64 read = CharsOn(library.days, today);
             const int goal = DailyGoal();
             rows.append({QStringLiteral("Today"), {},
-                         goal > 0 ? QStringLiteral("%1／%2").arg(CountText(read), CountText(goal)) : CountText(read), {}, -1});
+                         goal > 0 ? QStringLiteral("%1 / %2").arg(CountText(read), CountText(goal)) : CountText(read), {}, -1});
             const int streak = Streak(library.days, today);
             rows.append({QStringLiteral("Days in a row"), {}, QString::number(streak), {}, -1, streak == 0});
         }
         rows.append({QStringLiteral("Characters read"), QStringLiteral("ALL APPS"), CountText(library.chars), {}, -1});
         rows.append({QStringLiteral("Time spent reading"), TimeText(library.active_ms).toUpper(), PlayClock(library.active_ms), {}, -1});
         rows.append({QStringLiteral("Days with reading"), {}, QString::number(library.days.size()), {}, -1});
-        rows.append({QStringLiteral("Games begun"), {}, QStringLiteral("%1／%2").arg(begun).arg(distinct.size()), {}, -1});
+        rows.append({QStringLiteral("Games begun"), {}, QStringLiteral("%1 / %2").arg(begun).arg(distinct.size()), {}, -1});
         for (const App& app : library.apps) {
-            // Furoshiki's own lines by console ("Furoshiki · PlayStation"), not six "Furoshiki".
+            // Furoshiki's own lines by console ("PlayStation 2"), not six "Furoshiki".
             const QString name = app.app.startsWith(QStringLiteral("reader-home-"))
-                                     ? QStringLiteral("%1 · %2").arg(app.name, SystemLabel(library, app.system))
+                                     ? SystemFull(app.system)
                                      : QString(app.name).remove(QRegularExpression(QStringLiteral(" Reader$"))); // the old apps' names
             rows.append({name, figures(app.chars, app.active_ms), CountText(app.chars), {}, -1});
         }
         QList<Game> most = distinct;
         std::stable_sort(most.begin(), most.end(), [](const Game& a, const Game& b) { return a.chars > b.chars; });
         for (int i = 0; i < std::min<int>(5, most.size()) && most[i].chars > 0; ++i) {
-            rows.append({most[i].title, ShortSystem(library, most[i].system) + QStringLiteral("  ·  ") + figures(most[i].chars, most[i].active_ms),
+            rows.append({ShelfTitleOf(most[i].id, most[i].title), ShortSystem(library, most[i].system) + QStringLiteral(" · ") + figures(most[i].chars, most[i].active_ms),
                          CountText(most[i].chars), {}, -1});
         }
         break;
@@ -1016,8 +1051,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
     case Item::Readers:
         for (const App& app : ReaderApps()) {
             rows.append({app.name,
-                         app.program_found ? QStringLiteral("OPEN MENU  ·  %1").arg(app.program)
-                                           : QStringLiteral("NOT FOUND  ·  %1").arg(app.program),
+                         app.program_found ? QStringLiteral("OPEN MENU · %1").arg(app.program)
+                                           : QStringLiteral("NOT FOUND · %1").arg(app.program),
                          QStringLiteral("%1 TO READ").arg(app.games.size()), {}, -1});
         }
         if (rows.isEmpty()) {
@@ -1046,19 +1081,17 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             const QStringList folders = play->Folders(console);
             rows.append({QStringLiteral("Game folders"),
                          (folders.isEmpty() ? QStringLiteral("ENTER  ADD FOLDER")
-                                            : QStringLiteral("ENTER  ADD  ·  BACKSPACE  REMOVE %1").arg(QDir::toNativeSeparators(folders.last())))
+                                            : QStringLiteral("ENTER  ADD · BACKSPACE  REMOVE %1").arg(QDir::toNativeSeparators(folders.last())))
                              .toUpper(),
-                         QString::number(folders.size()), {}, -1});
+                         // The shelf's pages show a row's value alone: what Enter does is said there.
+                         folders.isEmpty() ? QStringLiteral("NONE YET · ENTER TO ADD") : QStringLiteral("%1 · ENTER TO ADD").arg(folders.size()), {}, -1});
             const ConsoleSetup setup = console_setup ? console_setup(console) : ConsoleSetup{};
             rows.append({QStringLiteral("System files"),
-                         QStringLiteral("%1  ·  %2").arg(setup.status, QDir::toNativeSeparators(setup.system_folder)).toUpper(),
-                         setup.ready ? QStringLiteral("READY") : QStringLiteral("MISSING"), {}, -1, setup.ready});
+                         QStringLiteral("%1 · %2").arg(setup.status, QDir::toNativeSeparators(setup.system_folder)).toUpper(),
+                         setup.ready ? QStringLiteral("READY") : QStringLiteral("%1 · ENTER TO ADD").arg(setup.status), {}, -1, setup.ready});
+            // What reads its games' text: installed from the console's published list.
+            rows.append({QStringLiteral("Game scripts"), {}, QStringLiteral("ENTER TO INSTALL"), {}, -1});
         }
-        // The popup's look as one file, which the Android apps read and write too.
-        rows.append({QStringLiteral("Export popup style"),
-                     QStringLiteral(""), {}, {}, -1});
-        rows.append({QStringLiteral("Import popup style"),
-                     QStringLiteral("FOR %1").arg(layer_name), {}, {}, -1});
         for (const PlaySetting& setting : LayerSettings()) {
             const QString label = setting.label.isEmpty() ? CommonLabel(setting.key) : setting.label;
             QString meta;
@@ -1068,12 +1101,12 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 const PlaySettings::Resolved resolved = play->Value(setting, console, game);
                 value = resolved.value;
                 dim = resolved.from != PlaySettings::Layer::Game;
-                meta = resolved.from == PlaySettings::Layer::Game ? QStringLiteral("THIS GAME  ·  BACKSPACE  RESET")
+                meta = resolved.from == PlaySettings::Layer::Game ? QStringLiteral("THIS GAME · BACKSPACE  RESET")
                                                                   : QStringLiteral("CONSOLE SETTING");
             } else if (console.isEmpty()) {
                 const bool set = play->IsSet(setting.key);
                 value = play->Value(setting, {}).value; // all consoles' layer, or the core's own
-                meta = set ? QStringLiteral("ALL CONSOLES  ·  BACKSPACE  RESET")
+                meta = set ? QStringLiteral("ALL CONSOLES · BACKSPACE  RESET")
                            : QStringLiteral("DEFAULT");
                 dim = !set;
             } else {
@@ -1082,10 +1115,10 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 dim = resolved.from != PlaySettings::Layer::Console;
                 if (!setting.Common()) {
                     meta = resolved.from == PlaySettings::Layer::Console
-                               ? QStringLiteral("%1  ·  BACKSPACE  RESET").arg(layer_name)
-                               : QStringLiteral("%1  ·  DEFAULT").arg(layer_name);
+                               ? QStringLiteral("%1 · BACKSPACE  RESET").arg(layer_name)
+                               : QStringLiteral("%1 · DEFAULT").arg(layer_name);
                 } else if (resolved.from == PlaySettings::Layer::Console) {
-                    meta = QStringLiteral("%1  ·  BACKSPACE  RESET").arg(layer_name);
+                    meta = QStringLiteral("%1 · BACKSPACE  RESET").arg(layer_name);
                 } else {
                     meta = QStringLiteral("ALL CONSOLES");
                 }
@@ -1115,7 +1148,12 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 continue;
             }
             if (qstrcmp(setting.section, "Keys") == 0) {
-                rows.append({name, {}, QString::fromLatin1(setting.about), {}, i});
+                // The keys that are a setting or a controller's buttons say them as they are now
+                // (Settings, Controls; the controller in the hand's own words).
+                const bool asked = name == QStringLiteral("Start or stop reading") || name == QStringLiteral("Guide's next step over the game") ||
+                                   name == QStringLiteral("Tick the guide's step shown");
+                const QString set = asked && setting_value ? setting_value(name) : QString();
+                rows.append({name, {}, set.isEmpty() ? QString::fromUtf8(setting.about) : set, {}, i});
                 continue;
             }
             if (name == QStringLiteral("Daily goal")) {
@@ -1125,6 +1163,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                                           : (Slide(i, 0) != 0 ? QStringLiteral("ON") : QStringLiteral("OFF"));
             } else if (name == QStringLiteral("Look")) {
                 value = look->theme.Name().toUpper();
+            } else if (name == QStringLiteral("Version")) {
+                value = QStringLiteral(FUROSHIKI_VERSION);
             } else if (name == QStringLiteral("Icon")) {
                 value = IconLabel(ChosenIcon()).toUpper();
             } else if (name == QStringLiteral("Fuzz")) {
@@ -1162,12 +1202,12 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             } else if (setting_value) {
                 value = setting_value(name);
             }
-            QString meta = QString::fromLatin1(setting.about).toUpper();
+            QString meta = QString::fromUtf8(setting.about).toUpper();
             if (name == QStringLiteral("Look")) {
                 meta = look->theme.Text(QStringLiteral("about")).toUpper();
             }
             if (setting.key != nullptr && qstrcmp(setting.key, "sensitivity") == 0) {
-                meta += QStringLiteral("  ·  ") + pad.Describe().toUpper();
+                meta += QStringLiteral(" · ") + pad.Describe().toUpper();
             }
             // Set by the user: a switch or slider of the pads that is not as it comes, a row of
             // the program's that has a value kept.
@@ -1377,19 +1417,6 @@ QString HomeWindow::LayerGame() const {
 }
 
 void HomeWindow::ConsoleHeadAction(int row, bool remove) {
-    if (row == PopupHeadRow() || row == PopupHeadRow() + 1) {
-        const auto& action = row == PopupHeadRow() ? popup_export : popup_import;
-        if (remove || !action) {
-            return;
-        }
-        const QString said = action(LayerConsole(), LayerGame());
-        if (!said.isEmpty()) {
-            sounds.Play(Sound::Select);
-            Say(said);
-        }
-        Changed();
-        return;
-    }
     const QString console = LayerConsole();
     if (console.isEmpty() || play == nullptr) {
         return;
@@ -1405,7 +1432,7 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
             folders.removeLast();
         } else {
             const QString chosen = QFileDialog::getExistingDirectory(
-                this, QStringLiteral("Choose %1 games folder").arg(consoles[console_layer - 1].name),
+                this, QStringLiteral("Choose a folder of %1 games").arg(ConsoleFull(console, consoles[console_layer - 1].name)),
                 folders.isEmpty() ? QDir::homePath() : folders.last());
             if (chosen.isEmpty()) {
                 return;
@@ -1426,22 +1453,29 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
         // System files: the BIOS, firmware or keys the user has, copied where the core looks.
         const ConsoleSetup setup = console_setup(console);
         const QStringList files = QFileDialog::getOpenFileNames(
-            this, QStringLiteral("%1 BIOS, firmware or keys").arg(consoles[console_layer - 1].name), QDir::homePath());
+            this, QStringLiteral("Choose the %1 BIOS, firmware or keys").arg(ConsoleFull(console, consoles[console_layer - 1].name)), QDir::homePath());
         int copied = 0;
         QDir().mkpath(setup.system_folder);
         for (const QString& file : files) {
             const QString target = setup.system_folder + QLatin1Char('/') + QFileInfo(file).fileName();
             if (QFileInfo::exists(target)) {
-                Say(QStringLiteral("%1 already exists").arg(QFileInfo(file).fileName()));
+                Say(QStringLiteral("%1 is already there").arg(QFileInfo(file).fileName()));
                 continue;
             }
             copied += QFile::copy(file, target) ? 1 : 0;
         }
         if (copied > 0) {
             sounds.Play(Sound::Select);
-            Say(QStringLiteral("%1 file(s) added to %2").arg(copied).arg(QDir::toNativeSeparators(setup.system_folder)));
+            Say((copied == 1 ? QStringLiteral("1 file added to %1") : QStringLiteral("%1 files added to %2").arg(copied)).arg(QDir::toNativeSeparators(setup.system_folder)));
         }
         Changed();
+    } else if (row == 4 && !remove) {
+        if (console_scripts) {
+            sounds.Play(Sound::Select);
+            console_scripts(console);
+        } else {
+            sounds.Play(Sound::Refuse);
+        }
     }
 }
 
@@ -1553,7 +1587,8 @@ void HomeWindow::WideStep(int steps) {
     } else if (next == QStringLiteral("off")) {
         Say(QStringLiteral("Widescreen off"));
     } else {
-        Say(QStringLiteral("Widescreen %1 for %2").arg(next, given.isEmpty() ? QStringLiteral("no console") : given.join(QStringLiteral(" and "))));
+        Say(given.isEmpty() ? QStringLiteral("No installed emulator has widescreen %1").arg(next)
+                            : QStringLiteral("Widescreen %1 for %2").arg(next, given.join(QStringLiteral(" and "))));
     }
     sounds.Play(Sound::Move);
     Changed();
@@ -1687,7 +1722,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
                                            : QString();
                 pick.said.append(called.isEmpty() ? key : called);
             }
-            pick.now = static_cast<int>(shelf_themes.indexOf(QSettings().value(QStringLiteral("shelf/theme"), QStringLiteral("mono")).toString()));
+            pick.now = static_cast<int>(shelf_themes.indexOf(QSettings().value(QStringLiteral("shelf/theme"), QStringLiteral("kon")).toString()));
             const QStringList keys = shelf_themes;
             pick.take = [this, keys](int index) {
                 SetShelfTheme(keys[index], true);
@@ -1722,7 +1757,7 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
                 sources.ocr.engine = engines[index];
                 Lines::Save(SharedFolder(), sources);
                 if (sources.ocr.engine == QStringLiteral("glens")) {
-                    Say(QStringLiteral("Google Lens sends text areas to Google"));
+                    Say(QStringLiteral("Google Lens sends pictures of the text areas to Google"));
                 }
             });
         } else if (name == QStringLiteral("OCR runs on")) {
@@ -1764,12 +1799,15 @@ void HomeWindow::Key(int key) {
         picker->Key(key); // every choice of a setting is up: the keys are its own
         return;
     }
+#ifndef HOME_PUBLIC
     if (key == Qt::Key_F3) {
-        // The two pages while Furoshiki 3 is being made: the shelf, and the save menu.
+        // The two pages while Furoshiki 3 is being made: the shelf, and the save menu. A published
+        // build has the shelf alone.
         SetShelf(!shelf_on, true);
         sounds.Play(Sound::Tab);
         return;
     }
+#endif
     if (shelf_on && !shelf_passing && ShelfKey(key)) {
         return;
     }
@@ -1807,7 +1845,7 @@ void HomeWindow::Key(int key) {
             Lines::Save(SharedFolder(), sources);
             sounds.Play(Sound::Move);
             if (sources.ocr.engine == QStringLiteral("glens")) {
-                Say(QStringLiteral("Google Lens sends text areas to Google"));
+                Say(QStringLiteral("Google Lens sends pictures of the text areas to Google"));
             }
             Changed();
             return;
@@ -1964,12 +2002,12 @@ void HomeWindow::Accept() {
         const App* app = AppOf(game.app);
         if (app == nullptr || !app->program_found) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("%1 not found. Open it once, then try again").arg(app ? app->name : game.app));
+            Say(QStringLiteral("Couldn't start %1: no emulator for %2 is installed").arg(ShelfTitleOf(game.id, game.title), SystemFull(game.system)));
             return;
         }
         if (NeedsFile(*app) && !QFileInfo::exists(game.path)) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("Game file not found: %1").arg(game.path));
+            Say(QStringLiteral("Couldn't find the game's file: %1").arg(QDir::toNativeSeparators(game.path)));
             return;
         }
         Launch(*app, GameArguments(*app, game, games_windowed), game.title);
@@ -1981,7 +2019,7 @@ void HomeWindow::Accept() {
         const App& app = apps[row];
         if (!app.program_found) {
             sounds.Play(Sound::Refuse);
-            Say(QStringLiteral("%1 not found. Open it once, then try again").arg(app.name));
+            Say(QStringLiteral("Couldn't find %1. Open it once, then press F5").arg(app.name));
             return;
         }
         Launch(app, app.menu_args, app.name);
@@ -2015,7 +2053,7 @@ void HomeWindow::Accept() {
                 setting_step(name, 0);
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("Not available in this version"));
+                Say(QStringLiteral("This setting needs an emulator, and this build has none"));
             }
         } else if (SettingRows[srow].host == 3) {
             // A number: the arrows change it.
@@ -2079,12 +2117,12 @@ void HomeWindow::Accept() {
                 save_sync_open();
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("Not available in this version"));
+                Say(QStringLiteral("Save sync needs an emulator, and this build has none"));
             }
         } else if (name == QStringLiteral("Lines address")) {
             Lines::Sources sources = Lines::Load(SharedFolder());
             bool ok = false;
-            const QString address = QInputDialog::getText(this, QStringLiteral("Lines address"), QStringLiteral("WebSocket address"),
+            const QString address = QInputDialog::getText(this, QStringLiteral("Texthooker address"), QStringLiteral("WebSocket address"),
                                                           QLineEdit::Normal, sources.address, &ok).trimmed();
             if (ok && !address.isEmpty()) {
                 SetLinesAddress(address);
@@ -2102,10 +2140,27 @@ void HomeWindow::Accept() {
                                                                             : QStringLiteral("Achievements"));
             } else {
                 sounds.Play(Sound::Refuse);
-                Say(QStringLiteral("Not available in this version"));
+                Say(QStringLiteral("This setting needs an emulator, and this build has none"));
             }
         } else if (name == QStringLiteral("Exit")) {
             window()->close();
+        } else if (name == QStringLiteral("Setup")) {
+            OpenWelcome(); // the first steps again (welcome_page.inc)
+        } else if (name == QStringLiteral("Version")) {
+            // Said, not set.
+        } else if (name == QStringLiteral("Export popup style") || name == QStringLiteral("Import popup style")) {
+            // The popup's theme as one file, for all consoles (a console's own: the Popup theme row's window).
+            const auto& action = name == QStringLiteral("Export popup style") ? popup_export : popup_import;
+            if (action) {
+                const QString said = action(QString(), QString());
+                if (!said.isEmpty()) {
+                    sounds.Play(Sound::Select);
+                    Say(said);
+                }
+            } else {
+                sounds.Play(Sound::Refuse);
+                Say(QStringLiteral("Popup themes need an emulator, and this build has none"));
+            }
         } else {
             Key(Qt::Key_F5);
         }
@@ -2229,6 +2284,15 @@ void HomeWindow::Finished() {
 }
 
 void HomeWindow::keyPressEvent(QKeyEvent* event) {
+    // A key of the keyboard itself (a controller's come posted by the program): the feet show keys again.
+    if (event->spontaneous() && keyboard_used && PadStyle() >= 0) {
+        keyboard_used();
+        update();
+    }
+    if (event->key() == Qt::Key_Q && (event->modifiers() & Qt::ControlModifier) != 0) {
+        window()->close(); // Ctrl+Q: out of the program, as the Furoshiki page's Quit Furoshiki
+        return;
+    }
     if (TraceKeys()) {
         qInfo("key from the keyboard: %s (virtual key %u, scan code %u%s)", qPrintable(QKeySequence(event->key()).toString()),
               event->nativeVirtualKey(), event->nativeScanCode(), event->isAutoRepeat() ? ", repeated" : "");
@@ -2253,6 +2317,10 @@ void HomeWindow::keyPressEvent(QKeyEvent* event) {
 void HomeWindow::mousePressEvent(QMouseEvent* event) {
     if (!running.isEmpty() || playing_game) {
         return;
+    }
+    if (event->spontaneous() && keyboard_used && PadStyle() >= 0) {
+        keyboard_used();
+        update();
     }
     if (event->button() == Qt::BackButton || (event->button() == Qt::RightButton && shelf_on && (shelf_pages || shelf_stage || shelf_log || wizard_on))) {
         Key(Qt::Key_Escape);
@@ -3288,7 +3356,21 @@ void HomeWindow::paintEvent(QPaintEvent*) {
     QElapsedTimer took;
     took.start();
     if (shelf_on) {
+        popup_preview_area = QRectF();
         PaintShelf();
+        // The popup's preview on the Popup page: told where it stands once the page is at rest.
+        if (popup_preview) {
+            const double scale = std::min(width() / SheetW, height() / SheetH);
+            const bool there = !popup_preview_area.isEmpty() && shelf_pages && pages_at > 0.98 && !wizard_on && picker == nullptr;
+            const QRect place = there ? QRectF((width() - SheetW * scale) / 2 + popup_preview_area.x() * scale,
+                                               (height() - SheetH * scale) / 2 + popup_preview_area.y() * scale,
+                                               popup_preview_area.width() * scale, popup_preview_area.height() * scale).toRect()
+                                      : QRect();
+            if (place != popup_preview_said) {
+                popup_preview_said = place;
+                QTimer::singleShot(0, this, [this, place] { popup_preview(place); });
+            }
+        }
         Pace(took.nsecsElapsed() / 1e6);
         return;
     }
@@ -3559,6 +3641,7 @@ void HomeWindow::Prewarm(int generation, int step) {
 
 void HomeWindow::RunScript(const QStringList& lines) {
     script = lines;
+    dry_welcome_off = true; // a script's pictures begin on the library; its "welcome" opens the first steps
     QTimer::singleShot(300, this, &HomeWindow::NextScriptLine);
 }
 
@@ -3647,6 +3730,25 @@ void HomeWindow::NextScriptLine() {
         }
         painter.end();
         canvas.save(rest);
+    } else if (word == QStringLiteral("welcome")) {
+        OpenWelcome();
+    } else if (word == QStringLiteral("pad")) {
+        // pad xbox|playstation|nintendo|off|auto: the feet as with that controller in hand, for a picture.
+        pad_forced = rest == QStringLiteral("xbox") ? 0 : rest == QStringLiteral("playstation") ? 1 : rest == QStringLiteral("nintendo") ? 2
+                     : rest == QStringLiteral("off") ? -1 : -2;
+        update();
+    } else if (word == QStringLiteral("dialog")) {
+        // dialog MS FILE: a window that stops the page while it is open (the dictionaries, Anki
+        // setup, the game scripts), pictured MS from now and closed. Said before the key that
+        // opens it: the script stands still until such a window is closed.
+        const int ms = rest.section(QLatin1Char(' '), 0, 0).toInt();
+        const QString file = rest.section(QLatin1Char(' '), 1).trimmed();
+        QTimer::singleShot(ms, qApp, [file] {
+            if (QWidget* modal = QApplication::activeModalWidget()) {
+                modal->grab().save(file);
+                modal->close();
+            }
+        });
     } else if (word == QStringLiteral("grab")) {
         // The page at rest: what glides or fades is finished first.
         repaint();
@@ -3742,6 +3844,7 @@ void HomeWindow::NextScriptLine() {
 #include "wizard_page.inc"
 #include "wizard_hooks.inc"
 #include "wizard_core_hooks.inc"
+#include "welcome_page.inc"
 
 bool HomeWindow::OpenPick(int row) {
     Pick pick = PickAt(row);

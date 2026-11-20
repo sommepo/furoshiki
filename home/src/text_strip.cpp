@@ -227,7 +227,7 @@ void TextStrip::paintEvent(QPaintEvent*) {
     const qreal base = HeadHeight / 2.0 + mono.capHeight() / 2.0 + 1;
     const qreal right = width() - Side - CloseWidth;
     // What reads it is said whole; the title gives way first, then what the source says.
-    const QString by = QStringLiteral("  ·  ") + source.toUpper();
+    const QString by = QStringLiteral(" · ") + source.toUpper();
     const qreal by_width = mono.horizontalAdvance(by);
     const QString name = mono.elidedText(title.toUpper(), Qt::ElideRight, std::max<qreal>(60, (right - Side) * 0.45 - by_width));
     const qreal name_width = mono.horizontalAdvance(name);
