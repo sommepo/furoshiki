@@ -28,6 +28,32 @@ Game text is captured in one of three ways:
 | **OCR** | Reads text directly from the game image. Works with any game, with occasional OCR errors. | Windows & Android |
 | **Text hook / external lines** | Captures exact text from PC games (or a WebSocket/clipboard feed) into a lookup bar at the edge of the screen. | Windows |
 
+## Contents
+
+**Overview**
+- [Made for a controller](#made-for-a-controller)
+- [Consoles](#consoles)
+- [Download](#download)
+- [Reading a game](#reading-a-game)
+- [Supported games](#supported-games)
+- [Help](#help) · [Building from source](#building-from-source) · [Licence](#licence)
+
+**Windows**
+- [Setting up on Windows](#setting-up-on-windows)
+- [Reading with a controller](#reading-with-a-controller)
+- [Games without a script (PC games, texthookers, clipboard)](#on-windows)
+- [OCR on Windows](#ocr-on-windows)
+- [Library and themes](#library-and-themes)
+- [Display and video](#display-and-video)
+- [Settings](#settings)
+
+**Android**
+- [Setting up on Android](#setting-up-on-android)
+- [OCR on Android](#ocr-on-android)
+- [On Android (touch, controller, and in-game menu)](#on-android)
+- [Dual-screen handhelds](#dual-screen-handhelds)
+- [GameNative and other apps](#gamenative-and-other-apps)
+
 ## Made for a controller
 
 Furoshiki is designed to work completely from a sofa or handheld with just a controller — library
@@ -162,6 +188,10 @@ analog sticks move the cursor while held.
 
 ### Reading with a controller
 
+<p align="center"><img src="home/publish/media/controller-reading.gif" width="760" alt="Controller reading mode stepping through words in Remember11 without a pointer, with auto-height popup and in-popup controller glyphs"></p>
+
+<p align="center"><sub>Pointer-free controller reading on Windows: stepping through words with the D-pad, auto-height popup resizing, and controller glyphs on the popup and hint bar.</sub></p>
+
 On Windows, you can read without a pointer at all. Tap `Select` in-game to drop a cursor onto the
 first word in the current line that isn't already in Anki (or the first word of the line) and open
 its popup:
@@ -182,6 +212,10 @@ its popup:
 
 *Button labels above use Xbox layout by position (`A` bottom, `B` right, `X` left, `Y` top); on
 PlayStation or Nintendo pads, on-screen prompts match your controller.*
+
+<p align="center"><img src="home/publish/media/popup-tabs.gif" width="760" alt="Switching between Words and Grammar tabs inside the dictionary popup using LT and RT"></p>
+
+<p align="center"><sub>Switching between <i>Words</i> and <i>Grammar</i> tabs inside the popup with <code>LT</code> / <code>RT</code>.</sub></p>
 
 `Start` and the left stick always stay mapped to the game. When a game presents a choice, all
 buttons pass through to the game until the next dialogue line. Moving or clicking the mouse exits
@@ -268,7 +302,7 @@ Press `F4` to switch between the four built-in themes — **Kon**, **Paper**, **
 
 ## Settings
 
-<p align="center"><img src="home/publish/media/settings.png" width="760" alt="Furoshiki Reading settings screen on Windows"></p>
+<p align="center"><img src="home/publish/media/settings.png" width="760" alt="Furoshiki Popup settings screen on Windows showing Fit height to entry and theme options"></p>
 
 Press `F2` to open Settings on Windows. Each category shows common options first with advanced
 rows behind *More*. Press `/` to search by name and `Backspace` to reset a row. Fully navigable
@@ -285,7 +319,7 @@ no physical pad is present and home-screen game shortcuts.
 
 The in-game menu provides save states, fast forward, and skip to next choice:
 
-<p align="center"><img src="home/publish/media/thor-menu.jpg" width="620" alt="In-game overlay menu over STEINS;GATE on Android"></p>
+<p align="center"><img src="home/publish/media/thor-menu.jpg" width="620" alt="In-game overlay menu over Grisaia no Kajitsu on Android"></p>
 
 ### Dual-screen handhelds
 
