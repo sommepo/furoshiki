@@ -101,7 +101,7 @@ Release **0.3.1** includes Windows, Android, Linux, and the optional Windows OCR
 | File | Platform | Notes |
 | --- | --- | --- |
 | [Furoshiki-0.3.1-windows.zip](../../releases/download/v0.3.1/Furoshiki-0.3.1-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
-| [Furoshiki-0.3.1-linux.tar.gz](../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Unpack anywhere and run `Furoshiki/reader-home`. Needs an X11 desktop or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
+| [Furoshiki-0.3.1-linux.tar.gz](../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Extract anywhere and run `Furoshiki/reader-home`. Requires X11 or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
 | [Furoshiki-0.3.1-android.apk](../../releases/download/v0.3.1/Furoshiki-0.3.1-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
 | [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.1/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
 
@@ -109,8 +109,8 @@ Release **0.3.1** includes Windows, Android, Linux, and the optional Windows OCR
   [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
   The dictionary popup uses Microsoft WebView2 (preinstalled on Windows 11 and updated Windows 10;
   falls back to a simpler popup if absent).
-- **Linux:** Settings, dictionaries, saves and BIOS files are kept in `~/.local/share/Furoshiki`.
-  A console's BIOS goes in `program/consoles/<console>/system` there.
+- **Linux:** Settings, dictionaries, saves, and BIOS files live in `~/.local/share/Furoshiki`
+  (place console BIOS files under `program/consoles/<console>/system`).
 
 No games, BIOS, or firmware files are included. Supply your own dumps along with the system files
 below.
@@ -372,8 +372,8 @@ and enter a title.
 ## Supported games
 
 Each game script is a small Lua file targeting a specific Japanese release (check the ID below).
-The scripts are kept in [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), one
-folder per console. Furoshiki downloads them from there and verifies each file before installing.
+Scripts live in [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), organized by
+console; Furoshiki downloads and verifies them automatically before installing.
 
 <details><summary><b>PlayStation</b> (4 games)</summary>
 
@@ -464,34 +464,35 @@ folder per console. Furoshiki downloads them from there and verifies each file b
 
 ## Adding a game
 
-A new game is added by a coding agent (Claude Code, Codex, Gemini CLI and the like), in the
-scripts repository, [sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts).
-The agent starts the game in Furoshiki, finds its text in memory, writes the script and tries it
-in the running game. It works on Windows, Linux and macOS.
+Game scripts live in [sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts) and
+are designed to be written with a coding agent (Claude Code, Codex, Gemini CLI, etc.) on Windows,
+Linux, or macOS. The agent launches the game in Furoshiki, locates its text in memory, writes the
+Lua script, and verifies it against the running game.
 
-You need Furoshiki 0.3.2 or newer, Python 3.9 or newer, the agent, and your own dump of the game
-(the Japanese release).
+**Requirements:** Furoshiki 0.3.2+, Python 3.9+, a coding agent, and your own dump of the Japanese
+release.
 
-1. Fork [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), clone your fork, and
-   start your agent in it.
-2. Ask it to add the game, and say where the dump and Furoshiki are. For example: *"Add support
-   for Steins;Gate on the PSP. The game is at D:\Games\PSP\steins-gate.iso and Furoshiki is in
-   C:\Furoshiki."*
-3. The agent follows the repository's [AGENTS.md](https://github.com/sommepo/furoshiki-scripts/blob/main/AGENTS.md).
-   It ends with a report of what it saw read in the game and what it could not check.
-4. Play the game for a while with the script. The agent leaves it in your scripts folder, where it
-   is used before any installed script:
-   - Windows: `%LOCALAPPDATA%\Furoshiki\program\reader\profiles`
-   - Linux: `~/.local/share/Furoshiki/program/reader/profiles`
-   - Android: `Android/data/io.github.sommepo.furoshiki/files/reader/profiles`
-5. Let the agent open the pull request. Once it is merged, every Furoshiki user can install the
-   script from *Game scripts* in Settings, with no app update.
+1. Fork [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), clone it locally, and
+   start your agent inside the repo.
+2. Tell the agent which game to add along with the paths to your dump and Furoshiki — for example:
+   *"Add support for Steins;Gate on PSP. The game is at `D:\Games\PSP\steins-gate.iso` and
+   Furoshiki is in `C:\Furoshiki`."*
+3. The agent follows [AGENTS.md](https://github.com/sommepo/furoshiki-scripts/blob/main/AGENTS.md)
+   and summarizes what it verified in-game (plus anything it couldn't test).
+4. Play through a few scenes to test it. The agent saves the script directly into your local
+   scripts folder, which takes precedence over downloaded scripts:
+   - **Windows:** `%LOCALAPPDATA%\Furoshiki\program\reader\profiles`
+   - **Linux:** `~/.local/share/Furoshiki/program/reader/profiles`
+   - **Android:** `Android/data/io.github.sommepo.furoshiki/files/reader/profiles`
+5. Have the agent open a pull request. Once merged, everyone can install the script from Settings ›
+   Consoles › *Game scripts* without updating the app.
 
-A script can also be shared as a file before it is merged: copy the `.lua` into the scripts
-folder above.
+To share an unmerged script with someone else, just send them the `.lua` file to drop into their
+scripts folder above.
 
-A game that draws its text from a font of its own needs a character table made from the game.
-That table cannot be published, so such a game cannot be added to the shared scripts.
+> **Note:** Games that render text with a custom bitmap font rather than standard encodings require
+> a game-specific character table. Because those tables can't be redistributed, those games can't
+> be added to the public scripts repo.
 
 ## Help
 
@@ -530,6 +531,6 @@ Furoshiki and its cores are free software under the
 `shared/`). Each bundled emulator retains its own licence and notices in its folder.
 [NOTICES.md](NOTICES.md) lists all package attributions and explains why Flycast (whose upstream
 `LICENSE` is GPLv2) is distributed here under GPLv3.
-The titles' names data comes from [VNDB](https://vndb.org) and is under the Open Database License
-([titles/LICENSE](titles/LICENSE)). On Android, Settings › About › Open-source licences shows the
-notices and every licence text the app carries.
+Character name data comes from [VNDB](https://vndb.org) under the Open Database License
+([titles/LICENSE](titles/LICENSE)). On Android, third-party notices and full licence texts are
+available under Settings › About › Open-source licences.
