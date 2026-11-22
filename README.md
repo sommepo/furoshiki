@@ -502,12 +502,8 @@ release.
 5. Have the agent open a pull request. Once merged, everyone can install the script from Settings ›
    Consoles › *Game scripts* without updating the app.
 
-To share an unmerged script with someone else, just send them the `.lua` file to drop into their
-scripts folder above.
-
-> **Note:** Games that render text with a custom bitmap font rather than standard encodings require
-> a game-specific character table. Because those tables can't be redistributed, those games can't
-> be added to the public scripts repo.
+To share an unmerged script with someone else, just send them the `.lua` file (and its `.charset`
+character table, if it has one) to drop into their scripts folder above.
 
 ## Help
 
