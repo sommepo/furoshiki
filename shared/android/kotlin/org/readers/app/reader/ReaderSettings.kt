@@ -375,7 +375,7 @@ class ReaderSettings(context: Context) {
                 .putBoolean(KEY_ANKI_WORD_AUDIO_OFFERED, true).apply()
             return offered
         }
-    val ankiTags get() = preferences.getString(KEY_ANKI_TAGS, Console.APP_KEY)!!
+    val ankiTags get() = preferences.getString(KEY_ANKI_TAGS, ankiTagsDefault ?: Console.APP_KEY)!!
     val ankiConnectUrl get() = preferences.getString(KEY_ANKICONNECT_URL, "")!!
     val ankiConnectKey get() = preferences.getString(KEY_ANKICONNECT_KEY, "")!!
     val ankiAllowDuplicates get() = preferences.getBoolean(KEY_ANKI_DUPLICATES, false)
@@ -409,6 +409,13 @@ class ReaderSettings(context: Context) {
     }
 
     companion object {
+        /**
+         * The tags a card gets until the user sets their own: the app's key unless an app that
+         * plays several consoles names its own (Furoshiki: "furoshiki", not the running core's key).
+         */
+        @JvmStatic
+        var ankiTagsDefault: String? = null
+
         /**
          * Play by touch's first value: on unless the device has game controls of its own. A
          * controller that is plugged in or paired (external) does not count; on Android before 10,

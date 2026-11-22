@@ -1469,6 +1469,7 @@ class HomeActivity : AppCompatActivity() {
                 "crt" -> CrtSettingsActivity::class.java
                 "scripts" -> ReaderGamesActivity::class.java
                 "statistics" -> ReaderStatsActivity::class.java
+                "licences" -> LicencesActivity::class.java
                 else -> return
             }
             startOnLower(HomeScreen.apart(this@HomeActivity, Intent(this@HomeActivity, activity)))

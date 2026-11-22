@@ -273,6 +273,9 @@ public:
     [[nodiscard]] QString AnkiModel() const;
     [[nodiscard]] QString AnkiFieldMap() const;
     [[nodiscard]] QString AnkiTags() const;
+    /// The tags a card gets until the user sets their own: the app's key ("ppsspp-reader") unless
+    /// a program that plays several consoles names its own (Furoshiki: "furoshiki").
+    static QString& AnkiTagsDefault();
     [[nodiscard]] QString AnkiConnectUrl() const;
     [[nodiscard]] QString AnkiConnectKey() const;
     [[nodiscard]] bool AnkiAllowDuplicates() const;

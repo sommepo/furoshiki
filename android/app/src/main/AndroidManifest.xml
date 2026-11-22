@@ -611,6 +611,13 @@
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_statistics" />
+        <!-- Settings › About › Open-source licences (assets/licenses, home/tools/licences.py). -->
+        <activity
+            android:name=".LicencesActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:theme="@style/Theme.Reader"
+            android:label="Open-source licences" />
         <activity
             android:name=".ScriptsActivity"
             android:process=":game"

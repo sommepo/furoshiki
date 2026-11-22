@@ -2845,6 +2845,24 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             const double at = tx + Put(p, small, tx, box.top() + 36, QStringLiteral("＋"), l.accent);
             Put(p, small, at, box.top() + 36, count == 0 ? QStringLiteral(" · LIBRARY IS EMPTY") : QStringLiteral(" · NEW"), l.muted);
             Put(p, ShelfFont(l.display, 32, 0.02), tx, box.top() + 104, QStringLiteral("ADD GAME"), l.ink);
+            // Games found in the game folders that no script reads are not on the shelf: say so,
+            // and where scripts come from (an empty library said nothing, 2026-11-21).
+            QString hint;
+            if (!unread_games.isEmpty()) {
+                hint = unread_games.size() == 1
+                           ? QStringLiteral("1 game in your game folders has no game script yet.")
+                           : QStringLiteral("%1 games in your game folders have no game script yet.").arg(unread_games.size());
+                hint += QStringLiteral(" Install game scripts in Settings › Consoles › Game scripts, or add a game to read by OCR.");
+            } else if (count == 0) {
+                hint = QStringLiteral("Install game scripts in Settings › Consoles › Game scripts, then choose the folder "
+                                      "your games are in.");
+            }
+            if (!hint.isEmpty()) {
+                p.setFont(ShelfFont(l.mono, 11.5, 0.03));
+                p.setPen(l.muted);
+                p.drawText(QRectF(tx, box.top() + 132, tw, box.bottom() - 190 - (box.top() + 132)),
+                           Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, hint);
+            }
             const QList<QPair<QString, QString>> doors = {{QStringLiteral("DISC OR FILE"), QStringLiteral("EMULATOR")},
                                                           {QStringLiteral("GAME WINDOW"), QStringLiteral("TEXT HOOK · OCR")},
                                                           {QStringLiteral("TEXTHOOKER"), QStringLiteral("OR CLIPBOARD")}};

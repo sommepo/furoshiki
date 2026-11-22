@@ -52,5 +52,8 @@ if [ ! -f "$build/build.ninja" ]; then
     -DCMAKE_C_COMPILER_LAUNCHER="$P/ccache" \
     -DQT_HOST_PATH="$READER_QT_LINUX" -DQT_HOST_PATH_CMAKE_DIR="$READER_QT_LINUX/lib/cmake" \
     -DCMAKE_FIND_ROOT_PATH="$READER_MINGW/x86_64-w64-mingw32;$READER_QT_WINDOWS;$READER_SDL2_WINDOWS"
+elif [ -n "${FUROSHIKI_VERSION:-}" ] && ! grep -qx "FUROSHIKI_VERSION:STRING=$FUROSHIKI_VERSION" "$build/CMakeCache.txt"; then
+  # A release's number (furoshiki-release.sh) into a build folder made before: CMake keeps the old one.
+  "${limit[@]}" "$READER_CMAKE" -S "$root" -B "$build" -DFUROSHIKI_VERSION="$FUROSHIKI_VERSION"
 fi
 exec "${limit[@]}" "$P/ninja" -C "$build" "$@"

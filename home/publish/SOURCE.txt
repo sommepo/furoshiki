@@ -1,11 +1,21 @@
 Furoshiki @VERSION@: where its source code is
 
-Everything in this package is free software (NOTICES.txt says under which licences). Its
-complete corresponding source code is the repository
+This package is free software, but for a few files that are only redistributable: on Windows
+d3dcompiler_47.dll and WebView2Loader.dll, which are Microsoft's and are given with the program
+under Microsoft's terms, with no source. NOTICES.txt says which licence covers each part, and
+licenses/ has their texts.
+
+The source code of everything else is the repository
 
     https://github.com/sommepo/furoshiki
 
 at the commit @COMMIT@ (the tag v@VERSION@), with the Git submodules its .gitmodules
-names, at the commits that commit records. For three years from this release you may also ask
-for the source by opening an issue there; it will be provided at no charge beyond the cost of
-hosting it.
+names, at the commits that commit records (each in its own project's repository). Some parts
+come from other projects' sources at the versions the build names: the libraries the build
+fetches (Qt, SDL, SQLite, QuaZip, Opus, zlib: addresses in the CMake files), the prebuilt
+libraries some emulators are built with (PCSX2's Windows dependencies, Vita3K's FFmpeg and
+OpenSSL), Frida's frida-inject, and the compiler's runtime (GCC, MinGW-w64). NOTICES.txt, "Source
+code", says where each is.
+
+For three years from this release you may also ask for the source of any of it by opening an
+issue there; it will be provided at no charge beyond the cost of hosting it.

@@ -407,7 +407,9 @@ constexpr RowLabel RowLabels[] = {
     {"CRT picture", "CRT filter"},
     {"Games start in a window", "Start games in a window"},
     {"Home server's services", "Home server"},
+#ifndef HOME_PUBLIC // the updater is the dev line's
     {"Update", "Check for updates"},
+#endif
     {"Moving cursor", "Animated cursor"},
     {"Exit", "Quit Furoshiki"},
     {"RetroAchievements", "Accounts"},

@@ -6,9 +6,10 @@
 Look up words directly in your games and send cards to Anki — even from the couch with a controller.</p>
 
 <p align="center"><b>Latest releases:</b>
-<a href="../../releases/download/v0.3.0/Furoshiki-0.3.0-android.apk">Android 0.3.0</a> ·
-<a href="../../releases/download/v0.3.0/Furoshiki-0.3.0-windows.zip">Windows 0.3.0</a> ·
-<a href="../../releases/download/v0.3.0/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
+<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-android.apk">Android 0.3.1</a> ·
+<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-windows.zip">Windows 0.3.1</a> ·
+<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz">Linux 0.3.1</a> ·
+<a href="../../releases/download/v0.3.1/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Hovering words in Remember11 on PS2 to open instant dictionary popups"></p>
@@ -94,20 +95,21 @@ and video settings can be configured globally, per console, or per game.
 
 ## Download
 
-Release **0.3.0** includes Windows, Android, and the optional Windows OCR helper:
+Release **0.3.1** includes Windows, Android, Linux, and the optional Windows OCR helper:
 
 | File | Platform | Notes |
 | --- | --- | --- |
-| [Furoshiki-0.3.0-windows.zip](../../releases/download/v0.3.0/Furoshiki-0.3.0-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
-| [Furoshiki-0.3.0-android.apk](../../releases/download/v0.3.0/Furoshiki-0.3.0-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
-| [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.0/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
+| [Furoshiki-0.3.1-windows.zip](../../releases/download/v0.3.1/Furoshiki-0.3.1-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
+| [Furoshiki-0.3.1-linux.tar.gz](../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Unpack anywhere and run `Furoshiki/reader-home`. Needs an X11 desktop or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
+| [Furoshiki-0.3.1-android.apk](../../releases/download/v0.3.1/Furoshiki-0.3.1-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
+| [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.1/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
 
 - **Windows dependencies:** The PS2 and Vita cores require the
   [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
   The dictionary popup uses Microsoft WebView2 (preinstalled on Windows 11 and updated Windows 10;
   falls back to a simpler popup if absent).
-- **Linux:** No prebuilt binary yet, though the desktop app builds on Linux — see
-  [Building from source](#building-from-source).
+- **Linux:** Settings, dictionaries, saves and BIOS files are kept in `~/.local/share/Furoshiki`.
+  A console's BIOS goes in `program/consoles/<console>/system` there.
 
 No games, BIOS, or firmware files are included. Supply your own dumps along with the system files
 below.
@@ -496,3 +498,6 @@ Furoshiki and its cores are free software under the
 `shared/`). Each bundled emulator retains its own licence and notices in its folder.
 [NOTICES.md](NOTICES.md) lists all package attributions and explains why Flycast (whose upstream
 `LICENSE` is GPLv2) is distributed here under GPLv3.
+The titles' names data comes from [VNDB](https://vndb.org) and is under the Open Database License
+([titles/LICENSE](titles/LICENSE)). On Android, Settings › About › Open-source licences shows the
+notices and every licence text the app carries.

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: Furoshiki contributors (from Furochibi)
+# SPDX-License-Identifier: GPL-3.0-or-later
 """From what the OCR engine saw to one line of text, and whether it is a new line.
 
 The engine gives lines with boxes (0-1 coordinates of the area). Readings printed small above

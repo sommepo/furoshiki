@@ -1189,6 +1189,7 @@ function settingsPage() {
     }] : []),
     {title: 'Version', id: 'version', side: appVersion(), value: appVersion(), about: ''},
     ...updateRow(),
+    {title: 'Open-source licences', id: 'licences', go: 'Open', about: '', act() { host.open('licences'); }},
     ...(host.services ? [{
       title: 'Home server', id: 'services', go: 'Refresh', side: servicesText(), value: servicesText() ? 'Connected' : 'Not connected',
       about: '',
@@ -1349,7 +1350,7 @@ const SETTING_GROUPS = [
   {key: 'consoles', title: 'Consoles', ids: ['consoles-page']},
   {key: 'controls', title: 'Controls', ids: ['controller', 'haptics']},
   {key: 'display', title: 'Display', ids: ['look', 'icon', 'text-size', 'wide', 'crt', 'home']},
-  {key: 'about', title: 'About', ids: ['version', 'update', 'achievements', 'settings:SAVE_SYNC', 'services']},
+  {key: 'about', title: 'About', ids: ['version', 'update', 'licences', 'achievements', 'settings:SAVE_SYNC', 'services']},
 ];
 
 function groupedSettings(rows) {

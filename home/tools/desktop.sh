@@ -45,7 +45,9 @@ if [ -z "${READER_HOME_CORES:-}" ]; then
   # Vita3K's data and built-in shaders in vita3k beside its core.
   [ -e "$cores/reader_core_vita3k.so" ] && ln -sfn "$(realpath "$root/../vita3k/build-core/bin/vita3k")" "$cores/vita3k"
 fi
-build="$root/build-desktop$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
+# READER_HOME_PUBLIC=1 (or HOME_PUBLIC=1): the published build (build-desktop-public), as build-desktop.sh names it.
+public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
+build="$root/build-desktop$([ "$public" = 1 ] && echo -public || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
 [ -x "$build/reader-home" ] || { echo "desktop.sh: not built yet: tools/build-desktop.sh" >&2; exit 1; }
 mkdir -p "$home/home" "$home/config" "$home/data/reader-home/program/consoles/ps1/system" "$home/run" "$home/fontconfig" "$home/shots" "$home/app"
 chmod 700 "$home/run"

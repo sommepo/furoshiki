@@ -177,19 +177,22 @@ if [ "$public" = 1 ]; then
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" -e 's/$/\r/' \
       "$root/publish/README-windows.txt" > "$out/README.txt"
   lic() { [ -f "$2" ] || { echo "no licence file $2" >&2; exit 1; }; install -m 644 "$2" "$licenses/$1"; }
-  lic LGPL-3.0.txt "$root/publish/licenses/LGPL-3.0.txt"
-  lic OFL-DotGothic16.txt "$root/fonts/OFL-DotGothic16.txt"
+  # The cores' licences, each core's list of the libraries its fork bundles (third-party/),
+  # the fonts' OFL, the runtime's terms, the names data's ODbL: tools/licences.py, from the
+  # forks the cores were built from.
+  cores=""
+  for core in "$out"/cores/reader_core_*.dll; do
+    [ -f "$core" ] || continue
+    core="$(basename "$core" .dll)"; cores="$cores${cores:+,}${core#reader_core_}"
+  done
+  "$READER_HOST_PREFIX/bin/python3" "$here/licences.py" --platform windows --root "$src" --forks "$forks" \
+    --out "$licenses" --cores "$cores"
+  # What comes from the build's own downloads and libraries.
   lic SDL2-LICENSE.txt "$(dirname "$READER_SDL2_WINDOWS")/LICENSE.txt"
   lic QuaZip-COPYING.txt "$build/_deps/reader_quazip-src/COPYING"
   lic Opus-COPYING.txt "$build/_deps/reader_opus-src/COPYING"
-  lic DuckStation-LICENSE.txt "$src/station/LICENSE"
-  lic PCSX2-COPYING.GPLv3.txt "$src/pcsx2/COPYING.GPLv3"
-  lic PCSX2-ThirdPartyLicenses.html "$src/pcsx2/bin/docs/ThirdPartyLicenses.html"
-  lic PPSSPP-LICENSE.txt "$src/ppsspp/LICENSE.TXT"
-  lic Flycast-LICENSE.txt "$src/flycast/LICENSE"
-  lic Azahar-license.txt "$src/azahar/license.txt"
+  lic WebView2-LICENSE.txt "$build/_deps/home_webview2-src/LICENSE.txt"
   if [ -f "$out/cores/reader_core_vita3k.dll" ]; then
-    lic Vita3K-COPYING.txt "$src/vita3k/COPYING.txt"
     lic OpenSSL-LICENSE.txt "$forks/vita3k/build-core-windows/external/openssl/LICENSE.txt"
   fi
   "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" --folder "$out"

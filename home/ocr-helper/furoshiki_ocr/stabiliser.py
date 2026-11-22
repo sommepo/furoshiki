@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: Furoshiki contributors (from Furochibi)
+# SPDX-License-Identifier: GPL-3.0-or-later
 """When to read the text area: once it has stopped changing.
 
 Each frame's text area is turned into a small greyscale signature. Text that types itself out

@@ -95,4 +95,7 @@ See [AGENTS.md](AGENTS.md).
 
 ## Licence
 
-GPL-2.0, as Flycast ([LICENSE](LICENSE)).
+Flycast's [LICENSE](LICENSE), the text of the GPL version 2 with no version named; its files say
+"version 2 or (at your option) any later version" or name no licence, and one
+(`core/achievements/achievements.cpp`, DuckStation's) is "GPL-3.0 OR CC-BY-NC-ND-4.0". This fork
+is distributed under the GPL version 3: Furoshiki's `NOTICES.md`, "Flycast under version 3".

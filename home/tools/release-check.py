@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: Furoshiki contributors
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Whether a Windows package or an Android APK of Furoshiki may be published.
+"""Whether a Windows package, a Linux tarball or an Android APK of Furoshiki may be published.
 
-    tools/release-check.py ZIP-OR-APK
+    tools/release-check.py ZIP-OR-APK-OR-TARBALL
     tools/release-check.py --folder FOLDER
 
 Refuses (exit 1, each finding on a line) a package that has
@@ -19,7 +19,9 @@ Refuses (exit 1, each finding on a line) a package that has
   a core, save sync of its own (the words "save sync" and the like, as the reader forks' public
   builds were checked with strings); in the program, the pairing link (a published build has
   no save sync: HOME_PUBLIC; the names of its settings stay, in the shared settings);
-- no licence, notices or source offer (COPYING.txt, NOTICES.txt, SOURCE.txt).
+- no licence, notices or source offer (COPYING.txt, NOTICES.txt, SOURCE.txt), or not the licence
+  texts tools/licences.py writes (licenses/: the LGPL, the Apache licence, the names data's ODbL,
+  the fonts' OFL; third-party/ for each core).
 In the private repository the markers of ../../publish.json are looked for as well. Paths
 of the machine the build was made on (where a library's asserts keep their source file's
 name) are counted and said, not refused: the forks' published packages have them too.
@@ -28,6 +30,7 @@ import json
 import pathlib
 import re
 import sys
+import tarfile
 import zipfile
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -44,7 +47,8 @@ SAVE_SYNC = re.compile(rb"save[ _-]?sync", re.I)
 PAIRING = re.compile(rb"readersync:", re.I)
 BUILD_PATH = re.compile(rb"(?:/srv/[a-z][a-z0-9_-]*/|/home/[a-z][a-z0-9_-]*/)")
 PRIVATE_SOUNDS = {b"move.wav", b"select.wav", b"back.wav"}
-NEEDED = ("COPYING.txt", "NOTICES.txt", "SOURCE.txt")
+NEEDED = ("COPYING.txt", "NOTICES.txt", "SOURCE.txt", "licenses/LGPL-3.0.txt", "licenses/Apache-2.0.txt",
+          "licenses/Names-data-ODbL-DbCL.txt", "licenses/OFL-DotGothic16.txt", "licenses/OFL-ZenKakuGothicNew.txt")
 # The text server answers a WebSocket handshake with this (RFC 6455). Its key's GUID is no mark:
 # the program's own client of a texthooker (src/ws_client.cpp, public) hashes the same one.
 WEBSOCKET = b"101 Switching Protocols"
@@ -80,7 +84,7 @@ def check_binary(name: str, data: bytes, personal) -> tuple[list, int]:
     problems, paths = [], 0
     core = "reader_core_" in name and (re.search(r"(^|/)cores/[^/]+\.dll$", name) is not None or name.endswith(".so"))
     # The program: Windows' executable, and on Android the app's native library and its code.
-    program = name.endswith(("Furoshiki.exe", "reader-home.exe", "libfuroshiki.so")) or re.search(r"(^|/)classes\d*\.dex$", name) is not None
+    program = name.endswith(("Furoshiki.exe", "reader-home.exe", "reader-home.bin", "libfuroshiki.so")) or re.search(r"(^|/)classes\d*\.dex$", name) is not None
     sync_words = 0
     for text in runs(data):
         if ADDRESS.search(text) and not EXAMPLES.search(text):
@@ -124,13 +128,19 @@ def check(members) -> int:
             problems.append(f"{name}: the driver hooks of Eden's core")
         if base.lower().endswith((".lua", ".charset")):
             problems.append(f"{name}: a game script or character table")
-        if base.lower().endswith((".exe", ".dll", ".so", ".dex")):
+        # Linux's: a library with its version after .so, the program (reader-home.bin), WebEngine's process.
+        if base.lower().endswith((".exe", ".dll", ".so", ".dex", ".bin")) or re.search(r"\.so(\.\d+)+$", base) or base == "QtWebEngineProcess":
             found, count = check_binary(name, read(), personal)
             problems += found
             paths += count
     for needed in NEEDED:
         if not any(n == needed or n.endswith("/" + needed) for n in names):
             problems.append(f"no {needed} in the package")
+    # Each core's list of its fork's libraries (licenses/third-party/<fork>.txt).
+    for name in names:
+        core = re.search(r"(?:^|/)(?:lib)?reader_core_([a-z0-9]+)\.(?:dll|so)$", name)
+        if core and not any(n.endswith(f"licenses/third-party/{core.group(1)}.txt") for n in names):
+            problems.append(f"{name}: no licenses/third-party/{core.group(1)}.txt in the package")
     for problem in dict.fromkeys(problems):
         print(problem)
     if paths:
@@ -144,6 +154,10 @@ def main(argv) -> int:
         root = pathlib.Path(argv[1])
         files = sorted(p for p in root.rglob("*") if p.is_file())
         return check((p.relative_to(root).as_posix(), p.read_bytes) for p in files)
+    if len(argv) == 1 and argv[0].endswith((".tar.gz", ".tgz")):
+        # Read as a stream, each file as it comes (check reads a member before asking for the next).
+        with tarfile.open(argv[0], "r|gz") as archive:
+            return check((info.name, (lambda info=info: archive.extractfile(info).read())) for info in archive if info.isfile())
     if len(argv) == 1:
         with zipfile.ZipFile(argv[0]) as archive:
             infos = [info for info in archive.infolist() if not info.is_dir()]

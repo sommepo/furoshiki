@@ -41,6 +41,9 @@ if [ ! -f "$build/build.ninja" ]; then
     -DCMAKE_JOB_POOLS="compile=${READER_JOBS};link=2" \
     -DCMAKE_JOB_POOL_COMPILE=compile -DCMAKE_JOB_POOL_LINK=link \
     -DSDL2_DIR="$sdl2/lib/cmake/SDL2" \
-    -DHOME_TESTS=ON -DHOME_CORES=ON -DHOME_PUBLIC="$want"
+    -DHOME_TESTS=ON -DHOME_CORES=ON -DHOME_PUBLIC="$want" -DFUROSHIKI_VERSION="${FUROSHIKI_VERSION:-dev}"
+elif [ -n "${FUROSHIKI_VERSION:-}" ] && ! grep -qx "FUROSHIKI_VERSION:STRING=$FUROSHIKI_VERSION" "$build/CMakeCache.txt"; then
+  # A release's number (furoshiki-release.sh) into a build folder made before: CMake keeps the old one.
+  "${limit[@]}" "$READER_CMAKE" -S "$root" -B "$build" -DFUROSHIKI_VERSION="$FUROSHIKI_VERSION"
 fi
 exec "${limit[@]}" "$P/ninja" -C "$build" "$@"

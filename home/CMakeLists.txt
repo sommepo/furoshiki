@@ -69,9 +69,12 @@ add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp
 	# That helper installed on this computer, started when a window is read and stopped with the program.
 	src/ocr_helper.cpp src/ocr_helper.h
 	# The user's own services, by one pairing link (docs/pairing.md, "The other services").
-	src/services.cpp src/services.h
-	# A newer build of the program from the user's own Files page.
-	src/updater.cpp src/updater.h)
+	src/services.cpp src/services.h)
+# A newer build of the program from the user's own Files page: the dev line's (the maintainer,
+# 2026-11-21: "remove the windows/linux updater for now"), so a published build has none.
+if(NOT HOME_PUBLIC)
+	target_sources(home_core PRIVATE src/updater.cpp src/updater.h)
+endif()
 target_include_directories(home_core PUBLIC src)
 target_link_libraries(home_core PUBLIC Qt6::Core Qt6::Gui Qt6::Multimedia Qt6::Network)
 if(WIN32)

@@ -502,7 +502,10 @@ void ReaderController::UpdateMenu() {
         });
     }
     menu_game_actions->menuAction()->setVisible(!game_actions.empty());
-    action_sentence_card->setEnabled(active && session.Current().has_value());
+    // Not on whether a line has come: the menu's states are set when it opens or a game starts,
+    // so Ctrl+D and a controller's shortcut found it off after the first line and did nothing.
+    // MineSentence says "No lines read yet" itself.
+    action_sentence_card->setEnabled(active);
     action_reload_profile->setEnabled(active);
     action_next_choice->setEnabled(active && session.Profile().loaded);
     action_next_choice->setVisible(Reader::ConsoleTraits::HasNextChoice);

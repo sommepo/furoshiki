@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: Furoshiki contributors (from Furochibi)
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The OCR sidecar: owocr's engines in a process of their own, behind a Unix socket (or, where
 there are none, a loopback TCP port: --listen 127.0.0.1:PORT).
 

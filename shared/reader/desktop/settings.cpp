@@ -588,8 +588,13 @@ QString ReaderSettings::AnkiFieldMap() const {
     self->SetValue(offered_key, true);
     return offered;
 }
+QString& ReaderSettings::AnkiTagsDefault() {
+    static QString tags;
+    return tags;
+}
 QString ReaderSettings::AnkiTags() const {
-    return String(KeyAnkiTags, QString::fromLatin1(Reader::ConsoleTraits::AppKey));
+    const QString& own = AnkiTagsDefault();
+    return String(KeyAnkiTags, own.isEmpty() ? QString::fromLatin1(Reader::ConsoleTraits::AppKey) : own);
 }
 QString ReaderSettings::AnkiConnectUrl() const {
     return String(KeyAnkiConnectUrl, QStringLiteral("http://127.0.0.1:8765"));

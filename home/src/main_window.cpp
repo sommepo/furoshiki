@@ -72,7 +72,9 @@
 #ifndef READER_NO_SAVE_SYNC // the guides come with save sync's pairing: the dev line's
 #include "guide_window.h"
 #endif
+#ifndef HOME_PUBLIC // the updater is the dev line's
 #include "updater.h"
+#endif
 #include "reader/qt/reader_session.h"
 #include "reader/qt/lookup_popup.h"
 #include "reader/desktop/popup_model.h"
@@ -663,6 +665,8 @@ MainWindow::MainWindow() {
     ReaderUi::ExplainService() = [] { return Home::Services::Of(QStringLiteral("furochibi")); };
     // Cards go to the user's Anki on another computer when none answers here (services.h).
     ReaderUi::AnkiElsewhere() = [] { return Home::Services::Of(QStringLiteral("anki")); };
+    // A card's tag is the program's, not the running core's app key ("ppsspp-reader").
+    ReaderApp::ReaderSettings::AnkiTagsDefault() = QStringLiteral("furoshiki");
     // The Reader menu's settings are the pages too.
     ReaderUi::SettingsPages() = [this] { ShowSettingsPages(); };
     // L2 was the pointer's by default, and the Reader settings window wrote that default down
@@ -765,6 +769,7 @@ MainWindow::MainWindow() {
                 settings.Sync();
                 session.OnSettingsChanged();
             }
+#ifndef HOME_PUBLIC
         } else if (row == QStringLiteral("Update")) {
             // Enter looks; with a build offered, Enter takes it.
             if (!update_offer.IsNone()) {
@@ -782,6 +787,7 @@ MainWindow::MainWindow() {
             } else {
                 CheckUpdate(true);
             }
+#endif
         } else if (row == QStringLiteral("Home server's services")) {
             AskHomeServer(true);
         } else if (row == QStringLiteral("Study tracker")) {
@@ -915,9 +921,11 @@ MainWindow::MainWindow() {
             const QString name = words.isEmpty() ? QString() : words.takeFirst();
             return (name + QLatin1Char(' ') + words.join(QLatin1Char('.'))).toUpper();
         }
+#ifndef HOME_PUBLIC
         if (row == QStringLiteral("Update")) {
             return update_said;
         }
+#endif
         if (row == QStringLiteral("Home server's services")) {
             const QMap<QString, QString> known = Home::Services::All();
             return known.isEmpty() ? QStringLiteral("NONE") : QStringList(known.keys()).join(QStringLiteral(" · ")).toUpper();
@@ -1505,6 +1513,7 @@ bool MainWindow::UsePairing(const QString& link, QString& error) {
 }
 #endif
 
+#ifndef HOME_PUBLIC
 void MainWindow::CheckUpdate(bool say) {
     Home::Updater::Check(this, Home::Services::Of(QStringLiteral("files")), [this, say](const Home::Updater::Offer& offer, const QString& error) {
         update_offer = offer;
@@ -1521,6 +1530,7 @@ void MainWindow::CheckUpdate(bool say) {
         home->Refresh();
     });
 }
+#endif
 
 void MainWindow::AskHomeServer(bool say) {
 #ifndef READER_NO_SAVE_SYNC

@@ -10,6 +10,7 @@ import android.os.Looper
 import android.webkit.WebView
 import android.widget.Toast
 import io.github.sommepo.furoshiki.reader.ReaderNative
+import io.github.sommepo.furoshiki.reader.ReaderSettings
 import io.github.sommepo.furoshiki.reader.dict.SharedDictionaries
 import kotlin.concurrent.thread
 
@@ -17,6 +18,8 @@ import kotlin.concurrent.thread
 class FuroshikiApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        // A card's tag is the app's, not the running core's key ("ppsspp-reader").
+        ReaderSettings.ankiTagsDefault = "furoshiki"
         if (getProcessName().endsWith(":game")) {
             // The page's process has a WebView, and two processes cannot share its data folder:
             // the dictionary popup is a web page in this one.

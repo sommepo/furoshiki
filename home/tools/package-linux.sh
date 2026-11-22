@@ -31,6 +31,10 @@
 # with "illegal instruction". Build it so with
 #   READER_CORE_BUILD_DIR=$PWD/build-core-portable READER_CORE_CMAKE_ARGS=-DDISABLE_ADVANCE_SIMD=ON tools/reader/build-core.sh
 # in the PCSX2 fork (upstream's own setting for builds that go to other computers).
+# A published package (READER_HOME_PUBLIC=1 or HOME_PUBLIC=1: tools/build-desktop.sh's
+# build-desktop-public, a HOME_PUBLIC build): Eden's core is never taken, the licences, notices,
+# the source offer and README.txt go in (FUROSHIKI_VERSION and FUROSHIKI_COMMIT, which the
+# release script sets), and tools/release-check.py checks the folder and the tarball.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # READER_HOME_WEB=1: the build with Qt WebEngine (tools/build-desktop.sh's build-desktop-web, with
@@ -42,9 +46,21 @@ if [ "$web" = 1 ]; then
 fi
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
-build="${READER_HOME_LINUX_BUILD:-$root/build-desktop$([ "$web" = 1 ] && echo -web || true)}"
+public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
+build="${READER_HOME_LINUX_BUILD:-$root/build-desktop$([ "$public" = 1 ] && echo -public || true)$([ "$web" = 1 ] && echo -web || true)}"
+if [ "$public" = 1 ] && ! grep -qx "HOME_PUBLIC:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null; then
+  echo "package-linux: $build is not a published build (HOME_PUBLIC): tools/build-desktop.sh with READER_HOME_PUBLIC=1" >&2
+  exit 1
+fi
 forks="${READER_HOME_FORKS:-$root/..}"
-cores_wanted="${READER_HOME_PACKAGE_CORES:-station flycast ppsspp azahar pcsx2$([ -d "$forks/eden" ] && echo " eden" || true)$([ -f "$forks/vita3k/build-core/bin/reader_core_vita3k.so" ] && echo " vita3k" || true)}"
+# Eden's core is the maintainer's alone: never in a published package.
+eden=""
+[ "$public" != 1 ] && [ -d "$forks/eden" ] && eden=" eden"
+cores_wanted="${READER_HOME_PACKAGE_CORES:-station flycast ppsspp azahar pcsx2$eden$([ -f "$forks/vita3k/build-core/bin/reader_core_vita3k.so" ] && echo " vita3k" || true)}"
+if [ "$public" = 1 ] && [[ " $cores_wanted " == *" eden "* ]]; then
+  echo "package-linux: Eden's core is never in a published package" >&2
+  exit 1
+fi
 glibc_max="${READER_HOME_GLIBC_MAX:-2.40}"
 out="$build/package/Furoshiki"
 strip="$READER_HOST_PREFIX/bin/x86_64-conda-linux-gnu-strip"
@@ -75,6 +91,9 @@ core_file() {
 
 rm -rf "$out"
 mkdir -p "$out/lib" "$out/cores"
+# Where each library in lib came from (name, file): its licence is looked up from there.
+sources="$build/package/lib-sources.txt"
+: > "$sources"
 # Every library a file needs (ldd follows them all), but the computer's own.
 copy_deps() {
   local name path missing
@@ -83,6 +102,7 @@ copy_deps() {
     [[ "$name" =~ $system_lib ]] && ! [[ "$name" =~ $taken_lib ]] && continue
     [ -e "$out/lib/$name" ] && continue
     install -m 644 "$(realpath "$path")" "$out/lib/$name"
+    printf '%s\t%s\n' "$name" "$(realpath "$path")" >> "$sources"
   done < <(ldd "$1" | awk '$2 == "=>" && $3 ~ /^\// {print $1, $3}')
   # One of the computer's own may be missing here (it is not taken); any other must be found.
   missing="$(ldd "$1" | awk '$2 == "=>" && $3 == "not" {print $1}' | grep -E -v "$system_lib" || true)"
@@ -142,6 +162,7 @@ if [ -f "$out/cores/reader_core_pcsx2.so" ]; then
   shaderc="$pcsx2_prefix/lib/libshaderc_shared.so.1"
   [ -f "$shaderc" ] || { echo "package-linux: no $shaderc" >&2; exit 1; }
   install -m 644 "$(realpath "$shaderc")" "$out/lib/libshaderc_shared.so.1"
+  printf '%s\t%s\n' libshaderc_shared.so.1 "$(realpath "$shaderc")" >> "$sources"
   copy_deps "$shaderc"
   mkdir -p "$out/cores/pcsx2"
   cp -r "$forks/pcsx2/bin/resources" "$out/cores/pcsx2/resources"
@@ -218,14 +239,65 @@ fi
 exec "$here/reader-home.bin" "$@"
 SCRIPT
 chmod 755 "$out/reader-home"
+# A published package: the licences (publish/NOTICES.md says which is which), the notices, where
+# its source is, and what a new user reads first.
+if [ "$public" = 1 ]; then
+  src="$root/.."
+  licenses="$out/licenses"
+  mkdir -p "$licenses"
+  install -m 644 "$root/COPYING" "$out/COPYING.txt"
+  install -m 644 "$root/publish/NOTICES.md" "$out/NOTICES.txt"
+  sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" \
+      -e "s/@COMMIT@/${FUROSHIKI_COMMIT:-(not a release build)}/g" \
+      "$root/publish/SOURCE.txt" > "$out/SOURCE.txt"
+  sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" "$root/publish/README-linux.txt" > "$out/README.txt"
+  lic() { [ -f "$2" ] || { echo "package-linux: no licence file $2" >&2; exit 1; }; install -m 644 "$2" "$licenses/$1"; }
+  # Each core's licence, the libraries each fork bundles (third-party/<fork>.txt), the fonts, the names data.
+  cores=""
+  for core in "$out"/cores/reader_core_*.so; do
+    [ -f "$core" ] || continue
+    core="$(basename "$core" .so)"; cores="$cores${cores:+,}${core#reader_core_}"
+  done
+  "$python" "$here/licences.py" --platform linux --root "$src" --forks "$forks" \
+    --out "$licenses" --cores "$cores"
+  lic OFL-DotGothic16.txt "$root/fonts/OFL-DotGothic16.txt"
+  # SDL 2 here is sdl2-compat over SDL 3 (conda-forge's), both under the zlib licence.
+  lic SDL2-LICENSE.txt "$(ls "$sdl2"/share/licenses/sdl2-compat/LICENSE.txt "$sdl2"/share/licenses/SDL2/LICENSE.txt 2>/dev/null | head -1)"
+  [ -f "$sdl2/share/licenses/SDL3/LICENSE.txt" ] && lic SDL3-LICENSE.txt "$sdl2/share/licenses/SDL3/LICENSE.txt"
+  lic QuaZip-COPYING.txt "$build/_deps/reader_quazip-src/COPYING"
+  lic Opus-COPYING.txt "$build/_deps/reader_opus-src/COPYING"
+  lic DuckStation-LICENSE.txt "$src/station/LICENSE"
+  lic PCSX2-COPYING.GPLv3.txt "$src/pcsx2/COPYING.GPLv3"
+  lic PCSX2-ThirdPartyLicenses.html "$src/pcsx2/bin/docs/ThirdPartyLicenses.html"
+  lic PPSSPP-LICENSE.txt "$src/ppsspp/LICENSE.TXT"
+  lic Flycast-LICENSE.txt "$src/flycast/LICENSE"
+  lic Azahar-license.txt "$src/azahar/license.txt"
+  [ -f "$out/cores/reader_core_vita3k.so" ] && lic Vita3K-COPYING.txt "$src/vita3k/COPYING.txt"
+  [ -f "$out/hooks/frida-COPYING.txt" ] && lic Frida-COPYING.txt "$out/hooks/frida-COPYING.txt"
+  # Every library in lib: its package's licence and texts (licenses/LIBRARIES.txt and
+  # licenses/libraries/), from where it came from; a library with none found stops the package.
+  "$python" "$here/lib_licences.py" "$sources" "$licenses" --qt-licence "$root/publish/licenses/LGPL-3.0.txt" \
+    --pcsx2-licences "$src/pcsx2/bin/docs/ThirdPartyLicenses.html"
+fi
 {
   echo "Furoshiki (reader-home) for Linux, x86-64"
-  echo "commit $(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- . ../cores ../shared || echo ' (with changes)')"
+  # An export (public-tree.py export) is no Git checkout: the release names its commit.
+  if [ -n "${FUROSHIKI_COMMIT:-}" ]; then
+    echo "commit ${FUROSHIKI_COMMIT}${FUROSHIKI_VERSION:+ (v$FUROSHIKI_VERSION)}"
+  elif git -C "$root" rev-parse --short HEAD >/dev/null 2>&1; then
+    echo "commit $(git -C "$root" rev-parse --short HEAD)$(git -C "$root" diff --quiet HEAD -- . ../cores ../shared || echo ' (with changes)')"
+  else
+    echo "commit (not a Git checkout)"
+  fi
   echo "made $(date -u +%Y-%m-%dT%H:%MZ), needs glibc $newest or newer"
   echo "cores: $cores_wanted"
 } > "$out/VERSION"
 (cd "$out/.." && rm -f Furoshiki-linux.tar.gz Furoshiki-linux.tar.gz.sha256 &&
   tar --owner=0 --group=0 -czf Furoshiki-linux.tar.gz Furoshiki &&
   sha256sum Furoshiki-linux.tar.gz > Furoshiki-linux.tar.gz.sha256)
+if [ "$public" = 1 ]; then
+  "$python" "$here/release-check.py" --folder "$out"
+  "$python" "$here/release-check.py" "$out/../Furoshiki-linux.tar.gz"
+fi
 cat "$out/VERSION"
 du -sh "$out" "$out/../Furoshiki-linux.tar.gz"

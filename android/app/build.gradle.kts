@@ -178,6 +178,29 @@ val readerTitles = tasks.register<Exec>("readerTitles") {
     commandLine("python3", File(repository, "android/tools/titles-index.py").path, out.path)
 }
 
+// The licence texts the app carries (assets/licenses, shown by Settings › About › Open-source
+// licences): each core's licence and its fork's bundled libraries' (third-party/), the fonts'
+// OFL, the Apache licence, ONNX Runtime's, the LGPL of meikiocr's models, the names data's ODbL
+// (home/tools/licences.py, which home/publish/NOTICES.md lists).
+val readerLicences = tasks.register<Exec>("readerLicences") {
+    val out = layout.buildDirectory.dir("generated/licences").get().asFile
+    val script = File(repository, "home/tools/licences.py")
+    inputs.file(script)
+    inputs.dir(File(repository, "home/publish/licenses"))
+    inputs.dir(File(repository, "home/fonts"))
+    inputs.file(File(repository, "titles/LICENSE"))
+    outputs.dir(out)
+    doFirst { out.deleteRecursively() }
+    // A release (-PfuroshikiRelease) must have every text; a dev build or a test run in a checkout
+    // without every submodule only reports what is missing.
+    val strict = providers.gradleProperty("furoshikiRelease").isPresent
+    // Where the forks' bundled libraries are: a release builds from an export, which has no
+    // submodules, and names the checkout it was made from (-PreaderForks, furoshiki-release.sh).
+    val forks = providers.gradleProperty("readerForks").orNull ?: repository.path
+    commandLine(listOf("python3", script.path, "--platform", "android", "--root", repository.path,
+        "--forks", forks, "--out", File(out, "licenses").path) + if (strict) emptyList() else listOf("--lenient"))
+}
+
 // The page's themes and font, the desktop's (home/themes, home/fonts); the game scripts (above);
 // PPSSPP's assets, which its core reads from the system folder; the licence and notices, as the
 // Windows package has them (a release writes SOURCE.txt beside them, tools/publish).
@@ -185,6 +208,7 @@ val readerFront = tasks.register<Sync>("readerFront") {
     into(layout.buildDirectory.dir("generated/front"))
     from(File(repository, "home/COPYING")) { rename { "COPYING.txt" } }
     from(File(repository, "home/publish/NOTICES.md")) { rename { "NOTICES.txt" } }
+    from(readerLicences)
     if (bundleScripts) {
         for (folder in scriptFolders) {
             from(File(repository, folder)) {

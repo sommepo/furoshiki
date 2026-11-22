@@ -21,7 +21,9 @@
 #include <QSet>
 #include <QThread>
 #include <QTimer>
+#ifndef HOME_PUBLIC // the updater is the dev line's
 #include "updater.h"
+#endif
 #include "core_library.h"
 #include "core_session.h"
 #include "addons.h"
@@ -165,10 +167,12 @@ private:
     /// Asks the paired save sync service for the user's other services (services.h); `say`: and
     /// says on the page what came of it.
     void AskHomeServer(bool say);
-    /// Asks the Files page for another build of the program (updater.h).
+#ifndef HOME_PUBLIC
+    /// Asks the Files page for another build of the program (updater.h): the dev line's.
     void CheckUpdate(bool say);
     Home::Updater::Offer update_offer;
     QString update_said{QStringLiteral("CHECK NOW")};
+#endif
     QPointer<SettingsWindow> settings_window;
 #ifndef READER_NO_SAVE_SYNC
     QStringList sync_folders; ///< Save sync's notes folder of each console started

@@ -18,6 +18,6 @@ export LD_LIBRARY_PATH="$READER_QT_LINUX/lib:$READER_QT_SYSLIBS:$READER_MESA_PRE
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
 export READER_HOME_FONT="${READER_HOME_FONT:-$READER_PREVIEW_FONT_FILE}"
 export QT_QPA_FONTDIR="${QT_QPA_FONTDIR:-$(dirname "$READER_PREVIEW_FONT_FILE")}"
-# READER_HOME_PUBLIC=1: the published build (build-desktop-public).
-build="$root/build-desktop$([ "${READER_HOME_PUBLIC:-0}" = 1 ] && echo -public || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
+# READER_HOME_PUBLIC=1 (or HOME_PUBLIC=1, as build-desktop.sh takes it): the published build (build-desktop-public).
+build="$root/build-desktop$([ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ] && echo -public || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
 exec "$here/limit.sh" -m "${READER_TEST_MEMORY_MAX:-1G}" "$build/$program" "$@"
