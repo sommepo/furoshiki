@@ -461,6 +461,13 @@ installing.
 
 </details>
 
+### Adding a game
+
+[docs/adding-a-game.md](docs/adding-a-game.md) is the checklist for writing a script for a new
+game: reading the game's ID, running it in the emulator's test harness, finding its text in memory,
+writing and testing the script, and adding its title and character names. It is written so that a
+coding agent can follow it from a clone of this repository. Offer the result as a pull request.
+
 ## Help
 
 Report bugs or ask questions in [Issues](../../issues). Please do not report Furoshiki issues to
