@@ -26,17 +26,18 @@ const char* Or(const char* given, const char* otherwise) {
 
 } // namespace
 
-/// Where a console's published list of game scripts is: Furoshiki's own repository (since
-/// 2026-11-03), whatever list a core names (each fork's app named its own repository's).
+/// Where a console's published list of game scripts is: the scripts repository
+/// (sommepo/furoshiki-scripts, since 2026-11-22; pull requests are merged there), whatever list
+/// a core names (each fork's app named its own repository's).
 const char* ScriptListOf(const char* key) {
     static const std::pair<std::string_view, const char*> lists[] = {
-        {"psp", "https://raw.githubusercontent.com/sommepo/furoshiki/main/ppsspp/assets/reader/profiles/index.json"},
-        {"dc", "https://raw.githubusercontent.com/sommepo/furoshiki/main/flycast/reader/profiles/index.json"},
-        {"ps2", "https://raw.githubusercontent.com/sommepo/furoshiki/main/pcsx2/reader/profiles/index.json"},
-        {"ps1", "https://raw.githubusercontent.com/sommepo/furoshiki/main/station/reader/profiles/index.json"},
-        {"3ds", "https://raw.githubusercontent.com/sommepo/furoshiki/main/azahar/src/android/app/src/main/assets/"
-                "reader/profiles/index.json"},
-        {"psvita", "https://raw.githubusercontent.com/sommepo/furoshiki/main/vita3k/reader/profiles/index.json"},
+        {"psp", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/psp/index.json"},
+        {"dc", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/dreamcast/index.json"},
+        {"ps2", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/ps2/index.json"},
+        {"ps1", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/ps1/index.json"},
+        {"3ds", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/3ds/index.json"},
+        {"nds", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/nds/index.json"},
+        {"psvita", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/vita/index.json"},
     };
     for (const auto& [console, list] : lists) {
         if (key != nullptr && console == key) {

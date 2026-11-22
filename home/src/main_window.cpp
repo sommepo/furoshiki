@@ -5050,6 +5050,13 @@ bool MainWindow::PointerToGame(const QPointF& at, uint32_t flags) {
 
 bool MainWindow::ProgramCommand(const QString& name, const QStringList& parts,
                                 const std::function<void(const QString&)>& reply) {
+    if (name == QStringLiteral("quit")) {
+        // quit: out of the program, as Quit Furoshiki in its menu (the game stopped first).
+        qInfo("quitting: the control channel's quit");
+        reply(QStringLiteral("OK"));
+        QTimer::singleShot(0, this, [this] { close(); });
+        return true;
+    }
 #ifndef READER_NO_SAVE_SYNC
     if (name == QStringLiteral("sync")) {
         // sync: save sync's status and conflicts; sync check | all; sync resolve TITLE mine|theirs.

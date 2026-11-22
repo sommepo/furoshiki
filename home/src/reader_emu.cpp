@@ -73,8 +73,10 @@ bool DumpMemory(const std::string& path) {
     std::vector<char> buffer;
     for (const reader_core_region& region : regions) {
         buffer.assign(region.size, '\0');
-        const std::size_t got = api.read_memory(region.base, buffer.data(), buffer.size());
-        ok = ok && std::fwrite(buffer.data(), 1, got, file) == got;
+        // Each region at its whole size, what could not be read as zeros, so that an offset in
+        // the file is the region's base plus the sizes before it (mem-regions' order).
+        api.read_memory(region.base, buffer.data(), buffer.size());
+        ok = ok && std::fwrite(buffer.data(), 1, buffer.size(), file) == buffer.size();
     }
     std::fclose(file);
     return ok;

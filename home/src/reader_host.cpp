@@ -25,6 +25,8 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QMainWindow>
 #include <QMenu>
 #include <QNetworkAccessManager>
@@ -254,6 +256,98 @@ bool HostCommand(const QString& name, const QStringList& parts, const QString& r
         } else {
             reply(QStringLiteral("ERR no memory to write (no game?)"));
         }
+    } else if (name == QStringLiteral("mem-regions")) {
+        // mem-regions: the game's address space as the core maps it, in the order `dump`
+        // writes it: [{"base":N,"size":N,"flags":N,"state":N}, ...] (furoshiki-scripts' tools/agent.py
+        // uses these commands: home/AGENTS.md, "Game scripts by agents").
+        if (!GameLoaded() || g_session->Api().memory_regions == nullptr) {
+            reply(QStringLiteral("ERR no game"));
+            return true;
+        }
+        std::vector<reader_core_region> regions(16);
+        for (;;) {
+            const uint32_t count = g_session->Api().memory_regions(regions.data(),
+                                                                   static_cast<uint32_t>(regions.size()));
+            const bool fits = count <= regions.size();
+            regions.resize(count);
+            if (fits) {
+                break;
+            }
+        }
+        QString out = QStringLiteral("[");
+        for (std::size_t i = 0; i < regions.size(); ++i) {
+            out += QStringLiteral("%1{\"base\":%2,\"size\":%3,\"flags\":%4,\"state\":%5}")
+                       .arg(i == 0 ? QString() : QStringLiteral(","))
+                       .arg(regions[i].base)
+                       .arg(regions[i].size)
+                       .arg(regions[i].flags)
+                       .arg(regions[i].state);
+        }
+        ok(out + u']');
+    } else if (name == QStringLiteral("mem-read")) {
+        // mem-read ADDRESS LENGTH: LENGTH bytes (at most 1 MiB) from ADDRESS (0x... or decimal),
+        // as hex; fewer where the region ends.
+        bool good_address = false;
+        bool good_length = false;
+        const qulonglong address = parts.value(1).toULongLong(&good_address, 0);
+        const qulonglong length = parts.value(2).toULongLong(&good_length, 0);
+        if (!good_address || !good_length || length == 0 || length > (1u << 20)) {
+            reply(QStringLiteral("ERR mem-read ADDRESS LENGTH (LENGTH 1 to 1048576)"));
+            return true;
+        }
+        if (!GameLoaded() || g_session->Api().read_memory == nullptr) {
+            reply(QStringLiteral("ERR no game"));
+            return true;
+        }
+        QByteArray bytes(static_cast<qsizetype>(length), '\0');
+        const std::size_t got = g_session->Api().read_memory(address, bytes.data(), bytes.size());
+        bytes.truncate(static_cast<qsizetype>(got));
+        ok(QString::fromLatin1(bytes.toHex()));
+    } else if (name == QStringLiteral("console")) {
+        // console: the running core's console, {"key":"psp","name":"PSP","scripts":"psp"}.
+        if (g_session == nullptr) {
+            reply(QStringLiteral("ERR no core"));
+            return true;
+        }
+        const reader_core_info& info = g_session->Info();
+        const auto quoted = [](const char* text) {
+            return QString::fromUtf8(QJsonDocument(QJsonArray{QString::fromUtf8(text ? text : "")})
+                                         .toJson(QJsonDocument::Compact))
+                .mid(1)
+                .chopped(1);
+        };
+        ok(QStringLiteral("{\"key\":%1,\"name\":%2,\"scripts\":%3}")
+               .arg(quoted(info.key), quoted(info.system), quoted(info.script_system)));
+    } else if (name == QStringLiteral("buttons")) {
+        // buttons: the running console's buttons, {"name": bit, ...}, for `pad BIT [MS]`.
+        if (g_session == nullptr) {
+            reply(QStringLiteral("ERR no core"));
+            return true;
+        }
+        const reader_core_info& info = g_session->Info();
+        QString out = QStringLiteral("{");
+        for (uint32_t i = 0; i < info.button_count; ++i) {
+            if (info.buttons[i].name == nullptr) {
+                continue;
+            }
+            out += QStringLiteral("%1\"%2\":%3")
+                       .arg(out.size() > 1 ? QStringLiteral(",") : QString())
+                       .arg(QString::fromUtf8(info.buttons[i].name))
+                       .arg(info.buttons[i].bit);
+        }
+        ok(out + u'}');
+    } else if (name == QStringLiteral("scripts-folder")) {
+        // scripts-folder: the user's game scripts folder, where <ID>.lua is taken first.
+        ok(QDir::toNativeSeparators(ReaderUi::ReaderBridge::UserProfileDirectory()));
+    } else if (name == QStringLiteral("script-reload")) {
+        // script-reload: the running game's script read again from its file (status says
+        // whether it loaded, and its error).
+        if (!GameLoaded()) {
+            reply(QStringLiteral("ERR no game"));
+            return true;
+        }
+        ReaderUi::ReaderBridge::ReloadProfile();
+        ok();
     } else if (name == QStringLiteral("state")) {
         // state save|load SLOT: one of the core's savestates of the running game.
         if (HostState(parts.value(1) == QStringLiteral("save"), parts.value(2).toInt())) {

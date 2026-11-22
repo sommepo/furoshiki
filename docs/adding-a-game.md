@@ -11,6 +11,12 @@ playthrough guide library and no publishing scripts, so the steps about those, a
 maintainer's own machine and devices, are only in the maintainer's copy of this file. That is why
 the step numbers below have gaps there.
 
+**A game is now usually added in the scripts repository**,
+[sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts): its `AGENTS.md` writes
+the script against an installed Furoshiki, on any system, with nothing built. This checklist is
+for what that way cannot do: a game that needs a character table, a change to an emulator, or a
+game the maintainer adds to their own line of work.
+
 The steps, in order:
 
 1. Set up a branch (and, in the maintainer's checkout, a worktree).

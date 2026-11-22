@@ -37,6 +37,7 @@ Game text is captured in one of three ways:
 - [Download](#download)
 - [Reading a game](#reading-a-game)
 - [Supported games](#supported-games)
+- [Adding a game](#adding-a-game)
 - [Help](#help) · [Building from source](#building-from-source) · [Licence](#licence)
 
 **Windows**
@@ -371,8 +372,8 @@ and enter a title.
 ## Supported games
 
 Each game script is a small Lua file targeting a specific Japanese release (check the ID below).
-Furoshiki downloads scripts from the lists in this repository and verifies each file before
-installing.
+The scripts are kept in [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), one
+folder per console. Furoshiki downloads them from there and verifies each file before installing.
 
 <details><summary><b>PlayStation</b> (4 games)</summary>
 
@@ -461,12 +462,36 @@ installing.
 
 </details>
 
-### Adding a game
+## Adding a game
 
-[docs/adding-a-game.md](docs/adding-a-game.md) is the checklist for writing a script for a new
-game: reading the game's ID, running it in the emulator's test harness, finding its text in memory,
-writing and testing the script, and adding its title and character names. It is written so that a
-coding agent can follow it from a clone of this repository. Offer the result as a pull request.
+A new game is added by a coding agent (Claude Code, Codex, Gemini CLI and the like), in the
+scripts repository, [sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts).
+The agent starts the game in Furoshiki, finds its text in memory, writes the script and tries it
+in the running game. It works on Windows, Linux and macOS.
+
+You need Furoshiki 0.3.2 or newer, Python 3.9 or newer, the agent, and your own dump of the game
+(the Japanese release).
+
+1. Fork [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), clone your fork, and
+   start your agent in it.
+2. Ask it to add the game, and say where the dump and Furoshiki are. For example: *"Add support
+   for Steins;Gate on the PSP. The game is at D:\Games\PSP\steins-gate.iso and Furoshiki is in
+   C:\Furoshiki."*
+3. The agent follows the repository's [AGENTS.md](https://github.com/sommepo/furoshiki-scripts/blob/main/AGENTS.md).
+   It ends with a report of what it saw read in the game and what it could not check.
+4. Play the game for a while with the script. The agent leaves it in your scripts folder, where it
+   is used before any installed script:
+   - Windows: `%LOCALAPPDATA%\Furoshiki\program\reader\profiles`
+   - Linux: `~/.local/share/Furoshiki/program/reader/profiles`
+   - Android: `Android/data/io.github.sommepo.furoshiki/files/reader/profiles`
+5. Let the agent open the pull request. Once it is merged, every Furoshiki user can install the
+   script from *Game scripts* in Settings, with no app update.
+
+A script can also be shared as a file before it is merged: copy the `.lua` into the scripts
+folder above.
+
+A game that draws its text from a font of its own needs a character table made from the game.
+That table cannot be published, so such a game cannot be added to the shared scripts.
 
 ## Help
 
