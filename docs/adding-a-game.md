@@ -551,9 +551,12 @@ reader.progress{
 ## 6. Character tables
 
 A game that draws text from a font of its own (kanji as pictures, a code table) needs a table
-from its codes to characters. That table is made from the game, so it is game data:
+from its codes to characters. Since 2026-11-22 such tables are published, by the maintainer's
+word, in the scripts repository (`sommepo/furoshiki-scripts`, beside the script: a table holds
+the game's codes and the characters they stand for, never the font's pictures). In this
+repository they are still kept out of Git:
 
-- It lives in `<fork>/private/<game>/<ID>.charset` and never in Git.
+- It lives in `<fork>/private/<game>/<ID>.charset` and never in Git here.
 - The profile asks for it with `reader.data("charset")` (which finds `<ID>.charset` beside the
   profile or in the user's profiles folder) and says clearly, in the text it reports, when it is
   missing.
@@ -567,8 +570,11 @@ from its codes to characters. That table is made from the game, so it is game da
   and `armsx2/private/<game>/`, as each fork's script copies its own.
 - Never fill a gap in a table with a guess or another edition's text. Readings that could not be
   confirmed stay out and are named.
-- A game whose script needs a table cannot be in the public list (`tools/scripts-index.py` leaves
-  it out).
+- A game whose script needs a table is left out of the public tree's lists (`tools/scripts-index.py`),
+  but `tools/scripts-repo.py export` takes it and its table (from the fork's profiles folder, where
+  `private-data.sh` puts it) into the scripts repository, which the apps install from. Its
+  comments must not call the table private there; the export rewords the usual phrases and stops
+  on any it does not know.
 
 ## 7. Tests, notes and the fork's lists of games
 

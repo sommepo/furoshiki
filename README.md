@@ -6,10 +6,10 @@
 Look up words directly in your games and send cards to Anki — even from the couch with a controller.</p>
 
 <p align="center"><b>Latest releases:</b>
-<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-android.apk">Android 0.3.1</a> ·
-<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-windows.zip">Windows 0.3.1</a> ·
-<a href="../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz">Linux 0.3.1</a> ·
-<a href="../../releases/download/v0.3.1/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
+<a href="../../releases/download/v0.3.2/Furoshiki-0.3.2-android.apk">Android 0.3.2</a> ·
+<a href="../../releases/download/v0.3.2/Furoshiki-0.3.2-windows.zip">Windows 0.3.2</a> ·
+<a href="../../releases/download/v0.3.2/Furoshiki-0.3.2-linux.tar.gz">Linux 0.3.2</a> ·
+<a href="../../releases/download/v0.3.2/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
 <p align="center"><img src="home/publish/media/lookup-remember11.gif" width="760" alt="Hovering words in Remember11 on PS2 to open instant dictionary popups"></p>
@@ -25,7 +25,7 @@ Game text is captured in one of three ways:
 
 | Method | How it works | Availability |
 | --- | --- | --- |
-| **Game script** | Reads exact text and character positions straight from emulator memory so you can point at or tap the game's own text. | [38 games](#supported-games), Windows & Android |
+| **Game script** | Reads exact text and character positions straight from emulator memory so you can point at or tap the game's own text. | [53 games](#supported-games), Windows & Android |
 | **OCR** | Reads text directly from the game image. Works with any game, with occasional OCR errors. | Windows & Android |
 | **Text hook / external lines** | Captures exact text from PC games (or a WebSocket/clipboard feed) into a lookup bar at the edge of the screen. | Windows |
 
@@ -96,14 +96,14 @@ and video settings can be configured globally, per console, or per game.
 
 ## Download
 
-Release **0.3.1** includes Windows, Android, Linux, and the optional Windows OCR helper:
+Release **0.3.2** includes Windows, Android, Linux, and the optional Windows OCR helper:
 
 | File | Platform | Notes |
 | --- | --- | --- |
-| [Furoshiki-0.3.1-windows.zip](../../releases/download/v0.3.1/Furoshiki-0.3.1-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
-| [Furoshiki-0.3.1-linux.tar.gz](../../releases/download/v0.3.1/Furoshiki-0.3.1-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Extract anywhere and run `Furoshiki/reader-home`. Requires X11 or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
-| [Furoshiki-0.3.1-android.apk](../../releases/download/v0.3.1/Furoshiki-0.3.1-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
-| [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.1/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
+| [Furoshiki-0.3.2-windows.zip](../../releases/download/v0.3.2/Furoshiki-0.3.2-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
+| [Furoshiki-0.3.2-linux.tar.gz](../../releases/download/v0.3.2/Furoshiki-0.3.2-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Extract anywhere and run `Furoshiki/reader-home`. Requires X11 or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
+| [Furoshiki-0.3.2-android.apk](../../releases/download/v0.3.2/Furoshiki-0.3.2-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
+| [Furoshiki-ocr-helper.zip](../../releases/download/v0.3.2/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [OCR on Windows](#ocr-on-windows). |
 
 - **Windows dependencies:** The PS2 and Vita cores require the
   [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
@@ -373,9 +373,9 @@ and enter a title.
 
 Each game script is a small Lua file targeting a specific Japanese release (check the ID below).
 Scripts live in [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), organized by
-console; Furoshiki downloads and verifies them automatically before installing.
+console and game; Furoshiki downloads and verifies them automatically before installing.
 
-<details><summary><b>PlayStation</b> (4 games)</summary>
+<details><summary><b>PlayStation</b> (11 games)</summary>
 
 | Game | Japanese title | ID | What is read |
 | --- | --- | --- | --- |
@@ -383,10 +383,17 @@ console; Furoshiki downloads and verifies them automatically before installing.
 | Double Cast | ダブルキャスト | SCPS-10053, SCPS-10054 | Film subtitles and choices |
 | Aconcagua | アコンカグア | SCPS-10131, SCPS-10132 | Message windows |
 | Gakkou de Atta Kowai Hanashi S | 学校であった怖い話S | SLPS-00404 | Story text and choices |
+| Otogirisou Sosei-hen | 弟切草 蘇生篇 | SLPS-01645 | Story text and choices |
+| Twilight Syndrome: Tansaku-hen | トワイライトシンドローム 探索編 | SLPS-00102 | Message window with speakers |
+| Twilight Syndrome: Kyuumei-hen | トワイライトシンドローム 究明編 | SLPS-00405 | Message window with speakers |
+| Moonlight Syndrome | ムーンライトシンドローム | SLPS-01001, SLPS-01002 | Text window with speakers |
+| Memories Off | メモリーズオフ | SLPS-02296 | Text window with speakers, choices |
+| Final Fantasy VII | ファイナルファンタジーVII | SLPS-00700, SLPS-00701, SLPS-00702 | Field message windows, choices |
+| Final Fantasy IX | ファイナルファンタジーIX | SLPS-02000 to SLPS-02003, SCPS-45500 to SCPS-45503 | Dialogue windows with speakers, choices |
 
 </details>
 
-<details><summary><b>PlayStation 2</b> (11 games)</summary>
+<details><summary><b>PlayStation 2</b> (19 games)</summary>
 
 | Game | Japanese title | ID | What is read |
 | --- | --- | --- | --- |
@@ -401,6 +408,14 @@ console; Furoshiki downloads and verifies them automatically before installing.
 | Shadow Hearts | シャドウハーツ | SLPS-25041 | Scene and talk windows with speakers |
 | Dragon Quest V | ドラゴンクエストV 天空の花嫁 | SLPM-65555 | Message window |
 | Silent Hill 2 | サイレントヒル2 | SLPM-65051 | Subtitles |
+| Kanon | Kanon | SLPS-20121 | Story text with speakers, choices |
+| Persona 3 | ペルソナ3 | SLPM-66445 | Message windows with speakers, choices |
+| Persona 4 | ペルソナ4 | SLPM-66978 | Message windows with speakers, choices |
+| Shin Megami Tensei III: Nocturne Maniax | 真・女神転生III NOCTURNE マニアクス | SLPM-65462 | Scene and message windows |
+| Digital Devil Saga | DIGITAL DEVIL SAGA アバタール・チューナー | SLPM-65597 | Scene and message windows |
+| Final Fantasy X International | ファイナルファンタジーX インターナショナル | SLPS-25088 | Message windows with speakers, subtitles, choices |
+| Metal Gear Solid 2: Substance | METAL GEAR SOLID 2 SUBSTANCE | SLPM-67002 | Codec conversations, cutscene and radio subtitles |
+| Metal Gear Solid 3: Snake Eater | METAL GEAR SOLID 3 SNAKE EATER | SLPM-65790 | Codec conversations, cutscene and radio subtitles |
 
 </details>
 
