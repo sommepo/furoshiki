@@ -19,9 +19,6 @@ target_sources(core PRIVATE ${CMAKE_SOURCE_DIR}/reader/core/disc_sets.cpp)
 set_target_properties(reader_core_station PROPERTIES PREFIX "" CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 target_include_directories(reader_core_station PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src
 	${CMAKE_SOURCE_DIR}/../cores)
-# The CRT picture is on in an install that was never told otherwise, as in the app; Reader Home
-# hands its sliders over (picture.crt) as soon as a game starts.
-target_compile_definitions(reader_core_station PRIVATE READER_CRT_DEFAULT_ON)
 target_link_libraries(reader_core_station PRIVATE frontend-common core common glad Threads::Threads)
 if(USE_X11)
 	target_include_directories(reader_core_station PRIVATE ${X11_INCLUDE_DIR})

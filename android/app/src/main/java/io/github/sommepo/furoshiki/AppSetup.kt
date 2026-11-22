@@ -89,9 +89,13 @@ object AppSetup {
             val decks = client.deckNames()
             val models = client.modelNames()
             Log.i("Furoshiki", "AnkiDroid has decks $decks and note types $models")
-            // The deck cards are mined into, and in it the note type most of its cards are.
-            val deck = decks.firstOrNull { "mining" in it.lowercase() }
-                ?: decks.firstOrNull { it != "Default" && it != "デフォルト" } ?: decks.firstOrNull() ?: return
+            // The deck cards are mined into, and in it the note type most of its cards are. Only a
+            // deck that is plainly the one: with two that could be ("Mining" and "Mining deck"), or
+            // several decks of the user's own and none named so, nothing is chosen and Anki setup
+            // asks (a guess that is wrong sends every card to the wrong deck without a word).
+            val own = decks.filter { it != "Default" && it != "デフォルト" }
+            val deck = decks.filter { "mining" in it.lowercase() }.singleOrNull()
+                ?: own.singleOrNull()?.takeIf { decks.none { d -> "mining" in d.lowercase() } } ?: return
             val quoted = AnkiSearch.escape(deck)
             val counts = models.associateWith { model ->
                 client.findNotesWhere("\"deck:$quoted\" \"note:${AnkiSearch.escape(model)}\"").size

@@ -109,8 +109,6 @@ if(READER_CORE)
 	target_include_directories(reader_core_melonds PRIVATE ${READER_FORK} ${READER_CORES_DIR}
 		${READER_CORES_DIR}/libretro)
 	target_link_libraries(reader_core_melonds PRIVATE melonds_libretro)
-	set_source_files_properties(${READER_SHARED}/reader/core/crt.cpp PROPERTIES
-		COMPILE_DEFINITIONS READER_CRT_DEFAULT_ON)
 	set_target_properties(reader_core_melonds PROPERTIES OUTPUT_NAME "reader_core_melonds" PREFIX ""
 		LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 	if(ANDROID)

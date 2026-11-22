@@ -15,9 +15,6 @@ target_sources(ppsspp_libretro PRIVATE
 	${READER_SHARED}/reader/core/crt.cpp)
 target_include_directories(ppsspp_libretro PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/libretro
 	${READER_CORES_DIR} ${READER_CORES_DIR}/libretro)
-# The CRT picture is on in an install that was never told otherwise, as in the app.
-set_source_files_properties(${READER_SHARED}/reader/core/crt.cpp PROPERTIES
-	COMPILE_DEFINITIONS READER_CRT_DEFAULT_ON)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/ppsspp_core.cpp
 	${READER_CORES_DIR}/libretro/libretro_core.cpp ${READER_SHARED}/reader/core/crt.cpp
 	PROPERTIES COMPILE_OPTIONS "-std=gnu++20")

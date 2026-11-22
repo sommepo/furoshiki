@@ -18,9 +18,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR} ${READER_
 # What Flycast's own files do otherwise in a core (shell/libretro/oslib.cpp: a game's own memory
 # unit where Flycast Reader keeps it).
 target_compile_definitions(${PROJECT_NAME} PRIVATE READER_CORE)
-# The CRT picture is on in an install that was never told otherwise, as in the app.
-set_source_files_properties(${READER_SHARED}/reader/core/crt.cpp PROPERTIES
-	COMPILE_DEFINITIONS READER_CRT_DEFAULT_ON)
 # The host and the glue use C++20 (the reader's headers do); Flycast is C++17.
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/flycast_core.cpp
 	${READER_CORES_DIR}/libretro/libretro_core.cpp ${READER_SHARED}/reader/core/crt.cpp

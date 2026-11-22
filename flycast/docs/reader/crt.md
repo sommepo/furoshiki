@@ -1,6 +1,6 @@
 # The CRT picture
 
-*Reader settings, CRT picture* shows the game as a cathode-ray tube would show it. **In this app it is on from the first start** (the build says so: `READER_CRT_DEFAULT_ON` on the reader's core); the switch turns it off.
+*Reader settings, CRT picture* shows the game as a cathode-ray tube would show it. It is off until it is switched on (since 2026-11-22, in every build).
 It is the reader's own: the emulator's own filters and shaders are
 left as they are, and while the picture is on it takes the place of the plain copy that puts the finished frame on the window.
 

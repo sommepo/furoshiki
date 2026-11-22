@@ -49,9 +49,6 @@ add_library(reader_core STATIC
 )
 target_include_directories(reader_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(reader_core PUBLIC reader_lua)
-# The CRT picture is on in an install that was never told otherwise (reader/core/crt.cpp):
-# this console was played on a tube.
-target_compile_definitions(reader_core PRIVATE READER_CRT_DEFAULT_ON)
 target_compile_options(reader_core PRIVATE -fexceptions)
 set_target_properties(reader_core PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON
 	POSITION_INDEPENDENT_CODE ON)

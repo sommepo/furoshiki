@@ -15,14 +15,9 @@ namespace Reader::Crt {
 
 namespace {
 
-// Whether the picture is on in an install that was never told: a fork's build says so
-// (READER_CRT_DEFAULT_ON, on its reader core). On for the consoles that were played on a
-// tube, off for the two that never were.
-#ifdef READER_CRT_DEFAULT_ON
-#define READER_CRT_ON_AT_FIRST 1
-#else
-#define READER_CRT_ON_AT_FIRST 0
-#endif
+// The picture is off in an install that was never told, in every build (the maintainer,
+// 2026-11-22: "have CRT filter off by default"). Until then a build could turn it on at first
+// (READER_CRT_DEFAULT_ON); a user's own setting, kept under "enabled", is untouched.
 
 // ---- What can be set. The order is the settings page's. ----
 //
@@ -30,7 +25,7 @@ namespace {
 // is never renamed or reused, since it is what the users' settings are kept under.
 const std::vector<Param> kParams = {
     {"enabled", "CRT picture", "", "Show the game as on a cathode-ray tube.", Kind::Toggle, 0, 1, 1,
-     READER_CRT_ON_AT_FIRST,
+     0,
      nullptr},
 
     {"scanlines", "Scan lines", "Lines", "How dark the gaps between the lines are.", Kind::Slider, 0,

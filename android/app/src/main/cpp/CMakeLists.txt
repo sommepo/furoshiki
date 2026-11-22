@@ -61,7 +61,6 @@ endif()
 reader_jni_package(io.github.sommepo.furoshiki)
 target_include_directories(furoshiki PRIVATE
 	${HOME}/engine ${HOME}/src ${REPOSITORY}/cores ${READER_SHARED} ${FLYCAST_READER}/.. ${FLYCAST_READER}/lua)
-target_compile_definitions(furoshiki PRIVATE READER_CRT_DEFAULT_ON)
 target_compile_options(furoshiki PRIVATE -fvisibility=hidden -fexceptions -frtti)
 target_link_libraries(furoshiki PRIVATE aaudio android log dl)
 target_link_options(furoshiki PRIVATE "-Wl,--no-undefined" "-Wl,-z,max-page-size=16384")

@@ -77,12 +77,46 @@ class AnkiDroidClient(private val context: Context) : AnkiClient {
             put("flds", ordered.joinToString(FIELD_SEPARATOR))
             put("tags", tags.joinToString(" ") { it.trim().replace(' ', '_') })
         }
-        val target = NOTES_URI.buildUpon().appendQueryParameter("deckId", deckId.toString()).build()
-        val created = guard { resolver.insert(target, values) }
+        // AnkiDroid adds a single note to its note type's own deck (the deck that note type was
+        // last used with), whatever deck is asked for: its provider reads a deckId only in a bulk
+        // insert, which gives no note id back. Its own AddContentApi moves the new cards
+        // afterwards, and so does this. Before 2026-11-22 the deck was sent as a deckId on the
+        // address and the cards stayed in the note type's deck (a user's went to "Mining"
+        // instead of "Mining deck").
+        val created = guard { resolver.insert(NOTES_URI, values) }
             ?: throw AnkiException("AnkiDroid did not create the note")
         unsynced = true
+        moveCards(created, deckId, deck)
         afterAdd?.invoke(context)
         return created.lastPathSegment?.toLongOrNull() ?: 0L
+    }
+
+    /** Puts every card of the note at [note] into [deckId], and checks that they are there. */
+    private fun moveCards(note: Uri, deckId: Long, deck: String) {
+        val cards = Uri.withAppendedPath(note, "cards")
+        val placed = cardDecks(cards)
+        if (placed.isEmpty()) throw AnkiException("AnkiDroid made no cards from this note")
+        for ((ord, did) in placed) {
+            if (did == deckId) continue
+            val values = ContentValues().apply { put(CARD_DECK_ID, deckId) }
+            guard { resolver.update(Uri.withAppendedPath(cards, ord), values, null, null) }
+        }
+        if (cardDecks(cards).any { it.second != deckId }) {
+            throw AnkiException("AnkiDroid added the card to another deck and would not move it to \"$deck\"")
+        }
+    }
+
+    /** Each card of a note: its ordinal and the deck it is in. */
+    private fun cardDecks(cards: Uri): List<Pair<String, Long>> {
+        val cursor = guard { resolver.query(cards, arrayOf(CARD_ORD, CARD_DECK_ID), null, null, null) }
+            ?: throw AnkiException("AnkiDroid did not say where the card went")
+        return cursor.use { c ->
+            val ord = c.getColumnIndexOrThrow(CARD_ORD)
+            val did = c.getColumnIndexOrThrow(CARD_DECK_ID)
+            val out = ArrayList<Pair<String, Long>>(c.count)
+            while (c.moveToNext()) out.add(c.getString(ord) to c.getLong(did))
+            out
+        }
     }
 
     override fun findNotes(deck: String?, field: String, value: String): List<Long> =
@@ -179,6 +213,8 @@ class AnkiDroidClient(private val context: Context) : AnkiClient {
         const val PERMISSION = "com.ichi2.anki.permission.READ_WRITE_DATABASE"
         private const val AUTHORITY = "com.ichi2.anki.flashcards"
         private const val FIELD_SEPARATOR = "\u001f"
+        private const val CARD_ORD = "ord"
+        private const val CARD_DECK_ID = "deck_id"
         private val NOTES_URI: Uri = Uri.parse("content://$AUTHORITY/notes")
         private val MODELS_URI: Uri = Uri.parse("content://$AUTHORITY/models")
         private val DECKS_URI: Uri = Uri.parse("content://$AUTHORITY/decks")

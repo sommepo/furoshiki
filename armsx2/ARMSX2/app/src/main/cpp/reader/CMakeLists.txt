@@ -27,8 +27,6 @@ if(READER_CORE)
 		${READER_PCSX2}/memory_card.h
 		${CMAKE_CURRENT_SOURCE_DIR}/render/crt_present.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/render/crt_present.h)
-	set_source_files_properties(${READER_SHARED}/reader/core/crt.cpp PROPERTIES
-		COMPILE_DEFINITIONS READER_CRT_DEFAULT_ON)
 	target_include_directories(PCSX2 PRIVATE ${CMAKE_SOURCE_DIR} ${READER_SHARED}/.. ${READER_SHARED}/../pcsx2)
 	# No input source the core switches off is started (pcsx2/Input/InputManager.cpp): SDL's
 	# would want the Java classes of an app of its own.
@@ -70,9 +68,6 @@ add_library(reader_core STATIC
 )
 target_include_directories(reader_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(reader_core PUBLIC reader_lua)
-# The CRT picture is on in an install that was never told otherwise (reader/core/crt.cpp):
-# this console was played on a tube.
-target_compile_definitions(reader_core PRIVATE READER_CRT_DEFAULT_ON)
 target_compile_options(reader_core PRIVATE -fexceptions)
 set_target_properties(reader_core PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON
 	POSITION_INDEPENDENT_CODE ON)

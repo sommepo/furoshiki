@@ -52,7 +52,8 @@ object Console {
         yes = 8, no = 0, up = 4, down = 5, left = 6, right = 7,
         pressMs = 80L,
         pickStepMs = 220L,
-        crtFirstLook = "enabled=1;lines=0;scanlines=0.40;beam=0.60;sharpness=0.75;mask=1;mask_strength=0.20;" +
+        // Off at first like every console (the maintainer, 2026-11-22); this is the look it has once on.
+        crtFirstLook = "enabled=0;lines=0;scanlines=0.40;beam=0.60;sharpness=0.75;mask=1;mask_strength=0.20;" +
             "warp=0.20;corners=0.15;vignette=0.20;glass=0;glow=0.15;halation=0.10;bloom=0.30;" +
             "brightness=0.95;warmth=0.20;colour=1.00;contrast=1.00;convergence=0.05;grain=0.05;flicker=0",
         touchAll = listOf("up", "down", "left", "right", "select", "l", "triangle", "circle", "cross", "square", "start", "r"),

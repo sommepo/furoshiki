@@ -190,7 +190,6 @@ if(HOME_TESTS)
 	# The CRT picture's layers, with the shared table they are made from.
 	target_sources(reader-home-tests PRIVATE src/crt_layers.cpp ../shared/reader/core/crt.cpp)
 	target_include_directories(reader-home-tests PRIVATE ../shared)
-	target_compile_definitions(reader-home-tests PRIVATE READER_CRT_DEFAULT_ON)
 	# The themes and fonts are checked where they are kept.
 	target_compile_definitions(reader-home-tests PRIVATE HOME_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
@@ -227,9 +226,6 @@ if(HOME_CORES)
 		${HOME_READER}/core/text_codec.cpp
 		engine/reader/core/console.h
 		engine/reader/core/registers.h)
-	# The CRT picture is on in an install that was never told otherwise, as in Station Reader
-	# (its only core so far is the PlayStation's, which was played on a tube).
-	target_compile_definitions(home_engine PRIVATE READER_CRT_DEFAULT_ON)
 	target_include_directories(home_engine PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}/engine ${HOME_CORES_API} ${HOME_READER}/.. ${HOME_FLYCAST_READER}/..)
 	target_link_libraries(home_engine PUBLIC home_lua)
