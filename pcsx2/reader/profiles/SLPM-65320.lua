@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title EVE burst error PLUS
--- reader: reads The message window: what is said and told, part by part as it comes up in full
+-- reader: reads Dialogue and narration
 -- reader: version SLPM-65320, disc version 1.02
 -- reader: touch press
 -- reader: buttons circle cross triangle

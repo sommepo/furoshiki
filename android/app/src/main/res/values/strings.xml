@@ -36,6 +36,10 @@
     <string name="game_menu_disc">Change disc</string>
     <string name="game_menu_fast_on">Fast forward</string>
     <string name="game_menu_fast_off">Normal speed</string>
+    <string name="game_menu_touch_on">Show on-screen controls</string>
+    <string name="game_menu_touch_off">Hide on-screen controls</string>
+    <string name="game_touch_on">On-screen controls on</string>
+    <string name="game_touch_off">On-screen controls off</string>
     <string name="game_menu_next_choice">Skip to next choice</string>
     <string name="game_menu_next_choice_stop">Stop skipping</string>
     <string name="game_menu_routes">Routes</string>
@@ -43,7 +47,7 @@
     <string name="game_patches_none">No patches for this game</string>
     <string name="game_patches_next">Saved. Some patches apply after a restart.</string>
     <string name="game_menu_codes">Cheat codes</string>
-    <string name="game_codes_hint">One code to a line</string>
+    <string name="game_codes_hint">One code per line</string>
     <string name="game_state_slot">Slot %1$d</string>
     <string name="game_state_empty">Empty</string>
     <string name="game_disc">Disc %1$d</string>
@@ -93,7 +97,7 @@
     <string name="ocr_failed">Couldn\'t read the text: %1$s</string>
     <string name="ocr_back">OCR reconnected</string>
     <string name="ocr_nothing">No text found</string>
-    <string name="ocr_no_engine">no OCR engine is set up. Choose one in Settings › Reading › OCR engine</string>
+    <string name="ocr_no_engine">no OCR engine is set up. Choose one in Settings › Library › OCR engine</string>
     <string name="ocr_setup_hint">Drag to draw a text area around the game\'s text. Drag an area to move it, or its corner to resize it. No touch screen? Use LOWER THIRD.</string>
     <string name="ocr_setup_try_hint">Tap TRY IT to test the selected text area</string>
     <string name="ocr_setup_reading">Reading…</string>
@@ -127,4 +131,42 @@
     <string name="add_title_name">Game name</string>
     <string name="add_title_add">Add</string>
     <string name="add_title_cancel">Cancel</string>
+    <!-- Moving dictionaries into the dictionary engine (ConversionPrompt) on first start after an update. -->
+    <string name="conversion_title">Updating your dictionaries</string>
+    <plurals name="conversion_body">
+        <item quantity="one">Furoshiki now stores dictionaries in a faster format. Your dictionary is being converted once. Lookups continue using the old format until it finishes, so you can keep reading. If you close Furoshiki, it will pick up where it left off next time.</item>
+        <item quantity="other">Furoshiki now stores dictionaries in a faster format. Your %1$d dictionaries are being converted once. Lookups continue using the old format until it finishes, so you can keep reading. If you close Furoshiki, it will pick up where it left off next time.</item>
+    </plurals>
+    <string name="conversion_which">Dictionary %1$d of %2$d</string>
+    <string name="conversion_percent">%1$d%%</string>
+    <plurals name="conversion_resumed">
+        <item quantity="one">%1$d%% · 1 already converted</item>
+        <item quantity="other">%1$d%% · %2$d already converted</item>
+    </plurals>
+    <string name="conversion_hide">Hide</string>
+    <string name="conversion_ok">OK</string>
+    <string name="conversion_done_title">Dictionaries updated</string>
+    <plurals name="conversion_done_body">
+        <item quantity="one">Your dictionary is now in the new format (%2$d s). The old database has been deleted.</item>
+        <item quantity="other">All %1$d dictionaries are now in the new format (%2$d s). The old database has been deleted.</item>
+    </plurals>
+    <string name="conversion_already_done_body">Your dictionaries finished updating before they could be removed. Everything is now in the new format.</string>
+    <string name="conversion_failed_title">Some dictionaries couldn\'t be converted</string>
+    <string name="conversion_failed_body">Your dictionaries are still working from the old database, and Furoshiki will try again next time you open it. If this keeps happening, remove these in Settings › Dictionaries and re-import them:\n\n%1$s</string>
+    <string name="conversion_error_body">Couldn\'t remove the old dictionaries: %1$s</string>
+    <string name="conversion_start_over">Remove &amp; re-import…</string>
+    <string name="conversion_confirm_title">Remove dictionaries and re-import?</string>
+    <plurals name="conversion_confirm_body">
+        <item quantity="one">This will remove your dictionary from Furoshiki and delete the old database. You will need to re-import it from its .zip file. Only continue if you still have that file.</item>
+        <item quantity="other">This will remove all %1$d dictionaries from Furoshiki and delete the old database. You will need to re-import them from their .zip files (choose their folder to import them all at once). Only continue if you still have those files.</item>
+    </plurals>
+    <string name="conversion_cancel">Cancel</string>
+    <string name="conversion_remove">Remove</string>
+    <string name="conversion_removed_title">Dictionaries removed</string>
+    <plurals name="conversion_removed_body">
+        <item quantity="one">1 dictionary was removed and the old database was deleted. You can re-import your dictionary now, or later in Settings › Dictionaries.</item>
+        <item quantity="other">%1$d dictionaries were removed and the old database was deleted. You can re-import your dictionaries now, or later in Settings › Dictionaries.</item>
+    </plurals>
+    <string name="conversion_import">Import</string>
+    <string name="conversion_strip">Updating dictionaries · %1$d of %2$d · %3$s</string>
 </resources>

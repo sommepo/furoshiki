@@ -52,8 +52,9 @@ class HomeActivity : AppCompatActivity() {
     private val scanned = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             // Add a game's name was asked on the second display (AddTitleActivity): its page is back.
-            if (intent.getBooleanExtra(AddTitleActivity.EXTRA_DONE, false)) runCatching { lower?.show() }
-            callPage("Front.reload()")
+            val added = intent.getBooleanExtra(AddTitleActivity.EXTRA_DONE, false)
+            if (added) runCatching { lower?.show() }
+            callPage(if (added) "Front.reload()" else "Front.listed()")
             if (intent.getBooleanExtra(ScanService.EXTRA_LISTED, false)) return
             val key = intent.getStringExtra(ScanService.EXTRA_CONSOLE).orEmpty()
             // A console handed back (the process it went to had another's core) is looked at again.
@@ -111,9 +112,18 @@ class HomeActivity : AppCompatActivity() {
         page.isVerticalScrollBarEnabled = false
         page.addJavascriptInterface(Bridge(), "FuroshikiHost")
         setContentView(page)
-        registerReceiver(scanned, IntentFilter(Places.SCANNED), Context.RECEIVER_NOT_EXPORTED)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(scanned, IntentFilter(Places.SCANNED), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(scanned, IntentFilter(Places.SCANNED))
+        }
         page.loadUrl("file:///android_asset/front/index.html")
-        scan()
+        // The CRT picture off once for everyone, before its page or a game reads it (CrtSettings).
+        io.github.sommepo.furoshiki.reader.ui.CrtSettings.switchOffOnce(this)
+        // Once the page is in front (onResume): a service may not be started before (the Thor with
+        // its display off, 2026-11-24: the page started by an intent ended at once).
+        scanWhenResumed = true
         homeAsked(intent)
         playPinned(intent)
     }
@@ -443,8 +453,12 @@ class HomeActivity : AppCompatActivity() {
         if (hasFocus) AudioFocus.take(this, game = false, again = true)
     }
 
+    /** The dictionaries' move into the engine, said and shown on this screen (ConversionPrompt). */
+    private val conversion by lazy { ConversionPrompt(this) }
+
     override fun onResume() {
         super.onResume()
+        conversion.resume()
         AudioFocus.take(this, game = false)
         steam.start()
         window.insetsController?.let {
@@ -459,6 +473,10 @@ class HomeActivity : AppCompatActivity() {
         else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         showLower()
         callPage("if (window.Front) Front.reload()")
+        if (scanWhenResumed) {
+            scanWhenResumed = false
+            scanIfDue()
+        }
         startNext()
         offerGettingStarted()
         checkRelease()
@@ -467,10 +485,10 @@ class HomeActivity : AppCompatActivity() {
             installWaiting = false
             installRelease()
         }
-        // Back from the scripts: the games they read are listed.
+        // Back from the scripts: the games they read are listed, where a script came or went.
         if (scriptsOpened) {
             scriptsOpened = false
-            scan()
+            if (scriptsStamp() != scriptsBefore) scan(quiet = true)
         }
     }
 
@@ -487,10 +505,13 @@ class HomeActivity : AppCompatActivity() {
         if (front === this) front = null
         hideLower()
         LowerActivity.live?.tell()
+        conversion.pause()
         super.onPause()
     }
 
-    private var scriptsOpened = false
+    @Volatile private var scriptsOpened = false
+    private var scanWhenResumed = false
+    @Volatile private var scriptsBefore = 0L
 
     /**
      * The page's theme, kept for the reader: the popup takes its look unless the user chose one
@@ -706,22 +727,51 @@ class HomeActivity : AppCompatActivity() {
         var inFlight: String? = null
         var owner: HomeActivity? = null
         var again = false
+        var againQuiet = true
+        /** Started by the app itself, not asked for: nothing said on the page while it goes on. */
+        var quiet = false
     }
 
-    private fun scan() {
+    /**
+     * A look by the app itself as the page is made, where the last whole look is older than
+     * [AUTO_SCAN_MS] or a console has no list yet (the maintainer, 2026-11-24: "android version
+     * seems to scan constantly after going back to the menu and is always loudly showing scanning
+     * at the bottom, also seems to cause jitter on the main menu"). The page is made again each
+     * time Android ended the app while a game was played, and each time every console was looked
+     * at. It is quiet: the page says nothing of it.
+     */
+    private fun scanIfDue() {
+        val last = getSharedPreferences("home", MODE_PRIVATE).getLong(KEY_LAST_SCAN, 0)
+        val listed = Places.CORES.keys.all { Places.gamesFile(this, it).isFile }
+        if (listed && System.currentTimeMillis() - last in 0 until AUTO_SCAN_MS) return
+        scan(quiet = listed)
+    }
+
+    /** When the user's own scripts last changed: back from Game scripts, a look only where they did. */
+    private fun scriptsStamp(): Long =
+        java.io.File(getExternalFilesDir(null), io.github.sommepo.furoshiki.reader.ReaderNative.PROFILE_USER_DIR)
+            .walkTopDown().maxDepth(2).maxOfOrNull { it.lastModified() } ?: 0L
+
+    private fun scan(quiet: Boolean = false) {
         if (!hasAccess()) return
         importExports()
+        // One the user asked for is said, even when it joins a quiet one under way.
+        if (!quiet) Scans.quiet = false
         if (Scans.inFlight != null) {
+            Scans.againQuiet = if (Scans.again) Scans.againQuiet && quiet else quiet
             Scans.again = true
             return
         }
         // A look left half done by a page that has gone: this one goes on with it.
         if (Scans.queue.isNotEmpty()) {
+            Scans.againQuiet = if (Scans.again) Scans.againQuiet && quiet else quiet
             Scans.again = true
             scanNext()
             return
         }
-        startService(Intent(this, AppSetupService::class.java))
+        // Refused while the app is not in front: the next look does it.
+        runCatching { startService(Intent(this, AppSetupService::class.java)) }
+        Scans.quiet = quiet
         Scans.queue.addAll(Places.CORES.keys)
         scanNext()
     }
@@ -747,18 +797,32 @@ class HomeActivity : AppCompatActivity() {
         // the scan is in progress").
         val total = Places.CORES.size
         // By the console's name, never its key ("PS Vita", not "PSVITA").
-        callPage("Front.scanning(" + org.json.JSONObject.quote(if (key == null) "" else "${Places.shortName(key)} · ${total - Scans.queue.size} of $total") + ")")
+        callPage("Front.scanning(" + org.json.JSONObject.quote(if (key == null || Scans.quiet) "" else "${Places.shortName(key)} · ${total - Scans.queue.size} of $total") + ")")
         if (key == null) {
             Scans.owner = null
+            Scans.quiet = false
+            getSharedPreferences("home", MODE_PRIVATE).edit().putLong(KEY_LAST_SCAN, System.currentTimeMillis()).apply()
             if (Scans.again) {
+                val nextQuiet = Scans.againQuiet
                 Scans.again = false
-                scan()
+                Scans.againQuiet = true
+                scan(quiet = nextQuiet)
             }
             return
         }
         Scans.inFlight = key
         Scans.owner = this
-        startService(Intent(this, ScanService::class.java).putExtra(ScanService.EXTRA_CONSOLE, key))
+        // Refused while the app is not in front: the look ends here, and is asked again later.
+        val asked = runCatching { startService(Intent(this, ScanService::class.java).putExtra(ScanService.EXTRA_CONSOLE, key)) }
+        if (asked.isFailure) {
+            android.util.Log.w("Furoshiki", "$key: its look could not start (${asked.exceptionOrNull()?.message})")
+            Scans.queue.clear()
+            Scans.inFlight = null
+            Scans.owner = null
+            Scans.quiet = false
+            callPage("Front.scanning('')")
+            return
+        }
         // A look whose process never answers (it died) does not hold the others up.
         val started = key
         page.postDelayed({
@@ -921,6 +985,10 @@ class HomeActivity : AppCompatActivity() {
         /** How long one console's look may take before the next is looked at anyway. */
         private const val SCAN_AT_MOST_MS = 120_000L
 
+        /** A look by the app itself at most this often (scanIfDue); one the user asks for at any time. */
+        private const val AUTO_SCAN_MS = 30L * 60 * 1000
+        private const val KEY_LAST_SCAN = "last_scan"
+
         /** The page while it is in front: what the second display's own page talks to. */
         @Volatile
         var front: HomeActivity? = null
@@ -934,6 +1002,10 @@ class HomeActivity : AppCompatActivity() {
         /** Whether a second display shows the title in hand and the keys (the page is then all shelf). */
         @JavascriptInterface
         fun twoScreens(): Boolean = lower != null || LowerActivity.live != null
+
+        /** Whether the device has a second display at all (no on-screen controls there, map.js). */
+        @JavascriptInterface
+        fun hasSecondDisplay(): Boolean = io.github.sommepo.furoshiki.reader.ReaderSettings.hasSecondDisplay(this@HomeActivity)
 
         @JavascriptInterface
         fun lower(json: String) {
@@ -1364,6 +1436,7 @@ class HomeActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openScripts(console: String) {
             scriptsOpened = true
+            scriptsBefore = scriptsStamp()
             startActivity(HomeScreen.apart(this@HomeActivity, Intent(this@HomeActivity, ScriptsActivity::class.java).putExtra(ScriptsActivity.EXTRA_CONSOLE, console)))
         }
 
@@ -1467,7 +1540,7 @@ class HomeActivity : AppCompatActivity() {
                 "dictionaries" -> DictionaryManagerActivity::class.java
                 "anki" -> AnkiSetupActivity::class.java
                 "crt" -> CrtSettingsActivity::class.java
-                "scripts" -> ReaderGamesActivity::class.java
+                "scripts" -> GameScriptsActivity::class.java
                 "statistics" -> ReaderStatsActivity::class.java
                 "licences" -> LicencesActivity::class.java
                 else -> return

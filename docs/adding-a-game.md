@@ -446,7 +446,7 @@ games*) and that `tools/scripts-index.py` puts in the published list:
 ```lua
 -- reader: no hooks
 -- reader: title 穢翼のユースティア (Aiyoku no Eustia)
--- reader: reads The message window: narration and dialogue with speakers and furigana, and choices
+-- reader: reads Dialogue, narration, speakers, furigana, and choices
 -- reader: version Base game (version 0)
 -- reader: touch press
 ```

@@ -26,6 +26,8 @@ add_executable(reader_desktop_tests
     ${READER_SHARED}/reader/desktop/tests/hook_description_test.cpp
     ${READER_SHARED}/reader/desktop/tests/deinflector.cpp
     ${READER_SHARED}/reader/desktop/tests/dictionary.cpp
+    ${READER_SHARED}/reader/desktop/tests/dict_engine.cpp
+    ${READER_SHARED}/reader/desktop/tests/release_compare.cpp
     ${READER_SHARED}/reader/desktop/tests/discord_presence.cpp
     ${READER_SHARED}/reader/desktop/tests/glossary.cpp
     ${READER_SHARED}/reader/desktop/tests/media.cpp
@@ -46,11 +48,16 @@ set_target_properties(reader_desktop_tests PROPERTIES CXX_STANDARD 20 CXX_STANDA
 target_compile_options(reader_desktop_tests PRIVATE -fexceptions)
 set(READER_BUNDLED_PROFILE_DIR "${CMAKE_SOURCE_DIR}/reader/profiles")
 target_compile_definitions(reader_desktop_tests PRIVATE
-    READER_BUNDLED_PROFILE_DIR="${READER_BUNDLED_PROFILE_DIR}")
+    READER_BUNDLED_PROFILE_DIR="${READER_BUNDLED_PROFILE_DIR}" READER_DICT_ENGINE)
 target_link_libraries(reader_desktop_tests PRIVATE reader_desktop reader_core QuaZip::QuaZip
                                                    Catch2::Catch2WithMain Threads::Threads)
 if (NOT MSVC)
     target_compile_options(reader_desktop_tests PRIVATE
         -Wno-shadow -Wno-conversion -Wno-unused-variable -Wno-unused-parameter
         -Wno-missing-field-initializers)
+endif()
+
+# On Windows the bundled zlib is built here: its headers, for the tests that read zips.
+if(READER_ZLIB_BINARY)
+    target_include_directories(reader_desktop_tests PRIVATE "${READER_ZLIB_SOURCE}" "${READER_ZLIB_BINARY}")
 endif()

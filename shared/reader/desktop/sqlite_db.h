@@ -38,6 +38,10 @@ public:
         Statement& Bind(int index, qint64 value);
         Statement& Bind(int index, const QString& value);
         Statement& BindBlob(int index, const QByteArray& value);
+        /// Text already in UTF-8, which must stay as it is until the statement has run.
+        Statement& BindUtf8(int index, const QByteArray& value);
+        /// A blob that, likewise, must stay as it is until the statement has run.
+        Statement& BindBlobInPlace(int index, const QByteArray& value);
         Statement& BindNull(int index);
 
         /// Runs to the next row. False when there is none (or the statement is done).

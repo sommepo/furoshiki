@@ -1,5 +1,5 @@
 -- reader: title かまいたちの夜 特別篇
--- reader: reads The story's text over the pictures, paragraph by paragraph, and its choices
+-- reader: reads Story text and choices
 -- reader: version SLPS-01794 (boot program AD2BBA84)
 -- reader: audio never
 -- reader: touch press

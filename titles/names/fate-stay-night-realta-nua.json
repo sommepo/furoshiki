@@ -1,0 +1,476 @@
+{
+ "source": {
+  "vndb": "v11",
+  "fetched": "2026-11-23"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c15",
+   "kind": "person",
+   "name": "衛宮 士郎",
+   "family": "衛宮",
+   "given": "士郎",
+   "reading": "えみや しろう",
+   "family_reading": "えみや",
+   "given_reading": "しろう",
+   "romaji": "Emiya Shirou",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c33",
+   "kind": "person",
+   "name": "セイバー",
+   "reading": "セイバー",
+   "romaji": "Saber",
+   "aliases": [
+    {
+     "text": "アルトリア・ペンドラゴン",
+     "reading": "アルトリア・ペンドラゴン"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c34",
+   "kind": "person",
+   "name": "遠坂 凛",
+   "family": "遠坂",
+   "given": "凛",
+   "reading": "とおさか りん",
+   "family_reading": "とおさか",
+   "given_reading": "りん",
+   "romaji": "Toosaka Rin",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c35",
+   "kind": "person",
+   "name": "間桐 桜",
+   "family": "間桐",
+   "given": "桜",
+   "reading": "まとう さくら",
+   "family_reading": "まとう",
+   "given_reading": "さくら",
+   "romaji": "Matou Sakura",
+   "aliases": [
+    {
+     "text": "遠坂 桜",
+     "reading": "とおさか さくら"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c36",
+   "kind": "person",
+   "name": "アーチャー",
+   "reading": "アーチャー",
+   "romaji": "Archer",
+   "aliases": [
+    {
+     "text": "エミヤ",
+     "reading": "エミヤ"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c37",
+   "kind": "person",
+   "name": "イリヤスフィール・フォン・アインツベルン",
+   "reading": "イリヤスフィール・フォン・アインツベルン",
+   "romaji": "Illyasviel von Einzbern",
+   "aliases": [
+    {
+     "text": "イリヤ",
+     "reading": "イリヤ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c42",
+   "kind": "person",
+   "name": "言峰 綺礼",
+   "family": "言峰",
+   "given": "綺礼",
+   "reading": "ことみね きれい",
+   "family_reading": "ことみね",
+   "given_reading": "きれい",
+   "romaji": "Kotomine Kirei",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c38",
+   "kind": "person",
+   "name": "ランサー",
+   "reading": "ランサー",
+   "romaji": "Lancer",
+   "aliases": [
+    {
+     "text": "クー・フーリン",
+     "reading": "クー・フーリン"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c39",
+   "kind": "person",
+   "name": "ライダー",
+   "reading": "ライダー",
+   "romaji": "Rider",
+   "aliases": [
+    {
+     "text": "メドゥーサ",
+     "reading": "メドゥーサ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c40",
+   "kind": "person",
+   "name": "バーサーカー",
+   "reading": "バーサーカー",
+   "romaji": "Berserker",
+   "aliases": [
+    {
+     "text": "ヘラクレス",
+     "reading": "ヘラクレス"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41",
+   "kind": "person",
+   "name": "間桐 慎二",
+   "family": "間桐",
+   "given": "慎二",
+   "reading": "まとう しんじ",
+   "family_reading": "まとう",
+   "given_reading": "しんじ",
+   "romaji": "Matou Shinji",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c43",
+   "kind": "person",
+   "name": "藤村 大河",
+   "family": "藤村",
+   "given": "大河",
+   "reading": "ふじむら たいが",
+   "family_reading": "ふじむら",
+   "given_reading": "たいが",
+   "romaji": "Fujimura Taiga",
+   "aliases": [
+    {
+     "text": "タイガー",
+     "reading": "タイガー"
+    },
+    {
+     "text": "藤ねえ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c44",
+   "kind": "person",
+   "name": "葛木 宗一郎",
+   "family": "葛木",
+   "given": "宗一郎",
+   "reading": "くずき そういちろう",
+   "family_reading": "くずき",
+   "given_reading": "そういちろう",
+   "romaji": "Kuzuki Souichirou",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c45",
+   "kind": "person",
+   "name": "キャスター",
+   "reading": "キャスター",
+   "romaji": "Caster",
+   "aliases": [
+    {
+     "text": "メデイア",
+     "reading": "メデイア"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c47",
+   "kind": "person",
+   "name": "ギルガメッシュ",
+   "reading": "ギルガメッシュ",
+   "romaji": "Gilgamesh",
+   "aliases": [
+    {
+     "text": "アーチャー",
+     "reading": "アーチャー"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c49",
+   "kind": "person",
+   "name": "アサシン",
+   "reading": "アサシン",
+   "romaji": "Assassin",
+   "aliases": [
+    {
+     "text": "佐々木 小次郎"
+    }
+   ],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c51",
+   "kind": "person",
+   "name": "間桐 臓硯",
+   "family": "間桐",
+   "given": "臓硯",
+   "reading": "まとう ぞうけん",
+   "family_reading": "まとう",
+   "given_reading": "ぞうけん",
+   "romaji": "Matou Zouken",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c54",
+   "kind": "person",
+   "name": "セイバー・オルタナティブ",
+   "reading": "セイバー・オルタナティブ",
+   "romaji": "Saber Alter",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c41594",
+   "kind": "person",
+   "name": "蛍塚 音子",
+   "family": "蛍塚",
+   "given": "音子",
+   "reading": "ほたるずか おとこ",
+   "family_reading": "ほたるずか",
+   "given_reading": "おとこ",
+   "romaji": "Hotaruzuka Otoko",
+   "aliases": [
+    {
+     "text": "ネコ",
+     "reading": "ネコ"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41602",
+   "kind": "person",
+   "name": "セラ",
+   "reading": "セラ",
+   "romaji": "Sella",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41603",
+   "kind": "person",
+   "name": "リーゼリット",
+   "reading": "リーゼリット",
+   "romaji": "Leysritt",
+   "aliases": [
+    {
+     "text": "リズ",
+     "reading": "リズ"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41605",
+   "kind": "person",
+   "name": "三枝 由紀香",
+   "family": "三枝",
+   "given": "由紀香",
+   "reading": "さえぐさ ゆきか",
+   "family_reading": "さえぐさ",
+   "given_reading": "ゆきか",
+   "romaji": "Saegusa Yukika",
+   "aliases": [
+    {
+     "text": "由紀っち"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41606",
+   "kind": "person",
+   "name": "蒔寺 楓",
+   "family": "蒔寺",
+   "given": "楓",
+   "reading": "まきでら かえで",
+   "family_reading": "まきでら",
+   "given_reading": "かえで",
+   "romaji": "Makidera Kaede",
+   "aliases": [
+    {
+     "text": "マキジ",
+     "reading": "マキジ"
+    },
+    {
+     "text": "穂群の黒豹"
+    }
+   ],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c41607",
+   "kind": "person",
+   "name": "氷室 鐘",
+   "family": "氷室",
+   "given": "鐘",
+   "reading": "ひむろ かね",
+   "family_reading": "ひむろ",
+   "given_reading": "かね",
+   "romaji": "Himuro Kane",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c48",
+   "kind": "person",
+   "name": "柳洞 一成",
+   "family": "柳洞",
+   "given": "一成",
+   "reading": "りゅうどう いっせい",
+   "family_reading": "りゅうどう",
+   "given_reading": "いっせい",
+   "romaji": "Ryuudou Issei",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c52",
+   "kind": "person",
+   "name": "美綴 綾子",
+   "family": "美綴",
+   "given": "綾子",
+   "reading": "みつずり あやこ",
+   "family_reading": "みつずり",
+   "given_reading": "あやこ",
+   "romaji": "Mitsuzuri Ayako",
+   "aliases": [],
+   "role": "appears",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c96619",
+   "kind": "person",
+   "name": "衛宮 切嗣",
+   "family": "衛宮",
+   "given": "切嗣",
+   "reading": "えみや きりつぐ",
+   "family_reading": "えみや",
+   "given_reading": "きりつぐ",
+   "romaji": "Emiya Kiritsugu",
+   "aliases": [
+    {
+     "text": "魔術師殺し"
+    }
+   ],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  }
+ ]
+}

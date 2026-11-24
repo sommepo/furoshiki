@@ -138,6 +138,10 @@ class ScanService : Service() {
                         .put("console", key).put("system", info.getString("system"))
                         .put("short", info.getString("short"))
                     Covers.of(this, key, said[0], game)?.let { entry.put("cover", it.path) }
+                    Covers.spineOf(this, key, said[0])?.let { entry.put("spine", it.path) }
+                    // Where no spine is found, one drawn in its console's look (Spines): the page
+                    // takes a built-in or found one before it.
+                    if (!entry.has("spine")) Spines.drawn(this, key, said[0], title)?.let { entry.put("drawn", it.path) }
                     found.put(entry)
                 }
         }
@@ -146,25 +150,43 @@ class ScanService : Service() {
         // not mounted yet (the Thor's, just after it starts) or folders not readable yet. Folders
         // that could be read with nothing in them for this core: none (a list another core once
         // wrote here, the Thor's 3DS list of Dreamcast discs, does not stay because its files do).
-        val kept = found.length() == 0 && (onMissingVolume(key) || !foldersReady())
+        val games = oneEntryAGame(found, records(this))
+        val kept = games.length() == 0 && (onMissingVolume(key) || !foldersReady())
         if (kept) {
             Log.w("Furoshiki", "$key: no game found while its games could not be looked at, its last list kept")
         } else {
-            save(key, oneEntryAGame(JSONArray(found.toString()), records(this)))
+            save(key, games)
         }
         // The list stands; what art it lacks comes after, as the network may be slow or absent.
         sendBroadcast(Intent(Places.SCANNED).setPackage(packageName).putExtra(EXTRA_LISTED, true))
         var fetched = false
-        for (i in 0 until found.length()) {
-            val game = found.getJSONObject(i)
-            if (game.has("cover")) continue
-            Covers.fetch(this, key, game.getString("id"), File(game.getString("path")))?.let {
+        val sources = ArtSources.load(this)
+        val looking = sources.vndb || sources.screenScraperReady
+        val built = runCatching { JSONObject(assets.open("front/titles.json").bufferedReader().use { it.readText() }) }.getOrDefault(JSONObject())
+        for (i in 0 until games.length()) {
+            val game = games.getJSONObject(i)
+            val id = game.getString("id")
+            // A spine too, where none is built in or found, once a week at most: VNDB and
+            // ScreenScraper have spines, the other sources none.
+            val tried = File(Places.console(this, key, "spines"), ".tried-${Covers.safeId(id)}")
+            val wantSpine = looking && !game.has("spine") && built.optJSONObject(id)?.optString("spine").isNullOrEmpty() &&
+                System.currentTimeMillis() - tried.lastModified() > WEEK_MS
+            if (game.has("cover") && !wantSpine) continue
+            if (wantSpine) {
+                tried.parentFile?.mkdirs()
+                tried.writeText("")
+            }
+            val cleanTitle = Discs.withoutDisc(game.optString("title"))
+            Covers.fetch(this, key, id, File(game.getString("path")), cleanTitle, wantCover = !game.has("cover"), wantSpine = wantSpine)?.let {
                 game.put("cover", it.path)
                 fetched = true
             }
+            Covers.spineOf(this, key, id)?.let {
+                if (!game.has("spine")) fetched = true
+                game.put("spine", it.path)
+            }
         }
-        // As listed: a game of several discs one entry (it was saved disc by disc here before).
-        if (fetched && !kept) save(key, oneEntryAGame(found, records(this)))
+        if (fetched && !kept) save(key, games)
     }
 
     /** Whether every game folder can be read: just after the device starts the storage may not be. */
@@ -192,11 +214,12 @@ class ScanService : Service() {
         val out = Places.gamesFile(this, key)
         val partial = File(out.path + ".new")
         partial.writeText(found.toString())
-        partial.renameTo(out)
+        if (!partial.renameTo(out)) partial.delete()
     }
 
     companion object {
         const val EXTRA_CONSOLE = "console"
+        private const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
 
         /** On [Places.SCANNED]: the page may show the list, and the look at this console goes on. */
         const val EXTRA_LISTED = "listed"
@@ -237,6 +260,9 @@ class ScanService : Service() {
                 }
                 val ordered = entries.sortedBy { Discs.number(File(it.optString("path")).name) ?: Int.MAX_VALUE }
                 val first = ordered[0]
+                if (!first.has("cover")) ordered.firstNotNullOfOrNull { it.optString("cover").takeIf(String::isNotEmpty) }?.let { first.put("cover", it) }
+                if (!first.has("spine")) ordered.firstNotNullOfOrNull { it.optString("spine").takeIf(String::isNotEmpty) }?.let { first.put("spine", it) }
+                if (!first.has("spine") && !first.has("drawn")) ordered.firstNotNullOfOrNull { it.optString("drawn").takeIf(String::isNotEmpty) }?.let { first.put("drawn", it) }
                 first.put("title", Discs.withoutDisc(first.optString("title")))
                 first.put("discs", entries.size)
                 first.put("paths", JSONArray(ordered.map { it.optString("path") }))

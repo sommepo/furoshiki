@@ -50,7 +50,7 @@ class DictionaryLookup(
      * to it are used, and their entries come first among words of the same length; other
      * scoped dictionaries are not.
      */
-    fun lookup(text: String, maxResults: Int = 24, game: String = ""): List<LookupResult> {
+    fun lookup(text: String, maxResults: Int = 24, game: String = "", readFirst: Int = Int.MAX_VALUE): List<LookupResult> {
         val scan = scannable(text)
         if (scan.isEmpty()) return emptyList()
 
@@ -72,7 +72,18 @@ class DictionaryLookup(
             length--
         }
 
-        val rows = database.findTerms(byTerm.keys, game)
+        val clock = steps
+        var at = System.nanoTime()
+        fun step(index: Int) {
+            if (clock == null) return
+            val now = System.nanoTime()
+            clock[index] += now - at
+            at = now
+        }
+        step(0)
+        val rows = database.findTerms(byTerm.keys, game, withGlossaries = false)
+        step(1)
+        clock?.let { it[6] += rows.size.toLong() }
         if (rows.isEmpty()) return emptyList()
 
         // A headword is one expression + reading. Keep, per headword, the best way it matched.
@@ -140,8 +151,14 @@ class DictionaryLookup(
                 .thenBy { it.expression }
         ).take(maxResults)
 
+        step(2)
         val metas = database.findMeta(ordered.map { it.expression }.toSet())
             .groupBy { it.expression }
+        step(3)
+        // [readFirst]: only the first headwords' definitions now, the others' by complete().
+        val read = database.withGlossaries(ordered.take(readFirst).flatMap { it.entries }.distinctBy { it.id })
+            .associateBy { it.id }
+        step(4)
         return ordered.map { h ->
             val meta = metas[h.expression].orEmpty()
             LookupResult(
@@ -149,14 +166,49 @@ class DictionaryLookup(
                 reading = h.reading,
                 matchedText = text.substring(0, h.sourceLength.coerceAtMost(text.length)),
                 reasons = h.reasons,
-                entries = h.entries.sortedWith(
+                // A list of its own: fillIn() puts the definitions read later in place.
+                entries = h.entries.map { read[it.id] ?: it }.sortedWith(
                     compareByDescending<TermEntry> { it.scoped }.thenBy { it.priority }.thenByDescending { it.score }
-                ),
+                ).toMutableList(),
                 frequencies = frequencies(meta, h.reading),
                 pitches = pitches(meta, h.reading.ifEmpty { h.expression })
             )
+        }.also { step(5) }
+    }
+
+    /**
+     * The definitions of [results] (of a lookup made with readFirst) not read yet, in one call,
+     * by entry id, off the main thread. The popup shows the first headwords first and these
+     * straight after (a hover with many dictionaries read about a hundred definitions before
+     * showing anything); fillIn() puts them in place.
+     */
+    fun readRest(results: List<LookupResult>): Map<Long, TermEntry> {
+        val unread = results.flatMap { it.entries }.filter { it.glossaryJson.isEmpty() }.distinctBy { it.id }
+        if (unread.isEmpty()) return emptyMap()
+        return database.withGlossaries(unread).associateBy { it.id }
+    }
+
+    /**
+     * Puts [read] (readRest) into [results] themselves, on the thread that shows them: the
+     * popup and the card keep each result by identity.
+     */
+    fun fillIn(results: List<LookupResult>, read: Map<Long, TermEntry>) {
+        for (result in results) {
+            val entries = result.entries as? MutableList<TermEntry> ?: continue
+            for (i in entries.indices) if (entries[i].glossaryJson.isEmpty()) read[entries[i].id]?.let { entries[i] = it }
         }
     }
+
+    /** Whether some of [result]'s definitions are still to be read (complete()). */
+    fun unread(result: LookupResult): Boolean = result.entries.any { it.glossaryJson.isEmpty() }
+
+    /**
+     * For measuring (the app's DictionaryTest): when set, each lookup adds the nanoseconds of its
+     * steps (the candidates, the rows found, the ranking, the frequencies, the definitions, the
+     * results made) and, at [6], the rows found.
+     */
+    @Volatile
+    var steps: LongArray? = null
 
     private fun isBetter(a: Candidate, b: Candidate): Boolean {
         if (a.sourceLength != b.sourceLength) return a.sourceLength > b.sourceLength
@@ -234,12 +286,22 @@ class DictionaryLookup(
             val list = value.optJSONArray("pitches") ?: continue
             val positions = ArrayList<Int>()
             for (i in 0 until list.length()) {
-                val position = list.optJSONObject(i)?.opt("position")
-                if (position is Number) positions.add(position.toInt())
+                when (val position = list.optJSONObject(i)?.opt("position")) {
+                    is Number -> positions.add(position.toInt())
+                    // Yomitan's other form: high and low by mora ("LHHL").
+                    is String -> patternPosition(position)?.let(positions::add)
+                }
             }
             if (positions.isNotEmpty()) out.add(PitchAccent(m.dictionary, forReading, positions))
         }
         return out
+    }
+
+    /** Where a pattern of high and low morae ("LHHL") falls: after which mora, 0 for none. */
+    private fun patternPosition(pattern: String): Int? {
+        if (pattern.isEmpty() || pattern.any { it != 'H' && it != 'L' }) return null
+        for (i in 0 until pattern.length - 1) if (pattern[i] == 'H' && pattern[i + 1] == 'L') return i + 1
+        return 0
     }
 
     private fun parse(json: String): Any? {

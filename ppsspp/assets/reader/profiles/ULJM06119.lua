@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title DUNAMIS15
--- reader: reads The message window with speakers and furigana
+-- reader: reads Dialogue, speakers, and furigana
 -- reader: touch press
 -- reader: buttons up down left right circle cross square triangle
 -- reader: version ULJM-06119

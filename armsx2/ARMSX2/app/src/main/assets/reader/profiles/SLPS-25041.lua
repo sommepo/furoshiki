@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title シャドウハーツ
--- reader: reads The message windows of scenes and talk, with the speaker's name
+-- reader: reads Dialogue, narration, and speakers
 -- reader: version SLPS-25041, disc version 1.02
 -- シャドウハーツ (Aruze / Sacnoth, PS2, 2001), SLPS-25041. Program 3E46A5F0.
 --

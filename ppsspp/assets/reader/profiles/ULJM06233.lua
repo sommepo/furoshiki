@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title グリザイアの果実 -LE FRUIT DE LA GRISAIA-, started from disc 2
--- reader: reads The message window with speakers, and choices
+-- reader: reads Dialogue, speakers, and choices
 -- reader: touch press
 -- reader: version ULJM-06233
 -- グリザイアの果実 -LE FRUIT DE LA GRISAIA- (Prototype/Frontwing, PSP, 2013), disc 2, ULJM-06233.

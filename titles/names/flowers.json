@@ -1,0 +1,163 @@
+{
+ "source": {
+  "vndb": "v14267",
+  "fetched": "2026-11-23"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c16861",
+   "kind": "person",
+   "name": "白羽 蘇芳",
+   "family": "白羽",
+   "given": "蘇芳",
+   "reading": "しらはね すおう",
+   "family_reading": "しらはね",
+   "given_reading": "すおう",
+   "romaji": "Shirahane Suou",
+   "aliases": [],
+   "role": "main",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16862",
+   "kind": "person",
+   "name": "匂坂 マユリ",
+   "family": "匂坂",
+   "given": "マユリ",
+   "reading": "こうさか マユリ",
+   "family_reading": "こうさか",
+   "given_reading": "マユリ",
+   "romaji": "Kousaka Mayuri",
+   "aliases": [
+    {
+     "text": "ユリ",
+     "reading": "ユリ"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16863",
+   "kind": "person",
+   "name": "花菱 立花",
+   "family": "花菱",
+   "given": "立花",
+   "reading": "はなびし りっか",
+   "family_reading": "はなびし",
+   "given_reading": "りっか",
+   "romaji": "Hanabishi Rikka",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16864",
+   "kind": "person",
+   "name": "沙沙貴 苺",
+   "family": "沙沙貴",
+   "given": "苺",
+   "reading": "ささき いちご",
+   "family_reading": "ささき",
+   "given_reading": "いちご",
+   "romaji": "Sasaki Ichigo",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16865",
+   "kind": "person",
+   "name": "沙沙貴 林檎",
+   "family": "沙沙貴",
+   "given": "林檎",
+   "reading": "ささき りんご",
+   "family_reading": "ささき",
+   "given_reading": "りんご",
+   "romaji": "Sasaki Ringo",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16866",
+   "kind": "person",
+   "name": "八代 譲葉",
+   "family": "八代",
+   "given": "譲葉",
+   "reading": "やつしろ ゆずりは",
+   "family_reading": "やつしろ",
+   "given_reading": "ゆずりは",
+   "romaji": "Yatsushiro Yuzuriha",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16867",
+   "kind": "person",
+   "name": "小御門 ネリネ",
+   "family": "小御門",
+   "given": "ネリネ",
+   "reading": "こみかど ネリネ",
+   "family_reading": "こみかど",
+   "given_reading": "ネリネ",
+   "romaji": "Komikado Nerine",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16868",
+   "kind": "person",
+   "name": "ダリア バスキア",
+   "family": "バスキア",
+   "given": "ダリア",
+   "reading": "ダリア バスキア",
+   "family_reading": "バスキア",
+   "given_reading": "ダリア",
+   "romaji": "Dalia Basquiat",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c16869",
+   "kind": "person",
+   "name": "八重垣 えりか",
+   "family": "八重垣",
+   "given": "えりか",
+   "reading": "やえがき えりか",
+   "family_reading": "やえがき",
+   "given_reading": "えりか",
+   "romaji": "Yaegaki Erika",
+   "aliases": [
+    {
+     "text": "車椅子の少女",
+     "reading": "くるまいすのしょうじょ"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  }
+ ]
+}

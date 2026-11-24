@@ -1,5 +1,5 @@
 -- reader: title 428 ～封鎖された渋谷で～ (428: Shibuya Scramble)
--- reader: reads The story's text with furigana, TIPS and choices
+-- reader: reads Story text, furigana, TIPS, and choices
 -- reader: touch press
 -- reader: version ULJS-00219, disc version 1.01
 -- reader: audio never

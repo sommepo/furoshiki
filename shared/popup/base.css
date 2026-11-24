@@ -98,8 +98,11 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   pointer-events: none;
 }
 .popup[data-corner$="right"] .card-buttons { justify-content: flex-end; }
-.popup[data-corner^="top"] .entry { display: flex; flex-direction: column; }
-.popup[data-corner^="top"] .card-buttons { order: -1; position: static; margin: 0 0 2px; }
+/* A top corner (the default): the buttons in the headline, pinned with it (popup.js, placeButtons);
+   left just after the word, right at the line's end. */
+.head > .card-buttons.in-head { margin: 0; align-self: center; }
+.popup[data-corner$="right"] .entry > .head:has(> .card-buttons.in-head) { padding-right: calc(64px * var(--scale)); }
+.popup[data-corner$="right"] .head > .card-buttons.in-head { position: absolute; top: 0; right: 0; }
 .card {
   pointer-events: auto;
   width: calc(24px * var(--scale)); height: calc(24px * var(--scale));
@@ -225,7 +228,8 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   bottom: calc(5px * var(--scale)); width: calc(2px * var(--scale)); border-radius: 1px;
   background: var(--accent, currentColor); pointer-events: none;
 }
-/* ---- A dictionary's own layout (grammar, characters): as it set it, in the popup's colours ---- */
+/* ---- A dictionary's own layout (every dictionary's with the full layout; grammar and characters
+   always): as it set it, in the popup's colours ---- */
 .sense.laid-out { list-style: none; }
 .sense.unnumbered { padding-left: 0; }
 .sc { white-space: pre-line; margin: calc(2px * var(--scale)) 0 0; }
@@ -238,6 +242,97 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .sc .sc-rt { color: var(--dim); }
 .sc .sc-summary { cursor: pointer; color: var(--dim); }
 .sc .sc-img { color: var(--dim); }
+/* ---- A word's definitions as its dictionary set them (look.glossary "full", Yomitan's way) ----
+   The variables some dictionaries' stylesheets read from Yomitan's page are the popup's colours. */
+.sc { --text-color: var(--text); --fg: var(--text); --background-color: transparent; --font-size-no-units: 13; }
+/* Each line finds its own direction (an Arabic gloss right to left, a Japanese example left to
+   right), and is set from its own start. */
+.sc-definition, .sc [dir="auto"], .glosses .gloss { unicode-bidi: plaintext; text-align: start; }
+.sc [dir="rtl"] { unicode-bidi: isolate; }
+/* A sense laid out by its dictionary: the number in a column of its own, the tags and the
+   definitions beside it (a sense without tags starts on the number's line). */
+.sense.laid-out { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.1em; align-items: baseline; }
+.sense.laid-out > :not(.number) { grid-column: 2; }
+.sense.laid-out > .number { grid-column: 1; }
+.sc-line:empty { display: none; }
+/* Compact (look.glossary "compact"), as Yomitan's compact glossaries: a word's gloss lists run on
+   one line, and its examples and notes of where it comes from are left out. A grammar or a
+   character dictionary keeps its layout. */
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc .sc-ul[data-sc-content="glossary"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc .sc-ul[data-sc-content="glossary"] > .sc-li { display: inline; padding: 0; margin: 0; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc .sc-ul[data-sc-content="glossary"] > .sc-li + .sc-li::before { content: "; "; color: var(--dim); }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="extra-info"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="example-sentence"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="attribution"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="forms"] { display: none; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc.several > .sc-definition.plain { display: inline; margin: 0; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc.several > .sc-definition.plain + .sc-definition.plain::before { content: "; "; color: var(--dim); }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc-definition + .sc-definition { margin-top: 0; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc-definition:not(.bidi) .sc-line { display: inline; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc-definition:not(.bidi) .sc-line + .sc-line::before { content: " · "; color: var(--dim); }
+/* Compact: every laid-out sense at most four lines; a longer one cut there with a fade, a "more"
+   under it (popup.js, clampSenses). */
+.popup[data-glossary="compact"] .sense.laid-out:not(.open):not(.uncut) { max-height: 6em; overflow: hidden; position: relative; }
+.popup[data-glossary="compact"] .sense.laid-out.clipped::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1.5em; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--ground)); }
+.popup[data-glossary="compact"] .sense-more { margin: 0 0 calc(4px * var(--scale)) calc(16px * var(--scale)); cursor: pointer; }
+/* The number, the tags and the definition on one line, as the compact layout had them. */
+.popup[data-glossary="compact"] .sense.laid-out[data-kind="word"] { display: block; }
+.popup[data-glossary="compact"] .sense.laid-out[data-kind="word"] > .sc,
+.popup[data-glossary="compact"] .sense.laid-out[data-kind="word"] > .sc > .sc-definition:not(.bidi) { display: inline; margin: 0; }
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="xref"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="antonym"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="references"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="antonyms"],
+.popup[data-glossary="compact"] .sense[data-kind="word"] .sc [data-sc-content="attribution-footnote"] { display: none; }
+/* Several plain definitions are a list. */
+.sc.several > .sc-definition.plain { display: list-item; list-style: disc; margin-left: 1.1em; }
+.sc.several > .sc-definition.plain + .sc-definition.plain { margin-top: calc(1px * var(--scale)); }
+.sc .sc-li { padding-inline-start: 0.1em; }
+.sc .sc-ul .sc-li::marker, .sc .sc-ol .sc-li::marker { color: var(--dim); }
+/* JMdict's glossary list (yomitan-import), and how Yomitan sets its parts. */
+.sc .sc-ul[data-sc-content="glossary"] { margin: 0; }
+.sc [data-sc-content="sense-note"], .sc [data-sc-content="infoGlossary"], .sc [data-sc-content="attribution"] { color: var(--dim); font-size: 0.92em; }
+.sc [data-sc-content="xref"], .sc [data-sc-content="antonym"] { color: var(--dim); font-size: 0.92em; }
+.sc .sc-a.link { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: default; }
+/* A picture from the dictionary's zip: within the popup's width, at the size it asks for. */
+.sc .sc-img.gloss-image-container { display: inline-block; position: relative; max-width: 100%; vertical-align: middle; line-height: 0; }
+/* As Yomitan has it: in a picture's box an em is a fourteenth of the text (a pixel at Yomitan's
+   14 px), which dictionaries' stylesheets size their pictures by: 明鏡's symbols are "15em" wide,
+   which came out fifteen characters wide here (2026-11-23). A picture sized in em by its own
+   structured content takes the text's em. */
+.sc .sc-img.gloss-image-container { font-size: calc(1em / 14); }
+.sc .sc-img.gloss-image-container.em-units { font-size: 1em; }
+.sc .sc-img.gloss-image-container.natural { width: auto; height: auto; }
+.sc .gloss-image { display: block; width: 100%; height: 100%; max-width: 100%; object-fit: contain; }
+.sc .sc-img.natural .gloss-image { width: auto; height: auto; }
+.sc .gloss-image-container[data-sc-appearance="auto"]:not(.no-background) { background: color-mix(in srgb, #ffffff 92%, transparent); border-radius: 2px; }
+/* A monochrome picture (a rare character's glyph) in the text's colour. */
+.sc .gloss-image-mask { display: block; width: 100%; height: 100%; background-color: currentColor;
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center; }
+.sc .sc-img.missing { font-style: italic; }
+/* ---- Pitch accent: a graph, the reading with the drop marked, or a number ---- */
+.pitch-accent { display: inline-flex; align-items: center; gap: 0.35em; color: var(--accent); font-size: calc(12px * var(--scale)); }
+.pitch-graph { height: 1.5em; overflow: visible; vertical-align: middle; }
+.pitch-graph .pitch-line { fill: none; stroke: currentColor; stroke-width: 6; stroke-linejoin: round; }
+.pitch-graph .pitch-line.tail { stroke-dasharray: 10 8; opacity: 0.7; }
+.pitch-graph .pitch-dot { fill: currentColor; stroke: currentColor; stroke-width: 6; }
+.pitch-graph .pitch-dot.downstep { fill: var(--ground); }
+.pitch-graph .pitch-particle { fill: none; stroke: currentColor; stroke-width: 6; stroke-linejoin: round; opacity: 0.8; }
+.pitch-text { white-space: nowrap; letter-spacing: 0.02em; }
+.pitch-text .mora { display: inline-block; padding-top: 1px; border-top: 1.5px solid transparent; }
+.pitch-text .mora.high { border-top-color: currentColor; }
+.pitch-text .mora.high.end { border-right: 1.5px solid currentColor; padding-right: 1px; }
+/* look.pitch "over": the line over the reading itself, in the reading's own colour and size. */
+.pitch-text.over { letter-spacing: inherit; }
+.pitch-text.over .mora { padding-top: 0.08em; border-top-width: max(1px, 0.09em); }
+.pitch-text.over .mora.high.end { border-right-width: max(1px, 0.09em); padding-right: 0.04em; }
+.headword rt .pitch-text.over .mora { line-height: 1.25; }
+.more-frequencies { cursor: pointer; }
+.sense.empty { display: none; }
+.pitch-text .downstep { font-size: 0.8em; opacity: 0.85; margin: 0 0.05em; }
 /* What grammar dictionaries mark (DOJG, Bunpro, 日本語文型辞典 and others): their formation boxes
    and example sentences. */
 .sc [data-sc-content="formation"], .sc [data-sc-content="structure"], .sc [data-sc-class="formation"] {

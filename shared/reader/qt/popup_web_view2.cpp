@@ -13,6 +13,7 @@
 #include <functional>
 #include <utility>
 #include <QDir>
+#include <QPointer>
 #include <QResizeEvent>
 #include <windows.h>
 #include "WebView2.h"
@@ -113,18 +114,28 @@ public:
         const HWND window = reinterpret_cast<HWND>(winId());
         QDir().mkpath(data_folder);
         const std::wstring folder = QDir::toNativeSeparators(data_folder).toStdWString();
+        QPointer<WebView2Popup> self(this);
         Loader()(nullptr, folder.c_str(), nullptr,
-                 new EnvironmentDone([this, window](HRESULT result, ICoreWebView2Environment* environment) {
+                 new EnvironmentDone([self, window](HRESULT result, ICoreWebView2Environment* environment) {
+                     if (!self) {
+                         return S_OK;
+                     }
                      if (FAILED(result) || !environment) {
-                         Received(QStringLiteral("{\"type\":\"failed\"}"));
+                         self->Received(QStringLiteral("{\"type\":\"failed\"}"));
                          return result;
                      }
                      return environment->CreateCoreWebView2Controller(
-                         window, new ControllerDone([this](HRESULT made, ICoreWebView2Controller* made_controller) {
+                         window, new ControllerDone([self](HRESULT made, ICoreWebView2Controller* made_controller) {
+                             if (!self) {
+                                 if (made_controller) {
+                                     made_controller->Close();
+                                 }
+                                 return S_OK;
+                             }
                              if (SUCCEEDED(made) && made_controller) {
-                                 Start(made_controller);
+                                 self->Start(made_controller);
                              } else {
-                                 Received(QStringLiteral("{\"type\":\"failed\"}"));
+                                 self->Received(QStringLiteral("{\"type\":\"failed\"}"));
                              }
                              return made;
                          }));
@@ -177,11 +188,18 @@ private:
         // A click in the page gives it the keyboard; the game keeps the keyboard: it goes back to
         // the window under the popup at once.
         using FocusHeard = Callback<ICoreWebView2FocusChangedEventHandler, ICoreWebView2Controller*, IUnknown*>;
-        controller->add_GotFocus(new FocusHeard([this](ICoreWebView2Controller*, IUnknown*) {
+        QPointer<WebView2Popup> self(this);
+        controller->add_GotFocus(new FocusHeard([self](ICoreWebView2Controller*, IUnknown*) {
+                                     if (!self) {
+                                         return S_OK;
+                                     }
                                      QMetaObject::invokeMethod(
-                                         this,
-                                         [this] {
-                                             QWidget* popup = window();
+                                         self,
+                                         [self] {
+                                             if (!self) {
+                                                 return;
+                                             }
+                                             QWidget* popup = self->window();
                                              QWidget* owner = popup ? popup->parentWidget() : nullptr;
                                              if (owner) {
                                                  const HWND game = reinterpret_cast<HWND>(owner->window()->winId());
@@ -194,10 +212,13 @@ private:
                                  }),
                                  &token);
         webview->add_WebMessageReceived(
-            new MessageHeard([this](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) {
+            new MessageHeard([self](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) {
+                if (!self) {
+                    return S_OK;
+                }
                 LPWSTR text = nullptr;
                 if (SUCCEEDED(args->TryGetWebMessageAsString(&text)) && text) {
-                    Received(QString::fromWCharArray(text));
+                    self->Received(QString::fromWCharArray(text));
                     CoTaskMemFree(text);
                 }
                 return S_OK;

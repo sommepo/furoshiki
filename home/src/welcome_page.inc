@@ -183,7 +183,7 @@ void HomeWindow::PaintWelcome(QPainter& p) {
                 {QStringLiteral("Choose your own"), QStringLiteral("YOMITAN .ZIP FILES")},
                 {QStringLiteral("Not now"), QString()}};
         facts = {{QStringLiteral("DICTIONARIES"), dictionaries.isEmpty() ? QStringLiteral("NONE INSTALLED") : dictionaries}};
-        note = QStringLiteral("LOOKING UP A WORD NEEDS A DICTIONARY. MORE CAN BE ADDED LATER IN SETTINGS, READING, DICTIONARIES.");
+        note = QStringLiteral("LOOKING UP A WORD NEEDS A DICTIONARY. MORE CAN BE ADDED LATER IN SETTINGS › DICTIONARIES.");
         key_label = w.row == 0 ? QStringLiteral("DOWNLOAD") : w.row == 1 ? QStringLiteral("CHOOSE FILES") : QStringLiteral("SKIP");
     } else if (w.welcome_step == 1) {
         question = QStringLiteral("WHERE ARE YOUR GAMES?");
@@ -194,7 +194,7 @@ void HomeWindow::PaintWelcome(QPainter& p) {
         list.append({QStringLiteral("Add game another way"), QStringLiteral("ONE GAME · A WINDOW · A TEXTHOOKER")});
         list.append({QStringLiteral("Not now"), QString()});
         facts = {{QStringLiteral("GAMES IN THE LIBRARY"), QString::number(library.games.size())}};
-        note = QStringLiteral("CHOOSE THE FOLDER A CONSOLE'S GAMES ARE IN. A GAME WITH A GAME SCRIPT IS ADDED BY ITSELF; GAME SCRIPTS ARE INSTALLED IN SETTINGS, CONSOLES. ANY OTHER GAME IS ADDED WITH ADD GAME.");
+        note = QStringLiteral("CHOOSE THE FOLDER A CONSOLE'S GAMES ARE IN. GAMES WITH A GAME SCRIPT ARE ADDED AUTOMATICALLY; INSTALL GAME SCRIPTS IN SETTINGS › GAME SCRIPTS. ANY OTHER GAME CAN BE ADDED WITH ADD GAME.");
         key_label = w.row < consoles.size() ? QStringLiteral("CHOOSE A FOLDER") : w.row == rows - 1 ? QStringLiteral("SKIP") : QStringLiteral("ADD GAME AFTER SETUP");
     } else {
         question = QStringLiteral("MAKE ANKI CARDS?");

@@ -16,6 +16,11 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QInputDialog>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QLabel>
+#include <QVBoxLayout>
 #include <QLineEdit>
 #include <QUrl>
 #include "core_hooks.h"
@@ -52,6 +57,9 @@
 #include <QWheelEvent>
 #include "app_icon.h"
 #include "home_window.h"
+#include "conversion_box.h"
+#include "dictionary_panel.h"
+#include "scripts_panel.h"
 #include "choice_picker.h"
 #include "services.h"
 #include "look_paint.h"
@@ -173,7 +181,6 @@ constexpr SettingRow SettingRows[] = {
     {"Click words in the game's text", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
     {"Look up by pointing", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
     {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
-    {"Dictionaries", "", nullptr, 0, 0, 0, 0, "Reading", 2, false},
 #ifndef READER_NO_EXPLAIN
     {"Explain with", "Translation and grammar (Ctrl+E)", nullptr, 0, 0, 0, 0, "Reading", 1, false},
 #endif
@@ -213,6 +220,10 @@ constexpr SettingRow SettingRows[] = {
     {"OCR service", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"OCR engine", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"Lines address", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    // Where Find box art and the Game scripts page look (art_fetch.h, Sources).
+    {"Box art from VNDB", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"Box art from ScreenScraper", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
+    {"ScreenScraper account", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
 #ifndef READER_NO_TEXT_SERVER
@@ -298,21 +309,16 @@ constexpr SettingRow SettingRows[] = {
 #ifdef HOME_TRACKER // the study tracker is the dev line's (CMakeLists.txt): no row where nothing asks it
     {"Study tracker", "", nullptr, 0, 0, 0, 0, "About", 2, false},
 #endif
-#ifndef READER_NO_SAVE_SYNC
+#ifndef HOME_PUBLIC
     {"Update", "", nullptr, 0, 0, 0, 0, "About", 2, false},
     {"Home server's services", "", nullptr, 0, 0, 0, 0, "About", 2, false},
 #endif
     {"Exit", "", nullptr, 0, 0, 0, 0, "About", 0, false},
     {"Fuzz", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
     {"Moving cursor", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
-#ifndef HOME_PUBLIC
-    // Developer: the pages' own words, changed in place and handed back for the next build. The
-    // maintainer's tool: a published build has no such page.
-    {"Rename labels", "Click a row to rename it", nullptr, 0, 0, 0, 0, "Developer", 0, false},
-    {"Copy my labels", "Copies them to the clipboard", nullptr, 0, 0, 0, 0, "Developer", 0, false},
-    {"Open the labels file", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
-    {"Put every label back", "", nullptr, 0, 0, 0, 0, "Developer", 0, false},
-#endif
+    // The Developer page (renaming labels) is gone from every build, by the maintainer's word
+    // (2026-11-23: "remove it from dev builds"); labels already given in program/labels.json
+    // are still read.
 };
 constexpr int SettingCount = static_cast<int>(sizeof(SettingRows) / sizeof(SettingRows[0]));
 
@@ -324,11 +330,7 @@ bool IsSetting(int row, const char* name) {
 }
 
 /// The shelf's settings pages, in their order.
-constexpr const char* SettingSections[] = {"Library", "Reading", "Popup", "Cards", "Controls", "Keys", "Display", "About",
-#ifndef HOME_PUBLIC
-                                           "Developer",
-#endif
-};
+constexpr const char* SettingSections[] = {"Library", "Reading", "Popup", "Cards", "Controls", "Keys", "Display", "About"};
 
 /// What a row is called on the shelf's pages, where that is not its name in the table (the
 /// maintainer, 2026-11-11: labels that say what the row does, and no "reader" in them). The
@@ -954,6 +956,14 @@ QList<HomeWindow::Item> HomeWindow::Items() const {
     for (const char* section : SettingSections) {
         const QString name = QString::fromLatin1(section);
         items.append({Item::Settings, name.toUpper(), name});
+        if (name == QStringLiteral("Reading") && dictionaries != nullptr) {
+            // Its own page since 2026-11-23 (home_dictionaries.inc), where the Reading page had a row.
+            items.append({Item::Dictionaries, QStringLiteral("DICTIONARIES"), QStringLiteral("Dictionaries")});
+        }
+        if (name == QStringLiteral("Reading") && scripts != nullptr) {
+            // Every console's game scripts, names and box art (home_dictionaries.inc, 2026-11-23).
+            items.append({Item::Scripts, QStringLiteral("GAME SCRIPTS"), QStringLiteral("Game scripts")});
+        }
         if (name == QStringLiteral("Cards") && !consoles.isEmpty() && play != nullptr) {
             items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
         }
@@ -1130,6 +1140,9 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
         }
         break;
     }
+    case Item::Dictionaries:
+    case Item::Scripts:
+        break; // a list of its own (dictionary_panel.h, scripts_panel.h)
     case Item::Settings:
         for (int i = 0; i < SettingCount; ++i) {
             const bool opened = more_open.contains(item.system);
@@ -1186,6 +1199,14 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 value = full_screen ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Games start in a window")) {
                 value = games_windowed ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Box art from VNDB")) {
+                value = Art::LoadSources().vndb ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Box art from ScreenScraper")) {
+                const Art::Sources sources = Art::LoadSources();
+                value = !sources.screenscraper ? QStringLiteral("OFF") : sources.ScreenScraperReady() ? QStringLiteral("ON") : QStringLiteral("ON · CREDENTIALS NEEDED");
+            } else if (name == QStringLiteral("ScreenScraper account")) {
+                const Art::Sources sources = Art::LoadSources();
+                value = sources.ss_dev_id.isEmpty() ? QStringLiteral("NOT SET") : sources.ss_user.isEmpty() ? QStringLiteral("DEVELOPER ID ONLY") : sources.ss_user;
             } else if (name == QStringLiteral("Save sync")) {
                 value = save_sync_state ? save_sync_state() : QStringLiteral("NONE");
             } else if (name == QStringLiteral("Lines address")) {
@@ -1219,6 +1240,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
             rows.last().steps = setting.host == 1 || setting.host == 3 || (setting.key != nullptr && setting.step != 0) ||
                                 name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
                                 name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture") ||
+                                name == QStringLiteral("Box art from VNDB") || name == QStringLiteral("Box art from ScreenScraper") ||
                                 name == QStringLiteral("OCR engine") || name == QStringLiteral("OCR runs on");
         }
         break;
@@ -1472,7 +1494,10 @@ void HomeWindow::ConsoleHeadAction(int row, bool remove) {
         }
         Changed();
     } else if (row == 4 && !remove) {
-        if (console_scripts) {
+        if (scripts != nullptr) {
+            sounds.Play(Sound::Select);
+            ShowScripts(console); // the Game scripts page, this console's games
+        } else if (console_scripts) {
             sounds.Play(Sound::Select);
             console_scripts(console);
         } else {
@@ -1797,6 +1822,9 @@ void HomeWindow::Key(int key) {
     if (!running.isEmpty() || playing_game) {
         return;
     }
+    if (conversion_box && conversion_box->Key(key)) {
+        return; // the dictionaries' move said over the window: its keys first
+    }
     if (picker != nullptr) {
         picker->Key(key); // every choice of a setting is up: the keys are its own
         return;
@@ -1850,6 +1878,10 @@ void HomeWindow::Key(int key) {
                 Say(QStringLiteral("Google Lens sends pictures of the text areas to Google"));
             }
             Changed();
+            return;
+        }
+        if (IsSetting(srow, "Box art from VNDB") || IsSetting(srow, "Box art from ScreenScraper")) {
+            Accept(); // a switch: either arrow flips it
             return;
         }
         if (IsSetting(srow, "OCR runs on")) {
@@ -2113,6 +2145,18 @@ void HomeWindow::Accept() {
             games_windowed = !games_windowed;
             settings.setValue(QStringLiteral("games_windowed"), games_windowed);
             sounds.Play(Sound::Select);
+        } else if (name == QStringLiteral("Box art from VNDB") || name == QStringLiteral("Box art from ScreenScraper")) {
+            Art::Sources sources = Art::LoadSources();
+            bool& on = name == QStringLiteral("Box art from VNDB") ? sources.vndb : sources.screenscraper;
+            on = !on;
+            Art::SaveSources(sources);
+            sounds.Play(Sound::Select);
+            if (name == QStringLiteral("Box art from ScreenScraper") && on && !sources.ScreenScraperReady()) {
+                Say(QStringLiteral("Enter your ScreenScraper credentials in ScreenScraper account first"));
+            }
+        } else if (name == QStringLiteral("ScreenScraper account")) {
+            sounds.Play(Sound::Select);
+            ScreenScraperAccount();
         } else if (name == QStringLiteral("Save sync")) {
             if (save_sync_open) {
                 sounds.Play(Sound::Select);
@@ -2675,6 +2719,8 @@ HomeWindow::Card HomeWindow::CardOf(const Item& item, const QList<Row>& rows, in
         break;
     case Item::Consoles:
     case Item::Settings:
+    case Item::Dictionaries:
+    case Item::Scripts:
         card.file = file(n, item.kind == Item::Consoles ? QStringLiteral("CONSOLES") : QStringLiteral("SETTINGS"));
         card.title = row.title;
         card.sub = PageTab(item.kind) + QStringLiteral("  %1／%2").arg(n).arg(total);
@@ -3360,6 +3406,7 @@ void HomeWindow::paintEvent(QPaintEvent*) {
     if (shelf_on) {
         popup_preview_area = QRectF();
         PaintShelf();
+        PlaceDictionaries(true);
         // The popup's preview on the Popup page: told where it stands once the page is at rest.
         if (popup_preview) {
             const double scale = std::min(width() / SheetW, height() / SheetH);
@@ -3376,6 +3423,7 @@ void HomeWindow::paintEvent(QPaintEvent*) {
         Pace(took.nsecsElapsed() / 1e6);
         return;
     }
+    PlaceDictionaries(false); // the shelf's alone
     const char* what = "";
     const double ratio = devicePixelRatioF();
     const double fit = std::min(width() / SheetW, height() / SheetH);
@@ -3782,6 +3830,49 @@ void HomeWindow::NextScriptLine() {
     } else if (word == QStringLiteral("lines-add")) {
         // lines-add websocket|clipboard TITLE: what the Settings page's rows do, without their window.
         AddLinesTitle(rest.section(QLatin1Char(' '), 0, 0), rest.section(QLatin1Char(' '), 1));
+    } else if (word == QStringLiteral("dictionaries")) {
+        // The settings at Dictionaries, as the Quick menu's Dictionaries… opens them.
+        ShowDictionaries();
+    } else if (word == QStringLiteral("grab-all")) {
+        // The program's whole window, with what stands over the page (the conversion's strip).
+        repaint();
+        window()->grab().save(rest);
+    } else if (word == QStringLiteral("scripts")) {
+        // The settings at Game scripts: every console's games, or one console's (its key).
+        ShowScripts(rest);
+    } else if (word == QStringLiteral("scripts-search") && scripts_panel) {
+        scripts_panel->Search(rest);
+    } else if (word == QStringLiteral("scripts-click") && scripts_panel) {
+        // scripts-click X Y [ctrl|shift]: on the list, from its corner (at 440, 92 of the page).
+        const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 2) {
+            scripts_panel->ClickAt(QPointF(parts[0].toDouble(), parts[1].toDouble()), parts.value(2));
+        }
+    } else if (word == QStringLiteral("dictionaries-search") && dictionary_panel) {
+        // What the Dictionaries page's search has typed in it.
+        dictionary_panel->Search(rest);
+    } else if (word == QStringLiteral("dictionaries-kind") && dictionary_panel) {
+        // A kind as the filter (Words, Grammar, Kanji, Frequency, Pitch, Names), or none: all.
+        dictionary_panel->ChooseKind(rest);
+    } else if (word == QStringLiteral("dictionaries-click") && dictionary_panel) {
+        // dictionaries-click X Y [ctrl|shift]: a click on the list, at a place of the sheet
+        // measured from the list's corner (at 440, 92 of the page).
+        const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 2) {
+            dictionary_panel->ClickAt(QPointF(parts[0].toDouble(), parts[1].toDouble()), parts.value(2));
+        }
+    } else if (word == QStringLiteral("dictionaries-drag") && dictionary_panel) {
+        // dictionaries-drag X1 Y1 X2 Y2: rows dragged on the list (its corner's measures, as above).
+        const QStringList parts = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 4) {
+            dictionary_panel->DragAt(QPointF(parts[0].toDouble(), parts[1].toDouble()), QPointF(parts[2].toDouble(), parts[3].toDouble()));
+        }
+    } else if (word == QStringLiteral("dictionaries-import")) {
+        // dictionaries-import PATH|PATH...: files or folders, as the page's Import takes them,
+        // without the file chooser ('|' between them, as a path may have spaces).
+        if (dictionaries != nullptr) {
+            dictionaries->Import(rest.split(QLatin1Char('|'), Qt::SkipEmptyParts));
+        }
     } else if (word == QStringLiteral("lines-address")) {
         SetLinesAddress(rest);
     } else if (word == QStringLiteral("wizard")) {
@@ -3847,11 +3938,26 @@ void HomeWindow::NextScriptLine() {
 #include "wizard_hooks.inc"
 #include "wizard_core_hooks.inc"
 #include "welcome_page.inc"
+#include "home_dictionaries.inc"
 
 bool HomeWindow::OpenPick(int row) {
     Pick pick = PickAt(row);
     if (pick.said.isEmpty() || !pick.take) {
         return false;
+    }
+    OpenChoices(pick.title, pick.said, pick.now, pick.take);
+    return true;
+}
+
+void HomeWindow::OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take) {
+    if (said.isEmpty()) {
+        return;
+    }
+    if (picker) {
+        // Close any fading picker immediately so it isn't captured in the new blur or able to steal focus later.
+        picker->hide();
+        delete picker;
+        picker = nullptr;
     }
     // In the page's own colours and type: the shelf's theme, or the save menu's look.
     ChoicePicker::Colours colours;
@@ -3881,8 +3987,7 @@ bool HomeWindow::OpenPick(int row) {
     }
     HoverNone();
     sounds.Play(Sound::Select);
-    picker = ChoicePicker::Open(this, pick.title, pick.said, pick.now, colours, pick.take);
-    return true;
+    picker = ChoicePicker::Open(this, title, said, now, colours, std::move(take));
 }
 
 } // namespace Home

@@ -1,7 +1,7 @@
 -- reader: no hooks
 -- reader: api 2
 -- reader: title CLANNAD
--- reader: reads The story's text with speakers, each message as it comes up, and choices; finished routes can be marked
+-- reader: reads Dialogue, narration, speakers, and choices (supports route tracking)
 -- reader: version SLPM-66302, disc version 1.01
 -- reader: touch press
 -- reader: buttons start square up down circle cross

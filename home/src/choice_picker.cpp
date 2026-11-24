@@ -60,8 +60,9 @@ ChoicePicker* ChoicePicker::Open(QWidget* over, const QString& title, const QStr
 
 ChoicePicker::ChoicePicker(QWidget* over, const QString& title_, const QStringList& choices_, int now_,
                            const Colours& colours_, std::function<void(int)> picked_)
-    : QWidget(over), title(title_), choices(choices_), now(std::clamp(now_, 0, std::max(0, static_cast<int>(choices_.size()) - 1))),
-      chosen(now), colours(colours_), picked(std::move(picked_)) {
+    // None in use (-1, a list of actions): no mark, the first in hand.
+    : QWidget(over), title(title_), choices(choices_), now(now_ < 0 ? -1 : std::min(now_, std::max(0, static_cast<int>(choices_.size()) - 1))),
+      chosen(std::max(now, 0)), colours(colours_), picked(std::move(picked_)) {
     Scale = colours.scale > 0 ? colours.scale : 1;
     setObjectName(QStringLiteral("choice-picker"));
     setGeometry(over->rect());
@@ -69,16 +70,19 @@ ChoicePicker::ChoicePicker(QWidget* over, const QString& title_, const QStringLi
     setFocusPolicy(Qt::StrongFocus);
     Blur();
     // The one in use in the middle of the list, where the list is longer than the card.
-    top = target = std::clamp(now - Visible() / 2.0 + 0.5, 0.0, std::max(0.0, static_cast<double>(choices.size() - Visible())));
+    top = target = std::clamp(chosen - Visible() / 2.0 + 0.5, 0.0, std::max(0.0, static_cast<double>(choices.size() - Visible())));
     top = target = std::floor(top);
     frames.setInterval(16);
     connect(&frames, &QTimer::timeout, this, [this] {
         const qint64 t = clock.elapsed();
         if (leaving && t - left_at >= CloseTime) {
             frames.stop();
+            const bool had_focus = hasFocus();
             hide();
-            if (QWidget* window = parentWidget()) {
-                window->setFocus();
+            if (had_focus) {
+                if (QWidget* window = parentWidget()) {
+                    window->setFocus();
+                }
             }
             deleteLater();
             return;
@@ -143,6 +147,9 @@ int ChoicePicker::RowAt(const QPointF& at) const {
 }
 
 void ChoicePicker::Show(int index) {
+    if (choices.isEmpty()) {
+        return;
+    }
     chosen = std::clamp(index, 0, static_cast<int>(choices.size()) - 1);
     const int visible = Visible();
     if (chosen < target) {

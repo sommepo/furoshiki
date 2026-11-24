@@ -108,7 +108,7 @@ class PlaySettingsTest {
         )
         val settings = PlaySetting.list("3ds", info)
         assertEquals("Internal resolution", settings[0].label)
-        assertEquals("3", settings[0].default) // what GameActivity starts a 3DS with
+        assertEquals("1", settings[0].default) // the core's own: every console starts at 1× (2026-11-24)
         assertEquals("1", PlaySetting.list("psp", info)[0].default)
         assertEquals("Layout", settings[1].label)
         assertEquals(listOf("top_bottom", "large_screen"), settings[1].choices)

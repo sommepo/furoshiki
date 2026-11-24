@@ -14,8 +14,12 @@ fi
 root="$(cd "$here/.." && pwd)"
 # HOME_PUBLIC=1 (or READER_HOME_PUBLIC=1): a published build (HOME_PUBLIC in CMakeLists.txt), in build-desktop-public.
 public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
+# READER_HOME_EDEN=1: a build with Eden's core, never published: otherwise a published build, with
+# every game script and its character table built in (HOME_BUNDLE_SCRIPTS), in build-desktop-eden.
+eden="${READER_HOME_EDEN:-0}"
+[ "$eden" = 1 ] && public=1
 want="$([ "$public" = 1 ] && echo ON || echo OFF)"
-build="$root/build-desktop$([ "$public" = 1 ] && echo -public || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
+build="$root/build-desktop$([ "$eden" = 1 ] && echo -eden || { [ "$public" = 1 ] && echo -public; } || true)$([ "${READER_HOME_WEB:-0}" = 1 ] && echo -web || true)"
 P="$READER_HOST_PREFIX/bin"
 limit=("$here/limit.sh" -m "${READER_BUILD_MEMORY_MAX:-6G}")
 export LD_LIBRARY_PATH="$READER_QT_LINUX/lib:$READER_QT_SYSLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -23,7 +27,7 @@ export LD_LIBRARY_PATH="$READER_QT_LINUX/lib:$READER_QT_SYSLIBS${LD_LIBRARY_PATH
 # has it on this machine.
 sdl2="${HOME_SDL2_PREFIX:-$HOME/.local/share/station-reader/deps}"
 # The game scripts' data files that are not in Git, beside the scripts the program bundles.
-if [ "$public" != 1 ]; then
+if [ "$public" != 1 ] || { [ "$eden" = 1 ] && [ -d "$root/../station/private" ]; }; then
   "$root/../station/tools/reader/private-data.sh"
   "$root/../pcsx2/tools/reader/private-data.sh"
 fi
@@ -41,7 +45,8 @@ if [ ! -f "$build/build.ninja" ]; then
     -DCMAKE_JOB_POOLS="compile=${READER_JOBS};link=2" \
     -DCMAKE_JOB_POOL_COMPILE=compile -DCMAKE_JOB_POOL_LINK=link \
     -DSDL2_DIR="$sdl2/lib/cmake/SDL2" \
-    -DHOME_TESTS=ON -DHOME_CORES=ON -DHOME_PUBLIC="$want" -DFUROSHIKI_VERSION="${FUROSHIKI_VERSION:-dev}"
+    -DHOME_TESTS=ON -DHOME_CORES=ON -DHOME_PUBLIC="$want" \
+    -DHOME_BUNDLE_SCRIPTS="$([ "$eden" = 1 ] || [ "$public" != 1 ] && echo ON || echo OFF)" -DFUROSHIKI_VERSION="${FUROSHIKI_VERSION:-dev}"
 elif [ -n "${FUROSHIKI_VERSION:-}" ] && ! grep -qx "FUROSHIKI_VERSION:STRING=$FUROSHIKI_VERSION" "$build/CMakeCache.txt"; then
   # A release's number (furoshiki-release.sh) into a build folder made before: CMake keeps the old one.
   "${limit[@]}" "$READER_CMAKE" -S "$root" -B "$build" -DFUROSHIKI_VERSION="$FUROSHIKI_VERSION"

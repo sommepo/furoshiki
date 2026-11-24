@@ -3,8 +3,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Whether a Windows package, a Linux tarball or an Android APK of Furoshiki may be published.
 
-    tools/release-check.py ZIP-OR-APK-OR-TARBALL
-    tools/release-check.py --folder FOLDER
+    tools/release-check.py [--eden] ZIP-OR-APK-OR-TARBALL
+    tools/release-check.py [--eden] --folder FOLDER
+
+--eden: a build with Eden's core (READER_HOME_EDEN=1), which is never published and carries Eden's
+core, its driver hooks and every game script and character table; the rest is refused as for
+a published package.
 
 Refuses (exit 1, each finding on a line) a package that has
 - Eden's core (reader_core_eden*) or the driver hooks it loads Turnip with (adrenotools'):
@@ -80,6 +84,10 @@ def runs(data: bytes):
             yield match.group().decode(encoding).encode()
 
 
+# --eden: Eden's core and the game scripts are this package's (a build with Eden's core).
+EDEN = False
+
+
 def check_binary(name: str, data: bytes, personal) -> tuple[list, int]:
     problems, paths = [], 0
     core = "reader_core_" in name and (re.search(r"(^|/)cores/[^/]+\.dll$", name) is not None or name.endswith(".so"))
@@ -102,7 +110,7 @@ def check_binary(name: str, data: bytes, personal) -> tuple[list, int]:
         # name in a native program is a file built in. A script is named by its game's ID, four
         # characters at least: "1.lua" is machine code or two strings side by side, not a file.
         if program:
-            if not name.endswith(".dex") and re.fullmatch(rb"[A-Za-z0-9_.-]{4,}\.(lua|charset)", text):
+            if not EDEN and not name.endswith(".dex") and re.fullmatch(rb"[A-Za-z0-9_.-]{4,}\.(lua|charset)", text):
                 problems.append(f"{name}: a game script or character table built in: {text.decode()}")
             if text in PRIVATE_SOUNDS:
                 problems.append(f"{name}: the maintainer's recorded sound built in: {text.decode()}")
@@ -122,11 +130,11 @@ def check(members) -> int:
     for name, read in members:
         names.append(name)
         base = name.rsplit("/", 1)[-1]
-        if "reader_core_eden" in base.lower():
+        if "reader_core_eden" in base.lower() and not EDEN:
             problems.append(f"{name}: Eden's core")
-        if base in EDEN_HOOKS:
+        if base in EDEN_HOOKS and not EDEN:
             problems.append(f"{name}: the driver hooks of Eden's core")
-        if base.lower().endswith((".lua", ".charset")):
+        if base.lower().endswith((".lua", ".charset")) and not EDEN:
             problems.append(f"{name}: a game script or character table")
         # Linux's: a library with its version after .so, the program (reader-home.bin), WebEngine's process.
         if base.lower().endswith((".exe", ".dll", ".so", ".dex", ".bin")) or re.search(r"\.so(\.\d+)+$", base) or base == "QtWebEngineProcess":
@@ -150,6 +158,9 @@ def check(members) -> int:
 
 
 def main(argv) -> int:
+    global EDEN
+    if argv[:1] == ["--eden"]:
+        EDEN, argv = True, argv[1:]
     if len(argv) == 2 and argv[0] == "--folder":
         root = pathlib.Path(argv[1])
         files = sorted(p for p in root.rglob("*") if p.is_file())

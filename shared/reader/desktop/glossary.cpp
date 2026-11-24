@@ -495,10 +495,14 @@ QString ToPlainText(const QString& glossary_json) {
 QList<Compact> CompactDefinitions(const QString& glossary_json) {
     bool ok = false;
     const QJsonArray array = ParseArray(glossary_json, ok);
-    QList<Compact> out;
     if (!ok) {
-        return out;
+        return {};
     }
+    return CompactDefinitions(array);
+}
+
+QList<Compact> CompactDefinitions(const QJsonArray& array) {
+    QList<Compact> out;
     for (const QJsonValue& item : array) {
         Compact definition;
         if (item.isString()) {

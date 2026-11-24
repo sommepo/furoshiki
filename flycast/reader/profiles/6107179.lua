@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title What's シェンムー 〜湯川(元)専務をさがせ〜 (What's Shenmue)
--- reader: reads The subtitles: what is said in cutscenes and in conversations
+-- reader: reads Cutscene and conversation subtitles
 -- reader: version 6107179 (Japan)
 -- What's Shenmue (Sega, Dreamcast, 1999). docs/reader/games/whats-shenmue.md has what is
 -- read, what is not, and how it was checked.

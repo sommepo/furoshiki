@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Furoshiki contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <chrono>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -354,6 +355,14 @@ void Sounds::Play(Sound sound) {
     if (!d->enabled || d->mixer == nullptr || d->waves[i].empty()) {
         return;
     }
+    // One sound for one action (the maintainer, 2026-11-23: a click played both the move and the
+    // select sound): a second asked for within a moment of the first is the same action's.
+    static std::atomic<qint64> last_ms{-1000};
+    const qint64 now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (now - last_ms.load() < 70) {
+        return;
+    }
+    last_ms = now;
     d->mixer->Add(i);
     if (d->paused.exchange(false)) {
         Impl* impl = d.get();

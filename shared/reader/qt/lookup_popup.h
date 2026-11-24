@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <QSet>
+
 #include <functional>
 #include <memory>
 #include <vector>
@@ -58,7 +60,7 @@ public:
     /// The corner of each headword's part where its boxes stand.
     enum class Corner { BottomLeft, BottomRight, TopLeft, TopRight };
     void SetCardCorner(Corner corner);
-    /// From the setting's value ("bottom_left" and so on); the bottom left otherwise.
+    /// From the setting's value ("top_right" and so on); the top right otherwise.
     [[nodiscard]] static Corner CornerOf(const QString& value);
 
     /**
@@ -217,6 +219,8 @@ private:
         bool unknown{};
         /// How many characters the headword has: what the mark covers.
         int head_length{};
+        /// For a web popup: the text, made only when asked for (PlainText), as the page draws it.
+        std::function<QString()> html;
     };
 
     void Clear();
@@ -241,7 +245,7 @@ private:
     bool allow_duplicates{};
     bool mark_unknown{true};
     QJsonObject look;
-    Corner card_corner{Corner::BottomLeft};
+    Corner card_corner{Corner::TopRight};
     int content_width{};
     int content_height{};
     int scroll{};
@@ -262,6 +266,8 @@ private:
     void OnPageMessage(const QJsonObject& message);
     /// Hands the page the popup's content, as the model popup.js draws.
     void ShowOnPage(const QJsonArray& entries, const QJsonObject& message);
+    /// The same with the entries as JSON text already, and the pictures they name not sent yet.
+    void ShowOnPage(const QByteArray& entries_json, const QJsonObject& pictures, const QJsonObject& message = {});
     /// The console's colours as the page's CSS variables.
     [[nodiscard]] QString ConsoleCss() const;
     PopupWeb* web{};
@@ -280,6 +286,12 @@ private:
     QString web_text;
     QHash<int, QRect> web_add;
     QHash<int, QRect> web_book;
+    /// What the page has been given since it last loaded: pictures (SharePictures' keys) and
+    /// the dictionaries' stylesheets, which are not sent again.
+    QSet<QString> web_pictures;
+    QHash<QString, QString> web_styles;
+    bool web_styles_sent{};
+    bool web_forget_pictures{};
 };
 
 } // namespace ReaderUi

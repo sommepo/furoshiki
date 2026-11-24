@@ -35,6 +35,8 @@ public:
     ReaderSettings(const QString& file_path, const QString& shared_path);
     /// Whether a setting is one of the app's own rather than one every reader app shares.
     [[nodiscard]] static bool IsAppsOwn(const QString& key);
+    /// The add button's corner made the top right once (the maintainer, 2026-11-24).
+    void MoveCardCornerOnce();
     ~ReaderSettings();
 
     [[nodiscard]] QVariant Value(const QString& key, const QVariant& fallback = {}) const;
@@ -62,6 +64,8 @@ public:
     /// The user's own CSS for the popup page (applied after its theme), or empty.
     [[nodiscard]] QString PopupCss() const;
     void SetValue(const QString& key, const QVariant& value);
+    /// Writes this file's own value of a key, whatever a layer would take (a one-time change).
+    void SetFileValue(const QString& key, const QVariant& value);
     /// Whether `key` has a value of the user's (not its default), and that value forgotten.
     [[nodiscard]] bool Has(const QString& key) const;
     void Remove(const QString& key);
@@ -79,7 +83,7 @@ public:
     /// around it; the first value), "highlight" (a coloured box over it) or "none".
     [[nodiscard]] QString WordMark() const;
     /// The corner of each headword's part of the popup where its card buttons stand:
-    /// "bottom_left" (the first value), "bottom_right", "top_left" or "top_right".
+    /// "top_right" (the default), "top_left", "bottom_left" or "bottom_right".
     [[nodiscard]] QString CardCorner() const;
     /// Text size of the dictionary popup, in percent.
     [[nodiscard]] int PopupScale() const;
@@ -166,7 +170,16 @@ public:
     [[nodiscard]] bool PopupHideTags() const;
     /// A name's picture on its card: "small", "large" or "off".
     [[nodiscard]] QString PopupPortrait() const;
-    /// Those five as the page takes them (Reader.show's "look"; shared/popup/README.md).
+    /// How a word's definitions are laid out: "full" (as its dictionary set them, with its own
+    /// styles and pictures, as Yomitan does) or "compact" (each sense's glosses on a line).
+    [[nodiscard]] QString PopupGlossary() const;
+    /// How pitch accent is shown: "over" (a line over the reading, the default), "graph", "text"
+    /// (the reading with the fall marked), "number",
+    /// "all" or "off".
+    [[nodiscard]] QString PopupPitch() const;
+    /// The widest the popup may be, in px at 100 % text size (280 to 1000); 0: the default (480).
+    [[nodiscard]] int PopupWidth() const;
+    /// Those as the page takes them (Reader.show's "look"; shared/popup/README.md), with "width".
     [[nodiscard]] QJsonObject PopupLook() const;
     /// Looking a word up by resting the mouse pointer on it: "off", "shift" (while Shift is
     /// held) or "always".
@@ -338,6 +351,8 @@ public:
     static const QString KeyTouchPlay;
     static const QString KeyWordMark;
     static const QString KeyCardCorner;
+    /// Set once the kept corner was made the top right (2026-11-24): a later choice stays.
+    static const QString KeyCardCornerMoved;
     static const QString KeyPopupScale;
     static const QString KeyPopupHeight;
     static const QString KeyPopupFit;
@@ -353,6 +368,9 @@ public:
     static const QString KeyPopupCompact;
     static const QString KeyPopupHideTags;
     static const QString KeyPopupPortrait;
+    static const QString KeyPopupGlossary;
+    static const QString KeyPopupPitch;
+    static const QString KeyPopupWidth;
     static const QString KeyHoverLookup;
     static const QString KeyCursorButton;
     static const QString KeyStatsButton;

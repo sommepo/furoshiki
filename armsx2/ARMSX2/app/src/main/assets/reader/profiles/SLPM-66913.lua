@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title ひぐらしのなく頃に祭 カケラ遊び (Higurashi no Naku Koro ni Matsuri: Kakera Asobi)
--- reader: reads The story's text with speakers and furigana, part by part as it comes up
+-- reader: reads Dialogue, narration, speakers, and furigana
 -- reader: version SLPM-66913, disc version 1.01
 -- reader: touch press
 -- reader: buttons up down circle cross triangle

@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title 英雄伝説 空の軌跡FC (The Legend of Heroes: Trails in the Sky, PSP)
--- reader: reads The talk windows of the story and of people in the field, with speakers and furigana, and choices
+-- reader: reads Story and field dialogue, speakers, furigana, and choices
 -- reader: version ULJM-05170, disc version 1.01
 -- reader: audio never
 -- 英雄伝説 空の軌跡ＦＣ (Nihon Falcom, PSP, 2006), ULJM-05170 v1.01. EBOOT.BIN 6C535B6A.

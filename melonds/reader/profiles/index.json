@@ -5,12 +5,12 @@
     {
       "id": "AWIJ",
       "title": "ウィッシュルーム 天使の記憶",
-      "reads": "The message windows: what is said, with its speaker, Kyle's thoughts, the narration and what is looked at; the answers and questions Kyle picks from",
+      "reads": "Dialogue, speakers, thoughts, narration, inspections, and choices",
       "version": "AWIJ (Japan)",
       "api": 1,
       "file": "AWIJ.lua",
-      "size": 10941,
-      "sha256": "c6170f2063714d58c6027e9d59dc8fcdb9ee61ac1a2d1dac0206435b34f1e114",
+      "size": 10858,
+      "sha256": "32fb579a4e7e831f53800153cb1712d71e170e8bf9f8f8f1cb1839481eced120",
       "names": {
         "file": "names-wish-room.zip",
         "size": 2904,
@@ -20,12 +20,12 @@
     {
       "id": "BSKJ",
       "title": "極限脱出 9時間9人9の扉 (Nine Hours, Nine Persons, Nine Doors)",
-      "reads": "The novel's text and the talk window with speakers (by the word), the escape rooms, the choices and the file pages",
+      "reads": "Story text, dialogue, speakers, escape rooms, choices, and files",
       "version": "BSKJ",
       "api": 1,
       "file": "BSKJ.lua",
-      "size": 12214,
-      "sha256": "624793a3af65c28586b2404bbfc6905dfde8cb14136a1802adf95da5337012fb",
+      "size": 12164,
+      "sha256": "825b071a581e0b59387962e25c534dd451922b629fb4e8745694d17a35ba01a2",
       "names": {
         "file": "names-nine-hours-nine-persons-nine-doors.zip",
         "size": 3306,

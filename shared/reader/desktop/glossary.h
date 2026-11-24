@@ -4,6 +4,7 @@
 #pragma once
 
 #include <QList>
+#include <QJsonArray>
 #include <QString>
 #include <QStringList>
 
@@ -38,5 +39,7 @@ struct Compact {
  * that marks nothing is kept whole, its blocks run together.
  */
 [[nodiscard]] QList<Compact> CompactDefinitions(const QString& glossary_json);
+/// The same, of a glossary already parsed.
+[[nodiscard]] QList<Compact> CompactDefinitions(const QJsonArray& glossary);
 
 } // namespace ReaderApp::Glossary

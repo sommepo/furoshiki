@@ -1,0 +1,24 @@
+name: Idea or request
+description: Something Furoshiki could do.
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Furoshiki is a spare-time project with one maintainer, so not every idea can be taken on. Saying what you are
+        trying to do (not only the feature) helps decide.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you are trying to do
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "Android"

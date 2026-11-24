@@ -1,5 +1,5 @@
 -- reader: title アコンカグア
--- reader: reads The message windows' lines (what the survivors say, what the hero thinks and finds, the item window), page by page
+-- reader: reads Dialogue, narration, and item descriptions
 -- reader: version SCPS-10132, disc 2 (boot program 9108E514)
 -- reader: no hooks
 -- reader: touch press

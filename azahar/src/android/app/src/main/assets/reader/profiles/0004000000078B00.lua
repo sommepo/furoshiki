@@ -1,5 +1,5 @@
 -- reader: title レイトン教授VS逆転裁判 (Professor Layton vs. Phoenix Wright: Ace Attorney)
--- reader: reads Dialogue, narration, subtitles and the puzzles' texts, with speakers, tappable in the picture
+-- reader: reads Dialogue, narration, speakers, subtitles, and puzzles
 -- reader: version The Japanese cartridge release (CTR-P-AVSJ)
 -- レイトン教授VS逆転裁判 / Professor Layton vs. Phoenix Wright: Ace Attorney (Japan), CTR-P-AVSJ,
 -- title 0004000000078B00. Verified against the cartridge release whose decompressed ExeFS code has

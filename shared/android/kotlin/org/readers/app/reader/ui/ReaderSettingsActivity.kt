@@ -214,7 +214,8 @@ class ReaderSettingsActivity : ReaderScreen() {
             if (uri == null) return@registerForActivityResult
             val context = requireContext()
             val failure = runCatching {
-                val text = context.contentResolver.openInputStream(uri)!!.bufferedReader().use { it.readText() }
+                val text = (context.contentResolver.openInputStream(uri) ?: throw java.io.IOException("Couldn't open file"))
+                    .bufferedReader().use { it.readText() }
                 PopupStyle.import(org.json.JSONObject(text), androidx.preference.PreferenceManager.getDefaultSharedPreferences(context))
             }.getOrElse { it.message ?: it.javaClass.simpleName }
             Toast.makeText(
@@ -231,7 +232,7 @@ class ReaderSettingsActivity : ReaderScreen() {
             if (uri == null) return@registerForActivityResult
             val context = requireContext()
             runCatching {
-                context.contentResolver.openOutputStream(uri)!!.use {
+                (context.contentResolver.openOutputStream(uri) ?: throw java.io.IOException("Couldn't open file")).use {
                     it.write(PopupStyle.export(ReaderSettings(context)).toString(2).toByteArray())
                 }
             }.onSuccess {
@@ -248,6 +249,7 @@ class ReaderSettingsActivity : ReaderScreen() {
             ReaderSettings.KEY_POPUP_OPACITY to (0 to R.string.reader_value_default),
             ReaderSettings.KEY_POPUP_RADIUS to (-1 to R.string.reader_value_default),
             ReaderSettings.KEY_POPUP_COMPACT to (0 to R.string.reader_value_all),
+            ReaderSettings.KEY_POPUP_WIDTH to (0 to R.string.reader_value_default),
         )
 
         override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
@@ -291,6 +293,10 @@ class ReaderSettingsActivity : ReaderScreen() {
             // Going on to the next choice, only where the emulator has it.
             if (!org.readers.app.reader.Console.HAS_NEXT_CHOICE) {
                 findPreference<Preference>(ReaderSettings.KEY_NEXT_CHOICE_BUTTON)?.isVisible = false
+            }
+            // No on-screen controls on a device with a second display (the maintainer, 2026-11-24).
+            if (ReaderSettings(requireContext()).twoScreens) {
+                findPreference<Preference>(ReaderSettings.KEY_TOUCH_BUTTONS)?.isVisible = false
             }
             // The second display as the reader's trackpad, only where the emulator leaves it free.
             if (!org.readers.app.reader.Console.SECOND_DISPLAY_FREE) {
@@ -384,6 +390,7 @@ class ReaderSettingsActivity : ReaderScreen() {
                     val key = preference.key ?: continue
                     val title = preference.title?.toString().orEmpty()
                     if (key == ReaderSettings.KEY_NEXT_CHOICE_BUTTON && !org.readers.app.reader.Console.HAS_NEXT_CHOICE) continue
+                    if (key == ReaderSettings.KEY_TOUCH_BUTTONS && ReaderSettings.hasSecondDisplay(context)) continue
                     if (key == ReaderSettings.KEY_SECOND_SCREEN && !org.readers.app.reader.Console.SECOND_DISPLAY_FREE) continue
                     if (title.isNotEmpty()) every += Found(section, key, title)
                 }

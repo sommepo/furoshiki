@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title CHAOS;HEAD らぶChu☆Chu! (Chaos;Head Love Chu Chu!)
--- reader: reads The message window and the lines in the middle of the screen, with furigana
+-- reader: reads Dialogue, narration, and furigana
 -- reader: touch press
 -- reader: buttons up down circle cross square
 -- reader: version ULJM-05821

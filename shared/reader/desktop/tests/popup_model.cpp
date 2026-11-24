@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
+#include <cstdio>
+#include <vector>
+#include <QElapsedTimer>
+#include <QFile>
+#include <QSet>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include "reader/desktop/glossary.h"
 #include "reader/desktop/names.h"
 #include "reader/desktop/popup_model.h"
@@ -164,10 +171,32 @@ TEST_CASE("PopupModel: each sense says its dictionary's kind, for the popup's ta
     const QJsonArray senses = PopupModel::Senses(result);
     REQUIRE(senses.size() == 2);
     REQUIRE(senses.at(0).toObject().value(QStringLiteral("kind")).toString() == QStringLiteral("word"));
-    REQUIRE_FALSE(senses.at(0).toObject().contains(QStringLiteral("content")));
+    // A word's sense carries its glossary too, for the full layout (the compact one is the page's).
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("content")).toArray().at(0).toString() == QStringLiteral("about"));
+    REQUIRE(senses.at(0).toObject().value(QStringLiteral("glosses")).toArray().at(0).toString() == QStringLiteral("about"));
     REQUIRE(senses.at(1).toObject().value(QStringLiteral("kind")).toString() == QStringLiteral("grammar"));
     REQUIRE(senses.at(1).toObject().value(QStringLiteral("content")).toArray().at(0).toObject()
                 .value(QStringLiteral("type")).toString() == QStringLiteral("structured-content"));
+}
+
+TEST_CASE("PopupModel: pitch accents with their readings, and a glossary's pictures", "[reader][popup]") {
+    LookupResult result;
+    result.expression = Q(u"食べる");
+    result.reading = Q(u"たべる");
+    result.pitches = {PitchAccent{QStringLiteral("Kanjium"), Q(u"たべる"), {2}}};
+    TermEntry sense = Sense(QStringLiteral("Jitendex"), {},
+                            QStringLiteral(R"([{"type":"structured-content","content":{"tag":"img","path":"a/b.png"}}])"));
+    sense.media.insert(QStringLiteral("a/b.png"), QStringLiteral("data:image/png;base64,AAAA"));
+    result.entries = {sense};
+    const QJsonObject entry = PopupModel::Entry(result, {});
+    const QJsonObject accent = entry.value(QStringLiteral("pitchAccents")).toArray().at(0).toObject();
+    REQUIRE(accent.value(QStringLiteral("reading")).toString() == Q(u"たべる"));
+    REQUIRE(accent.value(QStringLiteral("dictionary")).toString() == QStringLiteral("Kanjium"));
+    REQUIRE(accent.value(QStringLiteral("positions")).toArray() == QJsonArray{2});
+    REQUIRE(entry.value(QStringLiteral("pitches")).toArray().at(0).toString() == QStringLiteral("[2]"));
+    const QJsonObject first = entry.value(QStringLiteral("senses")).toArray().at(0).toObject();
+    REQUIRE(first.value(QStringLiteral("media")).toObject().value(QStringLiteral("a/b.png")).toString() ==
+            QStringLiteral("data:image/png;base64,AAAA"));
 }
 
 TEST_CASE("ReaderSettings: the popup's look follows the shelf's theme unless chosen", "[reader][popup]") {
@@ -183,4 +212,184 @@ TEST_CASE("ReaderSettings: the popup's look follows the shelf's theme unless cho
     REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("console")) == QStringLiteral("console"));
     ReaderSettings::SetPopupThemeDefault(QStringLiteral("console"));
     REQUIRE(ReaderSettings::ResolvePopupTheme(QStringLiteral("auto")) == QStringLiteral("console"));
+}
+
+// Not run by default: what the page is handed for real lookups in a real database, for pictures
+// of the popup (each word's model as one JSON object a line, with the dictionaries' styles).
+//   READER_MODEL_DB=reader_dict.db READER_MODEL_WORDS="ぶつぶつ,客" READER_MODEL_OUT=models.jsonl \
+//     reader_desktop_tests "[.model]"
+TEST_CASE("PopupModel: models of real lookups, for pictures", "[.model]") {
+    const QString path = qEnvironmentVariable("READER_MODEL_DB");
+    if (path.isEmpty()) {
+        SKIP("READER_MODEL_DB names no database");
+    }
+    DictionaryDatabase db{path};
+    DictionaryLookup lookup{db};
+    QFile out(qEnvironmentVariable("READER_MODEL_OUT"));
+    REQUIRE(out.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QJsonObject styles;
+    const QHash<QString, QString> sheets = db.Styles();
+    for (auto it = sheets.cbegin(); it != sheets.cend(); ++it) {
+        styles.insert(it.key(), it.value());
+    }
+    for (const QString& word : qEnvironmentVariable("READER_MODEL_WORDS").split(u',', Qt::SkipEmptyParts)) {
+        QJsonArray entries;
+        for (const LookupResult& result : lookup.Lookup(word, 6)) {
+            entries.append(PopupModel::Entry(result, {}));
+        }
+        const QJsonObject model{{QStringLiteral("word"), word},
+                                {QStringLiteral("entries"), entries},
+                                {QStringLiteral("styles"), styles}};
+        out.write(QJsonDocument(model).toJson(QJsonDocument::Compact) + '\n');
+    }
+}
+
+// How long a hover takes with a real library: a lookup starting at every character of a few
+// ordinary sentences (as Hachidori's JMdict benchmark does), then the popup's model of it.
+//   READER_LOOKUP_DB=reader_dict.db reader_desktop_tests "[.lookup]"
+TEST_CASE("PopupModel: lookup timing with a real library", "[.lookup]") {
+    const QString path = qEnvironmentVariable("READER_LOOKUP_DB");
+    if (path.isEmpty()) {
+        SKIP("READER_LOOKUP_DB names no database");
+    }
+    DictionaryDatabase db{path};
+    DictionaryLookup lookup{db};
+    // READER_LOOKUP_MAX: results per lookup (24, the popup's; Hoshidicts' own bench uses 16).
+    const int max = qEnvironmentVariableIntValue("READER_LOOKUP_MAX") > 0
+                        ? qEnvironmentVariableIntValue("READER_LOOKUP_MAX")
+                        : 24;
+    QStringList sentences{
+        QStringLiteral("吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。"),
+        QStringLiteral("何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。"),
+        QStringLiteral("国境の長いトンネルを抜けると雪国であった。夜の底が白くなった。"),
+        QStringLiteral("昨日は友達と駅前の喫茶店でコーヒーを飲みながら話していました。"),
+        QStringLiteral("食べたかったけど、もう売り切れてしまったみたいで残念だった。"),
+        QStringLiteral("彼女は振り返らずに、静かに部屋を出て行ってしまった。")};
+    // READER_LOOKUP_TEXT: these sentences instead (one a line), to look at a dictionary's entries.
+    if (const QString own = qEnvironmentVariable("READER_LOOKUP_TEXT"); !own.isEmpty()) {
+        sentences = own.split(u'\n', Qt::SkipEmptyParts);
+    }
+    QStringList scans;
+    for (const QString& sentence : sentences) {
+        for (int i = 0; i < sentence.size(); ++i) {
+            if (sentence[i] != u'、' && sentence[i] != u'。') {
+                scans.append(sentence.mid(i, 16));
+            }
+        }
+    }
+    qint64 bytes = 0;
+    const auto time = [&](bool model) {
+        std::vector<double> times;
+        for (const QString& scan : scans) {
+            QElapsedTimer timer;
+            timer.start();
+            const QList<LookupResult> results = lookup.Lookup(scan, max);
+            if (model) {
+                QJsonArray entries;
+                for (const LookupResult& result : results) {
+                    entries.append(PopupModel::Entry(result, {}));
+                }
+                // As the popup sends it to its page.
+                bytes += QJsonDocument(QJsonObject{{QStringLiteral("entries"), entries}}).toJson(QJsonDocument::Compact).size();
+            }
+            times.push_back(timer.nsecsElapsed() / 1e6);
+        }
+        std::sort(times.begin(), times.end());
+        return times;
+    };
+    QElapsedTimer first;
+    first.start();
+    (void)lookup.Lookup(scans.first(), max);
+    std::printf("first lookup: %.2f ms\n", first.nsecsElapsed() / 1e6);
+    (void)time(false); // warm
+    for (const bool model : {false, true}) {
+        const std::vector<double> times = time(model);
+        const auto at = [&times](double p) { return times[static_cast<size_t>(p * (times.size() - 1))]; };
+        std::printf("%s: %zu scans, p50 %.2f ms, p90 %.2f ms, p99 %.2f ms, max %.2f ms\n",
+                    model ? "lookup + popup model" : "lookup", times.size(), at(0.5), at(0.9), at(0.99),
+                    times.back());
+    }
+    std::printf("models: %.0f kB each on average\n", bytes / 1024.0 / scans.size());
+
+    // As the app does since phase 5 (docs/dictionary-engine.md): a line's words prepared when
+    // it is walked (their first headword, PopupModel::Prepare), each headword's model kept, each
+    // picture sent once, the stylesheets only the first time.
+    PopupModel::ForgetPrepared();
+    std::vector<double> walks;
+    for (const QString& sentence : sentences) {
+        QElapsedTimer timer;
+        timer.start();
+        for (int i = 0; i < sentence.size(); ++i) {
+            const QList<LookupResult> first = lookup.Lookup(sentence.mid(i, 16), 1);
+            if (!first.isEmpty()) {
+                PopupModel::PrepareText(first.first());
+            }
+        }
+        walks.push_back(timer.nsecsElapsed() / 1e6);
+    }
+    std::sort(walks.begin(), walks.end());
+    QSet<QString> sent;
+    qint64 sent_bytes = 0;
+    std::vector<double> hovers;
+    // READER_LOOKUP_DUMP=FILE: the first hovers as the page gets them, for timing the page.
+    QFile dump(qEnvironmentVariable("READER_LOOKUP_DUMP"));
+    const bool dumping = !dump.fileName().isEmpty() && dump.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    int dumped = 0;
+    for (const QString& scan : scans) {
+        QElapsedTimer timer;
+        timer.start();
+        QByteArray text = "[";
+        QJsonObject pictures;
+        for (const LookupResult& result : lookup.Lookup(scan, max)) {
+            if (text.size() > 1) {
+                text += ',';
+            }
+            text += PopupModel::EntryText(result, {}, {}, sent, pictures);
+        }
+        text += ']';
+        sent_bytes += text.size() + QJsonDocument(pictures).toJson(QJsonDocument::Compact).size();
+        hovers.push_back(timer.nsecsElapsed() / 1e6);
+        if (dumping && dumped < 40) {
+            QJsonObject head{{QStringLiteral("pictures"), pictures}, {QStringLiteral("look"), QJsonObject()}};
+            if (dumped == 0) {
+                QJsonObject styles;
+                const QHash<QString, QString> sheets = db.Styles();
+                for (auto it = sheets.cbegin(); it != sheets.cend(); ++it) {
+                    styles.insert(it.key(), it.value());
+                }
+                head.insert(QStringLiteral("styles"), styles);
+            }
+            QByteArray model = QJsonDocument(head).toJson(QJsonDocument::Compact);
+            model.chop(1);
+            dump.write("MODELS.push(" + model + ",\"entries\":" + text + "});\n");
+            ++dumped;
+        }
+    }
+    std::sort(hovers.begin(), hovers.end());
+    std::printf("a line walked and prepared: median %.0f ms, longest %.0f ms\n", walks[walks.size() / 2], walks.back());
+    std::printf("a hover as the app makes it now: p50 %.2f ms, p90 %.2f ms, p99 %.2f ms; %.0f kB sent each on average\n",
+                hovers[hovers.size() / 2], hovers[static_cast<size_t>(0.9 * (hovers.size() - 1))],
+                hovers[static_cast<size_t>(0.99 * (hovers.size() - 1))], sent_bytes / 1024.0 / scans.size());
+    // Again, everything kept now: what is left of a hover.
+    {
+        double look = 0, model = 0, share = 0, json = 0;
+        qint64 senses_bytes = 0;
+        for (const QString& scan : scans) {
+            QElapsedTimer timer;
+            timer.start();
+            const QList<LookupResult> results = lookup.Lookup(scan, max);
+            look += timer.nsecsElapsed() / 1e6;
+            timer.restart();
+            QByteArray text = "[";
+            QJsonObject pictures;
+            for (const LookupResult& result : results) {
+                text += PopupModel::EntryText(result, {}, {}, sent, pictures);
+            }
+            model += timer.nsecsElapsed() / 1e6;
+            senses_bytes += text.size();
+        }
+        const double n = static_cast<double>(scans.size());
+        std::printf("a hover with everything kept, on average: lookup %.2f, model %.2f, pictures %.2f, JSON %.2f ms; senses %.0f kB\n",
+                    look / n, model / n, share / n, json / n, senses_bytes / 1024.0 / n);
+    }
 }

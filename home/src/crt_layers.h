@@ -49,4 +49,8 @@ struct Layer {
 };
 [[nodiscard]] Layer Target(const PlaySettings& play, const QString& console, const QString& game);
 
+/// A kept line with the picture switched off, its other values as they were (switched on again,
+/// it looks as it did); `text` itself where it does not switch it on.
+[[nodiscard]] QString Off(const QString& text);
+
 } // namespace Home::CrtLayers

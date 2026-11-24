@@ -128,6 +128,98 @@ class DictionaryTest {
         assertTrue(info.enabled)
     }
 
+    /** The same rows, styles and pictures whichever way the rows go into SQLite. */
+    @Test
+    fun aBankReadInPiecesKeepsEveryRowWhole() {
+        // Strings with brackets, commas and escaped quotes in them, rows of every size.
+        val rows = (1..60).map { """["語$it","]x[ \"q\" , {","n",${if (it % 7 == 0) "[1,[2,{\"a\":\"]\"}]]" else "\"\""},$it,["${"長".repeat(it)}"]]""" }
+        val bank = "\uFEFF [\n" + rows.joinToString(",\n ") + "\n]\n"
+        for (piece in listOf(1, 16, 200, 1 shl 20)) {
+            val seen = ArrayList<String>()
+            DictionaryImporter(DictionaryDatabase(ApplicationProvider.getApplicationContext<Context>(), null))
+                .inPieces(bank.toByteArray().inputStream(), piece) { part ->
+                    val array = org.json.JSONArray(String(part))
+                    for (i in 0 until array.length()) seen.add(array.getJSONArray(i).toString())
+                }
+            assertEquals("piece $piece", rows.map { org.json.JSONArray(it).toString() }, seen)
+        }
+    }
+
+    @Test
+    fun bigBanksAreWrittenAChunkAtATimeWithTheSameRows() {
+        // A bank bigger than the budget is read by the writer and written as it is read (it
+        // ran a 256 MB heap out when held whole); every row comes out as the other way.
+        val rows = (1..450).joinToString(",") { """["語$it","ご$it","n","",$it,["word $it"],$it,""]""" }
+        val metas = (1..450).joinToString(",") { """["語$it","freq",$it]""" }
+        val zip = archive(
+            "big.zip",
+            mapOf(
+                "index.json" to """{"title":"Big","revision":"1","format":3}""",
+                "term_bank_1.json" to "[$rows]", "term_bank_2.json" to """[["小","しょう","n","",1,["small"],1,""]]""",
+                "term_meta_bank_1.json" to "[$metas]"
+            )
+        )
+        val seen = ArrayList<List<String>>()
+        for (held in listOf(null, 64L)) {
+            val fresh = DictionaryDatabase(ApplicationProvider.getApplicationContext<Context>(), null)
+            val result = DictionaryImporter(fresh).apply { jsonFunctions = true; heldBytes = held }.import(zip)
+            assertEquals(451, result.terms)
+            assertEquals(450, result.metas)
+            seen.add(listOf("語1", "語225", "語450", "小").map { word ->
+                val entry = fresh.findTerms(listOf(word)).single()
+                "${entry.expression}|${entry.reading}|${entry.score}|${entry.glossaryJson}|${fresh.findMeta(listOf(word)).joinToString { it.data }}"
+            })
+        }
+        assertEquals(seen[0], seen[1])
+    }
+
+    @Test
+    fun importsStylesPicturesAndPitchPatternsEitherWay() {
+        for (json in listOf(true, false)) {
+            val fresh = DictionaryDatabase(ApplicationProvider.getApplicationContext<Context>(), null)
+            val withJson = DictionaryImporter(fresh).apply { jsonFunctions = json }
+            val styled = archive(
+                "styled.zip",
+                mapOf(
+                    "dict/index.json" to """{"title":"Styled","revision":"1","format":3}""",
+                    "dict/styles.css" to """li[data-sc-content="sense"] { color: red; }""",
+                    "dict/img/a.png" to "PNGDATA",
+                    "dict/term_bank_1.json" to """[["絵","え","n","",1,[{"type":"structured-content","content":[{"tag":"img","path":"img/a.png"},"picture"]}],1,""],
+                        ["線","せん",null,"",2.0,["line \"quoted\" \u7dda"],2,""],
+                        ["円","円","n","",3,["yen"],3,"P"]]""",
+                    "dict/term_meta_bank_1.json" to """[["絵","pitch",{"reading":"え","pitches":[{"position":"HL"}]}],
+                        ["線","pitch",{"reading":"せん","pitches":[{"position":"LHH"}]}],
+                        ["線","freq",120],["円","freq","rank 3"]]"""
+                )
+            )
+            val result = withJson.import(styled)
+            assertEquals(3, result.terms)
+            assertEquals(4, result.metas)
+            assertEquals(1, result.media)
+            assertTrue(fresh.styles().getValue("Styled").contains("color: red"))
+            val pictured = fresh.findTerms(listOf("絵")).single()
+            assertEquals("data:image/png;base64," + java.util.Base64.getEncoder().encodeToString("PNGDATA".toByteArray()),
+                pictured.media["img/a.png"])
+            val line = fresh.findTerms(listOf("線")).single()
+            assertEquals("", line.definitionTags)
+            assertEquals(2, line.score)
+            assertEquals("line \"quoted\" 線", org.json.JSONArray(line.glossaryJson).getString(0))
+            val yen = fresh.findTerms(listOf("円")).single()
+            assertEquals("", yen.reading) // a reading that is the expression is stored empty
+            assertEquals("P", yen.termTags)
+            val meta = fresh.findMeta(listOf("線", "円")).associate { it.expression + it.mode to it.data }
+            assertEquals("120", meta["線freq"])
+            assertEquals("\"rank 3\"", meta["円freq"])
+            val looked = DictionaryLookup(fresh)
+            assertEquals(listOf(1), looked.lookup("絵").first().pitches.first().positions)
+            assertEquals(listOf(0), looked.lookup("線").first().pitches.first().positions)
+            val id = fresh.dictionaries().single().id
+            fresh.delete(id)
+            assertEquals(0, fresh.readableDatabase.rawQuery("SELECT COUNT(*) FROM media", emptyArray()).use { it.moveToFirst(); it.getInt(0) })
+            fresh.close()
+        }
+    }
+
     @Test
     fun refusesDuplicatesAndBrokenArchives() {
         importer.import(mainArchive())
@@ -183,6 +275,23 @@ class DictionaryTest {
         assertEquals(listOf("名乗る", "名"), imperative.map { it.expression })
         assertEquals("名乗れ", imperative[0].matchedText)
         assertEquals("名", imperative[1].matchedText)
+    }
+
+    @Test
+    fun theFirstHeadwordsFirstThenTheRestComeOutTheSame() {
+        importer.import(mainArchive())
+        val whole = lookup.lookup("食べ物を買う")
+        val first = lookup.lookup("食べ物を買う", readFirst = 1)
+        assertEquals(whole.map { it.expression }, first.map { it.expression })
+        assertTrue(first.first().entries.all { it.glossaryJson.isNotEmpty() })
+        val before = first.drop(1).flatMap { it.entries }
+        assertTrue(before.isEmpty() || before.any { it.glossaryJson.isEmpty() })
+        val same = first.toList()
+        lookup.fillIn(first, lookup.readRest(first))
+        // The same objects, now whole.
+        assertTrue(same.indices.all { same[it] === first[it] })
+        assertEquals(whole.map { r -> r.entries.map { it.glossaryJson } }, first.map { r -> r.entries.map { it.glossaryJson } })
+        assertTrue(first.none { lookup.unread(it) })
     }
 
     @Test

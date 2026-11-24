@@ -185,6 +185,13 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         return android.graphics.Rect(at[0] - me[0], at[1] - me[1], at[0] - me[0] + add.width, at[1] - me[1] + add.height)
     }
     private var shownResults: List<LookupResult> = emptyList()
+    private var shownHistory: List<LookupHistory> = emptyList()
+    private var shownWithWhere = false
+    /** The native entries were made without their definitions: the page drew them. */
+    private var leanEntries = false
+    /** What the page has been given since it last loaded: pictures (by key) and stylesheets. */
+    private val pagePictures = HashSet<String>()
+    private var pageStyles: Map<String, String>? = null
 
     /** The page that draws the popup, made when a theme first wants it. */
     private fun page(): PopupPage? {
@@ -199,6 +206,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             it.setStyle("theme", PopupPage.themeCss(context, theme))
             it.setStyle("device", PopupPage.DEVICE_CSS)
             if (userCss.isNotEmpty()) it.setStyle("user", userCss)
+            pagePictures.clear()
+            pageStyles = null
             page = it
         }
     }
@@ -211,9 +220,16 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         page = null
         scroll.visibility = VISIBLE
         alpha = 1f
+        // Its native entries were made without their definitions: made again whole.
+        if (leanEntries && shownResults.isNotEmpty()) showResults(shownResults, shownHistory, shownWithWhere)
     }
 
-    private fun showOnPage(entries: JSONArray, message: JSONObject?) {
+    private var forgetPictures = false
+
+    private fun showOnPage(entries: JSONArray, message: JSONObject?) = showOnPage(entries.toString(), JSONObject(), message)
+
+    /** [entries] as JSON text already; [pictures] those they name that the page was not given. */
+    private fun showOnPage(entries: String, pictures: JSONObject, message: JSONObject?) {
         val page = page() ?: return
         scroll.visibility = GONE
         // Seen once the page has said how tall it is.
@@ -229,17 +245,38 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             .put("keep", context.getString(R.string.reader_audio_keep))
             .put("drop", context.getString(R.string.reader_audio_drop))
         val model = PopupPage.model(
-            entries, message, cardCorner.name.lowercase(), allowDuplicates, markUnknown, textScale,
+            JSONArray(), message, cardCorner.name.lowercase(), allowDuplicates, markUnknown, textScale,
             Console.APP_KEY, org.readers.app.reader.ReaderSession.gameKey, labels, look
         )
+        model.remove("entries")
         model.put("pad", pad)
+        if (pictures.length() > 0) model.put("pictures", pictures)
+        if (forgetPictures) {
+            model.put("forgetPictures", true)
+            forgetPictures = false
+        }
+        // The dictionaries' own stylesheets (styles.css), each for its own senses: only when they
+        // are not what the page has (it keeps them, scoped, between lookups).
+        runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database.styles() }
+            .getOrNull()?.let { styles ->
+                if (styles != pageStyles) {
+                    model.put("styles", JSONObject(styles))
+                    pageStyles = styles
+                }
+            }
         // The d-pad goes from entry to entry, as on a computer (Reader.entry).
         model.put("choose", pad)
-        page.call("Reader.show($model)")
+        val head = model.toString()
+        page.call("Reader.show(" + head.substring(0, head.length - 1) + ",\"entries\":" + entries + "})")
     }
 
     private fun onPageMessage(message: JSONObject) {
         val index = message.optInt("index", -1)
+        if (message.optString("type") == "ready") {
+            // A page (loaded again) has none of what was sent before.
+            pagePictures.clear()
+            pageStyles = null
+        }
         when (message.optString("type")) {
             "size" -> {
                 val density = resources.displayMetrics.density
@@ -287,13 +324,13 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         BOTTOM_RIGHT(false, false);
 
         companion object {
-            /** From the setting's value ("bottom_left" and so on); the bottom left otherwise. */
-            fun of(value: String?): Corner = values().firstOrNull { it.name.equals(value, ignoreCase = true) } ?: BOTTOM_LEFT
+            /** From the setting's value ("top_right" and so on); the top right otherwise. */
+            fun of(value: String?): Corner = values().firstOrNull { it.name.equals(value, ignoreCase = true) } ?: TOP_RIGHT
         }
     }
 
     /** Where the boxes stand: set before [showResults]. */
-    var cardCorner = Corner.BOTTOM_LEFT
+    var cardCorner = Corner.TOP_RIGHT
 
     /** The popup grows with its content up to these, then wraps and scrolls. */
     var maxWidth: Int = Int.MAX_VALUE
@@ -450,23 +487,63 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
      * line under each headword says how often it was looked up before; [withWhere] adds when
      * and in which game first.
      */
+    /**
+     * The words shown, again, once the definitions read after them are in (DictionaryLookup
+     * .fillIn): the page keeps its tab, its scroll and the entry in hand.
+     */
+    fun fillIn() {
+        val page = page()
+        if (page == null || !leanEntries) {
+            if (shownResults.isNotEmpty()) showResults(shownResults, shownHistory, shownWithWhere)
+            return
+        }
+        val pictures = JSONObject()
+        page.call("Reader.fill({\"entries\":" + modelText(shownResults, shownHistory, shownWithWhere, pictures) +
+            ",\"pictures\":" + pictures + "})")
+    }
+
+    /** The page's entries as JSON text: the words, then the first one's kanji. */
+    private fun modelText(results: List<LookupResult>, history: List<LookupHistory>, withWhere: Boolean, pictures: JSONObject): String {
+        val model = StringBuilder("[")
+        for ((index, result) in results.withIndex()) {
+            if (index > 0) model.append(',')
+            model.append(PopupModel.entryText(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, dictionaryKinds, pagePictures, pictures))
+        }
+        // The character the word begins with, from the kanji dictionaries: on the page's Kanji tab.
+        PopupModel.kanjiOf(results.firstOrNull()?.matchedText.orEmpty())?.let { character ->
+            runCatching {
+                val database = org.readers.app.reader.dict.DictionaryStore.get(context).database
+                PopupModel.kanjiText(database.findKanji(character), database.findKanjiMeta(character))
+            }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { model.append(if (results.isEmpty()) "" else ",").append(it) }
+        }
+        return model.append(']').toString()
+    }
+
     fun showResults(results: List<LookupResult>, history: List<LookupHistory> = emptyList(), withWhere: Boolean = false) {
         uniform = true
         list.removeAllViews()
         entries.clear()
         scroll.scrollTo(0, 0)
         shownResults = results
-        if (page() != null) {
-            val model = JSONArray()
-            for ((index, result) in results.withIndex()) {
-                model.put(PopupModel.entry(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, dictionaryKinds))
+        shownHistory = history
+        shownWithWhere = withWhere
+        val onPage = page() != null
+        if (onPage) {
+            // As JSON text: the glossaries go as they are stored, each headword's kept
+            // (PopupModel.entryText), each picture sent once.
+            if (pagePictures.size > 4000) {
+                pagePictures.clear()
+                forgetPictures = true
             }
-            showOnPage(model, null)
+            val pictures = JSONObject()
+            showOnPage(modelText(results, history, withWhere, pictures), pictures, null)
         }
+        leanEntries = onPage
         for ((index, result) in results.withIndex()) {
-            // As wide as the popup, so that every button box sits at its right edge.
+            // As wide as the popup, so that every button box sits at its right edge. Behind a
+            // page, only what keeps each entry's box and marks: the page draws the definitions.
             list.addView(
-                resultView(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }),
+                resultView(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, lean = onPage),
                 LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             )
         }
@@ -530,7 +607,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         apply(entry)
     }
 
-    private fun resultView(result: LookupResult, history: String?): View {
+    private fun resultView(result: LookupResult, history: String?, lean: Boolean = false): View {
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(3f).toInt(), 0, bottomRoom())
@@ -544,7 +621,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
                 LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
             )
         }
-        val senses = senses(result)
+        val senses: CharSequence = if (lean) "" else senses(result)
         val last: TextView
         val lastText: CharSequence
         if (senses.isNotEmpty()) {

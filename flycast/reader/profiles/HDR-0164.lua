@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title シェンムーII (Shenmue II)
--- reader: reads The subtitles: what is said in cutscenes and in conversations
+-- reader: reads Cutscene and conversation subtitles
 -- reader: version HDR-0164 (Japan), seen on disc 1 of 4
 -- Shenmue II (Sega, Dreamcast, 2001), Japanese version. docs/reader/games/shenmue2.md has
 -- what is read, what is not, and how it was checked.

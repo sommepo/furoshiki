@@ -18,6 +18,14 @@ option(HOME_CORES "Build the cores' host and its tests" OFF)
 # (READER_NO_SAVE_SYNC, as in the forks; their sources are not in a public tree). Eden's core
 # is left out of its package (tools/package-windows.sh).
 option(HOME_PUBLIC "A published build: nothing private built in" OFF)
+# The game scripts, their character tables and the names dictionaries built in: a dev build's, and
+# a build with Eden's core (tools/build-*.sh READER_HOME_EDEN=1), which is never published.
+if(HOME_PUBLIC)
+	set(HOME_BUNDLE_SCRIPTS_DEFAULT OFF)
+else()
+	set(HOME_BUNDLE_SCRIPTS_DEFAULT ON)
+endif()
+option(HOME_BUNDLE_SCRIPTS "Game scripts and names dictionaries built in" ${HOME_BUNDLE_SCRIPTS_DEFAULT})
 # The version the program says of itself (Settings, Furoshiki, Version) and, on Windows, in its
 # file's properties: a release's number, passed by what builds it (-DFUROSHIKI_VERSION=0.2.7).
 set(FUROSHIKI_VERSION "dev" CACHE STRING "The version shown in Settings and in the Windows file's properties")
@@ -92,6 +100,7 @@ endif()
 # The way in is main() itself: Qt's own entry point for Windows, which a reader app's first
 # Windows package hung in, is left out. -mwindows makes it a program without a console.
 add_executable(reader-home src/main.cpp src/home_window.cpp src/home_window.h
+	src/dictionary_panel.cpp src/dictionary_panel.h src/conversion_box.cpp src/conversion_box.h src/scripts_panel.cpp src/scripts_panel.h
 	src/look_paint.cpp src/look_paint.h
 	src/steam_pad.cpp src/steam_pad.h)
 target_link_libraries(reader-home PRIVATE home_core Qt6::Widgets)
@@ -366,7 +375,7 @@ if(HOME_CORES)
 	# a game's font (<ID>.charset) where the fork's private-data.sh put one beside them. None
 	# in a published build: there the user installs them from the consoles' published lists.
 	set(HOME_BUNDLED_PROFILES)
-	if(NOT HOME_PUBLIC)
+	if(HOME_BUNDLE_SCRIPTS)
 		set(HOME_BUNDLED_PROFILES station/reader/profiles flycast/reader/profiles ppsspp/assets/reader/profiles
 			azahar/src/android/app/src/main/assets/reader/profiles pcsx2/reader/profiles
 			eden/src/android/app/src/main/assets/reader/profiles vita3k/reader/profiles)
@@ -375,7 +384,7 @@ if(HOME_CORES)
 		string(REGEX REPLACE "/.*" "" fork "${fork_profiles}")
 		set(HOME_PROFILE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${fork_profiles}")
 		file(GLOB HOME_PROFILE_FILES CONFIGURE_DEPENDS "${HOME_PROFILE_DIR}/*")
-		list(FILTER HOME_PROFILE_FILES EXCLUDE REGEX "/(README[^/]*|index\\.json)$")
+		list(FILTER HOME_PROFILE_FILES EXCLUDE REGEX "/(README[^/]*|index\\.json|names-[^/]*\\.zip)$")
 		if(HOME_PROFILE_FILES)
 			qt_add_resources(home_reader "profiles_${fork}" PREFIX "/reader/profiles" BASE "${HOME_PROFILE_DIR}"
 				FILES ${HOME_PROFILE_FILES})
@@ -386,7 +395,7 @@ if(HOME_CORES)
 	# build is configured (again when a title's files change), under the folder ReaderSession
 	# installs them from as a game starts (":/reader/names/names-<title>.zip"). None in a
 	# published build: there each comes with its game's script from the published list.
-	if(NOT HOME_PUBLIC)
+	if(HOME_BUNDLE_SCRIPTS)
 		find_package(Python3 COMPONENTS Interpreter QUIET)
 		set(HOME_TITLES "${CMAKE_CURRENT_SOURCE_DIR}/../titles")
 		file(GLOB HOME_TITLE_FILES CONFIGURE_DEPENDS "${HOME_TITLES}/*.json" "${HOME_TITLES}/names/*.json"
@@ -410,7 +419,7 @@ if(HOME_CORES)
 		endif()
 	endif()
 
-	target_sources(reader-home PRIVATE src/main_window.cpp src/main_window.h src/crt_layers.cpp src/crt_layers.h
+	target_sources(reader-home PRIVATE src/main_window.cpp src/main_window.h src/dictionary_shelf.cpp src/dictionary_shelf.h src/script_shelf.cpp src/script_shelf.h src/crt_layers.cpp src/crt_layers.h
 		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp src/settings_crt.cpp
 		src/reader_rows.cpp src/reader_rows.h
 		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h

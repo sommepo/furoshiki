@@ -7,23 +7,18 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import io.github.sommepo.furoshiki.reader.Console
-import io.github.sommepo.furoshiki.reader.ScriptStore
-import io.github.sommepo.furoshiki.reader.ui.ReaderGamesActivity
 
 /**
- * The reader's Game scripts screen for one console, the page's choice: its published list,
- * in the reader's process, where the screen takes the console's list from (Console). Nothing
- * of its own is shown.
+ * The Game scripts screen (GameScriptsActivity: every console's games, 2026-11-23), at the page's
+ * choice of console, or every console's where it names none. In the reader's process. Nothing of
+ * its own is shown.
  */
 class ScriptsActivity : Activity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        Console.use(intent.getStringExtra(EXTRA_CONSOLE).orEmpty())
-        ScriptStore.indexUrl = Console.SCRIPT_INDEX_URL
-        startActivity(
-            Intent(this, ReaderGamesActivity::class.java)
-                .putExtra(ReaderGamesActivity.EXTRA_CONSOLE_NAME, Places.fullName(intent.getStringExtra(EXTRA_CONSOLE).orEmpty()))
-        )
+        val console = intent.getStringExtra(EXTRA_CONSOLE).orEmpty()
+        if (console.isNotEmpty()) Console.use(console)
+        startActivity(Intent(this, GameScriptsActivity::class.java).putExtra(GameScriptsActivity.EXTRA_CONSOLE, console))
         finish()
     }
 

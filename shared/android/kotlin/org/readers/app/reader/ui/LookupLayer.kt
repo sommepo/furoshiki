@@ -314,7 +314,10 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         val anchor = anchor ?: return
         if (width == 0 || height == 0) return
         val margin = dp(6f)
-        val widest = (width - 2 * margin).coerceAtMost(dp(MAX_WIDTH_DP)).coerceAtLeast(dp(120f))
+        // As wide as set, else the page's default (wider than the classic popup's: a dictionary's
+        // own layout wants room), never wider than the screen.
+        val most = settings.popupWidth.takeIf { it > 0 }?.toFloat() ?: if (popup.isPage) PAGE_WIDTH_DP else MAX_WIDTH_DP
+        val widest = (width - 2 * margin).coerceAtMost(dp(most)).coerceAtLeast(dp(120f))
         val above = (anchor.keepClear.top - 2 * margin).toInt()
         val below = (height - anchor.keepClear.bottom - 2 * margin).toInt()
         fun measure(tallest: Int) {
@@ -470,7 +473,8 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
             // The cursor has gone on to another word since.
             if (request != asked) return@execute
             val hasDictionaries = store.database.hasEnabledDictionaries()
-            val results = if (hasDictionaries) store.lookup.lookup(rest, game = game) else emptyList()
+            // The first headwords' definitions before the popup shows, the rest just after.
+            val results = if (hasDictionaries) store.lookup.lookup(rest, game = game, readFirst = READ_FIRST) else emptyList()
             val history = if (lookups == "off") emptyList() else results.map { database.lookups(it.expression, it.reading) }
             post {
                 if (request != asked) return@post
@@ -511,6 +515,14 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                         popup.markUnknown = settings.popupMarkUnknown
                         popup.showResults(results, history, lookups == "where")
                         askAnki(shown, presented, offset, results)
+                        if (results.any { store.lookup.unread(it) }) worker.execute {
+                            if (request != asked) return@execute
+                            val read = store.lookup.readRest(results)
+                            post {
+                                store.lookup.fillIn(results, read)
+                                if (shown == token && request == asked) popup.fillIn()
+                            }
+                        }
                         removeCallbacks(countLater)
                         postDelayed(countLater, COUNT_AFTER_MS)
                     }
@@ -645,6 +657,10 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         }
         popup.setCardState(result, LookupPopupView.CardState.WORKING)
         countLookup()
+        val store = DictionaryStore.get(context)
+        if (store.lookup.unread(result)) {
+            store.lookup.fillIn(listOf(result), store.lookup.readRest(listOf(result)))
+        }
         miner.mine(pin.presented, result, range, if (audio == null) wordQuestion(result) else null, audio) { outcome ->
             report(context, outcome)
             if (request != token) return@mine
@@ -700,6 +716,9 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics).toInt()
 
     companion object {
+        /** Headwords whose definitions are read before the popup shows; the others' just after. */
+        const val READ_FIRST = 3
+
         /**
          * How long the cursor may be off the word and the popup before the popup goes (a slip
          * off the word; the way to the popup is the popup's anyway, PlacedText.keptByPopup).
@@ -710,6 +729,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         const val COUNT_AFTER_MS = 1000L
         /** The popup is at most this wide; how tall it may get is a setting. */
         private const val MAX_WIDTH_DP = 340f
+        private const val PAGE_WIDTH_DP = 400f
 
         private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "ReaderLookup") }
 

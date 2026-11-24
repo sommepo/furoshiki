@@ -102,6 +102,9 @@ public:
     [[nodiscard]] bool OldAppsRead() const;
     void SetOldAppsRead();
 
+    /// Every layer that has `key` of its own, as (console, game): all consoles' is ("", "").
+    [[nodiscard]] QList<QPair<QString, QString>> LayersWith(const QString& key) const;
+
     bool Save() const;
     [[nodiscard]] const QString& File() const {
         return file;

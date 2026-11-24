@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <QDir>
 #include <QFile>
+#include <QSettings>
 #include <QTemporaryDir>
 #include "reader/desktop/catalog.h"
 #include "reader/desktop/settings.h"
@@ -99,6 +100,37 @@ TEST_CASE("Settings: pointing at a word looks it up unless switched off", "[read
     REQUIRE(settings.HoverLookup() == QStringLiteral("off"));
     settings.SetValue(ReaderSettings::KeyHoverLookup, QStringLiteral("nonsense"));
     REQUIRE(settings.HoverLookup() == QStringLiteral("always"));
+}
+
+TEST_CASE("Settings: the add button stands top right, every user's corner moved there once",
+          "[reader][settings]") {
+    QTemporaryDir folder;
+    const QString path = folder.filePath(QStringLiteral("reader.ini"));
+    const QString shared = folder.filePath(QStringLiteral("shared.ini"));
+    {
+        // A new user: the top right.
+        ReaderSettings settings(path, shared);
+        REQUIRE(settings.CardCorner() == QStringLiteral("top_right"));
+    }
+    QFile::remove(shared);
+    {
+        // From before this update: a corner kept, no mark yet.
+        QSettings before(shared, QSettings::IniFormat);
+        before.setValue(ReaderSettings::KeyCardCorner, QStringLiteral("bottom_left"));
+    }
+    {
+        ReaderSettings settings(path, shared);
+        REQUIRE(settings.CardCorner() == QStringLiteral("top_right"));
+        // A choice made after it stays, in this run and the next.
+        settings.SetValue(ReaderSettings::KeyCardCorner, QStringLiteral("bottom_left"));
+        settings.Sync();
+        REQUIRE(settings.CardCorner() == QStringLiteral("bottom_left"));
+    }
+    ReaderSettings again(path, shared);
+    REQUIRE(again.CardCorner() == QStringLiteral("bottom_left"));
+    // An app with its own file only is moved the same way.
+    ReaderSettings own(folder.filePath(QStringLiteral("own.ini")));
+    REQUIRE(own.CardCorner() == QStringLiteral("top_right"));
 }
 
 TEST_CASE("Settings: where the saves are kept is a choice, and an older setup is kept",

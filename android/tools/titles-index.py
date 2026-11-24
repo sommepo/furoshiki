@@ -63,6 +63,8 @@ def main() -> int:
                 "guide": record.get("guide") or "",
                 "people": people,
                 "more": more,
+                # Its VNDB entry, where a box's art is looked for by it (ArtFinder.kt).
+                "vndb": (record.get("vndb") or [""])[0] if isinstance(record.get("vndb"), list) else (record.get("vndb") or ""),
             }
             platform = platform_of(game_id)
             for kind in ("spines", "covers"):

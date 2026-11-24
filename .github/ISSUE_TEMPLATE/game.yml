@@ -1,0 +1,43 @@
+name: A game is not read right
+description: A supported game is not read, reads the wrong text, or reads at the wrong time.
+labels: ["game"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Game scripts live in [furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts). To ask for a game that
+        has no script yet, open an issue there, or add it yourself with a coding agent (see its README).
+  - type: input
+    id: game
+    attributes:
+      label: Game
+      placeholder: "Otogirisou"
+    validations:
+      required: true
+  - type: input
+    id: id
+    attributes:
+      label: Game ID
+      description: On the game's page in Furoshiki. Scripts are written for one release; another release may not be read.
+      placeholder: "SLPS-01645"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Furoshiki version and platform
+      placeholder: "0.4.0, Android"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: Where in the game (the first scene, a menu, chapter 3), what is on screen, and what Furoshiki shows or reads.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Pictures, and the log on Windows or Linux
+      description: A picture of the screen with the line on it helps most. The log is described in the bug form.

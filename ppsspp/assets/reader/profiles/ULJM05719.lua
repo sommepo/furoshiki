@@ -1,5 +1,5 @@
 -- reader: title D.C.I&II P.S.P. ～ダ・カーポI&II～ プラスシチュエーション ポータブル, disc 2: D.C.II P.S.
--- reader: reads The message window with speakers and furigana, and choices
+-- reader: reads Dialogue, speakers, furigana, and choices
 -- reader: touch press
 -- reader: version ULJM-05719
 -- D.C.I&II P.S.P. (Kadokawa Shoten/CIRCUS, 2010), PSP, disc 2 (D.C.II P.S.), ULJM-05719.

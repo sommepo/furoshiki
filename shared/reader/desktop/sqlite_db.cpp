@@ -121,6 +121,22 @@ SqliteDb::Statement& SqliteDb::Statement::Bind(int index, const QString& value) 
     return *this;
 }
 
+SqliteDb::Statement& SqliteDb::Statement::BindUtf8(int index, const QByteArray& value) {
+    if (sqlite3_bind_text(statement, index, value.isEmpty() ? "" : value.constData(),
+                          static_cast<int>(value.size()), SQLITE_STATIC) != SQLITE_OK) {
+        Fail(handle, "bind");
+    }
+    return *this;
+}
+
+SqliteDb::Statement& SqliteDb::Statement::BindBlobInPlace(int index, const QByteArray& value) {
+    if (sqlite3_bind_blob(statement, index, value.isEmpty() ? "" : value.constData(),
+                          static_cast<int>(value.size()), SQLITE_STATIC) != SQLITE_OK) {
+        Fail(handle, "bind");
+    }
+    return *this;
+}
+
 SqliteDb::Statement& SqliteDb::Statement::BindBlob(int index, const QByteArray& value) {
     // A null pointer would store NULL; an empty blob is still a blob.
     if (sqlite3_bind_blob(statement, index, value.isEmpty() ? "" : value.constData(),

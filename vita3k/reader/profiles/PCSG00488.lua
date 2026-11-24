@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title 英雄伝説 空の軌跡 FC Evolution (The Legend of Heroes: Trails in the Sky, Vita)
--- reader: reads The talk windows of the story and of people in the field, with speakers and furigana
+-- reader: reads Story and field dialogue, speakers, and furigana
 -- reader: version PCSG00488, 1.00
 -- 英雄伝説 空の軌跡 FC Evolution (Chara-Ani / Nihon Falcom, PS Vita, 2015), PCSG00488 v1.00,
 -- eboot.bin's module VS2010_Hachi_Vita_Shipping, NID 5EE81DAC.

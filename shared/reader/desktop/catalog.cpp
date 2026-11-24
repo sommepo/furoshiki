@@ -44,9 +44,15 @@ ProfileInfo Describe(const QString& title_id, const QString& source, bool own) {
 }
 
 std::optional<QString> TitleIdOf(const QString& file_name) {
-    // A game's ID as the console writes it (reader/core/console.h).
-    static const QRegularExpression name(QRegularExpression::anchoredPattern(
-        QStringLiteral("(%1)\\.lua").arg(QString::fromLatin1(Reader::ConsoleTraits::GameIdPattern))));
+    // A game's ID as the console writes it (reader/core/console.h), as it is now: a program that
+    // plays several consoles (Furoshiki) changes the console, and with it the pattern, at run
+    // time. It was made once, so the first console's pattern stood for every other's after.
+    thread_local QString pattern;
+    thread_local QRegularExpression name;
+    if (const QString now = QString::fromLatin1(Reader::ConsoleTraits::GameIdPattern); now != pattern) {
+        pattern = now;
+        name = QRegularExpression(QRegularExpression::anchoredPattern(QStringLiteral("(%1)\\.lua").arg(now)));
+    }
     const QRegularExpressionMatch match = name.match(file_name);
     if (!match.hasMatch()) {
         return std::nullopt;

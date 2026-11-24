@@ -456,7 +456,9 @@ function gameRows(games) {
     file: shownId(game),
     // Its box's front where the build has it (its console's own), else what the device found.
     cover: recordOf(game)?.cover || game.cover,
-    spine: recordOf(game)?.spine || '',
+    // Its box's spine: built in, else found (VNDB, ScreenScraper), else drawn in its console's look
+    // (Spines.kt, as the desktop draws one).
+    spine: recordOf(game)?.spine || game.spine || game.drawn || '',
     band: bandOf(game),
     // How its text is read, in words: the tick, the glasses and the "?" on its spine say no more.
     figures: [...gameFigures(game), ['Read by', READ_BY[readBy(game)]]],
@@ -1216,14 +1218,11 @@ function settingsPage() {
       act() { host.setAllGames?.(!host.allGames?.()); rebuild(); },
     },
     {
-      title: 'Game scripts', about: '',
+      title: 'Game scripts', about: 'Scripts, names and box art for each game',
       go: 'Open', id: 'scripts',
-      act() {
-        const consoles = JSON.parse(host.consoles());
-        if (!consoles.length) { host.open('scripts'); return; }
-        const names = consoles.map(one => fullName(one.key, one.system) || one.short);
-        pick('Game scripts · Choose console', names, 0, at => host.openScripts(consoles[at].key));
-      },
+      // Every console's games in one list (GameScriptsActivity), its consoles a filter there, as the
+      // desktop's page.
+      act() { host.openScripts(''); },
     },
     // GameNative's Frontend Sync (and Winlator's shortcuts) leave a file a game in a folder: that
     // folder added, each game is in the library and Start plays it at once (companion/FrontendExports).
@@ -1341,16 +1340,21 @@ function appVersion() {
  * rows, and its first row or B goes back. A row is put in its group by its id. A group of one row
  * is that row: it opens that row's page at once (no "Cards › Cards").
  */
-// The same groups in the same order as the desktop program's sections (2026-11-20).
+// The same groups in the same order as the desktop program's sections (2026-11-20), Dictionaries and
+// Game scripts among them as there (the maintainer, 2026-11-24: "i would like the main settings
+// structure to match pc, with scripts and dictionaries on the main page"). A group of one row opens
+// that row's page at once. The desktop's Keys (a keyboard's) has no group here.
 const SETTING_GROUPS = [
-  {key: 'library', title: 'Library', ids: ['add', 'add-title', 'find', 'order', 'all', 'scripts', 'add-exports', 'scan']},
-  {key: 'reading', title: 'Reading', ids: ['settings:READING', 'dictionaries', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
+  {key: 'library', title: 'Library', ids: ['add', 'add-title', 'find', 'order', 'all', 'add-exports', 'scan', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
+  {key: 'reading', title: 'Reading', ids: ['settings:READING']},
+  {key: 'dictionaries', title: 'Dictionaries', ids: ['dictionaries']},
+  {key: 'scripts', title: 'Game scripts', ids: ['scripts']},
   {key: 'popup', title: 'Popup', ids: ['settings:POPUP']},
-  {key: 'cards', title: 'Cards', ids: ['settings:CARDS', 'tracker']},
+  {key: 'cards', title: 'Cards', ids: ['settings:CARDS']},
   {key: 'consoles', title: 'Consoles', ids: ['consoles-page']},
   {key: 'controls', title: 'Controls', ids: ['controller', 'haptics']},
   {key: 'display', title: 'Display', ids: ['look', 'icon', 'text-size', 'wide', 'crt', 'home']},
-  {key: 'about', title: 'About', ids: ['version', 'update', 'licences', 'achievements', 'settings:SAVE_SYNC', 'services']},
+  {key: 'about', title: 'About', ids: ['version', 'update', 'licences', 'achievements', 'settings:SAVE_SYNC', 'tracker', 'services']},
 ];
 
 function groupedSettings(rows) {
@@ -1449,7 +1453,11 @@ function drawFoot() {
     button.onclick = () => goTo(index);
     tabs.append(button);
   });
-  tabs.children[state.page]?.scrollIntoView({inline: 'center', block: 'nearest'});
+  // The chosen tab in sight (by its mark: the rule between the shelves and the pages is a child too),
+  // and again once the type is loaded, which makes the tabs wider.
+  const inSight = () => tabs.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
+  inSight();
+  document.fonts?.ready.then(inSight);
 }
 
 function drawRows() {
@@ -1849,7 +1857,8 @@ const Front = {
   said(text) { say(text); },
   reload() {
     try {
-      state.games = JSON.parse(host.games());
+      state.gamesText = host.games();
+      state.games = JSON.parse(state.gamesText);
       for (const game of state.games) if (game.console === 'app' && /gamenative/i.test(game.path + ' ' + (game.via || ''))) game.system = 'GameNative';
       state.stats = JSON.parse(host.stats());
       if (!Object.keys(state.titles).length) state.titles = JSON.parse(host.titles?.() || '{}');
@@ -1862,6 +1871,17 @@ const Front = {
     readStatus();
     setTimeout(runSetup, 600);
     rebuild();
+  },
+  /**
+   * A console looked at: the page made again only where the games it lists changed. Each console's
+   * look made it again twice, and the shelf shook under the user's hand (the maintainer, 2026-11-24:
+   * "seems to cause jitter on the main menu as the scan happens").
+   */
+  listed() {
+    let text = '';
+    try { text = host.games(); } catch (e) { /* as it was */ }
+    if (text === state.gamesText) return;
+    Front.reload();
   },
   /** A title just added (Add a title): on its shelf, in hand. */
   added(path) {

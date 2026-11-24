@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title うたわれるもの 散りゆく者への子守唄
--- reader: reads The message window: what is said and told, with the speaker's name
+-- reader: reads Dialogue, narration, and speakers
 -- reader: version SLPS-25679, disc version 1.04
 -- うたわれるもの 散りゆく者への子守唄 (Aquaplus, PS2, 2006), SLPS-25679. Program BF9554BE.
 --

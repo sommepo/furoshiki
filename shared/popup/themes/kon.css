@@ -5,7 +5,8 @@
    with its furigana over it, a white rule along the top, and the word not yet known tinted.
    Every colour is a variable. Since 2026-11-17 Kon is the maintainer's own Kon of their Z13
    (its design "kon-mine": headword #fff in Gothic, furigana at 64 %, unknown as a tint, accent
-   and top edge #fff, card buttons 24, frequencies 12.5), for every app. */
+   and top edge #fff, card buttons 24, frequencies 12.5), for every app. Frequencies at 10 since 2026-11-23 (the
+   maintainer: "decrease the size of the frequency tags by default"), the first four shown. */
 :root {
   --font: "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", sans-serif;
   --ground: #101a3a; --raised: #18244d; --text: #ece5d3; --dim: #8a93b5; --accent: #ffffff;
@@ -31,7 +32,7 @@
 .lookups { margin: calc(5px * var(--scale)) 0 0; text-transform: none; letter-spacing: 0.04em; }
 .tags { gap: calc(4px * var(--scale)) 0.6em; }
 .tag { background: none; border: 1px solid var(--rule); border-radius: 2px; padding: 0 5px; }
-.tag.frequency { background: var(--raised); border-color: transparent; font-size: calc(12.5px * var(--scale)); }
+.tag.frequency { background: var(--raised); border-color: transparent; font-size: calc(10px * var(--scale)); letter-spacing: 0.08em; }
 .tag.frequency .tag-value { color: var(--text); letter-spacing: 0.04em; }
 .tag.name { color: var(--accent); border-color: var(--accent); }
 .tag.role { color: var(--text); }

@@ -68,7 +68,8 @@ class PopupKindsTest {
         assertEquals(2, senses.length())
         val word = senses.getJSONObject(0)
         assertEquals("word", word.getString("kind"))
-        assertFalse(word.has("content"))
+        // A word's glossary too, for the full layout (the compact one is the page's).
+        assertEquals("approximately", word.getJSONArray("content").getString(0))
         val grammar = senses.getJSONObject(1)
         assertEquals("grammar", grammar.getString("kind"))
         assertEquals("Bunpro", grammar.getString("heading"))

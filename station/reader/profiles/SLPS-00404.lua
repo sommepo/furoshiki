@@ -1,5 +1,5 @@
 -- reader: title 学校であった怖い話S
--- reader: reads The story's text, written down the page, paragraph by paragraph, and its choices
+-- reader: reads Story text and choices
 -- reader: version SLPS-00404 (boot program 8A7E3290)
 -- reader: no hooks
 -- reader: touch press

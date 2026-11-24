@@ -669,6 +669,22 @@ MainWindow::MainWindow() {
     ReaderApp::ReaderSettings::AnkiTagsDefault() = QStringLiteral("furoshiki");
     // The Reader menu's settings are the pages too.
     ReaderUi::SettingsPages() = [this] { ShowSettingsPages(); };
+    // The dictionaries are a page of the settings (Settings › Dictionaries), not a window of their own.
+    dictionary_shelf = Home::MakeReaderDictionaryShelf();
+    home->SetDictionaries(dictionary_shelf.get());
+    // Every console's game scripts, their names and box art: a page of the settings too.
+    script_shelf = Home::MakeReaderScriptShelf();
+    script_shelf->scripts_changed = [this] { FindGames(); };
+    script_shelf->dictionaries_changed = [this] {
+        if (dictionary_shelf) {
+            dictionary_shelf->Refresh();
+        }
+    };
+    home->SetScripts(script_shelf.get());
+    ReaderUi::DictionaryPages() = [this] {
+        ShowSettingsPages();
+        home->ShowDictionaries();
+    };
     // L2 was the pointer's by default, and the Reader settings window wrote that default down
     // on saving, so a stored L2 says nothing of a choice. Once, it goes back to the games.
     if (QSettings program; !program.contains(QStringLiteral("pointer_button_left_to_games"))) {
@@ -676,6 +692,37 @@ MainWindow::MainWindow() {
         if (ReaderUi::ReaderSession::Instance().Settings().CursorButton() == 104) {
             ReaderUi::SetPointerButton(-1);
         }
+    }
+    // The CRT picture off once for everyone (the maintainer, 2026-11-24: "are we still forcing crt
+    // filters off in settings for users? we should do on first load, and actually even if they
+    // loaded before"): every kept line that switches it on, in reader.ini and in every layer, is
+    // switched off with its other values kept; switched on again after this, it stays on.
+    if (QSettings program; !program.contains(QStringLiteral("crt_switched_off_once"))) {
+        int changed = 0;
+        bool play_changed = false;
+        auto& reader = ReaderUi::ReaderSession::Instance().Settings();
+        const QString own = reader.FileValue(CrtLayers::ReaderKey).toString();
+        if (const QString off = CrtLayers::Off(own); off != own) {
+            reader.SetFileValue(CrtLayers::ReaderKey, off);
+            reader.Sync();
+            ++changed;
+        }
+        for (const auto& [console, game] : play_settings.LayersWith(CrtLayers::Key)) {
+            const QString kept = play_settings.Raw(CrtLayers::Key, console, game);
+            if (const QString off = CrtLayers::Off(kept); off != kept) {
+                play_settings.Set(CrtLayers::Key, off, console, game);
+                play_changed = true;
+                ++changed;
+            }
+        }
+        if (play_changed) {
+            play_settings.Save();
+        }
+        if (changed > 0) {
+            ReaderCrtPage::Load(reader);
+        }
+        program.setValue(QStringLiteral("crt_switched_off_once"), true);
+        qInfo("CRT picture switched off once: %d kept settings changed", changed);
     }
     // Reading time counted before it was tidied when a game stops (2026-11-02): once, every
     // earlier session is tidied too (ReaderDatabase::TidyReadingTime; the Reading tab of the
@@ -750,10 +797,16 @@ MainWindow::MainWindow() {
             OpenSettings(QStringLiteral("Reading"));
         } else if (row == QStringLiteral("Dictionaries")) {
             ReaderUi::RunDictionariesDialog(this);
+            if (dictionary_shelf) {
+                dictionary_shelf->Refresh();
+            }
         } else if (row == QStringLiteral("Download Jitendex")) {
             // The first steps' dictionary (welcome_page.inc): fetched and installed, and said.
             QString problem;
             if (ReaderUi::FetchStarterDictionary(this, &problem)) {
+                if (dictionary_shelf) {
+                    dictionary_shelf->Refresh();
+                }
                 home->Say(QStringLiteral("Jitendex installed"));
             } else if (!problem.isEmpty()) {
                 home->Say(QStringLiteral("Couldn't install Jitendex: %1").arg(problem));
@@ -1266,6 +1319,13 @@ MainWindow::MainWindow() {
 }
 
 MainWindow::~MainWindow() {
+    if (home != nullptr) {
+        home->SetDictionaries(nullptr);
+        home->SetScripts(nullptr);
+    }
+    if (script_shelf) {
+        script_shelf->scripts_changed = nullptr;
+    }
 #ifndef READER_NO_SAVE_SYNC
     SaveSync::Host::Shutdown(); // what is still to be sent, a moment at most
 #endif

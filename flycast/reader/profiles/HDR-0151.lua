@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title セガガガ (Segagaga)
--- reader: reads The message window: what is said in the story's conversations
+-- reader: reads Dialogue
 -- reader: version HDR-0151 (Japan)
 -- Segagaga (Sega, Dreamcast, 2001). docs/reader/games/segagaga.md has what is read, what is
 -- not, and how it was checked.

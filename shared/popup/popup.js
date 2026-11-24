@@ -156,12 +156,42 @@
    * The buttons an entry offers in its state: the card without the line's audio and the card
    * with it (the controller's △ and ○), the book, or all three.
    */
+  /**
+   * Where an entry's card buttons go: with a top corner (the default since 2026-11-24, the
+   * maintainer: "visible without scrolling"), in its headline, which stays pinned at the top
+   * while a long entry of many dictionaries scrolls (left: just after the word; right: at the
+   * edge); with a bottom corner, after the entry as before.
+   */
+  function placeButtons(section, box) {
+    const head = section.querySelector(":scope > .head");
+    if (head && /^top/.test(popup.dataset.corner || "top_right")) {
+      box.classList.add("in-head");
+      const word = head.querySelector(":scope > .headword");
+      head.insertBefore(box, word ? word.nextSibling : head.firstChild);
+    } else {
+      section.appendChild(box);
+    }
+  }
+
+  /** An entry's card buttons swapped for [box] (a card added, the audio question), in the same place. */
+  function swapButtons(section, box) {
+    const old = buttonsOf(section);
+    if (!old) return;
+    if (old.classList.contains("in-head")) box.classList.add("in-head");
+    old.replaceWith(box);
+  }
+
+  /** An entry's card buttons, wherever placeButtons put them. */
+  function buttonsOf(section) {
+    return section.querySelector(":scope > .card-buttons, :scope > .head > .card-buttons");
+  }
+
   function buttons(entry, index) {
     const box = element("div", "card-buttons");
     const labels = model.labels || {};
     const inDeck = entry.state === "inDeck";
     // The pluses are the ones nearer the corner, the book beside them.
-    const left = !model.corner || /left$/.test(model.corner);
+    const left = /left$/.test(model.corner || "top_right");
     const parts = [];
     if (!inDeck || model.duplicates) {
       const state = inDeck ? "add" : entry.state;
@@ -266,7 +296,7 @@
       const node = element("span", "tab" + (one.kind === tab ? " on" : ""));
       node.dataset.kind = one.kind;
       node.setAttribute("role", "tab");
-      node.appendChild(element("span", "tab-name", labels[one.kind + "s"] || labels[one.kind] || KIND_LABELS[one.kind]));
+      node.appendChild(element("span", "tab-name", labels[one.kind + "s"] || (one.kind === "name" ? null : labels[one.kind]) || KIND_LABELS[one.kind]));
       node.appendChild(element("span", "tab-count", String(one.count)));
       node.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -294,33 +324,48 @@
   const CONTENT_STYLES = ["fontStyle", "fontWeight", "fontSize", "color", "backgroundColor", "textDecorationLine",
     "textDecorationStyle", "textDecorationColor", "borderColor", "borderStyle", "borderRadius", "borderWidth",
     "verticalAlign", "textAlign", "textEmphasis", "margin", "marginTop", "marginLeft", "marginRight", "marginBottom",
-    "padding", "paddingTop", "paddingLeft", "paddingRight", "paddingBottom", "wordBreak", "whiteSpace", "listStyleType"];
+    "padding", "paddingTop", "paddingLeft", "paddingRight", "paddingBottom", "wordBreak", "whiteSpace", "listStyleType",
+    "background", "clipPath", "textShadow", "cursor"];
 
-  function content(node, out) {
+  const RTL_LANGS = /^(ar|he|fa|ur|yi|ps|ckb|dv|sd|ug)(-|$)/i;
+  const BLOCK_TAGS = new Set(["div", "li", "p", "td", "th", "summary", "details"]);
+
+  function unsafeCss(text) {
+    const plain = String(text || "").replace(/\\([0-9a-f]{1,6}\s?|.)/gi, (_, esc) => {
+      if (/^[0-9a-f]/i.test(esc)) {
+        const code = parseInt(esc, 16);
+        return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "";
+      }
+      return esc;
+    });
+    return /url\s*\(|image-set\s*\(|expression\s*\(|javascript\s*:|-moz-binding|@import/i.test(plain);
+  }
+
+  function content(node, out, media) {
     if (node === null || node === undefined) return;
     if (typeof node === "string" || typeof node === "number") {
       out.appendChild(document.createTextNode(String(node)));
       return;
     }
     if (Array.isArray(node)) {
-      node.forEach((one) => content(one, out));
+      node.forEach((one) => content(one, out, media));
       return;
     }
     if (typeof node !== "object") return;
     const tag = String(node.tag || "span");
     if (!CONTENT_TAGS.has(tag)) {
-      content(node.content, out);
+      content(node.content, out, media);
       return;
     }
     if (tag === "img") {
-      // No pictures from a dictionary's zip here; what it stands for, when it says.
-      if (node.alt || node.title) out.appendChild(element("span", "sc-img", node.alt || node.title));
+      out.appendChild(picture(node, media));
       return;
     }
-    const made = element(tag === "a" ? "span" : tag, "sc-" + tag);
+    // Yomitan's class names beside this page's, as some dictionaries' stylesheets use them.
+    const made = element(tag === "a" ? "span" : tag, "sc-" + tag + " gloss-sc-" + tag);
     if (node.data && typeof node.data === "object") {
       Object.keys(node.data).forEach((key) => {
-        if (/^[A-Za-z0-9_-]+$/.test(key)) made.setAttribute("data-sc-" + key.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()), String(node.data[key]));
+        if (/^[\p{L}\p{N}_-]+$/u.test(key)) made.setAttribute(dataName(key), String(node.data[key]));
       });
     }
     if (node.style && typeof node.style === "object") {
@@ -328,52 +373,298 @@
         const value = node.style[key];
         if (value === undefined || value === null) return;
         const text = String(value);
-        if (/url\(|expression|javascript:/i.test(text)) return;
+        if (unsafeCss(text)) return;
         made.style[key] = typeof value === "number" && /^(margin|padding|fontSize|borderWidth|borderRadius)/.test(key) ? value + "em" : text;
       });
     }
     if (node.lang && /^[A-Za-z-]{2,12}$/.test(node.lang)) made.lang = node.lang;
+    // Arabic, Hebrew, Persian or Urdu runs right to left; any block finds its own direction from
+    // its first letters, so a line of Arabic with Japanese in it reads in the right order.
+    if (RTL_LANGS.test(made.lang || "")) made.dir = "rtl";
+    else if (BLOCK_TAGS.has(tag)) made.dir = "auto";
     if (node.title) made.title = String(node.title);
     if ((tag === "td" || tag === "th") && node.colSpan > 1) made.colSpan = Math.min(20, Number(node.colSpan));
     if ((tag === "td" || tag === "th") && node.rowSpan > 1) made.rowSpan = Math.min(50, Number(node.rowSpan));
     if (tag === "details" && node.open) made.open = true;
     if (tag === "a") made.classList.add("link");
-    content(node.content, made);
+    content(node.content, made, media);
     out.appendChild(made);
   }
 
-  /** One glossary as its dictionary laid it out: its definitions, each a block of its own. */
-  function glossary(items) {
+  /**
+   * A structured-content data key as Yomitan names its attribute (dataset["sc" + Key]): the first
+   * letter as a capital, so "Contents" and "contents" are both data-sc-contents. 大辞泉's keys
+   * begin with a capital; written data-sc--contents, its stylesheet's "1.5em" missed them and its
+   * text came out at 0.7 of the size (2026-11-24). Keys in Japanese ("歴史") are kept as they
+   * are, which its stylesheet names too (span[data-sc歴史]).
+   */
+  function dataName(key) {
+    const camel = key.charAt(0).toUpperCase() + key.slice(1);
+    return "data-sc" + camel.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+  }
+
+  /** A number of a picture's size in its unit (Yomitan's sizeUnits: px, or em to sit in a line). */
+  function measure(value, unit) {
+    const number = Number(value);
+    return number > 0 && number < 4000 ? number + unit : "";
+  }
+
+  /**
+   * A picture from the dictionary's zip (Yomitan's "img", or an image item), as the app handed it
+   * over: [media] maps its path to a data address, the only source a picture may have. A
+   * monochrome one (a rare character's glyph) is drawn in the text's colour through it as a mask.
+   * Without the picture, what it stands for, when it says.
+   */
+  function picture(node, media) {
+    let source = media && typeof node.path === "string" ? media[node.path] : null;
+    // A picture sent once and named after ("pic:" and its key), kept until the page loads again.
+    if (typeof source === "string" && source.startsWith("pic:")) source = pictureStore.get(source.slice(4));
+    if (typeof source !== "string" || !/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(source)) {
+      return element("span", "sc-img missing", node.alt || node.title || node.description || "");
+    }
+    const unit = node.sizeUnits === "em" ? "em" : "px";
+    const ratio = Number(node.width) > 0 && Number(node.height) > 0 ? Number(node.height) / Number(node.width) : 0;
+    let width = Number(node.preferredWidth) || 0, height = Number(node.preferredHeight) || 0;
+    if (width && !height && ratio) height = width * ratio;
+    if (height && !width && ratio) width = height / ratio;
+    if (!width && !height) { width = Number(node.width) || 0; height = Number(node.height) || 0; }
+    const box = element("span", "sc-img gloss-image-container" + (unit === "em" ? " em-units" : ""));
+    box.dataset.scAppearance = node.appearance === "monochrome" ? "monochrome" : "auto";
+    if (node.data && typeof node.data === "object") {
+      Object.keys(node.data).forEach((key) => {
+        if (/^[\p{L}\p{N}_-]+$/u.test(key)) box.setAttribute(dataName(key), String(node.data[key]));
+      });
+    }
+    if (measure(width, unit)) box.style.width = measure(width, unit);
+    if (measure(height, unit)) box.style.height = measure(height, unit);
+    if (typeof node.verticalAlign === "string" && /^[a-z-]+$/.test(node.verticalAlign)) box.style.verticalAlign = node.verticalAlign;
+    if (typeof node.border === "string" && !unsafeCss(node.border)) box.style.border = node.border;
+    if (typeof node.borderRadius === "string" && !unsafeCss(node.borderRadius)) box.style.borderRadius = node.borderRadius;
+    if (node.title) box.title = String(node.title);
+    if (node.appearance === "monochrome") {
+      const mask = element("span", "gloss-image-mask");
+      const address = 'url("' + source.replace(/[\s"'()\\]/g, "") + '")';
+      mask.style.webkitMaskImage = address;
+      mask.style.maskImage = address;
+      box.appendChild(mask);
+    } else {
+      const image = element("img", "gloss-image");
+      image.alt = node.alt || "";
+      image.decoding = "async";
+      if (node.pixelated || node.imageRendering === "pixelated") image.style.imageRendering = "pixelated";
+      else if (node.imageRendering === "crisp-edges") image.style.imageRendering = "crisp-edges";
+      if (node.background === false) box.classList.add("no-background");
+      image.addEventListener("load", reportSoon);
+      image.src = source;
+      box.appendChild(image);
+    }
+    if (!width && !height) box.classList.add("natural");
+    return box;
+  }
+
+  /**
+   * A plain definition's lines, each a block that finds its own direction: one line of Arabic and
+   * the next of Japanese each read in their own order (a bidi paragraph per line).
+   */
+  function lines(text, out) {
+    const all = String(text === undefined || text === null ? "" : text);
+    // Right-to-left lines among the others keep a line each even in the compact layout: run on,
+    // a line of Arabic and one of Japanese cannot be read in either order.
+    if (/[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/.test(all)) out.classList.add("bidi");
+    all.split(/\r?\n/).forEach((line) => {
+      const node = element("div", "sc-line", line);
+      node.dir = "auto";
+      out.appendChild(node);
+    });
+  }
+
+  /**
+   * One glossary as its dictionary laid it out: its definitions, each a block of its own, with
+   * the pictures of [media] (path to data address). Several plain definitions are a list.
+   */
+  function glossary(items, media) {
     const out = element("div", "sc");
-    (Array.isArray(items) ? items : [items]).forEach((item) => {
+    const list = Array.isArray(items) ? items : [items];
+    if (list.length > 1) out.classList.add("several");
+    list.forEach((item) => {
       const block = element("div", "sc-definition");
-      if (typeof item === "string") content(item, block);
-      else if (item && item.type === "text") content(item.text, block);
-      else if (item && item.type === "structured-content") content(item.content, block);
-      else return; // a picture, or the pointer of an inflected form
+      block.dir = "auto";
+      if (typeof item === "string" || (item && item.type === "text")) lines(typeof item === "string" ? item : item.text, block);
+      else if (item && item.type === "structured-content") content(item.content, block, media);
+      else if (item && item.type === "image") block.appendChild(picture(item, media));
+      else return; // the pointer of an inflected form
+      if (typeof item === "string" || (item && item.type === "text")) block.classList.add("plain");
       out.appendChild(block);
     });
     return out;
   }
 
+  // ---- The dictionaries' own stylesheets (styles.css), as Yomitan applies them ----
+  // Each rule's selectors are put under its own dictionary's senses, so it styles nothing else,
+  // and nested rules are written out flat (the Thor's WebView, Chromium 109, has no CSS nesting,
+  // and Jitendex's stylesheet uses it). Nothing may be fetched: @import, @font-face and any
+  // declaration with url() are left out.
+
+  /** The rules of a stylesheet: {prelude, decls, rules} blocks, at-rules among them. */
+  function parseCss(text) {
+    let at = 0;
+    function block() {
+      const out = { decls: [], rules: [] };
+      let buffer = "";
+      while (at < text.length) {
+        const c = text[at];
+        if (c === '"' || c === "'") {
+          let stop = at + 1;
+          while (stop < text.length) {
+            if (text[stop] === "\\") { stop += 2; continue; }
+            if (text[stop] === c) { stop++; break; }
+            stop++;
+          }
+          const end = Math.min(stop, text.length);
+          buffer += text.slice(at, end);
+          at = end;
+          continue;
+        }
+        at++;
+        if (c === "{") {
+          const prelude = buffer.trim();
+          buffer = "";
+          const inner = block();
+          inner.prelude = prelude;
+          out.rules.push(inner);
+        } else if (c === "}") {
+          break;
+        } else if (c === ";") {
+          if (buffer.trim()) out.decls.push(buffer.trim());
+          buffer = "";
+        } else {
+          buffer += c;
+        }
+      }
+      if (buffer.trim()) out.decls.push(buffer.trim());
+      return out;
+    }
+    text = text.replace(/\/\*[\s\S]*?\*\//g, "");
+    return block();
+  }
+
+  /** A selector list split at its top-level commas. */
+  function selectorsOf(prelude) {
+    const out = [];
+    let depth = 0, from = 0, quote = "";
+    for (let i = 0; i < prelude.length; ++i) {
+      const c = prelude[i];
+      if (quote) {
+        if (c === "\\") { i++; continue; }
+        if (c === quote) quote = "";
+        continue;
+      }
+      if (c === '"' || c === "'") quote = c;
+      else if (c === "(" || c === "[") depth++;
+      else if (c === ")" || c === "]") depth = Math.max(0, depth - 1);
+      else if (c === "," && depth === 0) { out.push(prelude.slice(from, i).trim()); from = i + 1; }
+    }
+    out.push(prelude.slice(from).trim());
+    return out.filter(Boolean);
+  }
+
+  /** The rules of [node] written out under [parents] (selectors), flat. */
+  function writeCss(node, parents, out) {
+    const decls = node.decls.filter((decl) => !unsafeCss(decl) && !/^@/.test(decl));
+    if (node.prelude !== undefined && decls.length) out.push(parents.join(",\n") + " { " + decls.join("; ") + "; }");
+    node.rules.forEach((rule) => {
+      const prelude = rule.prelude || "";
+      if (prelude[0] === "@") {
+        // @media and @supports keep their condition; the rest (@font-face, @keyframes, @import...) go.
+        if (!/^@(media|supports)\b/i.test(prelude) || unsafeCss(prelude)) return;
+        const inner = [];
+        writeCss({ decls: [], rules: rule.rules.concat(rule.decls.length ? [{ prelude: "&", decls: rule.decls, rules: [] }] : []) }, parents, inner);
+        if (inner.length) out.push(prelude + " {\n" + inner.join("\n") + "\n}");
+        return;
+      }
+      const selectors = [];
+      selectorsOf(prelude).forEach((selector) => parents.forEach((parent) => {
+        selectors.push(selector.indexOf("&") >= 0 ? selector.replace(/&/g, parent) : parent + " " + selector);
+      }));
+      if (selectors.length) writeCss(rule, selectors, out);
+    });
+  }
+
+  let stylesShown = "";
+
+  let scopedStyles = new Map(); // title → { css, scoped }
+  const pictureStore = new Map(); // a picture's key → its data address (SharePictures)
+  function dictionaryStyles(styles) {
+    let node = document.getElementById("dictionaries");
+    if (!node) {
+      node = document.createElement("style");
+      node.id = "dictionaries";
+      const before = document.getElementById("console");
+      document.head.insertBefore(node, before || null);
+    }
+    const parts = [];
+    const kept = new Map();
+    Object.keys(styles || {}).sort().forEach((title) => {
+      const css = String(styles[title] || "");
+      if (!css.trim()) return;
+      // A stylesheet is scoped once and kept: the same ones come with every lookup.
+      const known = scopedStyles.get(title);
+      let scoped;
+      if (known && known.css === css) {
+        scoped = known.scoped;
+      } else {
+        const name = String(title).replace(/["\\]/g, "\\$&").replace(/\n/g, " ");
+        const out = [];
+        writeCss(parseCss(css), ['.sense[data-dictionary="' + name + '"] .sc'], out);
+        scoped = out.join("\n");
+      }
+      kept.set(title, { css, scoped });
+      parts.push(scoped);
+    });
+    scopedStyles = kept;
+    const text = parts.join("\n").replace(/<\/style/gi, "");
+    if (text !== stylesShown) {
+      stylesShown = text;
+      node.textContent = text;
+    }
+  }
+  /** For the tests: a stylesheet as this page puts it under [scope]. */
+  function scopedCss(css, scope) {
+    const out = [];
+    writeCss(parseCss(String(css || "")), [scope], out);
+    return out.join("\n");
+  }
+
   function headline(entry) {
     const head = element("div", "head");
     const word = element("ruby", "headword");
-    word.appendChild(document.createTextNode(entry.expression));
-    if (entry.reading) word.appendChild(element("rt", null, entry.reading));
-    head.appendChild(word);
-    if (entry.reading) head.appendChild(element("span", "reading", entry.reading));
-    if (entry.name) {
-      // A name in this game, from its names dictionary.
-      const tag = element("span", "tag name", (model.labels && model.labels.name) || "Name");
-      tag.dataset.category = "name";
-      head.appendChild(tag);
+    // look.pitch "over" (the default): the pitch line is drawn over the reading's kana, where the
+    // reading is (the furigana, the reading beside the word, or a kana word itself).
+    const over = overReading(entry);
+    word.appendChild(over && !entry.reading ? over.draw() : document.createTextNode(entry.expression));
+    if (entry.reading) {
+      const rt = element("rt", null, over ? null : entry.reading);
+      if (over) rt.appendChild(over.draw());
+      word.appendChild(rt);
     }
+    head.appendChild(word);
+    if (entry.reading) {
+      const reading = element("span", "reading");
+      reading.appendChild(over ? over.draw() : document.createTextNode(entry.reading));
+      head.appendChild(reading);
+    }
+    // A name in this game is shown on the Names tab, with no badge of its own by the word (the
+    // maintainer, 2026-11-23: "dont put name in japanese on the popup").
     if (entry.reasons && entry.reasons.length) head.appendChild(element("span", "reasons", "« " + entry.reasons.join(" « ")));
-    (entry.pitches || []).forEach((pitch) => head.appendChild(element("span", "pitch", pitch)));
+    pitchesOf(entry, over).forEach((node) => head.appendChild(node));
     if (entry.frequencies && entry.frequencies.length) {
       const tags = element("span", "tags frequencies");
-      entry.frequencies.forEach((frequency) => {
+      // The first few; the others behind "+N" (look.frequencies, 0 for all), open for this
+      // word once tapped.
+      const few = (model.look || {}).frequencies;
+      const shown = allFrequencies ? 0 : (few === undefined ? FREQUENCIES_SHOWN : Number(few) || 0);
+      entry.frequencies.forEach((frequency, index) => {
+        if (shown && index >= shown) return;
         const tag = element("span", "tag frequency");
         tag.dataset.category = "frequency";
         tag.dataset.dictionary = frequency.dictionary;
@@ -381,9 +672,169 @@
         tag.appendChild(element("span", "tag-value", frequency.value));
         tags.appendChild(tag);
       });
+      if (shown && entry.frequencies.length > shown) {
+        const more = element("span", "tag frequency more-frequencies", "+" + (entry.frequencies.length - shown));
+        more.dataset.category = "frequency";
+        more.title = entry.frequencies.slice(shown).map((f) => f.dictionary + " " + f.value).join("\n");
+        more.addEventListener("click", (event) => {
+          event.stopPropagation();
+          allFrequencies = true;
+          document.querySelectorAll(".tags.frequencies").forEach((row) => {
+            const index = Number(row.closest(".entry") ? row.closest(".entry").dataset.index : -1);
+            const one = (model.entries || [])[index];
+            if (one) row.replaceWith(headline(one).querySelector(".tags.frequencies"));
+          });
+          reportSoon();
+        });
+        tags.appendChild(more);
+      }
       head.appendChild(tags);
     }
     return head;
+  }
+
+  // ---- Pitch accent (entry.pitchAccents: dictionary, reading, positions), as Yomitan shows it ----
+  const SMALL_KANA = "ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ";
+
+  /** A reading's morae: a small kana goes with the one before it. */
+  function morae(reading) {
+    const out = [];
+    Array.from(reading || "").forEach((c) => {
+      if (out.length && SMALL_KANA.indexOf(c) >= 0) out[out.length - 1] += c;
+      else out.push(c);
+    });
+    return out;
+  }
+
+  /** Whether mora [at] (0-based; the count of morae is the particle after them) is high. */
+  function high(position, at) {
+    if (position === 0) return at > 0;
+    if (position === 1) return at === 0;
+    return at > 0 && at < position;
+  }
+
+  /** The downstep graph: a dot a mora, the particle after them a triangle, as Yomitan draws it. */
+  function pitchGraph(count, position) {
+    const svg = document.createElementNS(SVG, "svg");
+    const width = 50 * (count + 1);
+    svg.setAttribute("viewBox", "0 0 " + width + " 100");
+    svg.setAttribute("class", "pitch-graph");
+    svg.style.width = (count + 1) * 0.75 + "em"; // half as wide a mora as tall (base.css: 1.5em)
+    const y = (at) => (high(position, at) ? 25 : 75);
+    const points = [];
+    for (let at = 0; at <= count; ++at) points.push((25 + at * 50) + "," + y(at));
+    const line = document.createElementNS(SVG, "polyline");
+    line.setAttribute("points", points.slice(0, count).join(" "));
+    line.setAttribute("class", "pitch-line");
+    svg.appendChild(line);
+    const tail = document.createElementNS(SVG, "polyline");
+    tail.setAttribute("points", points.slice(count - 1, count + 1).join(" "));
+    tail.setAttribute("class", "pitch-line tail");
+    svg.appendChild(tail);
+    for (let at = 0; at < count; ++at) {
+      const dot = document.createElementNS(SVG, "circle");
+      dot.setAttribute("cx", String(25 + at * 50));
+      dot.setAttribute("cy", String(y(at)));
+      dot.setAttribute("r", "13");
+      // The last high mora before the fall is drawn open.
+      const falls = position > 0 && at === position - 1;
+      dot.setAttribute("class", "pitch-dot" + (falls ? " downstep" : ""));
+      svg.appendChild(dot);
+    }
+    const particle = document.createElementNS(SVG, "path");
+    const px = 25 + count * 50, py = y(count);
+    particle.setAttribute("d", "M" + px + " " + (py - 13) + " L" + (px + 13) + " " + (py + 10) + " L" + (px - 13) + " " + (py + 10) + " Z");
+    particle.setAttribute("class", "pitch-particle");
+    svg.appendChild(particle);
+    return svg;
+  }
+
+  /** The reading with a line over the high morae and ꜜ where it falls. */
+  function pitchText(parts, position, mark) {
+    const out = element("span", "pitch-text");
+    parts.forEach((mora, at) => {
+      const node = element("span", "mora" + (high(position, at) ? " high" : ""), mora);
+      // The line comes down where it falls: after this mora (a flat word's goes on into the particle).
+      if (high(position, at) && (at === parts.length - 1 ? position === parts.length : !high(position, at + 1))) node.classList.add("end");
+      out.appendChild(node);
+      if (mark && position > 0 && at === position - 1) out.appendChild(element("span", "downstep", "ꜜ"));
+    });
+    return out;
+  }
+
+  /** The frequencies shown before "+N" when look.frequencies does not say. */
+  const FREQUENCIES_SHOWN = 4;
+  let allFrequencies = false;
+
+  function toHiragana(text) {
+    return String(text || "").replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
+  /**
+   * The pitch accent to draw over the entry's reading (look.pitch "over"): the first position a
+   * dictionary gives for this very reading, as {position, draw()}; null when there is none or
+   * another form is chosen.
+   */
+  function overReading(entry) {
+    if (((model.look || {}).pitch || "over") !== "over") return null;
+    const reading = entry.reading || entry.expression;
+    const readingHira = toHiragana(reading);
+    const accents = Array.isArray(entry.pitchAccents) ? entry.pitchAccents : [];
+    const one = accents.find((a) => toHiragana(a.reading || reading) === readingHira && (a.positions || []).length);
+    if (!one || !/^[\u3040-\u30ff]+$/.test(reading)) return null;
+    const position = one.positions[0];
+    const parts = morae(reading);
+    return {
+      position: position,
+      reading: reading,
+      draw: () => {
+        const node = pitchText(parts, position, false);
+        node.classList.add("over");
+        node.title = "[" + position + "] " + accents.filter((a) => (a.positions || []).indexOf(position) >= 0)
+          .map((a) => a.dictionary).filter((d, i, all) => all.indexOf(d) === i).join(" · ");
+        return node;
+      },
+    };
+  }
+
+  /**
+   * The headline's pitch accents in the form chosen (look.pitch: over, graph, text, number, all,
+   * off). With "over", the one drawn over the reading (`over`) is left out and any other is
+   * written beside the word as text.
+   */
+  function pitchesOf(entry, over) {
+    let form = ((model.look || {}).pitch || "over");
+    if (form === "off") return [];
+    if (form === "over") form = "text";
+    const accents = Array.isArray(entry.pitchAccents) ? entry.pitchAccents : [];
+    if (!accents.length || form === "number") {
+      if (accents.length) {
+        const seen = [];
+        accents.forEach((one) => (one.positions || []).forEach((p) => { if (seen.indexOf(p) < 0) seen.push(p); }));
+        const tag = element("span", "pitch", "[" + seen.join(",") + "]");
+        tag.title = accents.map((one) => one.dictionary).filter((d, i, all) => all.indexOf(d) === i).join(" · ");
+        return [tag];
+      }
+      return (entry.pitches || []).map((pitch) => element("span", "pitch", pitch));
+    }
+    // One of each position, whichever dictionaries say it; the dictionaries in its title.
+    const shown = [];
+    accents.forEach((one) => (one.positions || []).forEach((position) => {
+      const reading = one.reading || entry.reading || entry.expression;
+      const same = shown.find((s) => s.position === position && s.reading === reading);
+      if (same) { if (same.dictionaries.indexOf(one.dictionary) < 0) same.dictionaries.push(one.dictionary); }
+      else shown.push({ position: position, reading: reading, dictionaries: [one.dictionary] });
+    }));
+    return shown.filter((one) => !over || one.position !== over.position || toHiragana(one.reading) !== toHiragana(over.reading)).map((one) => {
+      const parts = morae(one.reading);
+      const node = element("span", "pitch-accent");
+      node.dataset.position = String(one.position);
+      node.title = "[" + one.position + "] " + one.dictionaries.join(" · ");
+      if (form === "text" || form === "all") node.appendChild(pitchText(parts, one.position, form === "all"));
+      if ((form === "graph" || form === "all") && parts.length) node.appendChild(pitchGraph(parts.length, one.position));
+      if (form === "all") node.appendChild(element("span", "pitch", "[" + one.position + "]"));
+      return node;
+    });
   }
 
   /** A name written with its reading over it, part by part where the two have as many parts. */
@@ -452,8 +903,24 @@
     return short || String(name);
   }
 
-  function senses(entry, kind) {
+  /**
+   * `defer`, when given, takes the drawing of the layouts after the first few (a function to
+   * run a moment later): an entry with many dictionaries shows its first ones at once.
+   */
+  /**
+   * A sense whose definition came out with nothing to read or see (a dictionary's empty
+   * numbered heading: the maintainer's recording showed "1" and "3" alone) is not shown.
+   */
+  function emptied(item, made) {
+    // Compact leaves Yomitan-style gloss lists whole (clampSenses): known as soon as it is drawn.
+    if (made.querySelector('[data-sc-content="glossary"]')) item.classList.add("uncut");
+    if (made.textContent.trim() || made.querySelector(".sc-img, img, svg, table")) return;
+    item.classList.add("empty");
+  }
+
+  function senses(entry, kind, defer) {
     const out = document.createDocumentFragment();
+    let drawnNow = 0;
     let list = null;
     const look = model.look || {};
     // With its card drawn, a name's own senses (the card's words again, as plain lines) are left out.
@@ -483,6 +950,9 @@
       if (sense.dictionary) item.dataset.dictionary = sense.dictionary;
       item.dataset.kind = senseKind(sense);
       if (sense.name) item.classList.add("name");
+      // Every dictionary's layout is its own; look.glossary "compact" runs a word's gloss lists on
+      // one line and leaves its examples out (base.css, .popup[data-glossary="compact"]), as
+      // Yomitan's compact glossaries do. The flattened glosses are for a sense without one.
       const laidOut = sense.content !== undefined && sense.content !== null;
       if (laidOut) item.classList.add("laid-out");
       if (!laidOut || per[sense.dictionary] > 1) item.appendChild(element("span", "number", String(sense.number)));
@@ -508,10 +978,28 @@
       }
       if (laidOut) {
         // A grammar or a character dictionary: its formation boxes, examples and tables as it set them.
-        item.appendChild(glossary(sense.content));
+        if (defer && drawnNow >= EAGER_SENSES) {
+          const place = element("span", "sc-later");
+          item.appendChild(place);
+          defer(() => {
+            if (!place.parentNode) return;
+            const made = glossary(sense.content, sense.media);
+            place.parentNode.replaceChild(made, place);
+            emptied(item, made);
+          });
+        } else {
+          const made = glossary(sense.content, sense.media);
+          item.appendChild(made);
+          emptied(item, made);
+          ++drawnNow;
+        }
       } else {
         const glosses = element("span", "glosses");
-        (sense.glosses || []).forEach((gloss) => glosses.appendChild(element("span", "gloss", gloss)));
+        (sense.glosses || []).forEach((gloss) => {
+          const one = element("span", "gloss", gloss);
+          one.dir = "auto"; // an Arabic gloss keeps its own order among the others
+          glosses.appendChild(one);
+        });
         item.appendChild(glosses);
         if (sense.notes) item.appendChild(element("span", "notes", " (" + sense.notes + ")"));
       }
@@ -589,9 +1077,15 @@
   }
 
   /** Draws the model; [fresh] for a new one (Reader.show), else another tab of the same. */
+  /** Entries drawn at once, and of them the laid-out senses; the rest are filled in after (draw). */
+  const EAGER = 1;
+  const EAGER_SENSES = 4;
+  let drawn = 0;
+
   function draw(fresh) {
+    if (fresh) allFrequencies = false;
     popup.textContent = "";
-    popup.dataset.corner = model.corner || "bottom_left";
+    popup.dataset.corner = model.corner || "top_right";
     popup.dataset.console = model.console || "";
     popup.dataset.game = model.game || "";
     popup.classList.toggle("no-mark", model.markUnknown === false);
@@ -608,6 +1102,7 @@
     if (look.accent && /^#[0-9a-fA-F]{6}$/.test(look.accent)) root.setProperty("--accent", look.accent);
     else root.removeProperty("--accent");
     popup.classList.toggle("no-tags", !!look.hideTags);
+    popup.dataset.glossary = look.glossary === "compact" ? "compact" : "full";
     popup.classList.toggle("pad", pad);
     popup.dataset.portrait = look.portrait || "small";
     if (model.message) {
@@ -629,6 +1124,12 @@
     popup.classList.toggle("tabbed", tabbed);
     popup.dataset.tab = tab;
     if (tabbed && !model.message) popup.appendChild(tabRow());
+    // The first entries are drawn at once; the others' definitions a moment later, one entry at
+    // a time, so that a hover with many dictionaries shows its best match without waiting for
+    // the rest (a long headword list of big dictionaries took tens of milliseconds).
+    const drawing = ++drawn;
+    let eager = 0;
+    const later = [];
     (model.entries || []).forEach((entry, index) => {
       const kinds = kindsOf(entry);
       if (tabbed && kinds.indexOf(tab) < 0) return;
@@ -640,21 +1141,41 @@
       section.classList.toggle("unknown", !!entry.unknown);
       const asCharacter = (kind || kinds[0]) === "kanji";
       if (!asCharacter) section.appendChild(headline(entry));
-      // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
-      if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) section.appendChild(nameCard(entry.card));
-      if (asCharacter) section.appendChild(character(entry, kind));
-      else section.appendChild(senses(entry, kind));
-      if (entry.forms && entry.forms.length && (!kind || kind === "word")) section.appendChild(forms(entry));
-      // How often it was looked up: one line under the definition, never above it.
-      if (entry.history) {
-        const lookups = element("div", "lookups", entry.history);
-        lookups.title = entry.history;
-        section.appendChild(lookups);
-      }
+      const fill = () => {
+        const before = section.querySelector(":scope > .card-buttons");
+        const put = (node) => section.insertBefore(node, before);
+        // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
+        if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) put(nameCard(entry.card));
+        if (asCharacter) put(character(entry, kind));
+        else put(senses(entry, kind, (job) => later.push(job)));
+        if (entry.forms && entry.forms.length && (!kind || kind === "word")) put(forms(entry));
+        // How often it was looked up: one line under the definition, never above it.
+        if (entry.history) {
+          const lookups = element("div", "lookups", entry.history);
+          lookups.title = entry.history;
+          put(lookups);
+        }
+      };
       // A kanji bank's character is not a word of the line: no card of it.
-      if (!entry.kanji) section.appendChild(buttons(entry, index));
+      if (!entry.kanji) placeButtons(section, buttons(entry, index));
+      if (eager < EAGER) {
+        fill();
+        ++eager;
+      } else {
+        section.classList.add("filling");
+        later.push(() => { fill(); section.classList.remove("filling"); });
+      }
       popup.appendChild(section);
     });
+    // A few milliseconds of it at a time, so that a pointer moving on is never kept waiting.
+    const next = () => {
+      if (drawing !== drawn || !later.length) return;
+      const until = performance.now() + 8;
+      do later.shift()(); while (later.length && performance.now() < until);
+      reportSoon();
+      if (later.length) setTimeout(next, 0);
+    };
+    if (later.length) setTimeout(next, 0);
     popup.scrollTop = 0;
     // A controller's d-pad starts on the first entry of the tab.
     popup.classList.toggle("choosing", !!model.choose);
@@ -669,6 +1190,7 @@
 
   /** How tall the popup is, where its buttons are and what it says, for the app. */
   function report() {
+    clampSenses();
     pin();
     const boxes = [];
     popup.querySelectorAll(".card").forEach((node) => {
@@ -700,10 +1222,39 @@
       need = content; // a message
     }
     post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
-           scrolled: popup.scrollTop, boxes: boxes, text: popup.innerText });
+           scrolled: popup.scrollTop, boxes: boxes });
   }
 
   let pending = false;
+  /**
+   * Compact (look.glossary "compact"): a sense longer than a few lines (a monolingual
+   * dictionary's, an encyclopedia's, a grammar's with its pictures) is cut there (base.css) and
+   * a "more" under it opens it whole. Checked as the page reports its size, so a sense drawn a
+   * moment later or a picture that loaded is seen too.
+   */
+  function clampSenses() {
+    if (popup.dataset.glossary !== "compact") return;
+    popup.querySelectorAll(".sense.laid-out:not(.open):not(.clipped):not(.uncut)").forEach((item) => {
+      // Yomitan-style gloss lists (JMdict, Jitendex) are already a line a sense in compact: such a
+      // dictionary's several senses in one block are not cut.
+      if (item.querySelector('[data-sc-content="glossary"]')) {
+        item.classList.add("uncut");
+        return;
+      }
+      if (item.scrollHeight <= item.clientHeight + 4) return;
+      item.classList.add("clipped");
+      const more = element("div", "link more sense-more", (model.labels && model.labels.more) || "more");
+      more.addEventListener("click", (event) => {
+        event.stopPropagation();
+        item.classList.remove("clipped");
+        item.classList.add("open");
+        more.remove();
+        reportSoon();
+      });
+      item.after(more);
+    });
+  }
+
   function reportSoon() {
     if (pending) return;
     pending = true;
@@ -772,7 +1323,7 @@
     box.appendChild(askButton(playing ? "stop" : "play", playing ? labels.stop : labels.listen));
     box.appendChild(askButton("keep", labels.keep));
     box.appendChild(askButton("drop", labels.drop));
-    section.replaceChild(box, section.querySelector(".card-buttons"));
+    swapButtons(section, box);
     reportSoon();
   }
 
@@ -947,14 +1498,52 @@
       asking = -1;
       const entry = (model.entries || [])[index];
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
-      if (entry && section) section.replaceChild(buttons(entry, index), section.querySelector(".card-buttons"));
+      if (entry && section) swapButtons(section, buttons(entry, index));
       reportSoon();
     },
     show(next) {
       asking = -1;
       model = next || { entries: [] };
       if (model.pad !== undefined) pad = !!model.pad;
+      if (model.styles !== undefined) dictionaryStyles(model.styles);
+      if (model.forgetPictures) pictureStore.clear();
+      if (model.pictures && typeof model.pictures === "object") {
+        Object.keys(model.pictures).forEach((key) => pictureStore.set(key, model.pictures[key]));
+      }
       draw(true);
+    },
+    /**
+     * The same words with more of their definitions (Android reads the first headwords' before
+     * the popup shows and the rest straight after): drawn again on the same tab, at the same
+     * scroll, the entry in hand kept.
+     */
+    fill(next) {
+      if (!next || !Array.isArray(next.entries)) return;
+      if (next.pictures && typeof next.pictures === "object") {
+        Object.keys(next.pictures).forEach((key) => pictureStore.set(key, next.pictures[key]));
+      }
+      const previous = model.entries || [];
+      const merged = next.entries.map((entry, index) => {
+        const old = previous[index];
+        if (!old || old.expression !== entry.expression || old.reading !== entry.reading) return entry;
+        return Object.assign({}, entry, {
+          state: old.state && old.state !== "add" ? old.state : entry.state,
+          unknown: old.unknown !== undefined ? old.unknown : entry.unknown,
+        });
+      });
+      const scrolled = popup.scrollTop;
+      const wasChosen = chosen;
+      model.entries = merged;
+      const found = tabsOf(model.entries);
+      tabs = found.tabs;
+      if (!tabs.some((one) => one.kind === tab)) tab = found.first;
+      draw(false);
+      if (model.choose && wasChosen >= 0 && popup.querySelector('.entry[data-index="' + wasChosen + '"]')) {
+        chooseEntry(wasChosen, false);
+      }
+      if (asking >= 0) drawAsk(false);
+      popup.scrollTop = scrolled;
+      reportSoon();
     },
     /** The next tab (1) or the one before (-1), round the row: a controller's R1 and L1. */
     tab(step) {
@@ -1006,6 +1595,10 @@
         if (right) right.textContent = keyOf("right") || "R";
       }
     },
+    /** A dictionary's stylesheet as the page applies it under [scope] (for the tests). */
+    scopedCss(css, scope) {
+      return scopedCss(css, scope);
+    },
     /** The tabs these entries make and the one the popup opens on (for the app and the tests). */
     kinds(entries) {
       return tabsOf(entries);
@@ -1018,7 +1611,7 @@
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
       if (!section) return;
       section.dataset.state = state;
-      section.replaceChild(buttons(entry, index), section.querySelector(".card-buttons"));
+      swapButtons(section, buttons(entry, index));
       // The card was just made: the book lands where the plus was.
       if (state === "inDeck" && was === "working") {
         play(section.querySelector(".card.book"), "landing");

@@ -119,6 +119,8 @@ function actions() {
   const served = !!host.services;
   const shared = mapData().actions.filter(one => !one.desktop && !NOT_HERE.has(one.id) && (served || !one.id.startsWith('furoshiki_guide')));
   const more = HERE_TOO.filter(one => !shared.some(other => other.id === one.id));
+  // On-screen controls, never on a device with a second display (the maintainer, 2026-11-24).
+  if (!host.hasSecondDisplay?.()) more.push({id: 'furoshiki_touch_buttons', label: 'Show/hide on-screen controls'});
   if (served && !shared.some(one => one.id === 'reader_explain')) more.push({id: 'reader_explain', label: 'Explain line'});
   return [...shared, ...more];
 }
@@ -633,7 +635,7 @@ function sameAsAll() {
   host.sameAsAll(console);
   readMap();
   drawMap();
-  say(map.tabs[map.tab].name + ' uses the buttons of all consoles again');
+  say(map.tabs[map.tab].name + ' reset to default buttons');
 }
 
 // ---- The controller, its key codes as they come (HomeActivity hands them over while this is open) ----

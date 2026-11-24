@@ -10,7 +10,9 @@ dictionary layout presets to make the dictionary quality rival Hachidori") `sola
 `solarized-light`, `glass` (see-through, two thirds solid by itself), `dense` (everything run on
 in lines, after Nazeka), `kuro` (a black sheet at 85 %, a block per dictionary, after JL),
 `shoin` (a ruled serif page, senses numbered in the margin), `ookii` (large type) and `kumihan`
-(組版: type and hairlines only, one accent), and since 2026-11-10 `kon` (Furoshiki 3's Kon: cream on indigo; since 2026-11-17 the maintainer's own Kon of their Z13, "kon-mine", for every app: a white headword in Gothic with its furigana at 64 %, the word not yet known as a tint, white accent and top edge, card buttons 24, frequencies 12.5).
+(組版: type and hairlines only, one accent), and `kon` (cream on indigo: a white headword in Gothic
+with its furigana at 64%, unknown words lightly tinted, white accent and top edge, 24 px card
+buttons, and 12.5 px frequency tags).
 **Which look by default** (since 2026-11-17): `auto`, the look of the app's home theme: Kon →
 `kon`, Solarized → `solarized-dark`, Paper → `paper`, Mono → `kumihan`; the console's colours in
 an app without one. A look the user chose wins. Android keeps the home page's theme as
@@ -43,19 +45,95 @@ After any change here: `tools/popup.py inc` (and `tools/popup.py check` says whe
 (Android), every string put into the page as text, never as markup:
 
 ```json
-{ "corner": "bottom_left", "duplicates": false, "markUnknown": true, "scale": 100,
+{ "corner": "top_right", "duplicates": false, "markUnknown": true, "scale": 100,
   "look": { "opacity": 85, "radius": -1, "compact": 2, "hideTags": false, "portrait": "small" },
   "console": "station-reader", "game": "SLPS-01794",
   "labels": { "add": "Add to Anki", "book": "Already in Anki: show the note", "forms": "forms",
               "dictionaries": "Open the dictionaries" },
+  "styles": { "Jitendex.org [2026-10-03]": "span[data-sc-class=\"tag\"] { … }" },
   "entries": [ { "expression": "客", "reading": "きゃく", "reasons": [], "pitches": ["[0]"],
+                 "pitchAccents": [ { "dictionary": "Kanjium", "reading": "きゃく", "positions": [0] } ],
                  "frequencies": [ { "dictionary": "JPDB", "value": "1234" } ],
                  "history": "Looked up 2 times", "unknown": true, "state": "add",
                  "senses": [ { "heading": "JMdict", "dictionary": "JMdict", "number": 1,
-                               "tags": ["n"], "glosses": ["guest", "visitor"], "notes": "" } ],
+                               "tags": ["n"], "glosses": ["guest", "visitor"], "notes": "",
+                               "content": ["guest", "visitor"], "media": { } } ],
                  "forms": ["客"] } ],
   "message": { "text": "No entry for …", "dictionaries": false } }
 ```
+
+## Dictionary layout, styles, and pictures (2026-11-22)
+
+To match Yomitan, Hoshi, and Hachidori's CSS rendering without forcing a compact layout:
+
+- **Every sense has `content`**, its full glossary (Yomitan strings, `{"type":"text"}`,
+  structured content, and `{"type":"image"}`), and the page lays it out as the dictionary defined,
+  element by element from the allowed tag list (`.sc` > `.sc-definition` > `.sc-<tag>` with
+  `gloss-sc-<tag>`, `data` as `data-sc-*`, Yomitan's style properties, never `url(...)`).
+  `glosses` and `notes` remain as the flattened fallback.
+- **`look.glossary`**: `"full"` (the default: dictionary layout, matching Yomitan) or `"compact"`
+  (`.popup[data-glossary="compact"]`: a word's gloss lists run on one line, omitting examples,
+  cross-references, and etymology notes, as in Yomitan's compact glossaries). Grammar and character
+  dictionaries keep their full layout in both modes. Plain definitions with right-to-left lines
+  stay on separate lines even in compact mode (`.sc-definition.bidi`).
+- **A dictionary's `styles.css`** is stored with it (`dictionaries.styles` in SQLite v3, or
+  `info.json` in the dictionary engine) and passed in `model.styles` (title to stylesheet). The page
+  scopes each rule under its own dictionary's senses (`.sense[data-dictionary="…"] .sc …`),
+  flattening nested rules so older WebViews such as Chromium 109 support them; `@import`,
+  `@font-face`, and declarations with `url()` are dropped. Yomitan variables that some stylesheets
+  read (`--text-color`, `--fg`, `--font-size-no-units`) map to the popup's colours.
+- **Pictures** from the dictionary's zip are stored with it and passed in `media` (path to a
+  `data:image/…;base64,` URI, the only source a picture may use). An `img` renders at its requested
+  size (`width`, `height`, `preferredWidth`, `sizeUnits` px or em, `verticalAlign`, `border`,
+  `pixelated`), constrained to the popup's width (`.gloss-image-container`); a monochrome image
+  (such as a rare character glyph) renders in the text colour as a mask (`.gloss-image-mask`). If
+  a picture is missing, its `alt` or `title` is shown.
+- **Direction**: an element whose `lang` is Arabic, Hebrew, Persian, Urdu, or similar gets
+  `dir="rtl"`; every block, every line of a plain definition (`.sc-line`), and every flattened
+  gloss uses `dir="auto"` with `unicode-bidi: plaintext`, so mixed right-to-left and Japanese lines
+  each render in their own direction.
+- **Pitch accent** (`pitchAccents`, per reading; `pitches` remains as text): `look.pitch` is
+  `"over"` (the default since 2026-11-23: a line over the reading's kana in the furigana, the
+  reading beside the word, or a kana word itself, `.pitch-text.over`; additional positions appear
+  beside the word in `"text"` style), `"graph"` (a dot per mora, particle as a triangle, last high
+  mora open: `.pitch-accent` > `svg.pitch-graph`), `"text"` (reading with drop marker:
+  `.pitch-text` > `.mora.high`, `.end`), `"number"` (`[0]`), `"all"` (graph, reading with drop,
+  and number, with ꜜ at the drop), or `"off"`. Duplicate positions are merged, listing the
+  dictionaries that report each one in its tooltip. Yomitan's high/low strings (`"LHHL"`) are
+  converted to numeric positions.
+- **Frequencies**: the first four are shown and the others behind a `+N` tag
+  (`.more-frequencies`) that shows them all for that word; `look.frequencies` sets how many
+  (0: all).
+- **`look.width`**: the widest the popup may be, in px at 100 % (280 to 1000; dp on Android, 240
+  to 900); 0, the default: 480 px on a computer, 400 dp on Android (the classic popup keeps 420 and
+  340). The app sizes its window by it; the page does not read it.
+
+## Speed with many dictionaries (2026-11-23)
+
+With 38 large dictionaries a hover's model was about 1.3 MB and took some 40 ms to make on the
+desktop and 56 ms for the page to draw. Now (`docs/dictionary-engine.md`, phase 5):
+
+- **The desktop sends text.** `PopupModel::EntryText` writes an entry's JSON with each glossary
+  as it is stored (checked to be JSON, never parsed into objects and written out again) and keeps
+  it by headword; `ReaderController::ReadWalk` makes it for each word of a new line before
+  anyone hovers. `Entry` (objects) is still there for everything else and for the tests.
+- **Pictures once.** A sense's `media` names a picture `"pic:KEY"`; the model's `pictures`
+  (`KEY` → data address) carries only those the page was not given since it loaded, and the page
+  keeps them (`forgetPictures: true` clears what it keeps). A data address in `media` is still
+  taken as it is.
+- **Stylesheets when they change.** `styles` comes only when the dictionaries' stylesheets are
+  not what the page has; the page scopes each once and keeps it.
+- **The first entry first.** `draw` builds the first entry (and its first four laid-out senses)
+  at once; the rest are filled in a few milliseconds at a time after (`.entry.filling`,
+  `.sc-later` until then). A new model drops what is left of the old one's.
+- **Android does the same** (`PopupModel.entryText`, `LookupPopupView`), and builds its native
+  entries behind a page without their definitions.
+- The size message no longer carries the popup's text (nothing read it; the desktop's control
+  channel has `LookupPopup::PlainText`).
+
+Measured (a desktop computer, headless Chromium, 40 real hovers with 38 dictionaries): the
+page's `Reader.show` 56 → 7.8 ms at the median, 171 → 18 ms at the 90th percentile; the host's
+side of a hover 41 → 3 ms with the dictionary engine, 5 ms with SQLite.
 
 ## Tabs by kind (since 2026-11-17)
 
@@ -71,18 +149,16 @@ the running game's names dictionary: names; its title: `grammar|文法|文型|�
 grammar, `JMnedict|人名` → names, `kanji|漢字|字典` → kanji for an entry of one character (a
 compound there is a word); else words.
 
-- **A grammar or a character dictionary keeps its own layout**: its sense has `"content"`, the
-  glossary whole (Yomitan's strings, `{"type":"text"}` and structured content), which the page
-  builds element by element from a list of what may be there (`.sc` > `.sc-div`, `.sc-table`,
-  `.sc-ruby`...; `data` as `data-sc-*`, a few `style` properties, never `url(...)`, links lead
-  nowhere, no pictures): formation boxes, example sentences and tables as the dictionary set
-  them, a plain string's lines as its lines. Compact (`look.compact`) is for words only.
+- **A grammar or a character dictionary keeps its own layout** in either layout (above, "A
+  dictionary's own layout"): formation boxes, example sentences and tables as the dictionary set
+  them, a plain string's lines as its lines. The count before "more" (`look.compact`) is for
+  words only.
 - **A character** is laid out as a character dictionary: the glyph large, then rows (meaning,
-  on, kun, strokes · grade · JLPT, parts). From a kanji bank the entry has `"kanji"`:
-  `{character, meanings, onyomi, kunyomi, stats: {strokes, grade, jlpt, freq}, parts}` and no
-  card buttons. **The importers skip kanji banks** today (Android and desktop): no engine
-  returns such an entry yet, the page is ready for one. A term dictionary of characters
-  (kind kanji) is shown as the glyph with its own layout beside it.
+  on, kun, strokes · grade · JLPT, parts). From a kanji bank (supported by the dictionary engine
+  in `shared/dict/` on both desktop and Android; the legacy SQLite backend skips kanji banks) the
+  entry has `"kanji"`: `{character, meanings, onyomi, kunyomi, stats: {strokes, grade, jlpt, freq},
+  parts}` and no card buttons. A term dictionary of characters (kind kanji) is shown as the glyph
+  with its own layout beside it.
 - **The card buttons** are two since then: `add` (the card without the line's audio) and
   `addAudio` (with it), both saying `{"type": "add", "index", "audio": false|true}`; the book as
   before. `labels.addAudio` is the second's label.
@@ -140,6 +216,9 @@ in Furoshiki, a layered one (`popup.opacity`…) with the rest of the popup's:
 | `compact` | `reader_popup_compact` | how many senses of a word before a "+N more" line (a tap shows the rest; `labels.more`); 0: all |
 | `hideTags` | `reader_popup_hide_tags` | the senses' part-of-speech tags left out (`.popup.no-tags`) |
 | `portrait` | `reader_popup_portrait` | a name's picture: `small`, `large` or `off` (`.popup[data-portrait]`) |
+| `glossary` | `reader_popup_glossary` | `full` (as the dictionary sets it) or `compact` (`.popup[data-glossary]`) |
+| `pitch` | `reader_popup_pitch` | `over` (the default), `graph`, `text`, `number`, `all` or `off` |
+| `width` | `reader_popup_width` | the widest the popup may be (the app's, not the page's); 0: the default |
 | `accent` | — | `#rrggbb` for `--accent`; no setting yet, a style file may carry it |
 
 **No blur behind the popup**: a page can only blur what is in the page, and the game is another
@@ -223,17 +302,19 @@ game never enters it.
 | --- | --- |
 | `.popup` | the whole popup; `data-console`, `data-game`, `data-corner`; `.no-mark` when unknown words are not to be marked |
 | `.entry` | one headword; `data-index`, `data-state`; `.unknown` when Anki does not have it |
-| `.tag.name[data-category="name"]` | 名前, beside the reading of a name in the running game (an entry with `"name": true`, from the game's names dictionary); `.sense.name` is one of its senses |
+| `.sense.name` | a sense of a name in the running game (an entry with `"name": true`, from the game's names dictionary), on the Names tab; no badge by the word since 2026-11-23 |
 | `.name-card[data-kind]` (`.pictured` with a picture) > `img.portrait`, `.who` > `.who-name` (a `ruby` per part of the name), `.who-line` > `.romaji`, `.tag.role[data-category="role"]`; `.also` > `.alias`; `.about` | a name's card; `.popup[data-portrait="small|large|off"]` |
 | `.sense.later`, `.link.more`, `.entry.all` | compact definitions: the senses past the first few, the line that shows them, an entry with all shown |
 | `.popup.no-tags` | part-of-speech tags are not to be shown |
 | `.head`, `.headword` (a `ruby` with the reading as `rt`, hidden unless a theme shows it), `.reading`, `.reasons`, `.pitch` | the headline |
+| `.pitch-accent[data-position]` > `svg.pitch-graph` (`.pitch-line`, `.pitch-dot`, `.downstep`, `.pitch-particle`), `.pitch-text` > `.mora` (`.high`, `.end`) | pitch accent |
+| `.popup[data-glossary]`, `.sc.several`, `.sc-definition` (`.plain`, `.bidi`) > `.sc-line`, `.gloss-image-container[data-sc-appearance]` > `img.gloss-image` or `.gloss-image-mask` | a dictionary's own layout and its pictures |
 | `.tags.frequencies` > `.tag.frequency[data-dictionary]` > `.tag-name`, `.tag-value` | frequency lists |
 | `.lookups` | how often it was looked up |
 | `.dictionary-name[data-dictionary]` | a dictionary's name where several have senses |
 | `.senses` > `.sense[data-dictionary]` > `.number`, `.tag[data-category="part-of-speech"]`, `.glosses` > `.gloss`, `.notes` | the senses |
 | `.forms` > `.tag[data-category="forms"]`, `.form` | other spellings |
-| `.card-buttons` > `.card.add`, `.card.addAudio`, `.card.book` (`data-state`) | the card buttons, at the foot of their entry |
+| `.card-buttons` > `.card.add`, `.card.addAudio`, `.card.book` (`data-state`) | the card buttons (in the pinned headline for `top_left`/`top_right`, or at the foot of the entry for `bottom_left`/`bottom_right`) |
 | `.tabs` > `.tab[data-kind]` (`.on`) > `.tab-name`, `.tab-count`; `.popup.tabbed[data-tab]` | the tabs by kind |
 | `.key-mark` (`.left`, `.right` in the tabs; in a `.card`), shown under `.popup.pad` | a controller's button |
 | `.entry[data-kind]`, `.sense[data-kind]`, `.sense.laid-out` > `.sc` > `.sc-definition` > `.sc-<tag>[data-sc-*]` | a dictionary's own layout (grammar, characters) |

@@ -872,7 +872,10 @@ class ScreenTextOverlayTest {
 
     /** Whether the headword [word] is drawn with the mark of a word not in Anki. */
     private fun markedUnknown(word: String): Boolean {
-        val headline = TestSupport.find(popup(), TextView::class.java) { it.text.startsWith(word) && it.isShown }!!
+        // A top corner (the default) begins the headline with the boxes' room (an object character).
+        val headline = TestSupport.find(popup(), TextView::class.java) {
+            it.text.toString().replace("\uFFFC", "").trimStart().startsWith(word) && it.isShown
+        }!!
         val text = headline.text as? Spanned ?: return false
         return text.getSpans(0, text.length, Any::class.java).any { it.javaClass.simpleName == "UnknownMark" }
     }

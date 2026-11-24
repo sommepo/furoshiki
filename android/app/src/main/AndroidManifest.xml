@@ -625,6 +625,15 @@
             android:exported="false"
             android:theme="@android:style/Theme.NoDisplay" />
         <activity
+            android:name=".GameScriptsActivity"
+            android:process=":game"
+            android:taskAffinity="${applicationId}.play"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Reader"
+            android:label="@string/reader_games" />
+        <activity
             android:name=".reader.ui.ReaderGamesActivity"
             android:process=":game"
             android:taskAffinity="${applicationId}.play"

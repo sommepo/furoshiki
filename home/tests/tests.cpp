@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
         CHECK(Home::PopupDesign::Shown(mine.name, mine.base) == QStringLiteral("Yomitan dark · mine"));
         CHECK(Home::PopupDesign::InFolder(folder, QStringLiteral("paper")).isEmpty() && Home::PopupDesign::InFolder(folder, QStringLiteral("yomitan-dark")).size() == 1);
         const QList<Home::PlaySetting> popup = Home::PopupStyle::Settings(folder);
-        CHECK(popup.size() == 9 && popup[0].Common() && popup[1].key == QStringLiteral("popup.design") && popup[1].choices.contains(mine.name));
+        CHECK(popup.size() == 12 && popup[0].Common() && popup[1].key == QStringLiteral("popup.design") && popup[1].choices.contains(mine.name));
         Home::PlaySettings settings(program.filePath(QStringLiteral("settings.json")));
         const auto layered = [&](const char* key, const char* console = "", const char* game = "") {
             return Home::PopupStyle::Layered(settings, folder, QString::fromLatin1(key), QString::fromLatin1(console),
@@ -677,6 +677,30 @@ int main(int argc, char** argv) {
         if (!dir.isEmpty()) {
             qputenv("READER_HOME_DIR", dir);
         }
+    }
+
+    // The CRT picture switched off once (2026-11-24): a kept line that switches it on is turned off
+    // with its other values as they were; one that does not is left alone; every layer with a value
+    // of its own is found.
+    {
+        using namespace Home::CrtLayers;
+        CHECK(Off(QStringLiteral("enabled=1.000;warp=0.300;frame=2.000")) == QStringLiteral("enabled=0.000;warp=0.300;frame=2.000"));
+        CHECK(Parse(Off(QStringLiteral("frame=2.000;enabled=1"))).value(QStringLiteral("enabled")) == 0);
+        CHECK(std::fabs(Parse(Off(QStringLiteral("frame=2.000;enabled=1"))).value(QStringLiteral("frame")) - 2) < 1e-6);
+        CHECK(Off(QStringLiteral("warp=0.300")) == QStringLiteral("warp=0.300"));
+        CHECK(Off(QStringLiteral("enabled=0.000;warp=0.300")) == QStringLiteral("enabled=0.000;warp=0.300"));
+        CHECK(Off(QString()).isEmpty());
+        QTemporaryDir off_folder;
+        Home::PlaySettings play(off_folder.filePath(QStringLiteral("settings.json")));
+        play.Set(Key, QStringLiteral("enabled=1.000;scanlines=0.300"));
+        play.Set(Key, QStringLiteral("warp=0.100"), QStringLiteral("ps1"));
+        play.Set(Key, QStringLiteral("enabled=1.000"), QStringLiteral("ps2"), QStringLiteral("SLPM-66302"));
+        play.Set(QStringLiteral("picture.resolution"), QStringLiteral("2"), QStringLiteral("psp"));
+        const auto layers = play.LayersWith(Key);
+        CHECK(layers.size() == 3);
+        CHECK(layers.contains(QPair<QString, QString>(QString(), QString())));
+        CHECK(layers.contains(QPair<QString, QString>(QStringLiteral("ps1"), QString())));
+        CHECK(layers.contains(QPair<QString, QString>(QStringLiteral("ps2"), QStringLiteral("SLPM-66302"))));
     }
 
     // The CRT picture in the layers: each layer keeps what differs from the ones under it, the

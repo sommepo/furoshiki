@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Flycast Reader fork contributors (from the Flycast Reader fork)
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <utility>
 #include <algorithm>
 #include <cmath>
 #include <QMouseEvent>
@@ -45,6 +46,8 @@ constexpr double SensePx = 13;
 constexpr double SmallPx = 11;
 constexpr double BoxPx = 24;
 constexpr int NormalMaxWidth = 420;
+/// The page's default: wider than the classic popup, as a dictionary's own layout wants room.
+constexpr int PageMaxWidth = 480;
 
 constexpr int KindAdd = 1;
 constexpr int KindBook = 2;
@@ -110,16 +113,18 @@ void LookupPopup::SetCardCorner(Corner corner) {
 }
 
 LookupPopup::Corner LookupPopup::CornerOf(const QString& value) {
+    // Every value said, the default only for none: a chosen bottom left was taken for the new
+    // default top left when it was the fallback (the maintainer's add button moved, 2026-11-24).
+    if (value == QStringLiteral("bottom_left")) {
+        return Corner::BottomLeft;
+    }
     if (value == QStringLiteral("bottom_right")) {
         return Corner::BottomRight;
     }
     if (value == QStringLiteral("top_left")) {
         return Corner::TopLeft;
     }
-    if (value == QStringLiteral("top_right")) {
-        return Corner::TopRight;
-    }
-    return Corner::BottomLeft;
+    return Corner::TopRight;
 }
 
 void LookupPopup::SetAllowDuplicates(bool allow) {
@@ -131,7 +136,9 @@ int LookupPopup::Scaled(double value) const {
 }
 
 int LookupPopup::MaxWidth() const {
-    return Scaled(NormalMaxWidth);
+    // The page's width as set (the look's "width", 280 to 1000 px at 100 %); the classic popup's own.
+    const int set = web ? look.value(QStringLiteral("width")).toInt() : 0;
+    return Scaled(set > 0 ? std::clamp(set, 280, 1000) : (web ? PageMaxWidth : NormalMaxWidth));
 }
 
 QFont LookupPopup::BaseFont() const {
@@ -279,28 +286,66 @@ void LookupPopup::ShowResults(const QList<LookupResult>& results,
         entry.document = std::make_unique<QTextDocument>();
         entry.document->setDocumentMargin(0);
         entry.document->setDefaultFont(BaseFont());
-        QString html = Headline(result);
-        if (i < history.size() && history.at(i).count > 0) {
-            html += QStringLiteral("<br>") +
-                    Span(EscapeHtml(HistoryLine(history.at(i), with_where)), Scaled(SmallPx),
-                         Style::PopupDim);
+        const ReaderApp::LookupHistory said =
+            i < history.size() ? history.at(i) : ReaderApp::LookupHistory{};
+        auto html = [this, result, said, with_where] {
+            QString out = Headline(result);
+            if (said.count > 0) {
+                out += QStringLiteral("<br>") +
+                       Span(EscapeHtml(HistoryLine(said, with_where)), Scaled(SmallPx), Style::PopupDim);
+            }
+            const QString senses = Senses(result);
+            if (!senses.isEmpty()) {
+                out += QStringLiteral("<br>") + senses;
+            }
+            return out;
+        };
+        if (web) {
+            // The page draws it: the text is made only if someone asks for it (PlainText).
+            entry.html = html;
+        } else {
+            entry.document->setHtml(html());
         }
-        const QString senses = Senses(result);
-        if (!senses.isEmpty()) {
-            html += QStringLiteral("<br>") + senses;
-        }
-        entry.document->setHtml(html);
         entries.push_back(std::move(entry));
     }
     if (web) {
-        QJsonArray model;
+        // As JSON text: the glossaries go as they are stored, each headword's kept
+        // (PopupModel::EntryText), each picture sent once.
+        if (web_pictures.size() > 4000) {
+            web_pictures.clear();
+            web_forget_pictures = true;
+        }
+        const QHash<QString, QString> kinds = ReaderSession::Instance().Settings().DictionaryKinds();
+        QByteArray model = "[";
+        QJsonObject pictures;
         for (int i = 0; i < results.size(); ++i) {
             const bool counted = i < history.size() && history.at(i).count > 0;
-            model.append(ReaderApp::PopupModel::Entry(
-                results.at(i), counted ? HistoryLine(history.at(i), with_where) : QString(),
-                ReaderSession::Instance().Settings().DictionaryKinds()));
+            if (i > 0) {
+                model += ',';
+            }
+            model += ReaderApp::PopupModel::EntryText(
+                results.at(i), counted ? HistoryLine(history.at(i), with_where) : QString(), kinds, web_pictures,
+                pictures);
         }
-        ShowOnPage(model, {});
+        // The character the word begins with, from the kanji dictionaries: on the page's Kanji tab.
+        if (!results.isEmpty() && !results.first().matched_text.isEmpty()) {
+            const QString text = results.first().matched_text;
+            const QString character = text.at(0).isHighSurrogate() && text.size() > 1 ? text.left(2) : text.left(1);
+            const char32_t code = character.toUcs4().value(0);
+            const bool ideograph = (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF) ||
+                                   (code >= 0xF900 && code <= 0xFAFF) || (code >= 0x20000 && code <= 0x3134F) ||
+                                   code == 0x3005;
+            if (ideograph) {
+                auto& dictionaries = ReaderSession::Instance().Dictionaries();
+                const QByteArray kanji = ReaderApp::PopupModel::KanjiText(dictionaries.FindKanji(character),
+                                                                          dictionaries.FindKanjiMeta(character));
+                if (!kanji.isEmpty()) {
+                    model += (model.size() > 1 ? "," : "") + kanji;
+                }
+            }
+        }
+        model += ']';
+        ShowOnPage(model, pictures);
     }
 }
 
@@ -316,7 +361,7 @@ void LookupPopup::ShowMessage(const QString& message, bool offer_dictionaries) {
         entries.push_back(std::move(entry));
     };
     if (web) {
-        ShowOnPage({}, QJsonObject{{QStringLiteral("text"), message},
+        ShowOnPage(QJsonArray(), QJsonObject{{QStringLiteral("text"), message},
                                    {QStringLiteral("dictionaries"), offer_dictionaries}});
     }
     add(Span(EscapeHtml(message), Scaled(SensePx), Style::PopupText), false);
@@ -541,10 +586,33 @@ QString LookupPopup::ConsoleCss() const {
     return ConsoleStyle();
 }
 
+namespace {
+QJsonObject StylesOf(const QHash<QString, QString>& styles) {
+    QJsonObject out;
+    for (auto it = styles.cbegin(); it != styles.cend(); ++it) {
+        out.insert(it.key(), it.value());
+    }
+    return out;
+}
+} // namespace
+
 void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject& message) {
+    // Each picture once: the page keeps those it was given.
+    QJsonArray shown_entries = model_entries;
+    QJsonObject pictures;
+    if (web_pictures.size() > 4000) {
+        web_pictures.clear();
+        web_forget_pictures = true;
+    }
+    ReaderApp::PopupModel::SharePictures(shown_entries, web_pictures, pictures);
+    ShowOnPage(QJsonDocument(shown_entries).toJson(QJsonDocument::Compact), pictures, message);
+}
+
+void LookupPopup::ShowOnPage(const QByteArray& entries_json, const QJsonObject& pictures, const QJsonObject& message) {
     static const char* const corners[] = {"bottom_left", "bottom_right", "top_left", "top_right"};
+    // A long session's pictures are let go now and then, and the page forgets them too.
+    const bool forget_pictures = std::exchange(web_forget_pictures, false);
     QJsonObject model{
-        {QStringLiteral("entries"), model_entries},
         {QStringLiteral("corner"), QString::fromLatin1(corners[static_cast<int>(card_corner)])},
         {QStringLiteral("duplicates"), allow_duplicates},
         {QStringLiteral("markUnknown"), mark_unknown},
@@ -552,6 +620,7 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
         {QStringLiteral("look"), look},
         {QStringLiteral("console"), ConsoleKeyHeld()},
         {QStringLiteral("game"), ReaderSession::Instance().GameKey()},
+
         // A controller: the d-pad goes from entry to entry, and its buttons are marked.
         {QStringLiteral("choose"), true},
         {QStringLiteral("pad"), PadInUse()},
@@ -570,17 +639,41 @@ void LookupPopup::ShowOnPage(const QJsonArray& model_entries, const QJsonObject&
     if (!message.isEmpty()) {
         model.insert(QStringLiteral("message"), message);
     }
+    if (!pictures.isEmpty()) {
+        model.insert(QStringLiteral("pictures"), pictures);
+    }
+    if (forget_pictures) {
+        model.insert(QStringLiteral("forgetPictures"), true);
+    }
+    // The dictionaries' own stylesheets (styles.css), each for its own senses: only when they
+    // are not what the page has (it keeps them, scoped, between lookups).
+    const QHash<QString, QString> styles = ReaderSession::Instance().Dictionaries().Styles();
+    if (!web_styles_sent || styles != web_styles) {
+        model.insert(QStringLiteral("styles"), StylesOf(styles));
+        web_styles = styles;
+        web_styles_sent = true;
+    }
     pad_shown = PadInUse();
     web_layout = false;
     web_add.clear();
     web_book.clear();
-    web->Call(QStringLiteral("Reader.show(%1)")
-                  .arg(QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact))));
+    // The entries go in as the text they are.
+    QByteArray text = QJsonDocument(model).toJson(QJsonDocument::Compact);
+    text.chop(1);
+    text += ",\"entries\":";
+    text += entries_json;
+    text += '}';
+    web->Call(QStringLiteral("Reader.show(%1)").arg(QString::fromUtf8(text)));
 }
 
 void LookupPopup::OnPageMessage(const QJsonObject& message) {
     const QString type = message.value(QStringLiteral("type")).toString();
     const int index = message.value(QStringLiteral("index")).toInt(-1);
+    if (type == QStringLiteral("ready")) {
+        // A page (loaded again) has none of what was sent before.
+        web_pictures.clear();
+        web_styles_sent = false;
+    }
     if (type == QStringLiteral("feedback")) {
         if (FeedbackHeld()) {
             FeedbackHeld()(message.value(QStringLiteral("kind")).toString());
@@ -845,6 +938,9 @@ QRect LookupPopup::BookBox(int index) const {
 QString LookupPopup::PlainText() const {
     QStringList parts;
     for (const Entry& entry : entries) {
+        if (entry.html && entry.document->isEmpty()) {
+            entry.document->setHtml(entry.html());
+        }
         parts.append(entry.document->toPlainText());
     }
     return parts.join(u'\n');

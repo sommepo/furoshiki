@@ -159,14 +159,25 @@ QString Rules(const QString& key, const QJsonValue& value) {
     if (key == QStringLiteral("reading.show")) return shown(QStringLiteral(".head > .reading"), QStringLiteral("inline"));
     if (key == QStringLiteral("reading.size")) return rule(QStringLiteral(".head > .reading"), QStringLiteral("font-size: ") + Scaled(n));
     if (key == QStringLiteral("reading.colour") && !c.isEmpty()) return rule(QStringLiteral(".head > .reading"), QStringLiteral("color: ") + c);
-    if (key == QStringLiteral("pitch.show")) return shown(QStringLiteral(".head > .pitch, .head > .reasons"), QStringLiteral("inline"));
-    if (key == QStringLiteral("pitch.size")) return rule(QStringLiteral(".head > .pitch, .head > .reasons"), QStringLiteral("font-size: ") + Scaled(n));
-    if (key == QStringLiteral("pitch.colour") && !c.isEmpty()) return rule(QStringLiteral(".head > .pitch, .head > .reasons"), QStringLiteral("color: ") + c);
+    // Pitch: the number, the graph and the text beside the word, and (look.pitch "over", the
+    // default since 2026-11-23) the line over the reading, which has the reading's size.
+    if (key == QStringLiteral("pitch.show")) {
+        return shown(QStringLiteral(".head > .pitch, .head > .reasons"), QStringLiteral("inline")) +
+               shown(QStringLiteral(".head > .pitch-accent"), QStringLiteral("inline-flex")) +
+               (on ? QString() : rule(QStringLiteral(".pitch-text.over .mora"), QStringLiteral("border-color: transparent")));
+    }
+    if (key == QStringLiteral("pitch.size")) {
+        return rule(QStringLiteral(".head > .pitch, .head > .reasons, .head > .pitch-accent"), QStringLiteral("font-size: ") + Scaled(n));
+    }
+    if (key == QStringLiteral("pitch.colour") && !c.isEmpty()) {
+        return rule(QStringLiteral(".head > .pitch, .head > .reasons, .head > .pitch-accent"), QStringLiteral("color: ") + c) +
+               rule(QStringLiteral(".pitch-text.over .mora.high"), QStringLiteral("border-color: ") + c);
+    }
     if (key == QStringLiteral("frequencies.show")) return shown(QStringLiteral(".tags.frequencies"), QStringLiteral("inline-flex"));
     if (key == QStringLiteral("frequencies.size")) return rule(QStringLiteral(".tag.frequency"), QStringLiteral("font-size: ") + Scaled(n));
     if (key == QStringLiteral("frequencies.colour") && !c.isEmpty()) return rule(QStringLiteral(".tag.frequency .tag-value"), QStringLiteral("color: ") + c);
     if (key == QStringLiteral("frequencies.names")) return rule(QStringLiteral(".tag.frequency .tag-name"), on ? QStringLiteral("display: inline") : QStringLiteral("display: none"));
-    // Tags: a part of speech, 名前, forms', frequencies' boxes.
+    // Tags: a part of speech, forms', frequencies' boxes.
     if (key == QStringLiteral("tags.size")) return rule(QStringLiteral(".tag"), QStringLiteral("font-size: ") + Scaled(n));
     if (key == QStringLiteral("tags.colour") && !c.isEmpty()) return rule(QStringLiteral(".tag"), QStringLiteral("color: ") + c);
     if (key == QStringLiteral("tags.ground") && !c.isEmpty()) return rule(QStringLiteral(".tag"), QStringLiteral("background: ") + c);
@@ -260,7 +271,7 @@ const QList<Element>& Elements() {
                                                                        {QStringLiteral("none"), QStringLiteral("None")}})}});
         list.append({QStringLiteral("reading"), QStringLiteral("Reading"), QStringLiteral(".head > .reading"), QStringLiteral("reading.size"),
                      {Toggle("reading.show", "Show"), Size("reading.size", "Size", 8, 24, 11, 0.5), Colour("reading.colour", "Colour")}});
-        list.append({QStringLiteral("pitch"), QStringLiteral("Pitch and inflection"), QStringLiteral(".pitch, .reasons"), QStringLiteral("pitch.size"),
+        list.append({QStringLiteral("pitch"), QStringLiteral("Pitch and inflection"), QStringLiteral(".pitch, .pitch-accent, .pitch-text.over, .reasons"), QStringLiteral("pitch.size"),
                      {Toggle("pitch.show", "Show"), Size("pitch.size", "Size", 8, 20, 11, 0.5), Colour("pitch.colour", "Colour")}});
         list.append({QStringLiteral("frequencies"), QStringLiteral("Frequencies"), QStringLiteral(".tags.frequencies, .tag.frequency"), QStringLiteral("frequencies.size"),
                      {Toggle("frequencies.show", "Show"), Toggle("frequencies.names", "Dictionary names"), Size("frequencies.size", "Size", 8, 20, 11, 0.5),
@@ -320,7 +331,7 @@ const QList<QPair<QString, QString>>& Blocks() {
 const QList<QPair<QString, QString>>& HeadParts() {
     static const QList<QPair<QString, QString>> parts{
         {QStringLiteral("headword"), QStringLiteral("Headword")}, {QStringLiteral("reading"), QStringLiteral("Reading")},
-        {QStringLiteral("name"), QStringLiteral("Name")},          {QStringLiteral("reasons"), QStringLiteral("Inflection")},
+        {QStringLiteral("reasons"), QStringLiteral("Inflection")},
         {QStringLiteral("pitch"), QStringLiteral("Pitch")},        {QStringLiteral("frequencies"), QStringLiteral("Frequencies")}};
     return parts;
 }
@@ -339,9 +350,10 @@ QString BlockSelector(const QString& id) {
 QString PartSelector(const QString& id) {
     static const QHash<QString, QString> of{{QStringLiteral("headword"), QStringLiteral(".head > .headword")},
                                             {QStringLiteral("reading"), QStringLiteral(".head > .reading")},
+                                            // The 名前 badge, gone since 2026-11-23: kept for a design's saved order.
                                             {QStringLiteral("name"), QStringLiteral(".head > .tag.name")},
                                             {QStringLiteral("reasons"), QStringLiteral(".head > .reasons")},
-                                            {QStringLiteral("pitch"), QStringLiteral(".head > .pitch")},
+                                            {QStringLiteral("pitch"), QStringLiteral(".head > .pitch, .head > .pitch-accent")},
                                             {QStringLiteral("frequencies"), QStringLiteral(".head > .tags.frequencies")}};
     return of.value(id);
 }
@@ -352,7 +364,11 @@ QString Css(const Design& design) {
     if (design.Empty()) {
         return out;
     }
-    out += QStringLiteral("/* Furoshiki's popup design \"%1\" over %2: made by its customiser, not by hand. */\n").arg(design.name, design.base);
+    const auto safe_comment = [](QString text) {
+        return text.replace(QStringLiteral("*/"), QStringLiteral("* /")).replace(QLatin1Char('\n'), QLatin1Char(' '));
+    };
+    out += QStringLiteral("/* Furoshiki's popup design \"%1\" over %2: made by its customiser, not by hand. */\n")
+               .arg(safe_comment(design.name), safe_comment(design.base));
     for (const Element& element : Elements()) {
         for (const Property& property : element.properties) {
             const QJsonValue value = design.values.value(property.key);
@@ -489,7 +505,8 @@ bool Save(const QString& folder, const Design& design) {
 }
 
 bool Remove(const QString& folder, const QString& name) {
-    return !name.isEmpty() && QFile::remove(folder + QLatin1Char('/') + name + QStringLiteral(".json"));
+    static const QRegularExpression plain(QStringLiteral("^[\\w\\-]+$"));
+    return plain.match(name).hasMatch() && QFile::remove(folder + QLatin1Char('/') + name + QStringLiteral(".json"));
 }
 
 QString FreeName(const QString& folder, const QString& base) {

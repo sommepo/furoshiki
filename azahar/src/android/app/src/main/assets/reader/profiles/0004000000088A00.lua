@@ -1,5 +1,5 @@
 -- reader: title 真・女神転生IV (Shin Megami Tensei IV)
--- reader: reads Dialogue, narration and choices, page by page
+-- reader: reads Dialogue, narration, and choices
 -- reader: version The Japanese cartridge release (CTR-P-AMXJ)
 -- 真・女神転生IV / Shin Megami Tensei IV (Japan), CTR-P-AMXJ, title 0004000000088A00.
 -- Verified against the cartridge release whose decompressed ExeFS code has SHA-256

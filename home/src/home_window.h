@@ -26,12 +26,18 @@
 #include <QWidget>
 #include "line_titles.h"
 #include "library.h"
+#include "dictionary_shelf.h"
+#include "script_shelf.h"
 #include "look.h"
 #include "play_settings.h"
 #include "sounds.h"
 #include "steam_pad.h"
 
 namespace Home {
+class DictionaryPanel;
+class DictionaryConversionStrip;
+class DictionaryConversionBox;
+class ScriptsPanel;
 namespace Art {
 class Finder;
 }
@@ -210,6 +216,14 @@ public:
     /// The settings pages, shown now; `back` is where leaving them goes (a game they were
     /// opened over), none: the shelf.
     void OpenPages(std::function<void()> back = {});
+    /// The Dictionaries page and its work (dictionary_shelf.h); none, and there is no such page.
+    void SetDictionaries(DictionaryShelf* shelf);
+    /// The settings pages at Dictionaries, its rows in hand (the Quick menu's Dictionaries…).
+    void ShowDictionaries();
+    /// The Game scripts page and its work (script_shelf.h); none, and there is no such page.
+    void SetScripts(ScriptShelf* shelf);
+    /// The settings pages at Game scripts, one console's games (its key) or every console's.
+    void ShowScripts(const QString& console = {});
     /// Characters to read in a day (0: no goal), kept in QSettings (stats/goal).
     [[nodiscard]] int DailyGoal() const;
     void SetDailyGoal(int characters);
@@ -332,7 +346,7 @@ protected:
 private:
     /// What stands along the horizontal line: a console that has games, or one of three pages.
     struct Item {
-        enum Kind { System, Statistics, Readers, Consoles, Settings } kind;
+        enum Kind { System, Statistics, Readers, Consoles, Settings, Dictionaries, Scripts } kind;
         QString label;
         QString system;
     };
@@ -749,6 +763,9 @@ private:
     qint64 last_second{-1};
     QList<Hit> hits;
     QHash<QString, QPixmap> covers;
+    QHash<QString, QPixmap> spine_cache;
+    QHash<QString, QPixmap> made_spines;
+    QPixmap SpineOf(const QString& key, const QString& game_id);
     QTimer ticker;
     QElapsedTimer clock;
     QProcess child;
@@ -814,6 +831,29 @@ private:
     };
     [[nodiscard]] Pick PickAt(int row);
     bool OpenPick(int row);
+    /// A picker of these choices over the window, in the page's colours (OpenPick's).
+    void OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take);
+    /// The Dictionaries page (home_dictionaries.inc): a list of its own over the page's place for
+    /// rows (dictionary_panel.h), placed and dressed as the page is drawn.
+    void DictionaryImportAsk();
+    /// The user's ScreenScraper account and developer ID (Settings › Library), in a small window.
+    void ScreenScraperAccount();
+    void DictionaryImportFrom(int index); ///< 0 files, 1 a folder
+    [[nodiscard]] bool DictionariesShown() const;
+    void PlaceDictionaries(bool there);
+    DictionaryShelf* dictionaries{};
+    QPointer<DictionaryPanel> dictionary_panel;
+    QPointer<DictionaryConversionStrip> conversion_strip; ///< At the foot of the program's window
+    QPointer<DictionaryConversionBox> conversion_box;     ///< Over it, the first start that moves dictionaries
+    /// The Game scripts page (home_dictionaries.inc), placed and dressed as the Dictionaries one.
+    [[nodiscard]] bool ScriptsShown() const;
+    void ScriptArtNext();
+    ScriptShelf* scripts{};
+    QPointer<ScriptsPanel> scripts_panel;
+    Art::Finder* script_art{}; ///< Box art the Game scripts page asked for, one game after another
+    QList<ScriptGame> script_art_queue;
+    int script_art_done{}, script_art_total{}, script_art_found{};
+    QString dictionary_style; ///< What the panel was dressed for last (theme and scale)
     QPointer<ChoicePicker> picker;
     std::function<bool(const QString&)> setting_is_set;
     std::function<void(const QString&)> setting_reset;

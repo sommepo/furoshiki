@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title レンタヒーロー No.1 (Rent a Hero No.1)
--- reader: reads The message window: narration and what people say
+-- reader: reads Dialogue and narration
 -- reader: version HDR-0074 (Japan)
 -- Rent a Hero No.1 (Sega, Dreamcast, 2000), Japanese version. docs/reader/games/
 -- rent-a-hero.md has what is read, what is not, and how it was checked.

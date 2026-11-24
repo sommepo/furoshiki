@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title Ever17 -the out of infinity- Premium Edition
--- reader: reads The story's text with speakers, each message as it has come up in full, and choices
+-- reader: reads Dialogue, narration, speakers, and choices
 -- reader: version SLPM-65421, disc version 1.01
 -- reader: touch press
 -- reader: buttons start select up down circle cross

@@ -1,5 +1,5 @@
 -- reader: title ときめきメモリアル forever with you (Tokimeki Memorial Forever with You)
--- reader: reads The message window with speakers, and choices
+-- reader: reads Dialogue, speakers, and choices
 -- reader: touch press
 -- reader: buttons up down left right circle cross start
 -- reader: version ULJM-05078

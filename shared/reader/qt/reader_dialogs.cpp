@@ -17,6 +17,9 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
+#include <QMenu>
+#include <QFileInfo>
+#include <QDirIterator>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QGuiApplication>
@@ -769,7 +772,12 @@ void Dictionaries(QWidget* parent) {
     auto* list = new QListWidget;
     layout->addWidget(list, 1);
     auto* buttons = new QHBoxLayout;
+    // One button for both: Windows' file picker takes files or a folder, never either.
     auto* import = new QPushButton(Tr("Import…"));
+    auto* import_menu = new QMenu(import);
+    QAction* import_files_action = import_menu->addAction(Tr("Dictionary files (.zip)…"));
+    QAction* import_folder_action = import_menu->addAction(Tr("A folder of dictionaries, and the folders in it…"));
+    import->setMenu(import_menu);
     auto* starter = new QPushButton(Tr("Download Jitendex"));
     starter->setToolTip(Tr("A free Japanese-English dictionary (39 MB)"));
     auto* up = new QPushButton(Tr("Move up"));
@@ -873,10 +881,7 @@ void Dictionaries(QWidget* parent) {
         QGuiApplication::restoreOverrideCursor();
         refresh(-1);
     });
-    QObject::connect(import, &QPushButton::clicked, &dialog, [&] {
-        const QStringList files = QFileDialog::getOpenFileNames(
-            &dialog, Tr("Import dictionaries"), QString(),
-            Tr("Yomitan dictionaries (*.zip);;All files (*)"));
+    const auto import_files = [&](const QStringList& files) {
         QStringList problems;
         for (const QString& file : files) {
             QProgressDialog progress(Tr("Importing…"), Tr("Cancel"), 0, 100, &dialog);
@@ -910,15 +915,51 @@ void Dictionaries(QWidget* parent) {
             });
             loop.exec();
             pool.waitForDone();
+            // Asked before the dialog goes: closing it says "cancelled" too, and the next
+            // dictionaries of a folder were then left out.
+            const bool stop = cancelled.load();
             progress.close();
-            if (!result.ok && !cancelled) {
+            // Each import's speed, in Furoshiki's log, for whoever looks into a slow one.
+            LOG_INFO(Frontend, "[Reader] Dictionary {} ({})", result.Summary().toStdString(),
+                     QFileInfo(file).fileName().toStdString());
+            if (!result.ok && !stop && !result.not_dictionary && !result.already_there) {
                 problems.append(result.error);
             }
+            if (stop) {
+                break;
+            }
         }
+        // The dictionary engine's index of the whole library, made again for what came in.
+        RunBlocking([&database] { database.Compact(); });
         refresh(-1);
         if (!problems.isEmpty()) {
             QMessageBox::warning(&dialog, Tr("Import dictionaries"), problems.join(u'\n'));
         }
+    };
+    QObject::connect(import_files_action, &QAction::triggered, &dialog, [&] {
+        import_files(QFileDialog::getOpenFileNames(&dialog, Tr("Import dictionaries"), QString(),
+                                                   Tr("Yomitan dictionaries (*.zip);;All files (*)")));
+    });
+    QObject::connect(import_folder_action, &QAction::triggered, &dialog, [&] {
+        const QString folder = QFileDialog::getExistingDirectory(&dialog, Tr("Import a folder of dictionaries"));
+        if (folder.isEmpty()) {
+            return;
+        }
+        // Every zip in this folder and the ones in it; a zip that is no dictionary (a
+        // dictionary's audio, a font) is passed by without a word (Result::not_dictionary).
+        QStringList found;
+        QDirIterator walk(folder, {QStringLiteral("*.zip"), QStringLiteral("*.ZIP")}, QDir::Files,
+                          QDirIterator::Subdirectories);
+        while (walk.hasNext()) {
+            found.append(walk.next());
+        }
+        found.sort();
+        if (found.isEmpty()) {
+            QMessageBox::information(&dialog, Tr("Import a folder of dictionaries"),
+                                     Tr("There are no Yomitan dictionaries (.zip) in that folder."));
+            return;
+        }
+        import_files(found);
     });
     QObject::connect(starter, &QPushButton::clicked, &dialog, [&] {
         QString problem;
@@ -1306,8 +1347,22 @@ void ReaderSettingsDialog(QWidget* parent) {
          Tr(" % (0: default)"));
     QSpinBox* radius_box = spin(look, Tr("Corner radius"), Settings::KeyPopupRadius, settings.PopupRadius(), -1, 28,
          Tr(" px (-1: default)"));
+    spin(look, Tr("Maximum width"), Settings::KeyPopupWidth, settings.PopupWidth(), 0, 1000,
+         Tr(" px (0: default)"));
+    QComboBox* glossary_box = choice(look, Tr("Definition layout"), Settings::KeyPopupGlossary,
+           {{Tr("Dictionary layout"), QStringLiteral("full")},
+            {Tr("Compact"), QStringLiteral("compact")}},
+           settings.PopupGlossary());
     QSpinBox* compact_box = spin(look, Tr("Definitions before \"more\""), Settings::KeyPopupCompact, settings.PopupCompact(), 0, 9,
          Tr(" (0: all)"));
+    QComboBox* pitch_box = choice(look, Tr("Pitch accent"), Settings::KeyPopupPitch,
+           {{Tr("Line over reading"), QStringLiteral("over")},
+            {Tr("Graph"), QStringLiteral("graph")},
+            {Tr("Reading with drop"), QStringLiteral("text")},
+            {Tr("Number"), QStringLiteral("number")},
+            {Tr("Graph, reading & number"), QStringLiteral("all")},
+            {Tr("Off"), QStringLiteral("off")}},
+           settings.PopupPitch());
     QCheckBox* tags_box = check(look, Tr("Hide grammar tags"), Settings::KeyPopupHideTags,
           settings.PopupHideTags());
     QComboBox* portrait_box = choice(look, Tr("Character portraits"), Settings::KeyPopupPortrait,
@@ -1378,11 +1433,13 @@ void ReaderSettingsDialog(QWidget* parent) {
                                                      {QStringLiteral("radius"), radius_box->value()},
                                                      {QStringLiteral("compact"), compact_box->value()},
                                                      {QStringLiteral("hideTags"), tags_box->isChecked()},
-                                                     {QStringLiteral("portrait"), portrait_box->currentData().toString()}}},
+                                                     {QStringLiteral("portrait"), portrait_box->currentData().toString()},
+                                                     {QStringLiteral("glossary"), glossary_box->currentData().toString()},
+                                                     {QStringLiteral("pitch"), pitch_box->currentData().toString()}}},
                 {QStringLiteral("labels"), QJsonObject{{QStringLiteral("forms"), Tr("forms")}, {QStringLiteral("more"), Tr("more")}}}};
             demo->Call(QStringLiteral("Reader.show(%1)").arg(QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact))));
         };
-        for (QComboBox* box : {theme_box, portrait_box, lookups_box, corner_box}) {
+        for (QComboBox* box : {theme_box, portrait_box, lookups_box, corner_box, glossary_box, pitch_box}) {
             QObject::connect(box, &QComboBox::currentIndexChanged, demo, show);
         }
         for (QSpinBox* box : {scale_box, opacity_box, radius_box, compact_box}) {
@@ -1561,6 +1618,11 @@ std::function<void()>& SettingsPages() {
     return open;
 }
 
+std::function<void()>& DictionaryPages() {
+    static std::function<void()> open;
+    return open;
+}
+
 // ---- Progress set by hand (reader.progress) ----
 
 /// The routes (or whatever else the game's script offers to mark) with a box each: for
@@ -1696,9 +1758,12 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
             cancelled = true;
             curl.kill();
         });
-        curl.start(QStringLiteral("curl"), {QStringLiteral("-L"), QStringLiteral("--fail"), QStringLiteral("--silent"),
-                                            QStringLiteral("--show-error"), QStringLiteral("--max-time"),
-                                            QStringLiteral("600"), QStringLiteral("-o"), file, address});
+        curl.start(QStringLiteral("curl"),
+                   {QStringLiteral("-L"), QStringLiteral("--proto"), QStringLiteral("=https"),
+                    QStringLiteral("--proto-redir"), QStringLiteral("=https"), QStringLiteral("--connect-timeout"),
+                    QStringLiteral("30"), QStringLiteral("--fail"), QStringLiteral("--silent"),
+                    QStringLiteral("--show-error"), QStringLiteral("--max-time"), QStringLiteral("600"),
+                    QStringLiteral("-o"), file, address});
         if (curl.state() != QProcess::NotRunning) {
             loop.exec();
         }
@@ -1708,7 +1773,10 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
         }
         if (curl.error() == QProcess::FailedToStart || curl.exitStatus() != QProcess::NormalExit || curl.exitCode() != 0) {
             const QString said = QString::fromUtf8(curl.readAllStandardError()).trimmed();
-            *problem = said.isEmpty() ? Tr("Couldn't download Jitendex. Check the internet connection and try again") : said;
+            if (problem != nullptr) {
+                *problem = said.isEmpty() ? Tr("Couldn't download Jitendex. Check your internet connection and try again")
+                                          : said;
+            }
             QFile::remove(file);
             return false;
         }
@@ -1728,20 +1796,25 @@ bool FetchStarterDictionary(QWidget* parent, QString* problem) {
                 QMetaObject::invokeMethod(
                     &progress,
                     [&progress, done, total, title] {
-                        progress.setLabelText(Tr("Importing %1…").arg(title));
+                        progress.setLabelText(title.isEmpty() ? Tr("Importing Jitendex…") : Tr("Importing %1…").arg(title));
                         progress.setMaximum(std::max(total, 1));
                         progress.setValue(done);
                     },
                     Qt::QueuedConnection);
             },
             [&stopped] { return !stopped.load(); });
+        if (result.ok) {
+            database.Compact();
+        }
         QMetaObject::invokeMethod(&loop, [&loop] { loop.quit(); }, Qt::QueuedConnection);
     });
     loop.exec();
     pool.waitForDone();
+    LOG_INFO(Frontend, "[Reader] Dictionary {} (downloaded)", result.Summary().toStdString());
+    const bool was_stopped = stopped.load();
     progress.close();
     QFile::remove(file);
-    if (!result.ok && !stopped) {
+    if (!result.ok && !was_stopped && problem != nullptr) {
         *problem = result.error;
     }
     return result.ok;

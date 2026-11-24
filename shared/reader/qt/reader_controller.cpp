@@ -32,6 +32,7 @@
 #include <QUrl>
 #include "reader/qt/host.h"
 #include "reader/qt/reader_controller.h"
+#include "reader/desktop/popup_model.h"
 #include "reader/qt/reader_pad.h"
 #include "reader/qt/reader_steam.h"
 #include "reader/qt/reader_dialogs.h"
@@ -90,6 +91,10 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
         QTimer::singleShot(1500, this, [this] { FirstStart(); });
     }
     lookups->open_dictionaries = [this] {
+        if (DictionaryPages()) {
+            DictionaryPages()();
+            return;
+        }
         RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
     };
 
@@ -285,6 +290,10 @@ void ReaderController::BuildMenu() {
 #endif
     menu->addSeparator();
     add(tr("&Dictionaries…"), QStringLiteral("reader_dictionaries"), [this] {
+        if (DictionaryPages()) {
+            DictionaryPages()(); // the program's own page (Furoshiki's Settings › Dictionaries)
+            return;
+        }
         RunDialog([](QWidget* parent) { RunDictionariesDialog(parent); });
     });
     add(tr("&Anki setup…"), QStringLiteral("reader_anki"), [this] {
@@ -1234,7 +1243,8 @@ void ReaderController::ReadWalk(qint64 id, int from) {
     ReaderApp::DictionaryDatabase* dictionaries = &session.Dictionaries();
     ReaderApp::DictionaryLookup* lookup = &session.Lookup();
     const QString game = session.GameKey();
-    read_worker.start([this, id, from, request, text, dictionaries, lookup, game] {
+    const QHash<QString, QString> kinds = session.Settings().DictionaryKinds();
+    read_worker.start([this, id, from, request, text, dictionaries, lookup, game, kinds] {
         QList<ReaderApp::WordWalk::Span> spans;
         QList<ReaderApp::LookupResult> heads;
         try {
@@ -1258,6 +1268,13 @@ void ReaderController::ReadWalk(qint64 id, int from) {
                 from);
             for (const ReaderApp::WordWalk::Span& span : std::as_const(spans)) {
                 heads.append(found.value(span.first));
+            }
+            // What a hover on each word will show, made now while nobody waits: the popup's
+            // model of its headword is kept (PopupModel::Prepare).
+            for (const ReaderApp::LookupResult& head : std::as_const(heads)) {
+                if (!head.expression.isEmpty()) {
+                    ReaderApp::PopupModel::PrepareText(head, kinds);
+                }
             }
         } catch (const std::exception&) {
             spans.clear();

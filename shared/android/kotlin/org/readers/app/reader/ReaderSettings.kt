@@ -10,10 +10,18 @@ import android.content.SharedPreferences
 class ReaderSettings(context: Context) {
     val preferences: SharedPreferences = fresh(context)
 
+    /**
+     * A device with a second display (the AYN Thor): it never shows on-screen controls (the
+     * maintainer, 2026-11-24: "on screen controls shouldnt appear on dual screen devices ever").
+     */
+    val twoScreens: Boolean = hasSecondDisplay(context)
+
     init {
         // An advance button kept by the old numbers is turned into the new one before the
         // settings page shows it (the getter does it).
         advanceButton
+        // So is the add button's corner, moved to the top right once.
+        cardCorner
     }
 
     // ---- Text on screen ----
@@ -30,12 +38,25 @@ class ReaderSettings(context: Context) {
         else -> WORD_MARK_OUTLINE
     }
 
-    /** The corner of each headword's part of the popup where its card buttons stand:
-     *  "bottom_left" (the first value), "bottom_right", "top_left" or "top_right". */
-    val cardCorner: String get() = when (val value = preferences.getString(KEY_CARD_CORNER, CARD_CORNER_DEFAULT)) {
-        "bottom_right", "top_left", "top_right" -> value
-        else -> CARD_CORNER_DEFAULT
-    }
+    /**
+     * The corner of each headword's part of the popup where its card buttons stand:
+     * "top_right" (the default), "top_left", "bottom_left" or "bottom_right".
+     *
+     * The maintainer, 2026-11-24: "put the add button in top right by default for users, on this
+     * update override their setting for this". So once ([KEY_CARD_CORNER_MOVED]) whatever was kept
+     * becomes the top right; a corner chosen after that stays.
+     */
+    val cardCorner: String
+        get() {
+            if (!preferences.getBoolean(KEY_CARD_CORNER_MOVED, false)) {
+                preferences.edit().putString(KEY_CARD_CORNER, CARD_CORNER_DEFAULT).putBoolean(KEY_CARD_CORNER_MOVED, true).apply()
+                return CARD_CORNER_DEFAULT
+            }
+            return when (val value = preferences.getString(KEY_CARD_CORNER, CARD_CORNER_DEFAULT)) {
+                "bottom_left", "bottom_right", "top_left", "top_right" -> value
+                else -> CARD_CORNER_DEFAULT
+            }
+        }
 
     /** Text size of the dictionary popup, in percent. */
     val popupScale get() = preferences.getInt(KEY_POPUP_SCALE, 100).coerceIn(60, 200)
@@ -87,10 +108,25 @@ class ReaderSettings(context: Context) {
     /** A name's picture on its card: "small", "large" or "off". */
     val popupPortrait: String get() = preferences.getString(KEY_POPUP_PORTRAIT, "small").let { if (it == "large" || it == "off") it!! else "small" }
 
-    /** Those five as the page takes them (Reader.show's "look"; shared/popup/README.md). */
+    /**
+     * How a word's definitions are laid out: "full" (as its dictionary set them, with its own
+     * styles and pictures, as Yomitan does) or "compact" (each sense's glosses on a line).
+     */
+    val popupGlossary: String get() = if (preferences.getString(KEY_POPUP_GLOSSARY, "full") == "compact") "compact" else "full"
+
+    /** How pitch accent is shown: "over" (a line over the reading), "graph", "text" (the reading with the fall marked), "number", "all" or "off". */
+    val popupPitch: String get() = preferences.getString(KEY_POPUP_PITCH, "over").let {
+        if (it == "graph" || it == "text" || it == "number" || it == "all" || it == "off") it!! else "over"
+    }
+
+    /** The widest the popup may be, in dp (240 to 900); 0: the default (400). */
+    val popupWidth: Int get() = preferences.getInt(KEY_POPUP_WIDTH, 0).coerceIn(0, 900).let { if (it == 0) 0 else maxOf(240, it) }
+
+    /** Those as the page takes them (Reader.show's "look"; shared/popup/README.md). */
     val popupLook: org.json.JSONObject get() = org.json.JSONObject()
         .put("opacity", popupOpacity).put("radius", popupRadius).put("compact", popupCompact)
         .put("hideTags", popupHideTags).put("portrait", popupPortrait)
+        .put("glossary", popupGlossary).put("pitch", popupPitch).put("width", popupWidth)
 
     /** The user's own CSS for the popup page, applied after its theme (shared/popup/README.md). */
     val popupCss: String get() = preferences.getString(KEY_POPUP_CSS, "")!!
@@ -249,7 +285,9 @@ class ReaderSettings(context: Context) {
      * in the corner: on at first where the device has no game controls of its own, and the
      * user's to switch on any device (a handheld's owner who wants them all the same).
      */
-    val touchButtons get() = preferences.getBoolean(KEY_TOUCH_BUTTONS, touchPlayAtFirst())
+    var touchButtons
+        get() = !twoScreens && preferences.getBoolean(KEY_TOUCH_BUTTONS, touchPlayAtFirst())
+        set(value) = preferences.edit().putBoolean(KEY_TOUCH_BUTTONS, value).apply()
 
     /**
      * Keeps Play by touch's first value, so that its switch shows it: on for a phone or tablet,
@@ -409,6 +447,18 @@ class ReaderSettings(context: Context) {
     }
 
     companion object {
+        /** Whether the device has a display of its own besides the one the app is on (Android's presentation displays). */
+        fun hasSecondDisplay(context: Context): Boolean = runCatching {
+            val dm = context.getSystemService(android.hardware.display.DisplayManager::class.java) ?: return@runCatching false
+            val primaryName = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY)?.name
+            dm.getDisplays(android.hardware.display.DisplayManager.DISPLAY_CATEGORY_PRESENTATION).any { d ->
+                d.displayId != android.view.Display.DEFAULT_DISPLAY &&
+                    d.state != android.view.Display.STATE_OFF &&
+                    (d.flags and android.view.Display.FLAG_PRIVATE) == 0 &&
+                    (primaryName == null || d.name != primaryName)
+            }
+        }.getOrDefault(false)
+
         /**
          * The tags a card gets until the user sets their own: the app's key unless an app that
          * plays several consoles names its own (Furoshiki: "furoshiki", not the running core's key).
@@ -440,7 +490,9 @@ class ReaderSettings(context: Context) {
         const val KEY_SCREEN_TEXT = "reader_screen_text"
         const val KEY_SCREEN_TEXT_OUTLINE = "reader_screen_text_outline"
         const val KEY_CARD_CORNER = "reader_card_corner"
-        const val CARD_CORNER_DEFAULT = "bottom_left"
+        /** The top right since 2026-11-24: the card buttons in the pinned headline, in view. */
+        const val CARD_CORNER_DEFAULT = "top_right"
+        const val KEY_CARD_CORNER_MOVED = "reader_card_corner_top_right"
         const val KEY_WORD_MARK = "reader_word_mark"
         const val WORD_MARK_HIGHLIGHT = "highlight"
         const val WORD_MARK_OUTLINE = "outline"
@@ -488,6 +540,9 @@ class ReaderSettings(context: Context) {
         const val POPUP_OPACITY_DEFAULT = 90
         const val KEY_POPUP_RADIUS = "reader_popup_radius"
         const val KEY_POPUP_COMPACT = "reader_popup_compact"
+        const val KEY_POPUP_GLOSSARY = "reader_popup_glossary"
+        const val KEY_POPUP_PITCH = "reader_popup_pitch"
+        const val KEY_POPUP_WIDTH = "reader_popup_width"
         const val KEY_POPUP_HIDE_TAGS = "reader_popup_hide_tags"
         const val KEY_POPUP_PORTRAIT = "reader_popup_portrait"
         /** The looks the page has besides the console's own colours (shared/popup/themes). */

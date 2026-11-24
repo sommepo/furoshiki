@@ -63,9 +63,46 @@ object CrtSettings {
     @Volatile
     private var bend = 0f
 
+    /** Set once the kept values were switched off ([switchOffOnce]). */
+    const val KEY_SWITCHED_OFF = "reader_crt_switched_off_once"
+
+    /**
+     * The CRT picture off once for everyone (the maintainer, 2026-11-24: "are we still forcing crt
+     * filters off in settings for users? we should do on first load, and actually even if they
+     * loaded before"): kept values that switch it on are switched off, the others kept, so that
+     * switched on again it looks as it did; switched on after this, it stays on. True when it
+     * changed something.
+     */
+    fun switchOffOnce(context: Context): Boolean {
+        val prefs = org.readers.app.reader.ReaderSettings.fresh(context)
+        if (prefs.getBoolean(KEY_SWITCHED_OFF, false)) return false
+        val kept = prefs.getString(KEY, null)
+        val off = kept?.let { off(it) }
+        val edit = prefs.edit().putBoolean(KEY_SWITCHED_OFF, true)
+        if (off != null && off != kept) edit.putString(KEY, off)
+        edit.commit()
+        return off != null && off != kept
+    }
+
+    /** [text] with "enabled" at 0 where it switches the picture on; else as it is. */
+    internal fun off(text: String): String {
+        var changed = false
+        val pairs = text.split(';').map { pair ->
+            val at = pair.indexOf('=')
+            if (at > 0 && pair.substring(0, at) == "enabled" && (pair.substring(at + 1).toFloatOrNull() ?: 0f) >= 0.5f) {
+                changed = true
+                "enabled=0.000"
+            } else {
+                pair
+            }
+        }
+        return if (changed) pairs.joinToString(";") else text
+    }
+
     /** Hands the kept values to the renderer. When a game starts, and after a change. */
     fun load(context: Context) {
-        val kept = PreferenceManager.getDefaultSharedPreferences(context).getString(KEY, "") ?: ""
+        switchOffOnce(context)
+        val kept = org.readers.app.reader.ReaderSettings.fresh(context).getString(KEY, "") ?: ""
         try {
             CrtNative.apply(kept)
             note(CrtNative.values())
@@ -210,7 +247,7 @@ class CrtSettingsActivity : ReaderScreen() {
         } catch (_: UnsatisfiedLinkError) {
             return
         }
-        PreferenceManager.getDefaultSharedPreferences(applicationContext).edit().putString(CrtSettings.KEY, text).apply()
+        org.readers.app.reader.ReaderSettings.fresh(applicationContext).edit().putString(CrtSettings.KEY, text).commit()
         CrtSettings.note(text)
     }
 

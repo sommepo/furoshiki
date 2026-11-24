@@ -60,8 +60,11 @@ class PlaySetting(
             "sound.volume" to "Volume",
         )
 
-        /** Where this app starts a console elsewhere than its core does (GameActivity). */
-        private val DEFAULTS_HERE = mapOf("3ds" to mapOf("picture.resolution" to "3"))
+        /**
+         * Where this app starts a console elsewhere than its core does (GameActivity). None since
+         * 2026-11-24: every console's resolution is 1× unless the user chose more (the 3DS was 3×).
+         */
+        private val DEFAULTS_HERE = emptyMap<String, Map<String, String>>()
 
         /** The settings in a core's description (GameNative.info), as this app has them. */
         fun list(console: String, info: JSONObject): List<PlaySetting> {

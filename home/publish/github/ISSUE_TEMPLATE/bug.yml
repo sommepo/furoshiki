@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in Furoshiki does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. A game that is not read, or read wrong, has its own form ("A game is not read right").
+        Furoshiki is maintained in spare time, so a clear report is the quickest way to a fix.
+  - type: input
+    id: version
+    attributes:
+      label: Furoshiki version
+      description: Settings › About, or the file name you downloaded (for example 0.4.0).
+      placeholder: "0.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Android
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: The computer, phone or handheld, and its Android or Windows version.
+      placeholder: "AYN Thor, Android 13 / Windows 11 laptop"
+  - type: input
+    id: game
+    attributes:
+      label: Game and its ID, if a game was running
+      description: The ID is on the game's page in Furoshiki (for example SLPS-01645).
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps, one per line, from starting Furoshiki.
+      placeholder: |
+        1. Start the game
+        2. Tap a word
+        3. Press + to make a card
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (Windows and Linux)
+      description: |
+        Furoshiki writes a log while it runs. On Windows it is %LOCALAPPDATA%\Furoshiki\program\furoshiki.log,
+        on Linux ~/.local/share/Furoshiki/program/furoshiki.log. Quit Furoshiki right after the problem, then
+        drag the file here.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Pictures or a short video help a lot.

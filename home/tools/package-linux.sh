@@ -47,7 +47,11 @@ fi
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
 public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
-build="${READER_HOME_LINUX_BUILD:-$root/build-desktop$([ "$public" = 1 ] && echo -public || true)$([ "$web" = 1 ] && echo -web || true)}"
+# READER_HOME_EDEN=1: a build with Eden's core (build-desktop-eden, tools/build-desktop.sh's), never published: a
+# published package that keeps Eden's core, checked with release-check.py --eden.
+edenbuild="${READER_HOME_EDEN:-0}"
+[ "$edenbuild" = 1 ] && public=1
+build="${READER_HOME_LINUX_BUILD:-$root/build-desktop$([ "$edenbuild" = 1 ] && echo -eden || { [ "$public" = 1 ] && echo -public; } || true)$([ "$web" = 1 ] && echo -web || true)}"
 if [ "$public" = 1 ] && ! grep -qx "HOME_PUBLIC:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null; then
   echo "package-linux: $build is not a published build (HOME_PUBLIC): tools/build-desktop.sh with READER_HOME_PUBLIC=1" >&2
   exit 1
@@ -55,9 +59,9 @@ fi
 forks="${READER_HOME_FORKS:-$root/..}"
 # Eden's core is the maintainer's alone: never in a published package.
 eden=""
-[ "$public" != 1 ] && [ -d "$forks/eden" ] && eden=" eden"
+{ [ "$public" != 1 ] || [ "$edenbuild" = 1 ]; } && [ -d "$forks/eden" ] && eden=" eden"
 cores_wanted="${READER_HOME_PACKAGE_CORES:-station flycast ppsspp azahar pcsx2$eden$([ -f "$forks/vita3k/build-core/bin/reader_core_vita3k.so" ] && echo " vita3k" || true)}"
-if [ "$public" = 1 ] && [[ " $cores_wanted " == *" eden "* ]]; then
+if [ "$public" = 1 ] && [ "$edenbuild" != 1 ] && [[ " $cores_wanted " == *" eden "* ]]; then
   echo "package-linux: Eden's core is never in a published package" >&2
   exit 1
 fi
@@ -249,6 +253,7 @@ if [ "$public" = 1 ]; then
   install -m 644 "$root/publish/NOTICES.md" "$out/NOTICES.txt"
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" \
       -e "s/@COMMIT@/${FUROSHIKI_COMMIT:-(not a release build)}/g" \
+      -e "s#https://github.com/sommepo/furoshiki\$#https://github.com/${FUROSHIKI_SOURCE_REPO:-sommepo/furoshiki}#" \
       "$root/publish/SOURCE.txt" > "$out/SOURCE.txt"
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" "$root/publish/README-linux.txt" > "$out/README.txt"
   lic() { [ -f "$2" ] || { echo "package-linux: no licence file $2" >&2; exit 1; }; install -m 644 "$2" "$licenses/$1"; }
@@ -296,8 +301,8 @@ fi
   tar --owner=0 --group=0 -czf Furoshiki-linux.tar.gz Furoshiki &&
   sha256sum Furoshiki-linux.tar.gz > Furoshiki-linux.tar.gz.sha256)
 if [ "$public" = 1 ]; then
-  "$python" "$here/release-check.py" --folder "$out"
-  "$python" "$here/release-check.py" "$out/../Furoshiki-linux.tar.gz"
+  "$python" "$here/release-check.py" $([ "$edenbuild" = 1 ] && echo --eden) --folder "$out"
+  "$python" "$here/release-check.py" $([ "$edenbuild" = 1 ] && echo --eden) "$out/../Furoshiki-linux.tar.gz"
 fi
 cat "$out/VERSION"
 du -sh "$out" "$out/../Furoshiki-linux.tar.gz"

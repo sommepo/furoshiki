@@ -33,10 +33,10 @@ android {
         applicationId = "io.github.sommepo.furoshiki"
         minSdk = 29
         targetSdk = 35
-        versionCode = 83
+        versionCode = 114
         // A release is called what its tag is (-PFUROSHIKI_VERSION, furoshiki-release.sh): an
         // updater that compares the two (Obtainium) then sees the release as installed.
-        versionName = (project.findProperty("FUROSHIKI_VERSION") as String?) ?: "0.5.8"
+        versionName = (project.findProperty("FUROSHIKI_VERSION") as String?) ?: "0.7.19"
         // False in a published build (-PreaderSaveSync=false): no save sync, and no statistics
         // sent to its service.
         buildConfigField("boolean", "READER_SAVE_SYNC",
@@ -197,8 +197,10 @@ val readerLicences = tasks.register<Exec>("readerLicences") {
     // Where the forks' bundled libraries are: a release builds from an export, which has no
     // submodules, and names the checkout it was made from (-PreaderForks, furoshiki-release.sh).
     val forks = providers.gradleProperty("readerForks").orNull ?: repository.path
+    // The cores this build carries (coreBuilds): Eden's where the build has it.
+    val cores = coreBuilds.keys.filter { it.startsWith("reader_core_") }.joinToString(",") { it.removePrefix("reader_core_") }
     commandLine(listOf("python3", script.path, "--platform", "android", "--root", repository.path,
-        "--forks", forks, "--out", File(out, "licenses").path) + if (strict) emptyList() else listOf("--lenient"))
+        "--forks", forks, "--out", File(out, "licenses").path, "--cores", cores) + if (strict) emptyList() else listOf("--lenient"))
 }
 
 // The page's themes and font, the desktop's (home/themes, home/fonts); the game scripts (above);
@@ -213,7 +215,9 @@ val readerFront = tasks.register<Sync>("readerFront") {
         for (folder in scriptFolders) {
             from(File(repository, folder)) {
                 into("reader/profiles")
-                exclude("index.json", "README.md")
+                // An exported tree's folders also hold the names dictionaries (one title's in two
+                // consoles' folders); they come once, from readerNames, below.
+                exclude("index.json", "README.md", "names-*.zip")
             }
         }
         from(readerNames) { into("reader/names") }

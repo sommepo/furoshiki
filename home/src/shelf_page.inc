@@ -202,28 +202,23 @@ QList<CastMember> CastOf(const QString& key, int most, int* more) {
 /// spine and cover is not wrong"; a record of several consoles has a picture for each).
 QString ArtPlatform(const QString& game_id) {
     const QString i = game_id.toUpper();
-    const auto starts = [&](const char* pattern) { return QRegularExpression(QStringLiteral("^(?:%1)").arg(QLatin1String(pattern))).match(i).hasMatch(); };
-    const auto whole = [&](const char* pattern) { return QRegularExpression(QStringLiteral("^(?:%1)$").arg(QLatin1String(pattern))).match(i).hasMatch(); };
-    if (starts("ULJ|NPJ|UCJ|ULA")) return QStringLiteral("psp");
-    if (starts("PCS")) return QStringLiteral("psv");
-    if (whole("0004[0-9A-F]{12}")) return QStringLiteral("n3d");
-    if (whole("[0-9A-F]{16}")) return QStringLiteral("swi");
-    if (starts("SLPS-?2|SLPM-?[5-7]|SCPS-?[15-7]|SLPS-?7")) return QStringLiteral("ps2");
-    if (starts("SLPS-?[0189]|SLPM-?8|SCPS-?[14]0")) return QStringLiteral("ps1");
-    if (starts("T-?\\d|HDR-|MK-") || whole("\\d{7}")) return QStringLiteral("drc");
+    static const QRegularExpression psp(QStringLiteral("^(?:ULJ|NPJ|UCJ|ULA)"));
+    static const QRegularExpression vita(QStringLiteral("^PCS"));
+    static const QRegularExpression n3ds(QStringLiteral("^0004[0-9A-F]{12}$"));
+    static const QRegularExpression swi(QStringLiteral("^[0-9A-F]{16}$"));
+    static const QRegularExpression ps2(QStringLiteral("^(?:SLPS-?2|SLPM-?[5-7]|SCPS-?[15-7]|SLPS-?7)"));
+    static const QRegularExpression ps1(QStringLiteral("^(?:SLPS-?[0189]|SLPM-?8|SCPS-?[14]0)"));
+    static const QRegularExpression dc(QStringLiteral("^(?:T-?\\d|HDR-|MK-|\\d{7}$)"));
+    static const QRegularExpression nds(QStringLiteral("^[A-Z0-9]{4}$"));
+    if (psp.match(i).hasMatch()) return QStringLiteral("psp");
+    if (vita.match(i).hasMatch()) return QStringLiteral("psv");
+    if (n3ds.match(i).hasMatch()) return QStringLiteral("n3d");
+    if (swi.match(i).hasMatch()) return QStringLiteral("swi");
+    if (ps2.match(i).hasMatch()) return QStringLiteral("ps2");
+    if (ps1.match(i).hasMatch()) return QStringLiteral("ps1");
+    if (dc.match(i).hasMatch()) return QStringLiteral("drc");
+    if (nds.match(i).hasMatch()) return QStringLiteral("nds");
     return {};
-}
-
-/// A title's box spine for the console of this game (`<key>.<platform>.jpg`, tools/titles.py spines).
-QPixmap SpineOf(const QString& key, const QString& game_id) {
-    static QHash<QString, QPixmap> spines;
-    const QString platform = ArtPlatform(game_id);
-    const QString name = key + QLatin1Char('.') + platform;
-    auto found = spines.find(name);
-    if (found == spines.end()) {
-        found = spines.insert(name, key.isEmpty() || platform.isEmpty() ? QPixmap() : QPixmap(QStringLiteral(":/spines/%1.jpg").arg(name)));
-    }
-    return *found;
 }
 
 QString EnglishTitle(const QString& id) {
@@ -309,6 +304,8 @@ const SpineStyle* SpineStyleOf(const QString& platform) {
         {QStringLiteral("drc"), {0.06, QColor(0xf6, 0xf5, 0xf1), QColor(0x14, 0x14, 0x14), QColor(0xf2, 0x6b, 0x1d), Qt::white, 0.15, "Dreamcast", QColor(0xf6, 0xf5, 0xf1), QColor(0x14, 0x14, 0x14), true}},
         // White, the console's name in red at the head.
         {QStringLiteral("n3d"), {0.07, QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), QColor(0xf6, 0xf6, 0xf4), QColor(0xd7, 0x0f, 0x1f), 0.12, "3DS", QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), true}},
+        // Japanese DS boxes: clean white spine with dark grey band at the head.
+        {QStringLiteral("nds"), {0.085, QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), QColor(0x3a, 0x3c, 0x42), Qt::white, 0.13, "DS", QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), true}},
         // A Japanese PC game's box: a dark spine, the title in white, the maker's band left plain.
         {QStringLiteral("pc"), {0.11, QColor(0x1c, 0x1e, 0x24), Qt::white, QColor(0x0c, 0x0d, 0x10), QColor(0xd8, 0xd8, 0xd4), 0.08, "PC", QColor(0, 0, 0, 0), Qt::white, false}},
         {QStringLiteral("ps3"), {0.075, QColor(0x14, 0x14, 0x16), Qt::white, QColor(0x05, 0x05, 0x06), Qt::white, 0.12, "PS3", QColor(0, 0, 0, 0), Qt::white, false}},
@@ -318,7 +315,9 @@ const SpineStyle* SpineStyleOf(const QString& platform) {
 }
 
 /// A spine in its console's look: the band, the title set down it as a Japanese book's is, the
-/// serial at its foot. 1000 high, as the fetched ones are kept.
+/// serial at its foot. 1000 high, as the fetched ones are kept. (On 2026-11-23 it took the cover's
+/// colours for an evening; the maintainer preferred these, "when they looked like the original
+/// consoles' real spines".)
 QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& serial) {
     const int height = 1000;
     const int width = std::max(40, static_cast<int>(std::lround(height * style.shape)));
@@ -334,7 +333,12 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
         p.save();
         p.translate(width / 2.0, band / 2.0);
         p.rotate(90);
-        p.setFont(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), width * 0.42));
+        // As large as fits along the band: "PlayStation 2" was cut at both ends.
+        double name_size = width * 0.42;
+        while (name_size > width * 0.18 && Advance(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), name_size), QLatin1String(style.name)) > band - 16) {
+            name_size *= 0.93;
+        }
+        p.setFont(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), name_size));
         p.setPen(style.band_ink);
         p.drawText(QRectF(-band / 2 + 6, -width / 2.0, band - 12, width), Qt::AlignCenter, QLatin1String(style.name));
         p.restore();
@@ -356,11 +360,35 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
         p.fillRect(QRectF(0, height - foot, width, foot), style.foot);
     }
     if (style.serial && !serial.isEmpty()) {
-        p.setFont(ShelfFont(QStringLiteral("IBMPlexMono-Medium.ttf"), width * 0.2));
+        // At its hyphen ("SLPM" over "66302"), else a long one in two (a Vita's "PCSG" over "00488",
+        // a 3DS title ID eight figures over eight), as large as the widest line lets it be.
+        const QString id = serial.toUpper();
+        QStringList lines;
+        int letters = 0;
+        while (letters < id.size() && id[letters].isLetter()) {
+            ++letters;
+        }
+        if (id.contains(QLatin1Char('-'))) {
+            lines = id.split(QLatin1Char('-'));
+        } else if (letters >= 2 && letters <= 5 && id.size() > letters) {
+            lines = {id.left(letters), id.mid(letters)};
+        } else if (id.size() > 8) {
+            lines = {id.left(id.size() / 2), id.mid(id.size() / 2)};
+        } else {
+            lines = {id};
+        }
+        double size = width * 0.2;
+        QFont mono = ShelfFont(QStringLiteral("IBMPlexMono-Medium.ttf"), size);
+        double widest = 0;
+        for (const QString& line : lines) {
+            widest = std::max(widest, Advance(mono, line));
+        }
+        if (widest > width * 0.9) {
+            mono = ShelfFont(QStringLiteral("IBMPlexMono-Medium.ttf"), size * width * 0.9 / widest);
+        }
+        p.setFont(mono);
         p.setPen(style.foot_ink);
-        QString printed = serial.toUpper();
-        printed.replace(QLatin1Char('-'), QLatin1Char('\n'));
-        p.drawText(QRectF(0, height - foot, width, foot), Qt::AlignCenter, printed);
+        p.drawText(QRectF(0, height - foot, width, foot), Qt::AlignCenter, lines.join(QLatin1Char('\n')));
     }
     // The title, from just under the head to just over the foot, as large as it will fit.
     const double from = top + width * 0.5, until = height - foot - width * 0.4;
@@ -394,6 +422,8 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
         size *= 0.94;
         face = ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), size);
     }
+    p.save();
+    p.setClipRect(QRectF(0, from, width, std::max(0.0, room)));
     p.setFont(face);
     p.setPen(style.ink);
     const double cell = QFontMetricsF(face).height() * 0.92;
@@ -431,6 +461,7 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
         }
         y += cell;
     }
+    p.restore();
     // The case's edges, a little darker than the spine.
     p.fillRect(QRectF(0, 0, 1.5, height), QColor(0, 0, 0, 40));
     p.fillRect(QRectF(width - 1.5, 0, 1.5, height), QColor(0, 0, 0, 40));
@@ -442,6 +473,7 @@ QString PlatformOfSystem(const QString& system) {
     static const QHash<QString, QString> known{{QStringLiteral("PC"), QStringLiteral("pc")},
                                                {QStringLiteral("Nintendo Switch"), QStringLiteral("swi")},
                                                {QStringLiteral("Nintendo 3DS"), QStringLiteral("n3d")},
+                                               {QStringLiteral("Nintendo DS"), QStringLiteral("nds")},
                                                {QStringLiteral("PlayStation"), QStringLiteral("ps1")},
                                                {QStringLiteral("PlayStation 2"), QStringLiteral("ps2")},
                                                {QStringLiteral("PlayStation 3"), QStringLiteral("ps3")},
@@ -1180,6 +1212,16 @@ QString HomeWindow::ConsoleOfGame(const Game& game) const {
     return game.system;
 }
 
+QPixmap HomeWindow::SpineOf(const QString& key, const QString& game_id) {
+    const QString platform = ArtPlatform(game_id);
+    const QString name = key + QLatin1Char('.') + platform;
+    auto found = spine_cache.find(name);
+    if (found == spine_cache.end()) {
+        found = spine_cache.insert(name, key.isEmpty() || platform.isEmpty() ? QPixmap() : QPixmap(QStringLiteral(":/spines/%1.jpg").arg(name)));
+    }
+    return *found;
+}
+
 QPixmap HomeWindow::ShelfSpine(const Game& game) {
     const QPixmap real = SpineOf(RecordOf(game.id).key, game.id);
     if (!real.isNull()) {
@@ -1189,7 +1231,6 @@ QPixmap HomeWindow::ShelfSpine(const Game& game) {
     if (!found.isNull()) {
         return found;
     }
-    static QHash<QString, QPixmap> made;
     QString platform = ArtPlatform(game.id);
     if (platform.isEmpty()) {
         platform = PlatformOfSystem(game.system);
@@ -1199,9 +1240,9 @@ QPixmap HomeWindow::ShelfSpine(const Game& game) {
         return {};
     }
     const QString key = platform + QLatin1Char('\n') + game.id + QLatin1Char('\n') + game.title;
-    auto at = made.find(key);
-    if (at == made.end()) {
-        at = made.insert(key, QPixmap::fromImage(MadeSpine(*style, ShelfName(game.title), platform == QStringLiteral("swi") || game.id.startsWith(QStringLiteral("LINES-")) ? QString() : game.id)));
+    auto at = made_spines.find(key);
+    if (at == made_spines.end()) {
+        at = made_spines.insert(key, QPixmap::fromImage(MadeSpine(*style, ShelfName(game.title), platform == QStringLiteral("swi") || game.id.startsWith(QStringLiteral("LINES-")) ? QString() : game.id)));
     }
     return *at;
 }
@@ -1555,6 +1596,24 @@ bool HomeWindow::ShelfKey(int key) {
         update();
         return true;
     }
+    if (shelf_pages && pages_rows && ((DictionariesShown() && dictionary_panel) || (ScriptsShown() && scripts_panel))) {
+        // The dictionaries' or game scripts' list has the keys: what it does not take is the
+        // page's (along the sections, F2, F5); back with nothing marked goes out to the sections.
+        if (DictionariesShown() ? dictionary_panel->Key(key) : scripts_panel->Key(key)) {
+            update();
+            return true;
+        }
+        if (key == Qt::Key_Escape) {
+            pages_rows = false;
+            sounds.Play(Sound::Back);
+            update();
+            return true;
+        }
+        if (key != Qt::Key_Q && key != Qt::Key_E && key != Qt::Key_PageUp && key != Qt::Key_PageDown && key != Qt::Key_Tab &&
+            key != Qt::Key_F2 && key != Qt::Key_F5 && key != Qt::Key_F11) {
+            return true;
+        }
+    }
     if (shelf_pages) {
         // Two levels, as on Android (the maintainer, 2026-11-20): the sections at the left first,
         // up and down going from one to the next; confirm (Enter, right, the controller's
@@ -1615,7 +1674,7 @@ bool HomeWindow::ShelfKey(int key) {
         }
         if (renaming && (key == Qt::Key_Return || key == Qt::Key_Enter) && page_row < page_rows.size() &&
             !(page.kind == Item::Settings && page.system == QStringLiteral("Developer"))) {
-            Rename(page.kind == Item::Settings ? page.system : page.kind == Item::Consoles ? QStringLiteral("Consoles") : QStringLiteral("Statistics"),
+            Rename(page.kind == Item::Settings || page.kind == Item::Dictionaries || page.kind == Item::Scripts ? page.system : page.kind == Item::Consoles ? QStringLiteral("Consoles") : QStringLiteral("Statistics"),
                    page_rows[page_row].title);
             return true;
         }
@@ -2104,7 +2163,7 @@ void HomeWindow::PaintPages(QPainter& p) {
     const QFont tiny = ShelfFont(l.mono, 9.5, 0.14);
     const QFont value = ShelfFont(l.mono, 12.5, 0.05);
     // What the page's rows are called under: a settings page's own name, else its label.
-    const QString page_name = item.kind == Item::Settings ? item.system
+    const QString page_name = item.kind == Item::Settings || item.kind == Item::Dictionaries || item.kind == Item::Scripts ? item.system
                               : item.kind == Item::Consoles ? QStringLiteral("Consoles") : QStringLiteral("Statistics");
     const auto page_label = [&](const Item& one) { return Labelled(QStringLiteral("Page"), one.label).toUpper(); };
 
@@ -2205,6 +2264,23 @@ void HomeWindow::PaintPages(QPainter& p) {
         PutKeys(p, tiny, ShelfRight, 674,
                 {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ CHOOSE"), Qt::Key_Down}, {QStringLiteral("ENTER OPEN"), Qt::Key_Return},
                  {QStringLiteral("ESC BACK"), Qt::Key_Escape}});
+        return;
+    }
+    if (item.kind == Item::Dictionaries || item.kind == Item::Scripts) {
+        // A list of its own stands here (dictionary_panel.h, placed by PlaceDictionaries): only
+        // the foot is the page's.
+        p.fillRect(QRectF(ShelfLeft, 646, ShelfRight - ShelfLeft, 1), l.rule);
+        if (!notice.isEmpty()) {
+            const QFont say = ShelfFont(l.text, 14);
+            Put(p, say, SheetW / 2, 676, Paint::Fit(notice, say, ShelfRight - ShelfLeft), l.ink, 2);
+        } else if (!pages_rows) {
+            PutKeys(p, tiny, ShelfRight, 674,
+                    {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ SECTION"), Qt::Key_Down}, {QStringLiteral("ENTER OPEN"), Qt::Key_Return},
+                     {pages_back ? QStringLiteral("ESC BACK TO GAME") : QStringLiteral("ESC LIBRARY"), Qt::Key_Escape}});
+        } else if (item.kind == Item::Dictionaries ? static_cast<bool>(dictionary_panel) : static_cast<bool>(scripts_panel)) {
+            PutKeys(p, tiny, ShelfRight, 674,
+                    item.kind == Item::Dictionaries ? dictionary_panel->KeyHints() : scripts_panel->KeyHints());
+        }
         return;
     }
     // Its rows: what each is, and what it is set to; the one in hand marked. The list stands
@@ -2852,9 +2928,9 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
                 hint = unread_games.size() == 1
                            ? QStringLiteral("1 game in your game folders has no game script yet.")
                            : QStringLiteral("%1 games in your game folders have no game script yet.").arg(unread_games.size());
-                hint += QStringLiteral(" Install game scripts in Settings › Consoles › Game scripts, or add a game to read by OCR.");
+                hint += QStringLiteral(" Install game scripts in Settings › Game scripts, or add a game to read by OCR.");
             } else if (count == 0) {
-                hint = QStringLiteral("Install game scripts in Settings › Consoles › Game scripts, then choose the folder "
+                hint = QStringLiteral("Install game scripts in Settings › Game scripts, then choose the folder "
                                       "your games are in.");
             }
             if (!hint.isEmpty()) {

@@ -290,7 +290,7 @@ class ReaderOverlayTest {
             val centreY = by + add.paddingTop + (add.height - add.paddingTop - add.paddingBottom) / 2f
             val left = centreX - px < part.width / 2f
             val top = centreY - py < part.height / 2f
-            val wanted = corner ?: "bottom_left"
+            val wanted = corner ?: "top_right" // the default since 2026-11-24
             assertEquals("$wanted: left", wanted.endsWith("left"), left)
             assertEquals("$wanted: top", wanted.startsWith("top"), top)
             // No character of the headline or the senses lies under the box.

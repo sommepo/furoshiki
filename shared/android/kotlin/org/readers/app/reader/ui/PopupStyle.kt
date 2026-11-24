@@ -42,6 +42,10 @@ object PopupStyle {
                 if (look.has("opacity")) putInt(ReaderSettings.KEY_POPUP_OPACITY, look.optInt("opacity").coerceIn(0, 100))
                 if (look.has("radius")) putInt(ReaderSettings.KEY_POPUP_RADIUS, look.optInt("radius", -1).coerceIn(-1, 28))
                 if (look.has("compact")) putInt(ReaderSettings.KEY_POPUP_COMPACT, look.optInt("compact").coerceIn(0, 9))
+                if (look.has("width")) putInt(ReaderSettings.KEY_POPUP_WIDTH, look.optInt("width").coerceIn(0, 900))
+                look.optString("glossary").takeIf { it == "full" || it == "compact" }?.let { putString(ReaderSettings.KEY_POPUP_GLOSSARY, it) }
+                look.optString("pitch").takeIf { it in listOf("over", "graph", "text", "number", "all", "off") }
+                    ?.let { putString(ReaderSettings.KEY_POPUP_PITCH, it) }
                 if (look.has("hideTags")) putBoolean(ReaderSettings.KEY_POPUP_HIDE_TAGS, look.optBoolean("hideTags"))
                 look.optString("portrait").takeIf { it in listOf("small", "large", "off") }?.let { putString(ReaderSettings.KEY_POPUP_PORTRAIT, it) }
             }

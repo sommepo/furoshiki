@@ -1,5 +1,5 @@
 -- reader: title My Merry May with be
--- reader: reads The story's text with speakers, in the message box and on the full-screen page, and choices
+-- reader: reads Dialogue, narration, speakers, and choices
 -- reader: touch press
 -- reader: version ULJM-05603
 -- My Merry May with be (KID/CYBERFRONT, PSP, 2009), ULJM-05603. EBOOT.BIN A0EDB17F.

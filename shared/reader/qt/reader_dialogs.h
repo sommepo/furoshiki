@@ -56,5 +56,8 @@ std::function<QString()>& AnkiElsewhere();
 /// What shows a program's own settings in place of the reader's settings window (Furoshiki's
 /// pages); none in an app that has none.
 std::function<void()>& SettingsPages();
+/// What shows a program's own dictionaries page in place of the Dictionaries window (Furoshiki's
+/// Settings › Dictionaries); none in an app that has none.
+std::function<void()>& DictionaryPages();
 
 } // namespace ReaderUi

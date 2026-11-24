@@ -54,14 +54,17 @@ object AppSetup {
 
     /** Off the main thread: what is new in the dictionaries folder (Games/Dictionaries) is imported. */
     fun dictionaries(context: Context) {
+        val database = DictionaryStore.get(context).database
+        // Leave the SQLite file untouched while the main process still needs to convert it.
+        if (database.conversionNeeded) return
         val fresh = SharedDictionaries.newFiles(context)
         if (fresh.isEmpty()) return
-        val importer = DictionaryImporter(DictionaryStore.get(context).database)
+        val importer = DictionaryImporter(database)
         val folder = File(context.cacheDir, "reader/import").apply { mkdirs() }
         for (file in fresh) {
-            val copy = File(folder, "dictionary.zip")
+            val copy = File.createTempFile("dict-", ".zip", folder)
             try {
-                context.contentResolver.openInputStream(file.uri)!!.use { input ->
+                (context.contentResolver.openInputStream(file.uri) ?: throw java.io.IOException("Couldn't open file")).use { input ->
                     copy.outputStream().use { input.copyTo(it) }
                 }
                 val result = importer.import(copy, progress = { _, _, _ -> }, keepGoing = { true })
@@ -77,6 +80,8 @@ object AppSetup {
                 copy.delete()
             }
         }
+        // The library's index of every dictionary, once the batch is over (the engine's).
+        runCatching { database.compact() }
     }
 
     /** Off the main thread: AnkiDroid is asked. The deck and note type it finds, when none is chosen. */
@@ -123,14 +128,24 @@ object AppSetup {
 
 /** [AppSetup]'s slow part from the page, in the process that keeps the reader's data. */
 class AppSetupService : Service() {
+    private val worker = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "AppSetup") }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Thread({
-            AppSetup.anki(this)
-            AppSetup.dictionaries(this)
-            stopSelf()
-        }, "AppSetup").start()
+        worker.execute {
+            try {
+                AppSetup.anki(this)
+                AppSetup.dictionaries(this)
+            } finally {
+                stopSelf(startId)
+            }
+        }
         return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        worker.shutdown()
+        super.onDestroy()
     }
 }

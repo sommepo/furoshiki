@@ -38,6 +38,7 @@ const char* ScriptListOf(const char* key) {
         {"3ds", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/3ds/index.json"},
         {"nds", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/nds/index.json"},
         {"psvita", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/vita/index.json"},
+        {"switch", "https://raw.githubusercontent.com/sommepo/furoshiki-scripts/main/scripts/switch/index.json"},
     };
     for (const auto& [console, list] : lists) {
         if (key != nullptr && console == key) {

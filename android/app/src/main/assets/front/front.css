@@ -33,6 +33,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* One column no wider than the screen: an auto column took the widest line's width (the clock and
+     Add game went off an open Fold's right edge, 2026-11-24). */
+  grid-template-columns: minmax(0, 1fr);
   padding: max(calc(22 * var(--s)), env(safe-area-inset-top)) max(calc(40 * var(--s)), env(safe-area-inset-right))
     max(calc(12 * var(--s)), env(safe-area-inset-bottom)) max(calc(40 * var(--s)), env(safe-area-inset-left));
 }

@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QHash>
 #include <QJsonObject>
+#include <QSet>
 #include <QList>
 #include <QString>
 #include "reader/desktop/dictionary.h"
@@ -24,7 +25,42 @@ namespace ReaderApp::PopupModel {
  * dictionaries, by title (ReaderSettings::DictionaryKinds).
  */
 [[nodiscard]] QJsonObject Entry(const LookupResult& result, const QString& history,
-                                const QHash<QString, QString>& kinds = {});
+                                const QHash<QString, QString>& kinds = {}, bool without_senses = false);
+
+/**
+ * The same entry as the page's JSON text, its glossaries as they are stored (checked to be
+ * JSON, not parsed), its pictures named once each: those not in `sent` are put in `pictures`
+ * (key → data address) and in `sent`. Kept by headword, as Prepare keeps. What the web popup
+ * sends; Entry is for everything else (and the tests).
+ */
+[[nodiscard]] QByteArray EntryText(const LookupResult& result, const QString& history,
+                                   const QHash<QString, QString>& kinds, QSet<QString>& sent, QJsonObject& pictures);
+/**
+ * A character's entries from the kanji dictionaries, as the page's JSON text: one entry for
+ * each dictionary (its "kanji": character, meanings, onyomi, kunyomi, stats, tags), the first
+ * with the character's frequencies. The page draws them on its Kanji tab, without card buttons.
+ */
+[[nodiscard]] QByteArray KanjiText(const QList<KanjiEntry>& kanji, const QList<TermMeta>& frequencies);
+
+/// Makes and keeps EntryText's costly part ahead (as a line is walked). Any thread.
+void PrepareText(const LookupResult& result, const QHash<QString, QString>& kinds = {});
+
+/**
+ * Makes ahead, and keeps, what Entry costs (a headword's senses, forms and card), as a line is
+ * walked before anyone hovers it. Entry keeps what it makes too; a headword is known by its
+ * entries' dictionaries and rows, so dictionaries switched or replaced give other headwords.
+ * Safe from any thread.
+ */
+void Prepare(const LookupResult& result, const QHash<QString, QString>& kinds = {});
+/// Forgets every headword kept (a dictionary's glossaries changed under the same rows).
+void ForgetPrepared();
+
+/**
+ * Pictures once each: every sense's media (path → data address) becomes path → "pic:KEY",
+ * and the data of keys not in `sent` goes into `pictures` (KEY → data address) and into
+ * `sent`. The page keeps the pictures it was given until it loads again.
+ */
+void SharePictures(QJsonArray& entries, QSet<QString>& sent, QJsonObject& pictures);
 
 /**
  * What kind of dictionary an entry comes from, for the popup's tabs: "word", "grammar", "kanji"

@@ -259,7 +259,8 @@ class ReaderOverlay(
             onTouchPlaying(playing)
         }
         // Every button for a game played by touch.
-        touchButtons.show(if (playing || (touchButtonsAlways && ReaderSession.isActive)) TouchButtons.ALL else emptyList())
+        // Never on a device with a second display (the maintainer, 2026-11-24).
+        touchButtons.show(if (!settings.twoScreens && (playing || (touchButtonsAlways && ReaderSession.isActive))) TouchButtons.ALL else emptyList())
     }
 
     /** The controller's buttons over every game: an app with no on-screen controller of its own. */

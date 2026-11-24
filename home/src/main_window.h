@@ -5,6 +5,8 @@
 
 #include <QPointer>
 #include "controller_map.h"
+#include "dictionary_shelf.h"
+#include "script_shelf.h"
 
 // The one program's one window (docs/one-program.md): Furoshiki's own page, and the game,
 // which a core draws into a widget of this window (the screen) while the reader's windows lie
@@ -320,6 +322,8 @@ private:
     QStackedWidget* pages{};
     QStringList core_files;
     std::map<QString, std::unique_ptr<Loaded>> loaded; ///< By file
+    std::unique_ptr<Home::DictionaryShelf> dictionary_shelf; ///< Settings › Dictionaries' work
+    std::unique_ptr<Home::ScriptShelf> script_shelf;         ///< Settings › Game scripts' work
     Loaded* current{};
     QTimer pads_timer;
     QTimer stats_timer; ///< SendStats every few minutes while a game is read

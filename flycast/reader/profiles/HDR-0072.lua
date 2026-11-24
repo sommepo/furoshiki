@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title サクラ大戦 (Sakura Taisen)
--- reader: reads The message window and the answers of a timed choice (LIPS)
+-- reader: reads Dialogue and timed choices (LIPS)
 -- reader: version HDR-0072 (Japan), both discs
 -- reader: touch press
 -- Sakura Taisen (Sega, Dreamcast, 2000). docs/reader/games/sakura-taisen.md has what is read,

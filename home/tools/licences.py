@@ -49,6 +49,9 @@ FORKS = {
     "vita3k": {"licences": [("vita3k/COPYING.txt", "Vita3K-COPYING.txt"),
                             ("vita3k/external/ffmpeg/copyright", "FFmpeg-LGPL-2.1.txt")],
                "parents": ["vita3k/external"]},
+    # Only in a build with Eden's core (READER_HOME_EDEN=1, never published): its libraries are its
+    # externals and what CPM fetched into .cache/cpm.
+    "eden": {"licences": [("eden/LICENSE.txt", "Eden-LICENSE.txt")], "parents": ["eden/externals", "eden/.cache/cpm"]},
     "melonds": {"licences": [("melonds/LICENSE", "melonDS-LICENSE.txt"),
                              ("melonds/freebios/drastic_bios_readme.txt", "melonDS-FreeBIOS.txt")],
                 "libraries": ["melonds/src/teakra", "melonds/src/fatfs", "melonds/src/tiny-AES-c",

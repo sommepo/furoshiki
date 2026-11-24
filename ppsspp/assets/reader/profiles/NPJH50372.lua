@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title ダンガンロンパ 希望の学園と絶望の高校生 (Danganronpa)
--- reader: reads The message box with speakers: the story, investigation talk, the tutorial
+-- reader: reads Story dialogue, investigation talk, tutorial, and speakers
 -- reader: touch press
 -- reader: buttons up down left right l r circle cross triangle start
 -- reader: version NPJH-50372

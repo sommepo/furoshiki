@@ -1,5 +1,5 @@
 -- reader: title July
--- reader: reads The message window, with who speaks, and the choices
+-- reader: reads Dialogue, speakers, and choices
 -- reader: version T35401M (header 481991C9)
 -- reader: no hooks
 --

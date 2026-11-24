@@ -32,6 +32,7 @@ set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX COMPILE_OPTIO
 
 add_library(furoshiki SHARED
 	furoshiki_jni.cpp
+	dictionary_jni.cpp
 	${READER}/android/reader_jni_common.cpp
 	${READER}/core/audio_tap.cpp
 	${READER}/core/crt.cpp
@@ -63,4 +64,25 @@ target_include_directories(furoshiki PRIVATE
 	${HOME}/engine ${HOME}/src ${REPOSITORY}/cores ${READER_SHARED} ${FLYCAST_READER}/.. ${FLYCAST_READER}/lua)
 target_compile_options(furoshiki PRIVATE -fvisibility=hidden -fexceptions -frtti)
 target_link_libraries(furoshiki PRIVATE aaudio android log dl)
+
+# The dictionary engine (shared/dict, docs/dictionary-engine.md), for the Kotlin layer's
+# dict/DictionaryNative.kt (dictionary_jni.cpp).
+include("${READER_SHARED}/dict/dict.cmake")
+target_link_libraries(furoshiki PRIVATE reader_dict)
+
+# SQLite, for the move of an earlier version's reader_dict.db into the engine read straight from
+# the file (shared/dict/sqlite_source.cpp): the same amalgamation the desktop builds.
+include(FetchContent)
+FetchContent_Declare(furoshiki_sqlite_src
+    URL https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip
+    URL_HASH SHA512=71e9d81ee7e1160b9da6da0d390e3bd7dc8b434b157db6ba0e0a95446ae50c95488af23b93ecb02ea8b5c305cb16d9e20b174829e41dc17ec747efcb6a7e64d1)
+FetchContent_MakeAvailable(furoshiki_sqlite_src)
+add_library(furoshiki_sqlite STATIC ${furoshiki_sqlite_src_SOURCE_DIR}/sqlite3.c)
+target_include_directories(furoshiki_sqlite SYSTEM PUBLIC ${furoshiki_sqlite_src_SOURCE_DIR})
+target_compile_definitions(furoshiki_sqlite PRIVATE
+    SQLITE_THREADSAFE=1 SQLITE_OMIT_LOAD_EXTENSION SQLITE_DQS=0 SQLITE_DEFAULT_MEMSTATUS=0)
+target_compile_options(furoshiki_sqlite PRIVATE -w -fvisibility=hidden $<$<CONFIG:Debug>:-O2>)
+target_sources(furoshiki PRIVATE ${READER_SHARED}/dict/sqlite_source.cpp)
+set_source_files_properties(${READER_SHARED}/dict/sqlite_source.cpp PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
+target_link_libraries(furoshiki PRIVATE furoshiki_sqlite z)
 target_link_options(furoshiki PRIVATE "-Wl,--no-undefined" "-Wl,-z,max-page-size=16384")

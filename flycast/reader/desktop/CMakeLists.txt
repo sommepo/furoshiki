@@ -121,6 +121,15 @@ if (NOT MSVC)
     target_compile_options(reader_desktop PRIVATE -Wno-shadow -Wno-conversion)
 endif()
 
+# The dictionary engine (docs/dictionary-engine.md, phase 2): what Furoshiki keeps its
+# dictionaries in, converting the SQLite file's once.
+include(${READER_SHARED}/dict/dict.cmake)
+if(READER_OWN_ZLIB)
+    target_include_directories(reader_dict PRIVATE "${READER_ZLIB_SOURCE}" "${READER_ZLIB_BINARY}")
+endif()
+target_link_libraries(reader_desktop PUBLIC reader_dict)
+target_compile_definitions(reader_desktop PRIVATE READER_DICT_ENGINE)
+
 if (READER_TESTS)
     add_subdirectory(tests)
 endif()

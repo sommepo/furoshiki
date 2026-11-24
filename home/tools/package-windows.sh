@@ -16,7 +16,12 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
-if [ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ]; then
+# READER_HOME_EDEN=1: a build with Eden's core (build-windows-eden, tools/build-windows.sh's), never published: a
+# published package that keeps Eden's core, checked with release-check.py --eden.
+edenbuild="${READER_HOME_EDEN:-0}"
+if [ "$edenbuild" = 1 ]; then
+  build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-eden}"
+elif [ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ]; then
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-public}"
 else
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows}"
@@ -26,6 +31,8 @@ exe="$build/reader-home.exe"
 # Whether the program was built as a published build is what its build says.
 public=0
 grep -qx "HOME_PUBLIC:BOOL=ON" "$build/CMakeCache.txt" 2>/dev/null && public=1
+[ "$edenbuild" = 1 ] && [ "$public" != 1 ] &&
+  { echo "$build is not a published build (HOME_PUBLIC): tools/build-windows.sh with READER_HOME_EDEN=1" >&2; exit 1; }
 [ "${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}" = 1 ] && [ "$public" != 1 ] &&
   { echo "$build is not a published build (HOME_PUBLIC): tools/build-windows.sh with READER_HOME_PUBLIC=1" >&2; exit 1; }
 name=Furoshiki
@@ -102,7 +109,7 @@ for core in "$forks"/station/build-core-windows/bin/reader_core_*.dll \
   [ -f "$core" ] || continue
   # A build folder's stripped copy of a core (PPSSPP's) is not a core of its own.
   [[ "$(basename "$core")" == *.stripped.dll ]] && continue
-  if [ "$public" = 1 ] && [[ "$(basename "$core")" == reader_core_eden* ]]; then
+  if [ "$public" = 1 ] && [ "$edenbuild" != 1 ] && [[ "$(basename "$core")" == reader_core_eden* ]]; then
     echo "a published package: $(basename "$core") left out"
     continue
   fi
@@ -172,6 +179,7 @@ if [ "$public" = 1 ]; then
   install -m 644 "$root/publish/NOTICES.md" "$out/NOTICES.txt"
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" \
       -e "s/@COMMIT@/${FUROSHIKI_COMMIT:-(not a release build)}/g" \
+      -e "s#https://github.com/sommepo/furoshiki\$#https://github.com/${FUROSHIKI_SOURCE_REPO:-sommepo/furoshiki}#" \
       "$root/publish/SOURCE.txt" > "$out/SOURCE.txt"
   # What a new user reads first: how to start it, and why Windows warns about it.
   sed -e "s/@VERSION@/${FUROSHIKI_VERSION:-(a build of the repository)}/g" -e 's/$/\r/' \
@@ -195,8 +203,8 @@ if [ "$public" = 1 ]; then
   if [ -f "$out/cores/reader_core_vita3k.dll" ]; then
     lic OpenSSL-LICENSE.txt "$forks/vita3k/build-core-windows/external/openssl/LICENSE.txt"
   fi
-  "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" --folder "$out"
+  "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" $([ "$edenbuild" = 1 ] && echo --eden) --folder "$out"
 fi
 (cd "$out/.." && rm -f "$name-windows.zip" && "$READER_HOST_PREFIX/bin/python3" -m zipfile -c "$name-windows.zip" "$name")
-[ "$public" = 1 ] && "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" "$out/../$name-windows.zip"
+[ "$public" = 1 ] && "$READER_HOST_PREFIX/bin/python3" "$here/release-check.py" $([ "$edenbuild" = 1 ] && echo --eden) "$out/../$name-windows.zip"
 du -sh "$out" "$out/../$name-windows.zip"

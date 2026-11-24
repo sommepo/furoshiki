@@ -239,6 +239,7 @@ object ReaderSession {
         HoverCursor.configure(prefs.cursorButton, prefs.cursorSpeed, prefs.cursorToggle)
         setStatsButton(prefs)
         ReaderNative.setAudioCapture(prefs.captureAudio, prefs.audioHistorySeconds)
+        CrtSettings.switchOffOnce(app)
         seedCrtLook(app)
         CrtSettings.load(app)
         applyTextHookSettings()

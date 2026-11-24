@@ -87,6 +87,7 @@ object NamesDictionaries {
         if (installed != null && installed.revision == pack.revision) return false
         if (installed != null) database.delete(installed.id)
         DictionaryImporter(database).import(pack.file)
+        database.compact()
         if (installed != null && !installed.enabled) {
             database.dictionaries().filter { it.title == pack.dictionary }.forEach { database.setEnabled(it.id, false) }
         }

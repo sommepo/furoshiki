@@ -68,7 +68,7 @@
         app:iconSpaceReserved="false" />
     <ListPreference
         app:key="reader_card_corner"
-        app:defaultValue="bottom_left"
+        app:defaultValue="top_right"
         app:entries="@array/reader_card_corner_entries"
         app:entryValues="@array/reader_card_corner_values"
         app:title="@string/reader_pref_card_corner"
@@ -93,6 +93,23 @@
         app:title="@string/reader_pref_popup_radius"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
+        app:key="reader_popup_width"
+        app:defaultValue="0"
+        app:min="0"
+        android:max="900"
+        app:seekBarIncrement="20"
+        app:showSeekBarValue="true"
+        app:title="@string/reader_pref_popup_width"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_glossary"
+        app:defaultValue="full"
+        app:entries="@array/reader_popup_glossary_entries"
+        app:entryValues="@array/reader_popup_glossary_values"
+        app:title="@string/reader_pref_popup_glossary"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <SeekBarPreference
         app:key="reader_popup_compact"
         app:defaultValue="0"
         app:min="0"
@@ -100,6 +117,14 @@
         app:seekBarIncrement="1"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_compact"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_pitch"
+        app:defaultValue="over"
+        app:entries="@array/reader_popup_pitch_entries"
+        app:entryValues="@array/reader_popup_pitch_values"
+        app:title="@string/reader_pref_popup_pitch"
+        app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
     <SwitchPreferenceCompat
         app:key="reader_popup_hide_tags"

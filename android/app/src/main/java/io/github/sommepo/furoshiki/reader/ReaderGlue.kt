@@ -102,6 +102,15 @@ object ReaderGlue : ReaderNative.Frontend {
     /** Whether the on-screen buttons are wanted, as the reader's settings have it now. */
     fun wantsTouchButtons(): Boolean = activity?.let { ReaderSettings(it).touchButtons } ?: false
 
+    /**
+     * The on-screen buttons on or off from the game itself (its menu or a shortcut), kept as the
+     * setting (Settings › Controls) and shown or taken away at once.
+     */
+    fun setTouchButtons(on: Boolean) {
+        activity?.let { ReaderSettings(it).touchButtons = on }
+        overlay?.touchButtonsAlways = wantsTouchButtons()
+    }
+
     fun onResume() {
         resumed = true
         covered = false

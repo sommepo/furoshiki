@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title 北へ。White Illumination (Kita e. White Illumination)
--- reader: reads The message window: what is said and told in the story
+-- reader: reads Dialogue and narration
 -- reader: version T14301M (Japan)
 -- reader: touch press
 -- reader: buttons up down left right a b

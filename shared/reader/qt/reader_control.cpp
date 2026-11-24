@@ -844,7 +844,9 @@ void ReaderControl::Run(const QString& command, const Reply& reply) {
         } else if (name == QStringLiteral("import-dictionary")) {
             ReaderApp::DictionaryImporter importer(ReaderSession::Instance().Dictionaries());
             const auto result = importer.Import(rest);
+            LOG_INFO(Frontend, "[Reader] Dictionary {}", result.Summary().toStdString());
             if (result.ok) {
+                ReaderSession::Instance().Dictionaries().Compact();
                 ok(QStringLiteral("%1: %2 terms, %3 meta").arg(result.title).arg(result.terms).arg(result.metas));
             } else {
                 reply(QStringLiteral("ERR ") + result.error);

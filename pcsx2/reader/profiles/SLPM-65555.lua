@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title ドラゴンクエストV 天空の花嫁
--- reader: reads The message window: what is said and told, a speaker's lines as they have come up in full
+-- reader: reads Dialogue and narration
 -- reader: version SLPM-65555
 -- ドラゴンクエストV 天空の花嫁 (Square Enix, PS2, 2004), SLPM-65555. Program B64E9939.
 --

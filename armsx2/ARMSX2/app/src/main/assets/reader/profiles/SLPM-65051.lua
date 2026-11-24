@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title サイレントヒル2
--- reader: reads The text at the bottom of the picture: what is said in scenes and what is told when something is looked at
+-- reader: reads Dialogue and inspection text
 -- reader: version SLPM-65051
 -- サイレントヒル2 (Konami, PS2, 2001), SLPM-65051. Program E36E16C9. Japanese text only.
 --

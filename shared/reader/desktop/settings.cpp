@@ -19,6 +19,7 @@ const QString ReaderSettings::KeyScreenTextOutline = QStringLiteral("reader_scre
 const QString ReaderSettings::KeyTouchPlay = QStringLiteral("reader_touch_play");
 const QString ReaderSettings::KeyWordMark = QStringLiteral("reader_word_mark");
 const QString ReaderSettings::KeyCardCorner = QStringLiteral("reader_card_corner");
+const QString ReaderSettings::KeyCardCornerMoved = QStringLiteral("reader_card_corner_top_right");
 const QString ReaderSettings::KeyPopupScale = QStringLiteral("reader_popup_scale");
 const QString ReaderSettings::KeyPopupHeight = QStringLiteral("reader_popup_height");
 const QString ReaderSettings::KeyPopupFit = QStringLiteral("reader_popup_fit");
@@ -34,6 +35,9 @@ const QString ReaderSettings::KeyPopupRadius = QStringLiteral("reader_popup_radi
 const QString ReaderSettings::KeyPopupCompact = QStringLiteral("reader_popup_compact");
 const QString ReaderSettings::KeyPopupHideTags = QStringLiteral("reader_popup_hide_tags");
 const QString ReaderSettings::KeyPopupPortrait = QStringLiteral("reader_popup_portrait");
+const QString ReaderSettings::KeyPopupGlossary = QStringLiteral("reader_popup_glossary");
+const QString ReaderSettings::KeyPopupPitch = QStringLiteral("reader_popup_pitch");
+const QString ReaderSettings::KeyPopupWidth = QStringLiteral("reader_popup_width");
 const QString ReaderSettings::KeyHoverLookup = QStringLiteral("reader_hover_lookup");
 const QString ReaderSettings::KeyCursorButton = QStringLiteral("reader_cursor_button");
 const QString ReaderSettings::KeyStatsButton = QStringLiteral("reader_stats_button");
@@ -102,7 +106,9 @@ constexpr QChar Separator = u'\n';
 } // namespace
 
 ReaderSettings::ReaderSettings(const QString& file_path)
-    : settings{std::make_unique<QSettings>(file_path, QSettings::IniFormat)} {}
+    : settings{std::make_unique<QSettings>(file_path, QSettings::IniFormat)} {
+    MoveCardCornerOnce();
+}
 
 ReaderSettings::ReaderSettings(const QString& file_path, const QString& shared_path)
     : settings{std::make_unique<QSettings>(file_path, QSettings::IniFormat)},
@@ -124,6 +130,7 @@ ReaderSettings::ReaderSettings(const QString& file_path, const QString& shared_p
         shared->sync();
         settings->sync();
     }
+    MoveCardCornerOnce();
 }
 
 bool ReaderSettings::IsAppsOwn(const QString& key) {
@@ -177,6 +184,10 @@ void ReaderSettings::SetValue(const QString& key, const QVariant& value) {
     For(key).setValue(key, value);
 }
 
+void ReaderSettings::SetFileValue(const QString& key, const QVariant& value) {
+    For(key).setValue(key, value);
+}
+
 bool ReaderSettings::Has(const QString& key) const {
     return For(key).contains(key);
 }
@@ -222,11 +233,28 @@ bool ReaderSettings::TouchPlay() const {
     return Bool(KeyTouchPlay, false);
 }
 QString ReaderSettings::CardCorner() const {
-    const QString value = String(KeyCardCorner, QStringLiteral("bottom_left"));
-    return value == QStringLiteral("bottom_right") || value == QStringLiteral("top_left") ||
-                   value == QStringLiteral("top_right")
+    // The top right by default since 2026-11-24 (the maintainer: "put the add button in top right
+    // by default for users"): a top corner puts the buttons in the entry's headline, pinned while
+    // it scrolls. Each user's kept corner was made the top right once (MoveCardCornerOnce).
+    const QString value = String(KeyCardCorner, QStringLiteral("top_right"));
+    return value == QStringLiteral("bottom_right") || value == QStringLiteral("bottom_left") ||
+                   value == QStringLiteral("top_left")
                ? value
-               : QStringLiteral("bottom_left");
+               : QStringLiteral("top_right");
+}
+
+void ReaderSettings::MoveCardCornerOnce() {
+    // The maintainer, 2026-11-24: "on this update override their setting for this". Once, with a
+    // mark, so that a corner chosen after it stays.
+    QSettings& file = For(KeyCardCorner);
+    if (file.value(KeyCardCornerMoved, false).toBool()) {
+        return;
+    }
+    if (file.contains(KeyCardCorner)) {
+        file.setValue(KeyCardCorner, QStringLiteral("top_right"));
+    }
+    file.setValue(KeyCardCornerMoved, true);
+    file.sync();
 }
 QString ReaderSettings::WordMark() const {
     const QString value = String(KeyWordMark, QStringLiteral("outline"));
@@ -286,12 +314,32 @@ QString ReaderSettings::PopupPortrait() const {
     const QString value = String(KeyPopupPortrait, QStringLiteral("small"));
     return value == QStringLiteral("large") || value == QStringLiteral("off") ? value : QStringLiteral("small");
 }
+QString ReaderSettings::PopupGlossary() const {
+    return String(KeyPopupGlossary, QStringLiteral("full")) == QStringLiteral("compact") ? QStringLiteral("compact")
+                                                                                         : QStringLiteral("full");
+}
+QString ReaderSettings::PopupPitch() const {
+    const QString value = String(KeyPopupPitch, QStringLiteral("over"));
+    for (const char* form : {"graph", "text", "number", "all", "off"}) {
+        if (value == QLatin1String(form)) {
+            return value;
+        }
+    }
+    return QStringLiteral("over");
+}
+int ReaderSettings::PopupWidth() const {
+    const int value = Int(KeyPopupWidth, 0, 0, 1000);
+    return value == 0 ? 0 : std::max(280, value);
+}
 QJsonObject ReaderSettings::PopupLook() const {
     return QJsonObject{{QStringLiteral("opacity"), PopupOpacity()},
                        {QStringLiteral("radius"), PopupRadius()},
                        {QStringLiteral("compact"), PopupCompact()},
                        {QStringLiteral("hideTags"), PopupHideTags()},
-                       {QStringLiteral("portrait"), PopupPortrait()}};
+                       {QStringLiteral("portrait"), PopupPortrait()},
+                       {QStringLiteral("glossary"), PopupGlossary()},
+                       {QStringLiteral("pitch"), PopupPitch()},
+                       {QStringLiteral("width"), PopupWidth()}};
 }
 QString ReaderSettings::PopupLookups() const {
     const QString value = String(KeyPopupLookups, QStringLiteral("count"));

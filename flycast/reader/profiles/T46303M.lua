@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title 新世紀エヴァンゲリオン 綾波育成計画 (Ayanami Raising Project)
--- reader: reads The message window: what is said and told
+-- reader: reads Dialogue and narration
 -- reader: version T46303M (Japan)
 -- Shin Seiki Evangelion: Ayanami Ikusei Keikaku (Gainax/Broccoli, Dreamcast, 2002).
 -- docs/reader/games/ayanami-ikusei-keikaku.md has what is read, what is not, and how it was

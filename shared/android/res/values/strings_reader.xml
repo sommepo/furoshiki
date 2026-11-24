@@ -147,11 +147,31 @@
     <string name="reader_stats_export_failed">Couldn\'t export: %1$s</string>
 
     <!-- Dictionaries -->
-    <string name="reader_dict_import">Import dictionary</string>
+    <string name="reader_dict_import">Import…</string>
+    <!-- The import's choice, as the desktop's (the maintainer, 2026-11-24: "the import choice should just be \"files\" or \"folders\""). -->
+    <string name="reader_dict_import_files">Files</string>
+    <string name="reader_dict_import_folders">Folders</string>
     <string name="reader_dict_none">No dictionaries yet. Import Yomitan dictionaries (.zip).</string>
-    <string name="reader_dict_importing">Importing %1$s… %2$d / %3$d</string>
-    <string name="reader_dict_copying">Reading file…</string>
-    <string name="reader_dict_imported">%1$s: %2$d terms, %3$d frequency or pitch entries</string>
+    <!-- The import's card (2026-11-24, the maintainer on the Fold: no progress bar or confirmation
+         that the import had happened): how far, the dictionary coming in, then what came of it. -->
+    <string name="reader_dict_import_count">Importing %1$d of %2$d</string>
+    <string name="reader_dict_import_reading">Reading file…</string>
+    <string name="reader_dict_import_finished">Import finished</string>
+    <string name="reader_dict_import_finished_errors">Import finished with errors</string>
+    <string name="reader_dict_import_one">Imported %1$s (%2$s entries)</string>
+    <string name="reader_dict_import_single">Imported 1 dictionary</string>
+    <string name="reader_dict_import_many">Imported %1$d dictionaries</string>
+    <plurals name="reader_dict_imported">
+        <item quantity="one">Imported 1 dictionary</item>
+        <item quantity="other">Imported %1$d dictionaries</item>
+    </plurals>
+    <string name="reader_dict_import_already">%1$d already installed</string>
+    <string name="reader_dict_import_error">1 error</string>
+    <string name="reader_dict_import_errors">%1$d errors</string>
+    <string name="reader_dict_import_cancelled">Cancelled</string>
+    <string name="reader_dict_import_nothing">Nothing was imported</string>
+    <string name="reader_dict_import_ok">OK</string>
+    <string name="reader_dict_new">New</string>
     <string name="reader_dict_failed">Couldn\'t import: %1$s</string>
     <string name="reader_dict_delete">Delete</string>
     <!-- A dictionary's kind: which tab of the popup its entries are in (DictionaryKinds). -->
@@ -165,12 +185,38 @@
     <string name="reader_dict_move_up">Move up</string>
     <string name="reader_dict_move_down">Move down</string>
     <string name="reader_dict_entry_counts">%1$d terms · %2$d extra entries</string>
+    <string name="reader_dict_kanji_count">%1$d kanji</string>
+    <string name="reader_dict_kanji_and_meta">%1$d kanji · %2$d extra entries</string>
     <string name="reader_dict_cancel">Cancel</string>
-    <string name="reader_dict_folder">Import from folder…</string>
     <string name="reader_dict_folder_none">Import folder: Not set</string>
     <string name="reader_dict_folder_set">Import folder: %1$s</string>
     <string name="reader_dict_kind_tab">Popup tab: %1$s ›</string>
     <string name="reader_dict_enabled">Use %1$s</string>
+    <string name="reader_dict_drag">Drag to reorder</string>
+    <string name="reader_dict_sort">Sort by type…</string>
+    <string name="reader_dict_sort_words_first">Words, grammar, kanji, names, frequency and pitch</string>
+    <string name="reader_dict_sort_done">Sorted by type</string>
+    <string name="reader_dict_mark_all">Mark all</string>
+    <string name="reader_dict_on">On</string>
+    <string name="reader_dict_off">Off</string>
+    <string name="reader_dict_move">Move…</string>
+    <string name="reader_dict_top">Top</string>
+    <string name="reader_dict_bottom">Bottom</string>
+    <string name="reader_dict_delete_many">Delete…</string>
+    <string name="reader_dict_undo">Undo</string>
+    <string name="reader_dict_redo">Redo</string>
+    <string name="reader_dict_done">Done</string>
+    <string name="reader_dict_put_back">Cancel</string>
+    <string name="reader_dict_marked">%1$d marked</string>
+    <string name="reader_dict_mark_first">Mark dictionaries first, or drag one by its handle</string>
+    <plurals name="reader_dict_moving">
+        <item quantity="one">Moving 1 · Up/Down to move · Done or A to place · Cancel or B to cancel</item>
+        <item quantity="other">Moving %1$d · Up/Down to move · Done or A to place · Cancel or B to cancel</item>
+    </plurals>
+    <plurals name="reader_dict_delete_many_confirm">
+        <item quantity="one">Delete 1 dictionary?</item>
+        <item quantity="other">Delete %1$d dictionaries?</item>
+    </plurals>
 
     <!-- Anki setup -->
     <string name="reader_anki_target">Add cards to</string>
@@ -397,6 +443,33 @@
     <string name="reader_pref_popup_opacity_summary"></string>
     <string name="reader_pref_popup_radius">Corner radius (px)</string>
     <string name="reader_pref_popup_radius_summary"></string>
+    <string name="reader_pref_popup_width">Maximum width (dp)</string>
+    <string name="reader_pref_popup_glossary">Definition layout</string>
+    <string-array name="reader_popup_glossary_entries">
+        <item>Dictionary layout</item>
+        <item>Compact</item>
+    </string-array>
+    <string-array name="reader_popup_glossary_values" translatable="false">
+        <item>full</item>
+        <item>compact</item>
+    </string-array>
+    <string name="reader_pref_popup_pitch">Pitch accent</string>
+    <string-array name="reader_popup_pitch_entries">
+        <item>Line over reading</item>
+        <item>Graph</item>
+        <item>Reading with drop</item>
+        <item>Number</item>
+        <item>Graph, reading &amp; number</item>
+        <item>Off</item>
+    </string-array>
+    <string-array name="reader_popup_pitch_values" translatable="false">
+        <item>over</item>
+        <item>graph</item>
+        <item>text</item>
+        <item>number</item>
+        <item>all</item>
+        <item>off</item>
+    </string-array>
     <string name="reader_pref_popup_compact">Definitions shown</string>
     <string name="reader_pref_popup_compact_summary"></string>
     <string name="reader_value_default">Default</string>

@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title アマガミ
--- reader: reads The message window's text with furigana, each message when it begins, and choices
+-- reader: reads Dialogue, furigana, and choices
 -- reader: version SLPS-25918
 -- reader: touch press
 -- reader: buttons start triangle up down circle cross

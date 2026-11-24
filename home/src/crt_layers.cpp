@@ -115,4 +115,14 @@ Layer Target(const PlaySettings& play, const QString& console, const QString& ga
     return {};
 }
 
+QString Off(const QString& text) {
+    Values values = Parse(text);
+    const auto enabled = values.find(QStringLiteral("enabled"));
+    if (enabled == values.end() || enabled.value() < 0.5) {
+        return text;
+    }
+    enabled.value() = 0;
+    return Join(values);
+}
+
 } // namespace Home::CrtLayers

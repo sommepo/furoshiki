@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title ウィッシュルーム 天使の記憶
--- reader: reads The message windows: what is said, with its speaker, Kyle's thoughts, the narration and what is looked at; the answers and questions Kyle picks from
+-- reader: reads Dialogue, speakers, thoughts, narration, inspections, and choices
 -- reader: version AWIJ (Japan)
 -- reader: touch game
 --

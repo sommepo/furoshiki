@@ -1,5 +1,5 @@
 -- reader: title ダブルキャスト
--- reader: reads The lines under the film (with 台詞設定 at 文字+音声 or 文字のみ), and the choices
+-- reader: reads Subtitles (with 台詞設定 set to 文字+音声 or 文字のみ) and choices
 -- reader: version SCPS-10053 (boot program AC46E621)
 -- reader: touch press
 -- reader: buttons up down circle

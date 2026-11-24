@@ -5,12 +5,12 @@
     {
       "id": "PCSG00488",
       "title": "英雄伝説 空の軌跡 FC Evolution (The Legend of Heroes: Trails in the Sky, Vita)",
-      "reads": "The talk windows of the story and of people in the field, with speakers and furigana",
+      "reads": "Story and field dialogue, speakers, and furigana",
       "version": "PCSG00488, 1.00",
       "api": 1,
       "file": "PCSG00488.lua",
-      "size": 10089,
-      "sha256": "c09162bec38d2a46d01798e4c2603679f8d130a9d2637c4ca48ad8a033546bd7",
+      "size": 10053,
+      "sha256": "69f34b299b8ab3fd674113a6bdb3fc488a61f1fcbeb2d6cbc7cf0b5c81714dcf",
       "names": {
         "file": "names-sora-no-kiseki-fc.zip",
         "size": 13844,

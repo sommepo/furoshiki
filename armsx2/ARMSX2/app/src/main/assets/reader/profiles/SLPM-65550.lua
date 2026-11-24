@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title Remember11 -the age of infinity-
--- reader: reads The story's text with speakers, each message as it has come up in full, and choices
+-- reader: reads Dialogue, narration, speakers, and choices
 -- reader: version SLPM-65550, disc version 1.02
 -- reader: touch press
 -- reader: buttons start square up down circle cross

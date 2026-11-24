@@ -1,5 +1,5 @@
 -- reader: title 極限脱出 9時間9人9の扉 (Nine Hours, Nine Persons, Nine Doors)
--- reader: reads The novel's text and the talk window with speakers (by the word), the escape rooms, the choices and the file pages
+-- reader: reads Story text, dialogue, speakers, escape rooms, choices, and files
 -- reader: version BSKJ
 -- reader: audio never
 --

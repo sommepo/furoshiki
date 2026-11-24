@@ -1,6 +1,6 @@
 -- reader: no hooks
 -- reader: title Never7 -the end of infinity-
--- reader: reads The story's text with speakers, each message as it has come up in full, and choices
+-- reader: reads Dialogue, narration, speakers, and choices
 -- reader: version SLPS-25256, disc version 1.01
 -- reader: touch press
 -- reader: buttons start select up down circle cross

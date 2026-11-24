@@ -217,8 +217,10 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
 
     /**
      * A 3DS: one over the other, which suits a display held upright and two displays (each then
-     * shows its part of that picture), and a large upper screen on one wide display. The
-     * picture is sharper than the console's own: these displays have some five times its pixels.
+     * shows its part of that picture), and a large upper screen on one wide display. Its picture
+     * is the console's own size unless the user chose more: it was 3× here, and the maintainer's
+     * recording of 逆転裁判123 (2026-11-24) had its sound cut a third of the time, the emulator
+     * falling behind ("can resolution be 1x for all consoles by default").
      */
     private fun chooseScreens(set: List<String>) {
         val twoDisplays = ReaderSettings(this).secondScreen && getSystemService(DisplayManager::class.java)
@@ -228,7 +230,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         if (twoDisplays || "3ds.layout" !in set) {
             GameNative.applySetting("3ds.layout", if (wide && !twoDisplays) "large_screen" else "top_bottom")
         }
-        if ("picture.resolution" !in set) GameNative.applySetting("picture.resolution", "3")
     }
 
     private fun sendSurface() {
@@ -528,6 +529,19 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         }
     }
 
+    /**
+     * The on-screen controls on or off from the game (the maintainer, 2026-11-24: "on android 'on
+     * screen controls' needs to be able to be enabled from the 'menu' button or shortcut"): the
+     * same setting as Settings › Controls, with the menu's button that comes with them.
+     */
+    private fun toggleTouchButtons() {
+        if (ReaderSettings(this).twoScreens) return
+        val on = !ReaderGlue.wantsTouchButtons()
+        ReaderGlue.setTouchButtons(on)
+        menuButton?.visibility = if (on) android.view.View.VISIBLE else android.view.View.GONE
+        Toast.makeText(this, if (on) R.string.game_touch_on else R.string.game_touch_off, Toast.LENGTH_SHORT).show()
+    }
+
     private fun setFast(on: Boolean) {
         fast = on
         GameNative.applySetting("emulation.speed", if (fast) "0" else "100")
@@ -678,6 +692,8 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         row(R.string.game_menu_save, states) { pickState(save = true) }
         row(R.string.game_menu_load, states) { pickState(save = false) }
         row(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) { setFast(!fast) }
+        // Not on a device with a second display, which never shows them (the maintainer, 2026-11-24).
+        row(if (ReaderGlue.wantsTouchButtons()) R.string.game_menu_touch_off else R.string.game_menu_touch_on, !ReaderSettings(this).twoScreens) { toggleTouchButtons() }
         row(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice, Console.HAS_NEXT_CHOICE) { NextChoice.toggle() }
         row(R.string.game_menu_routes, Routes.offer() != null) { Routes.show(this) }
         row(R.string.game_menu_patches, GameNative.features() and 32 != 0) { pickPatches() }
@@ -1039,6 +1055,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             "furoshiki_ocr_read" -> ocr?.readNow()
             "reader_toggle_panel" -> ReaderSession.dispatch(ReaderSession.Command.TOGGLE_PANEL)
             "furoshiki_fast_forward" -> setFast(!fast)
+            "furoshiki_touch_buttons" -> toggleTouchButtons()
             "reader_explain" -> explain()
             else -> return false
         }

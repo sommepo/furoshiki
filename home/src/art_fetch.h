@@ -12,8 +12,10 @@
 #pragma once
 
 #include <functional>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QUrlQuery>
 
 class QNetworkAccessManager;
 
@@ -29,6 +31,21 @@ namespace Home::Art {
 [[nodiscard]] QString SteamAppId(const QString& exe_path, const QString& exe_name, const QString& steam_root = {});
 /// Letters and figures only, folded: names compared as titles.py compares them.
 [[nodiscard]] QString PlainName(const QString& text);
+
+/// Where box art is looked for (the maintainer, 2026-11-23: "offer screenscraper and vndb as
+/// options"): kept in the program's settings (QSettings art/*). ScreenScraper needs the user's own
+/// account and a developer ID and password, which the user types too: nothing of ScreenScraper's
+/// is built in (the maintainer's developer account never goes into a build).
+struct Sources {
+    bool vndb{true};
+    bool screenscraper{};
+    QString ss_user, ss_password, ss_dev_id, ss_dev_password;
+    [[nodiscard]] bool ScreenScraperReady() const {
+        return screenscraper && !ss_dev_id.isEmpty() && !ss_dev_password.isEmpty();
+    }
+};
+[[nodiscard]] Sources LoadSources();
+void SaveSources(const Sources& sources);
 
 struct Want {
     QString game_id;
@@ -58,6 +75,12 @@ signals:
 
 private:
     void Steam();
+    void ScreenScraper();
+    void ScreenScraperGame(const QJsonObject& game);
+    void ScreenScraperSearch(const QStringList& names);
+    void AfterScreenScraper();
+    /// A question to ScreenScraper's API, with the user's account and developer ID.
+    [[nodiscard]] QUrl ScreenScraperUrl(const QString& page, const QList<QPair<QString, QString>>& params) const;
     void Vndb();
     void Releases(const QString& vn);
     void Save(const QString& url, const QString& file, bool spine, std::function<void(bool)> then);
@@ -67,7 +90,9 @@ private:
     Want want;
     QString shared;
     bool busy{}, got_cover{}, got_spine{};
-    QStringList from;
+    QString cover_from, spine_from;
+    Sources sources;
+    QString problem; ///< What a source said was wrong (a login refused), for the user
 };
 
 } // namespace Home::Art

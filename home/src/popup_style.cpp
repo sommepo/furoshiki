@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Furoshiki contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QSaveFile>
-#include <algorithm>
 #include "popup_style.h"
 #include "popup_design.h"
 #include "reader/desktop/settings.h"
@@ -30,6 +30,9 @@ constexpr Pair Keys[] = {
     {"reader_popup_compact", "popup.compact"},
     {"reader_popup_hide_tags", "popup.hide_tags"},
     {"reader_popup_portrait", "popup.portrait"},
+    {"reader_popup_glossary", "popup.glossary"},
+    {"reader_popup_pitch", "popup.pitch"},
+    {"reader_popup_width", "popup.width"},
 };
 
 QString ProgramKey(const QString& reader_key) {
@@ -56,16 +59,28 @@ QJsonObject LookOf(const std::function<QString(const QString&)>& value) {
     const auto text = [&](const char* key) { return value ? value(QString::fromLatin1(key)) : QString(); };
     const QString portrait = text("reader_popup_portrait");
     const QString hide = text("reader_popup_hide_tags");
+    const QString glossary = text("reader_popup_glossary");
+    const QString pitch = text("reader_popup_pitch");
+    bool has_width = false;
+    const int width = text("reader_popup_width").toInt(&has_width);
     bool has_radius = false;
     const int radius = text("reader_popup_radius").toInt(&has_radius);
+    bool has_opacity = false;
+    const int opacity = text("reader_popup_opacity").toInt(&has_opacity);
+    bool has_compact = false;
+    const int compact = text("reader_popup_compact").toInt(&has_compact);
     // Nothing chosen: 90 % solid, the published default since 2026-11-15 (ReaderSettings::PopupOpacity).
-    const QString opacity = text("reader_popup_opacity");
-    return QJsonObject{{QStringLiteral("opacity"), opacity.isEmpty() ? 90 : opacity.toInt()},
-                       {QStringLiteral("radius"), has_radius ? radius : -1},
-                       {QStringLiteral("compact"), text("reader_popup_compact").toInt()},
+    return QJsonObject{{QStringLiteral("opacity"), has_opacity ? std::clamp(opacity, 0, 100) : 90},
+                       {QStringLiteral("radius"), has_radius ? std::clamp(radius, -1, 28) : -1},
+                       {QStringLiteral("compact"), has_compact ? std::clamp(compact, 0, 9) : 0},
                        {QStringLiteral("hideTags"), hide == QStringLiteral("true") || hide == QStringLiteral("1")},
                        {QStringLiteral("portrait"), portrait == QStringLiteral("large") || portrait == QStringLiteral("off")
-                                                        ? portrait : QStringLiteral("small")}};
+                                                        ? portrait : QStringLiteral("small")},
+                       {QStringLiteral("glossary"), glossary == QStringLiteral("compact") ? glossary : QStringLiteral("full")},
+                       {QStringLiteral("pitch"), QStringList{QStringLiteral("graph"), QStringLiteral("text"), QStringLiteral("number"),
+                                                             QStringLiteral("all"), QStringLiteral("off")}.contains(pitch)
+                                                     ? pitch : QStringLiteral("over")},
+                       {QStringLiteral("width"), (!has_width || width <= 0) ? 0 : std::clamp(width, 280, 1000)}};
 }
 
 QString Folder(const QString& program_folder) {
@@ -128,6 +143,21 @@ QList<PlaySetting> Settings(const QString& folder) {
     portrait.kind = PlaySetting::Choice;
     portrait.default_value = QStringLiteral("small");
     portrait.choices = {QStringLiteral("small"), QStringLiteral("large"), QStringLiteral("off")};
+    // How a word's definitions are laid out: as its dictionary sets them (Yomitan's way, with the
+    // dictionary's own styles and pictures), or compact (each sense's glosses on a line).
+    PlaySetting glossary;
+    glossary.key = QStringLiteral("popup.glossary");
+    glossary.label = QStringLiteral("Definition layout");
+    glossary.kind = PlaySetting::Choice;
+    glossary.default_value = QStringLiteral("full");
+    glossary.choices = {QStringLiteral("full"), QStringLiteral("compact")};
+    PlaySetting pitch;
+    pitch.key = QStringLiteral("popup.pitch");
+    pitch.label = QStringLiteral("Pitch accent");
+    pitch.kind = PlaySetting::Choice;
+    pitch.default_value = QStringLiteral("over");
+    pitch.choices = {QStringLiteral("over"), QStringLiteral("graph"), QStringLiteral("text"), QStringLiteral("number"), QStringLiteral("all"),
+                     QStringLiteral("off")};
     // The design right after the look it is made over.
     return {theme,
             design,
@@ -135,7 +165,10 @@ QList<PlaySetting> Settings(const QString& folder) {
             lookups,
             number("popup.opacity", "Opacity", 0, 100, 5, "90"),
             number("popup.radius", "Corner radius", -1, 28, 1, "-1"),
+            number("popup.width", "Maximum width", 0, 1000, 20, "0"),
+            glossary,
             number("popup.compact", "Meanings before \"more\"", 0, 9, 1, "0"),
+            pitch,
             hide,
             portrait};
 }
@@ -224,6 +257,14 @@ QString Import(const QJsonObject& style, PlaySettings& play, const QString& fold
         whole("opacity", "popup.opacity", 0, 100);
         whole("radius", "popup.radius", -1, 28);
         whole("compact", "popup.compact", 0, 9);
+        whole("width", "popup.width", 0, 1000);
+        for (const char* name : {"glossary", "pitch"}) {
+            const QString chosen = look.value(QLatin1String(name)).toString();
+            const QString key = QStringLiteral("popup.") + QLatin1String(name);
+            if (SettingOf(folder, key).choices.contains(chosen)) {
+                play.Set(key, chosen, console, game);
+            }
+        }
         if (look.contains(QStringLiteral("hideTags"))) {
             play.Set(QStringLiteral("popup.hide_tags"), look.value(QStringLiteral("hideTags")).toBool() ? QStringLiteral("1") : QStringLiteral("0"),
                      console, game);

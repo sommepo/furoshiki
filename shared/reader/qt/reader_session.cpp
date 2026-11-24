@@ -355,8 +355,11 @@ void ReaderSession::OpenData() {
     ReaderCrtPage::Load(*settings);
     database = std::make_unique<ReaderApp::ReaderDatabase>(
         directory + u'/' + QLatin1String(ReaderApp::ReaderDatabase::FileName));
+    // The dictionaries: the dictionary engine's library (docs/dictionary-engine.md), into which
+    // the SQLite file's dictionaries are converted once, in the background, where it is built.
     dictionaries = std::make_unique<ReaderApp::DictionaryDatabase>(
-        home + u'/' + QLatin1String(ReaderApp::DictionaryDatabase::FileName));
+        home + u'/' + QLatin1String(ReaderApp::DictionaryDatabase::FileName),
+        home + QStringLiteral("/dictionaries"));
     // The dictionaries this app had before, once: the shared file takes those it has not.
     if (!settings->Value(ReaderApp::ReaderSettings::KeyDictionariesShared, false).toBool()) {
         try {

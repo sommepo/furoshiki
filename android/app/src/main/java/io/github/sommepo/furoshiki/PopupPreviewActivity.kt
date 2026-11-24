@@ -69,7 +69,7 @@ class PopupPreviewActivity : Activity(), SharedPreferences.OnSharedPreferenceCha
     }
 
     override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
-        if (key == null || key.startsWith("reader_popup") || key == ReaderSettings.KEY_SHELF_THEME) show()
+        if (key == null || key.startsWith("reader_popup") || key == ReaderSettings.KEY_SHELF_THEME || key == ReaderSettings.KEY_CARD_CORNER) show()
     }
 
     private fun show() {
@@ -85,7 +85,7 @@ class PopupPreviewActivity : Activity(), SharedPreferences.OnSharedPreferenceCha
             .put("addAudio", getString(R.string.reader_lookup_add_audio))
             .put("book", getString(R.string.reader_lookup_in_deck))
             .put("more", getString(R.string.reader_lookup_more))
-        val model = PopupPage.model(SAMPLE, null, "bottom_left", false, true, settings.popupScale, Console.APP_KEY, "", labels, settings.popupLook)
+        val model = PopupPage.model(SAMPLE, null, settings.cardCorner, false, true, settings.popupScale, Console.APP_KEY, "", labels, settings.popupLook)
         page.call("Reader.show($model)")
     }
 

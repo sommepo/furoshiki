@@ -2,15 +2,27 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <cstdio>
 #include <utility>
 #include <catch2/catch_test_macros.hpp>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QFileInfo>
+#include <QResource>
 #include <QTemporaryDir>
+#include <QThread>
 #include <quazip.h>
 #include <quazipfile.h>
 #include "reader/desktop/dictionary.h"
+#ifdef READER_DICT_ENGINE
+#include "dict/library.h"
+#endif
 #include "reader/desktop/glossary.h"
 #include "reader/desktop/names.h"
+#include "reader/desktop/popup_model.h"
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include "reader/desktop/tests/test_util.h"
 
 using namespace ReaderApp;
@@ -20,9 +32,22 @@ namespace {
 using Files = QList<std::pair<QString, QString>>;
 
 /// Dictionary import and lookup against small archives written for the test (no real data).
+/// SQLite in memory, or the dictionary engine's library in a folder of the test's when
+/// READER_DICT_BACKEND=engine (docs/dictionary-engine.md: the same tests on both).
+QString DatabasePath(const QTemporaryDir& folder) {
+    if (qEnvironmentVariable("READER_DICT_BACKEND") == QStringLiteral("engine")) {
+        return QStringLiteral("engine:") + folder.filePath(QStringLiteral("library"));
+    }
+    return QStringLiteral(":memory:");
+}
+
+bool OnEngine() {
+    return qEnvironmentVariable("READER_DICT_BACKEND") == QStringLiteral("engine");
+}
+
 struct Fixture {
     QTemporaryDir folder;
-    DictionaryDatabase db{QStringLiteral(":memory:")};
+    DictionaryDatabase db{DatabasePath(folder)};
     DictionaryImporter importer{db};
     DictionaryLookup lookup{db};
 
@@ -480,4 +505,283 @@ TEST_CASE("Dictionary: glossaries survive packing", "[reader][dictionary]") {
     REQUIRE(packed.at(0) == 1);
     REQUIRE(DictionaryDatabase::Unpack(packed) == large);
     REQUIRE(DictionaryDatabase::Unpack({}) == QStringLiteral("[]"));
+}
+
+TEST_CASE("Dictionary: a dictionary's styles.css and pictures come with it, and go with it", "[reader][dictionary]") {
+    Fixture f;
+    // A picture's bytes are stored as they are; a zip entry is written as text here, so a few
+    // letters stand in for an image.
+    const QString archive = f.Archive(
+        QStringLiteral("styled.zip"),
+        {{QStringLiteral("dict/index.json"), Q(uR"({"title":"Styled","revision":"1","format":3})")},
+         {QStringLiteral("dict/styles.css"), QStringLiteral("li[data-sc-content=\"sense\"] { color: red; }")},
+         {QStringLiteral("dict/img/a.png"), QStringLiteral("PNGDATA")},
+         {QStringLiteral("dict/term_bank_1.json"),
+          Q(uR"([["絵","え","n","",1,[{"type":"structured-content","content":[{"tag":"img","path":"img/a.png"},"picture"]}],1,""],
+                 ["線","せん","n","",1,["line"],2,""]])")},
+         {QStringLiteral("dict/term_meta_bank_1.json"),
+          Q(uR"([["絵","pitch",{"reading":"え","pitches":[{"position":"HL"}]}],
+                 ["線","pitch",{"reading":"せん","pitches":[{"position":"LHH"}]}]])")}});
+    const DictionaryImporter::Result result = f.importer.Import(archive);
+    REQUIRE(result.ok);
+    REQUIRE(result.media == 1);
+    REQUIRE(f.db.Styles().value(QStringLiteral("Styled")).contains(QStringLiteral("color: red")));
+    const QList<LookupResult> found = f.lookup.Lookup(Q(u"絵"));
+    REQUIRE(!found.isEmpty());
+    const QString picture = found.first().entries.first().media.value(QStringLiteral("img/a.png"));
+    REQUIRE(picture == QStringLiteral("data:image/png;base64,") + QString::fromLatin1(QByteArray("PNGDATA").toBase64()));
+    // Yomitan's other form of a pitch: high and low by mora.
+    REQUIRE(found.first().pitches.first().positions == QList<int>{1});
+    REQUIRE(f.lookup.Lookup(Q(u"線")).first().pitches.first().positions == QList<int>{0});
+    REQUIRE(f.lookup.Lookup(Q(u"線")).first().entries.first().media.isEmpty());
+    // Switched off, its styles are not handed out; deleted, its pictures go too.
+    const qint64 id = f.db.Dictionaries().first().id;
+    f.db.SetEnabled(id, false);
+    REQUIRE(f.db.Styles().isEmpty());
+    f.db.Delete(id);
+    if (OnEngine()) {
+        // Its folder goes, pictures and all.
+        const QStringList left = QDir(f.folder.filePath(QStringLiteral("library")))
+                                     .entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
+        REQUIRE(left.isEmpty());
+        return;
+    }
+    SqliteDb::Statement left(f.db.Db(), "SELECT COUNT(*) FROM media");
+    REQUIRE(left.Step());
+    REQUIRE(left.Int(0) == 0);
+}
+
+// Not run by default: times importing real dictionaries into a file on disk, as the apps do.
+//   READER_BENCH_DICTS="a.zip:b.zip" reader_desktop_tests "[.bench]"
+TEST_CASE("Dictionary: many dictionaries switched and deleted at once", "[reader][dictionary]") {
+    Fixture f;
+    REQUIRE(f.importer.Import(f.Main()).ok);
+    REQUIRE(f.importer.Import(f.FrequencyArchive()).ok);
+    REQUIRE(f.importer.Import(f.Mono()).ok);
+    QList<qint64> ids;
+    for (const DictionaryInfo& info : f.db.Dictionaries()) {
+        ids.append(info.id);
+    }
+    f.db.SetEnabled(ids.mid(0, 2), false);
+    QList<bool> enabled;
+    for (const DictionaryInfo& info : f.db.Dictionaries()) {
+        enabled.append(info.enabled);
+    }
+    REQUIRE(enabled == QList<bool>{false, false, true});
+    f.db.Delete(ids.mid(1, 2));
+    REQUIRE(Titles(f.db) == QStringList{Q(u"Test Dict")});
+    REQUIRE(f.lookup.Lookup(Q(u"食べる")).isEmpty()); // switched off
+    f.db.SetEnabled(ids.mid(0, 1), true);
+    REQUIRE_FALSE(f.lookup.Lookup(Q(u"食べる")).isEmpty());
+}
+
+TEST_CASE("Dictionary: the SQLite file's dictionaries are converted into the engine's library once",
+          "[reader][dictionary]") {
+#ifdef READER_DICT_ENGINE
+    Fixture f;
+    const QString old = f.folder.filePath(QStringLiteral("reader_dict.db"));
+    const QString library = f.folder.filePath(QStringLiteral("dictionaries"));
+    QStringList before;
+    QList<bool> enabled;
+    {
+        DictionaryDatabase sqlite(old);
+        DictionaryImporter importer(sqlite);
+        REQUIRE(importer.Import(f.Main()).ok);
+        REQUIRE(importer.Import(f.FrequencyArchive()).ok);
+        REQUIRE(importer.Import(f.Mono()).ok);
+        // The order and a switch, as the user left them.
+        QList<qint64> ids;
+        for (const DictionaryInfo& info : sqlite.Dictionaries()) {
+            ids.prepend(info.id);
+        }
+        sqlite.SetOrder(ids);
+        sqlite.SetEnabled(sqlite.Dictionaries().last().id, false);
+        DictionaryLookup lookup(sqlite);
+        for (const QString& word : {Q(u"食べた"), Q(u"読む"), Q(u"食べ物")}) {
+            for (const LookupResult& result : lookup.Lookup(word)) {
+                before.append(result.expression + u'|' + result.reading + u'|' + DictionariesOf(result).join(u',') + u'|' +
+                              QString::number(result.frequencies.size()));
+            }
+        }
+        for (const DictionaryInfo& info : sqlite.Dictionaries()) {
+            enabled.append(info.enabled);
+        }
+    }
+    QStringList titles_before;
+    {
+        DictionaryDatabase sqlite(old);
+        titles_before = Titles(sqlite);
+    }
+    {
+        DictionaryDatabase converted(old, library);
+        for (int i = 0; i < 500 && converted.Converting(); ++i) {
+            QThread::msleep(10);
+        }
+        REQUIRE_FALSE(converted.Converting());
+        const DictionaryDatabase::Conversion progress = converted.ConversionProgress();
+        REQUIRE(progress.done == 3);
+        REQUIRE(progress.total == 3);
+        REQUIRE(Titles(converted) == titles_before);
+        QList<bool> now;
+        for (const DictionaryInfo& info : converted.Dictionaries()) {
+            now.append(info.enabled);
+        }
+        REQUIRE(now == enabled);
+        DictionaryLookup lookup(converted);
+        QStringList after;
+        for (const QString& word : {Q(u"食べた"), Q(u"読む"), Q(u"食べ物")}) {
+            for (const LookupResult& result : lookup.Lookup(word)) {
+                after.append(result.expression + u'|' + result.reading + u'|' + DictionariesOf(result).join(u',') + u'|' +
+                             QString::number(result.frequencies.size()));
+            }
+        }
+        REQUIRE(after == before);
+    }
+    // Converted whole: the old file is gone with its data, and the next start is the library's.
+    REQUIRE_FALSE(QFileInfo::exists(old));
+    {
+        DictionaryDatabase again(old, library);
+        REQUIRE_FALSE(again.Converting());
+        REQUIRE(Titles(again) == titles_before);
+    }
+    REQUIRE_FALSE(QFileInfo::exists(old));
+#endif
+}
+
+TEST_CASE("Dictionary: import timing of real archives", "[.bench]") {
+    const QStringList archives =
+        qEnvironmentVariable("READER_BENCH_DICTS").split(u':', Qt::SkipEmptyParts);
+    if (archives.isEmpty()) {
+        SKIP("READER_BENCH_DICTS names no archives");
+    }
+    QTemporaryDir folder;
+    // READER_BENCH_DB keeps the database where it says, to be looked at afterwards.
+    const QString path = qEnvironmentVariableIsSet("READER_BENCH_DB")
+                             ? qEnvironmentVariable("READER_BENCH_DB")
+                             : folder.filePath(QStringLiteral("bench.db"));
+    QFile::remove(path);
+    DictionaryDatabase db{path};
+    DictionaryImporter importer{db};
+    for (const QString& archive : archives) {
+        QElapsedTimer timer;
+        timer.start();
+        const DictionaryImporter::Result result = importer.Import(archive);
+        INFO(result.error.toStdString());
+        CHECK(result.ok);
+        std::printf("%s\n", qPrintable(result.Summary()));
+        std::printf("import %s: %lld terms, %lld metas, %lld media, %.2f s\n", qPrintable(result.title),
+                    static_cast<long long>(result.terms), static_cast<long long>(result.metas),
+                    static_cast<long long>(result.media), timer.elapsed() / 1000.0);
+    }
+#ifdef READER_DICT_ENGINE
+    if (Dict::Library* engine = db.Engine()) {
+        QElapsedTimer timer;
+        timer.start();
+        engine->Compact();
+        std::printf("library index: %.2f s\n", timer.elapsed() / 1000.0);
+    }
+#endif
+    // READER_BENCH_KANJI="亜食" prints what the popup would be given for each character.
+    for (const uint code : qEnvironmentVariable("READER_BENCH_KANJI").toUcs4()) {
+        const QString character = QString::fromUcs4(reinterpret_cast<const char32_t*>(&code), 1);
+        std::printf("kanji %s: [%s]\n", qPrintable(character),
+                    PopupModel::KanjiText(db.FindKanji(character), db.FindKanjiMeta(character)).constData());
+    }
+    std::printf("database: %.1f MB\n",
+                QFileInfo(path).size() / 1048576.0);
+}
+
+TEST_CASE("Dictionary: kanji dictionaries give a character's readings, meanings and stats", "[reader][dictionary]") {
+    Fixture f;
+    const QString archive = f.Archive(
+        QStringLiteral("kanji.zip"),
+        {{QStringLiteral("index.json"), Q(uR"({"title":"Kanji Test","revision":"k1","format":3})")},
+         {QStringLiteral("kanji_bank_1.json"),
+          Q(uR"([["亜","ア","つ.ぐ","jouyou",["Asia","rank next"],{"freq":"1509","grade":"8","strokes":"7"}],
+                 ["食","ショク ジキ","く.う た.べる","jouyou",["eat","food"],{"strokes":"9"}]])")},
+         {QStringLiteral("kanji_meta_bank_1.json"), Q(uR"([["食","freq",321]])")}});
+    const auto result = f.importer.Import(archive);
+    if (!OnEngine()) {
+        // The SQLite file has no kanji tables: a dictionary of only kanji has nothing for it.
+        REQUIRE_FALSE(result.ok);
+        REQUIRE(f.db.FindKanji(QStringLiteral("食")).isEmpty());
+        return;
+    }
+    REQUIRE(result.ok);
+    const QList<KanjiEntry> found = f.db.FindKanji(QStringLiteral("食"));
+    REQUIRE(found.size() == 1);
+    REQUIRE(found.first().dictionary == QStringLiteral("Kanji Test"));
+    REQUIRE(found.first().onyomi == QStringList{QStringLiteral("ショク"), QStringLiteral("ジキ")});
+    REQUIRE(found.first().kunyomi == QStringList{QStringLiteral("く.う"), QStringLiteral("た.べる")});
+    REQUIRE(found.first().meanings == QStringList{QStringLiteral("eat"), QStringLiteral("food")});
+    REQUIRE(found.first().stats.value(QStringLiteral("strokes")).toString() == QStringLiteral("9"));
+    REQUIRE(f.db.FindKanji(QStringLiteral("猫")).isEmpty());
+    const QList<TermMeta> frequencies = f.db.FindKanjiMeta(QStringLiteral("食"));
+    REQUIRE(frequencies.size() == 1);
+
+    const QByteArray text = PopupModel::KanjiText(found, frequencies);
+    const QJsonObject entry = QJsonDocument::fromJson('[' + text + ']').array().first().toObject();
+    REQUIRE(entry.value(QStringLiteral("expression")).toString() == QStringLiteral("食"));
+    REQUIRE(entry.value(QStringLiteral("kanji")).toObject().value(QStringLiteral("character")).toString() ==
+            QStringLiteral("食"));
+    REQUIRE(entry.value(QStringLiteral("frequencies")).toArray().first().toObject().value(QStringLiteral("value")) ==
+            QStringLiteral("321"));
+
+    // Disabled, it is not asked.
+    f.db.SetEnabled(found.first().dictionary_id, false);
+    REQUIRE(f.db.FindKanji(QStringLiteral("食")).isEmpty());
+}
+
+// A names dictionary among a program's own files (":/reader/names/..."), as Furoshiki has them:
+// imported from a copy, since the zip reader maps a file on disk.
+//   READER_RESOURCE_RCC=names.rcc READER_RESOURCE_ZIP=:/names/names-x.zip reader_desktop_tests "[.resource]"
+TEST_CASE("Dictionary: a zip among the program's files is imported", "[.resource]") {
+    const QString rcc = qEnvironmentVariable("READER_RESOURCE_RCC");
+    const QString zip = qEnvironmentVariable("READER_RESOURCE_ZIP");
+    if (rcc.isEmpty() || zip.isEmpty()) {
+        SKIP("READER_RESOURCE_RCC and READER_RESOURCE_ZIP name nothing");
+    }
+    REQUIRE(QResource::registerResource(rcc));
+    Fixture f;
+    const auto result = f.importer.Import(zip);
+    INFO(result.error.toStdString());
+    REQUIRE(result.ok);
+    std::printf("%s\n", qPrintable(result.Summary()));
+}
+
+TEST_CASE("Dictionary engine: two processes share one library", "[reader][dictionary]") {
+#ifdef READER_DICT_ENGINE
+    // Android's app and its game process each open the library: what one changes, the other
+    // sees at its next call. Two Library objects on one folder stand for them.
+    Fixture f;
+    const std::string folder = f.folder.filePath(QStringLiteral("shared-library")).toStdString();
+    Dict::Library app(folder);
+    Dict::Library game(folder);
+    const Dict::ImportResult first = app.Import(f.Main().toStdString());
+    REQUIRE(first.ok);
+    REQUIRE(game.Dictionaries().size() == 1);
+    REQUIRE_FALSE(game.FindTerms({"食べる"}).empty());
+
+    // An import in each: different ids, both listed in both.
+    const Dict::ImportResult second = game.Import(f.FrequencyArchive().toStdString());
+    REQUIRE(second.ok);
+    REQUIRE(second.id != first.id);
+    REQUIRE(app.Dictionaries().size() == 2);
+    app.Compact();
+    REQUIRE(game.Uncovered() == 0);
+
+    game.SetEnabled(first.id, false);
+    REQUIRE(app.FindTerms({"食べる"}).empty());
+    app.SetEnabled(first.id, true);
+    app.Delete(second.id);
+    REQUIRE(game.Dictionaries().size() == 1);
+    REQUIRE_FALSE(game.FindTerms({"食べる"}).empty());
+
+    // A third opening (a process started later) leaves the others' dictionaries alone.
+    Dict::Library later(folder);
+    REQUIRE(later.Dictionaries().size() == 1);
+    REQUIRE_FALSE(app.FindTerms({"食べる"}).empty());
+#else
+    SKIP("the dictionary engine is not built");
+#endif
 }

@@ -98,6 +98,10 @@ class ReaderScreensTest {
     }
 
     private fun installDictionary(title: String = "Test Dict") {
+        DictionaryImporter(DictionaryStore.get(context).database).import(dictionaryZip(title))
+    }
+
+    private fun dictionaryZip(title: String): File {
         val zip = File(context.cacheDir, "$title.zip")
         ZipOutputStream(zip.outputStream()).use { out ->
             out.putNextEntry(ZipEntry("index.json"))
@@ -110,7 +114,7 @@ class ReaderScreensTest {
             )
             out.closeEntry()
         }
-        DictionaryImporter(DictionaryStore.get(context).database).import(zip)
+        return zip
     }
 
     @Test
@@ -167,16 +171,22 @@ class ReaderScreensTest {
         TestSupport.find(root(activity), MaterialSwitch::class.java)!!.performClick()
         TestSupport.await("switch stored") { !store.database.dictionaries().first { it.title == "Test Dict" }.enabled }
 
-        // Move the second above the first.
-        val up = ArrayList<View>()
+        // Mark the second and send it to the top; undo it, and redo it.
+        val boxes = ArrayList<android.widget.CheckBox>()
         fun collect(v: View) {
-            if (v.contentDescription == "Move up") up.add(v)
+            if (v is android.widget.CheckBox) boxes.add(v)
             if (v is android.view.ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i))
         }
         collect(root(activity))
-        assertFalse(up[0].isEnabled)
-        up[1].performClick()
+        boxes[1].performClick()
+        fun button(text: String) = TestSupport.find(root(activity), android.widget.Button::class.java) { it.text == text }!!
+        TestSupport.await("the marked one's foot") { text(activity).contains("1 marked") }
+        button("Top").performClick()
         TestSupport.await("new order") { store.database.dictionaries().map { it.title } == listOf("Second Dict", "Test Dict") }
+        button("Undo").performClick()
+        TestSupport.await("order put back") { store.database.dictionaries().map { it.title } == listOf("Test Dict", "Second Dict") }
+        button("Redo").performClick()
+        TestSupport.await("order again") { store.database.dictionaries().map { it.title } == listOf("Second Dict", "Test Dict") }
 
         // Delete asks first.
         TestSupport.await("list redrawn") {
@@ -242,6 +252,34 @@ class ReaderScreensTest {
         // An install that reads already is not asked at all.
         PreferenceManager.getDefaultSharedPreferences(context).edit().remove("reader_start_offered").commit()
         assertFalse(ReaderStartActivity.offerOnce(app))
+    }
+
+    @Test
+    fun anImportShowsItsDictionariesAndSaysWhatCameOfIt() {
+        // The maintainer on the Fold (2026-11-24): no progress bar or confirmation that the import
+        // had happened. Each dictionary shows in the list as it comes in, marked New, and a card
+        // says what came of it until OK.
+        installDictionary("Old Dict")
+        val activity = Robolectric.buildActivity(DictionaryManagerActivity::class.java).setup().get()
+        TestSupport.await("dictionary list") { text(activity).contains("Old Dict") }
+        activity.import(listOf(android.net.Uri.fromFile(dictionaryZip("明鏡国語辞典 第三版"))))
+        TestSupport.await("confirmation") { text(activity).contains("Import finished") }
+        assertTrue(text(activity), text(activity).contains("Imported 明鏡国語辞典 第三版 (2 entries)"))
+        assertTrue(text(activity), text(activity).contains("明鏡国語辞典 第三版  New"))
+        assertFalse(text(activity), text(activity).contains("Old Dict  New"))
+        TestSupport.snapshot(root(activity), 1920, 1080, "screen-dictionaries-imported")
+        button(activity, "OK").performClick()
+        TestSupport.await("put away") {
+            TestSupport.find(root(activity), TextView::class.java) { it.text.toString() == "Import finished" }?.isShown != true
+        }
+        assertFalse(text(activity), text(activity).contains("  New"))
+
+        // Several: counted, one already installed and one no dictionary said apart.
+        val broken = File(context.cacheDir, "broken.zip").apply { writeText("not a zip") }
+        activity.import(listOf("Second Dict", "Third Dict", "Old Dict").map { android.net.Uri.fromFile(dictionaryZip(it)) } +
+            android.net.Uri.fromFile(broken))
+        TestSupport.await("confirmation of several") { text(activity).contains("Import finished with errors") }
+        assertTrue(text(activity), text(activity).contains("Imported 2 dictionaries · 1 already installed · 1 error"))
     }
 
     @Test
@@ -424,7 +462,8 @@ class ReaderScreensTest {
                 ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_HOVER_DELAY, ReaderSettings.KEY_POPUP_FIT, ReaderSettings.KEY_POPUP_HEIGHT,
                 ReaderSettings.KEY_POPUP_MARK_UNKNOWN, ReaderSettings.KEY_POPUP_AUTOHIDE,
                 ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CARD_CORNER, ReaderSettings.KEY_POPUP_OPACITY,
-                ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_COMPACT, ReaderSettings.KEY_POPUP_HIDE_TAGS,
+                ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_WIDTH, ReaderSettings.KEY_POPUP_GLOSSARY,
+                ReaderSettings.KEY_POPUP_COMPACT, ReaderSettings.KEY_POPUP_PITCH, ReaderSettings.KEY_POPUP_HIDE_TAGS,
                 ReaderSettings.KEY_POPUP_PORTRAIT, ReaderSettings.KEY_POPUP_LOOKUPS, ReaderSettings.KEY_POPUP_CSS,
                 "reader_popup_import", "reader_popup_export",
                 // Cards

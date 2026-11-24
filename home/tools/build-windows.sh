@@ -5,12 +5,19 @@
 # Output: build-windows/reader-home.exe; tools/package-windows.sh makes a folder of it.
 # HOME_PUBLIC=1 (or READER_HOME_PUBLIC=1): a published build (HOME_PUBLIC in CMakeLists.txt) in
 # build-windows-public: no game scripts, character tables or recorded sounds built in.
+# READER_HOME_EDEN=1: a build with Eden's core, never published: otherwise a published
+# build with every game script and its character table built in (HOME_BUNDLE_SCRIPTS), in
+# build-windows-eden; tools/package-windows.sh then takes Eden's core too.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/env.sh"
 root="$(cd "$here/.." && pwd)"
 public="${READER_HOME_PUBLIC:-${HOME_PUBLIC:-0}}"
-if [ "$public" = 1 ]; then
+eden="${READER_HOME_EDEN:-0}"
+[ "$eden" = 1 ] && public=1
+if [ "$eden" = 1 ]; then
+  build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-eden}"
+elif [ "$public" = 1 ]; then
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows-public}"
 else
   build="${READER_HOME_WINDOWS_BUILD:-$root/build-windows}"
@@ -25,7 +32,7 @@ export READER_SDL2_WINDOWS
 export LD_LIBRARY_PATH="$READER_MINGW/lib/x86_64-linux-gnu:$READER_QT_LINUX/lib:$READER_QT_SYSLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # The game scripts' data files that are not in Git, beside the scripts the program bundles
 # (a published build bundles none).
-if [ "$public" != 1 ]; then
+if [ "$public" != 1 ] || { [ "$eden" = 1 ] && [ -d "$root/../station/private" ]; }; then
   "$root/../station/tools/reader/private-data.sh"
   "$root/../pcsx2/tools/reader/private-data.sh"
 fi
@@ -48,7 +55,8 @@ if [ ! -f "$build/build.ninja" ]; then
     -DQt6_DIR="$READER_QT_WINDOWS/lib/cmake/Qt6" \
     -DCMAKE_PREFIX_PATH="$READER_QT_WINDOWS;$READER_SDL2_WINDOWS" \
     -DSDL2_DIR="$READER_SDL2_WINDOWS/lib/cmake/SDL2" -DHOME_CORES=ON \
-    -DHOME_PUBLIC="$want" -DFUROSHIKI_VERSION="${FUROSHIKI_VERSION:-dev}" \
+    -DHOME_PUBLIC="$want" -DHOME_BUNDLE_SCRIPTS="$([ "$eden" = 1 ] || [ "$public" != 1 ] && echo ON || echo OFF)" \
+    -DFUROSHIKI_VERSION="${FUROSHIKI_VERSION:-dev}" \
     -DCMAKE_C_COMPILER_LAUNCHER="$P/ccache" \
     -DQT_HOST_PATH="$READER_QT_LINUX" -DQT_HOST_PATH_CMAKE_DIR="$READER_QT_LINUX/lib/cmake" \
     -DCMAKE_FIND_ROOT_PATH="$READER_MINGW/x86_64-w64-mingw32;$READER_QT_WINDOWS;$READER_SDL2_WINDOWS"

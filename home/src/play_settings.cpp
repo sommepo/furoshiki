@@ -90,6 +90,9 @@ QString PlaySetting::Said(const QString& value) const {
         if (key == QStringLiteral("popup.compact")) {
             return value.toInt() == 0 ? QStringLiteral("All") : value;
         }
+        if (key == QStringLiteral("popup.width")) {
+            return value.toInt() == 0 ? QStringLiteral("Default") : value + QStringLiteral(" px");
+        }
         return value;
     default: {
         // A choice by its name where it has one, else its own word without the hyphen or
@@ -99,6 +102,13 @@ QString PlaySetting::Said(const QString& value) const {
             {QStringLiteral("popup.theme/console"), QStringLiteral("Console colours")},
             {QStringLiteral("popup.theme/furoshiki"), QStringLiteral("Furoshiki glass")},
             {QStringLiteral("popup.lookups/where"), QStringLiteral("Count and first seen")},
+            {QStringLiteral("popup.glossary/full"), QStringLiteral("Dictionary layout")},
+            {QStringLiteral("popup.glossary/compact"), QStringLiteral("Compact")},
+            {QStringLiteral("popup.pitch/over"), QStringLiteral("Line over reading")},
+            {QStringLiteral("popup.pitch/graph"), QStringLiteral("Graph")},
+            {QStringLiteral("popup.pitch/text"), QStringLiteral("Reading with drop")},
+            {QStringLiteral("popup.pitch/number"), QStringLiteral("Number")},
+            {QStringLiteral("popup.pitch/all"), QStringLiteral("Graph, reading & number")},
         };
         const QString full = key + QLatin1Char('/') + value;
         for (const auto& [which, name] : names) {
@@ -144,6 +154,29 @@ PlaySettings::PlaySettings(QString file_) : file(std::move(file_)) {
     if (in.open(QIODevice::ReadOnly)) {
         root = QJsonDocument::fromJson(in.readAll()).object();
     }
+}
+
+QList<QPair<QString, QString>> PlaySettings::LayersWith(const QString& key) const {
+    QList<QPair<QString, QString>> out;
+    if (root.value(All).toObject().value(key).isString()) {
+        out.append({QString(), QString()});
+    }
+    const QJsonObject consoles = root.value(Consoles).toObject();
+    for (auto it = consoles.begin(); it != consoles.end(); ++it) {
+        if (it.value().toObject().value(key).isString()) {
+            out.append({it.key(), QString()});
+        }
+    }
+    const QJsonObject games = root.value(Games).toObject();
+    for (auto console = games.begin(); console != games.end(); ++console) {
+        const QJsonObject of = console.value().toObject();
+        for (auto game = of.begin(); game != of.end(); ++game) {
+            if (game.value().toObject().value(key).isString()) {
+                out.append({console.key(), game.key()});
+            }
+        }
+    }
+    return out;
 }
 
 QJsonObject PlaySettings::LayerOf(const QString& console, const QString& game) const {

@@ -37,20 +37,57 @@ object Covers {
     /** Characters the thumbnails' names have in the place of those a file name cannot. */
     private val NOT_IN_NAMES = Regex("[&*/:`<>?\\\\|\"]")
 
+    /** Safe single path segment for a game ID used in cover/spine file names. */
+    fun safeId(id: String): String {
+        val clean = id.replace('/', '_').replace('\\', '_').replace('\u0000', '_')
+        return if (clean.isEmpty() || clean == "." || clean == ".." || clean.contains("..")) "_" else clean
+    }
+
     /** The picture this game has now, or null. */
     fun of(context: Context, key: String, id: String, game: File): File? {
+        val safe = safeId(id)
         val own = Places.console(context, key, "covers")
         val folder = game.parentFile
         val base = game.nameWithoutExtension
         val places = TYPES.flatMap { type ->
-            listOf(File(own, "$id.$type"), File(folder, "$base.$type"), File(folder, "covers/$base.$type"), File(folder, "covers/$id.$type"))
+            listOf(File(own, "$safe.$type"), File(folder, "$base.$type"), File(folder, "covers/$base.$type"), File(folder, "covers/$safe.$type"))
         }
         return places.firstOrNull { it.isFile && isPicture(it) }
     }
 
-    /** Fetches the game's art into the console's covers folder; the picture, or null. */
-    fun fetch(context: Context, key: String, id: String, game: File): File? {
+    /** A spine found for this game (ScreenScraper's or VNDB's, ArtFinder), or null. */
+    fun spineOf(context: Context, key: String, id: String): File? =
+        File(Places.console(context, key, "spines"), "${safeId(id)}.jpg").takeIf { it.isFile && isPicture(it) }
+
+    /** A game's title record's English name and VNDB entry (the app's titles.json), for the art's search. */
+    fun recordOf(context: Context, id: String): Pair<String, String> = runCatching {
+        val all = records ?: JSONObject(context.assets.open("front/titles.json").bufferedReader().use { it.readText() }).also { records = it }
+        val one = all.optJSONObject(id) ?: return@runCatching "" to ""
+        one.optString("english") to one.optString("vndb")
+    }.getOrDefault("" to "")
+
+    @Volatile private var records: JSONObject? = null
+
+    /**
+     * Fetches the game's art into the console's covers (and spines) folder; the cover, or null.
+     * ScreenScraper and VNDB first, where the user has them on (ArtSources): the Japanese box and
+     * its spine; then the public thumbnails, a serial's cover, the disc's own art.
+     */
+    fun fetch(context: Context, key: String, id: String, game: File, title: String = "", wantCover: Boolean = true, wantSpine: Boolean = true): File? {
+        val safe = safeId(id)
         val own = File(Places.console(context, key, "covers"))
+        val sources = ArtSources.load(context)
+        if ((sources.vndb || sources.screenScraperReady) && title.isNotBlank()) {
+            val (english, vndb) = recordOf(context, id)
+            val found = ArtFinder.find(sources, ArtFinder.Want(
+                key, id, title, english, vndb,
+                cover = if (wantCover) File(own, "$safe.jpg") else null,
+                spine = if (wantSpine) File(Places.console(context, key, "spines"), "$safe.jpg") else null,
+            ))
+            if (found.problem.isNotEmpty()) Log.i("Furoshiki", found.problem)
+            if (found.cover) return File(own, "$safe.jpg")
+        }
+        if (!wantCover) return null
         val names = try {
             JSONObject(context.assets.open("front/covers.json").bufferedReader().use { it.readText() })
         } catch (_: Exception) {
@@ -61,13 +98,13 @@ object Covers {
         val thumbnails = THUMBNAILS + Uri.encode(system) + "/Named_Boxarts/"
         names.optString(id).takeIf { it.isNotEmpty() }?.let { addresses.add(thumbnails + Uri.encode(it) + ".png") }
         addresses.add(thumbnails + Uri.encode(game.nameWithoutExtension.replace(NOT_IN_NAMES, "_")) + ".png")
-        BY_SERIAL[key]?.let { addresses.add("$it$id.jpg") }
+        BY_SERIAL[key]?.let { addresses.add("$it${Uri.encode(id)}.jpg") }
         for (address in addresses) {
             val type = address.substringAfterLast('.')
-            download(address, File(own, "$id.$type"))?.let { return it }
+            download(address, File(own, "$safe.$type"))?.let { return it }
         }
-        if (key == "psp" && game.extension.equals("iso", ignoreCase = true)) return fromPspDisc(game, File(own, "$id.png"))
-        if (key == "psvita") return fromVitaGame(context, id, File(own, "$id.png"))
+        if (key == "psp" && game.extension.equals("iso", ignoreCase = true)) return fromPspDisc(game, File(own, "$safe.png"))
+        if (key == "psvita") return fromVitaGame(context, id, File(own, "$safe.png"))
         return null
     }
 
@@ -80,13 +117,19 @@ object Covers {
             connection.setRequestProperty("User-Agent", "Furoshiki")
             try {
                 if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
+                to.parentFile?.mkdirs()
                 connection.inputStream.use { input -> partial.outputStream().use { input.copyTo(it) } }
             } finally {
                 connection.disconnect()
             }
-            if (partial.renameTo(to)) to else null
+            if (isPicture(partial) && partial.renameTo(to)) {
+                to
+            } else {
+                partial.delete()
+                null
+            }
         } catch (e: Exception) {
-            Log.i("Furoshiki", "No cover from $address: ${e.message}")
+            Log.i("Furoshiki", "No cover from ${address.substringBefore('?')}: ${e.message}")
             partial.delete()
             null
         }
@@ -98,9 +141,12 @@ object Covers {
      * art from the look after that.
      */
     private fun fromVitaGame(context: Context, id: String, to: File): File? {
-        val game = File(Places.console(context, "psvita", "data"), "fs/ux0/app/$id/sce_sys")
+        val safe = safeId(id)
+        if (safe != id) return null
+        val game = File(Places.console(context, "psvita", "data"), "fs/ux0/app/$safe/sce_sys")
         val art = listOf("pic0.png", "livearea/contents/bg.png", "icon0.png").map { File(game, it) }
             .firstOrNull { isPicture(it) } ?: return null
+        to.parentFile?.mkdirs()
         return art.copyTo(to, overwrite = true)
     }
 
