@@ -258,9 +258,12 @@ class ReaderOverlay(
             touchPlaying = playing
             onTouchPlaying(playing)
         }
-        // Every button for a game played by touch.
-        // Never on a device with a second display (the maintainer, 2026-11-24).
-        touchButtons.show(if (!settings.twoScreens && (playing || (touchButtonsAlways && ReaderSession.isActive))) TouchButtons.ALL else emptyList())
+        // Every button for a game played by touch, as for any other game, while the on-screen
+        // controls are on: hidden from the game's menu or a shortcut, they go for a game played by
+        // touch too (the maintainer, 2026-11-24: "Hide on-screen controls" over Memories Off left
+        // every button there, as touch play showed them whatever the setting said). The setting is
+        // on at first where touch play is. Never on a device with a second display.
+        touchButtons.show(if (!settings.twoScreens && touchButtonsAlways && (playing || ReaderSession.isActive)) TouchButtons.ALL else emptyList())
     }
 
     /** The controller's buttons over every game: an app with no on-screen controller of its own. */

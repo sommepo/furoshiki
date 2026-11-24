@@ -77,7 +77,10 @@ class ReaderSettings(context: Context) {
      * page). Unless the user chose one ("auto", the first value and the default since
      * 2026-11-17), the look of the home page's theme ([shelfTheme], [popupThemeOfShelf]).
      */
-    val popupTheme: String get() = when (val value = preferences.getString(KEY_POPUP_THEME, POPUP_THEME_AUTO)) {
+    val popupTheme: String get() = themeOf(preferences.getString(KEY_POPUP_THEME, POPUP_THEME_AUTO))
+
+    /** The look a value of the popup theme setting stands for (the theme chooser's preview too). */
+    fun themeOf(value: String?): String = when (value) {
         "classic", "console" -> value
         in POPUP_THEMES -> value!!
         else -> popupThemeOfShelf(shelfTheme)
@@ -127,6 +130,7 @@ class ReaderSettings(context: Context) {
         .put("opacity", popupOpacity).put("radius", popupRadius).put("compact", popupCompact)
         .put("hideTags", popupHideTags).put("portrait", popupPortrait)
         .put("glossary", popupGlossary).put("pitch", popupPitch).put("width", popupWidth)
+        .put("fit", popupFitEntry)
 
     /** The user's own CSS for the popup page, applied after its theme (shared/popup/README.md). */
     val popupCss: String get() = preferences.getString(KEY_POPUP_CSS, "")!!

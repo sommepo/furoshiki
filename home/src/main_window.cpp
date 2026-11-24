@@ -1689,7 +1689,11 @@ void MainWindow::OpenSettings(const QString& tab) {
     } else {
         settings_window->Refresh();
     }
-    if (!tab.isEmpty()) {
+    static const QString trying = QStringLiteral("Popup theme ");
+    if (tab.startsWith(trying)) {
+        settings_window->show();
+        settings_window->TryTheme(tab.mid(trying.size()).toInt()); // a page script's picture of the list
+    } else if (!tab.isEmpty()) {
         settings_window->ShowTab(tab);
     }
     settings_window->show();

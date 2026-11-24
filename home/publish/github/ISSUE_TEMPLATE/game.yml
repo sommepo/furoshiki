@@ -26,7 +26,7 @@ body:
     id: version
     attributes:
       label: Furoshiki version and platform
-      placeholder: "0.4.0, Android"
+      placeholder: "0.4.0.1, Android"
     validations:
       required: true
   - type: textarea

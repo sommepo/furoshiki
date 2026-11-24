@@ -682,7 +682,31 @@ void LookupPopup::OnPageMessage(const QJsonObject& message) {
     }
     if (type == QStringLiteral("size")) {
         web_height = static_cast<int>(std::ceil(message.value(QStringLiteral("height")).toDouble()));
-        web_fit = static_cast<int>(std::ceil(message.value(QStringLiteral("fit")).toDouble(web_height)));
+        const int fit = static_cast<int>(std::ceil(message.value(QStringLiteral("fit")).toDouble(web_height)));
+        const bool running = fit_ease != nullptr && fit_ease->state() == QAbstractAnimation::Running;
+        if (running && fit_target == fit) {
+            // Easing to it already: let it go on.
+        } else if (message.value(QStringLiteral("ease")).toBool() && fit_entry && web_fit > 0 && isVisible() && fit != web_fit) {
+            if (fit_ease == nullptr) {
+                fit_ease = new QVariantAnimation(this);
+                fit_ease->setDuration(200);
+                fit_ease->setEasingCurve(QEasingCurve::OutCubic);
+                connect(fit_ease, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+                    web_fit = value.toInt();
+                    emit LayoutChanged();
+                });
+            }
+            fit_ease->stop();
+            fit_target = fit;
+            fit_ease->setStartValue(web_fit);
+            fit_ease->setEndValue(fit);
+            fit_ease->start();
+        } else {
+            if (running) {
+                fit_ease->stop();
+            }
+            web_fit = fit;
+        }
         web_need = static_cast<int>(std::ceil(message.value(QStringLiteral("need")).toDouble(0)));
         web_scrolled = message.value(QStringLiteral("scrolled")).toInt();
         web_tabs = message.value(QStringLiteral("tabs")).toInt();

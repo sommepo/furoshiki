@@ -157,6 +157,33 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** From the page: the height that shows the entry in hand whole, and the least that shows its definition. */
     private var pageFit = 0
+    private var fitEase: ValueAnimator? = null
+    private var fitTarget = 0
+
+    /** The entry's height reached in a fifth of a second, from the height shown. */
+    private fun easeFit(to: Int) {
+        if (fitEase?.isRunning == true && fitTarget == to) return
+        fitEase?.cancel()
+        fitTarget = to
+        if (to == pageFit) return
+        fitEase = ValueAnimator.ofInt(pageFit, to).apply {
+            duration = 200
+            interpolator = android.view.animation.DecelerateInterpolator(1.6f)
+            addUpdateListener {
+                pageFit = it.animatedValue as Int
+                requestLayout()
+                onLayoutChanged?.invoke()
+            }
+            start()
+        }
+    }
+
+    private fun takeFit(to: Int) {
+        // A report while it eases to the same height lets it go on.
+        if (fitEase?.isRunning == true && fitTarget == to) return
+        fitEase?.cancel()
+        pageFit = to
+    }
     private var pageNeed = 0
 
     /** As tall as the entry in hand instead of all the content (ReaderSettings.popupFitEntry). */
@@ -281,7 +308,10 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             "size" -> {
                 val density = resources.displayMetrics.density
                 pageHeight = (message.optDouble("height", 0.0) * density).toInt()
-                pageFit = (message.optDouble("fit", message.optDouble("height", 0.0)) * density).toInt()
+                val fit = (message.optDouble("fit", message.optDouble("height", 0.0)) * density).toInt()
+                // A step to another entry (the d-pad, or the height following the scroll) eases the
+                // height to it; anything else takes it at once.
+                if (message.optBoolean("ease") && fitEntry && pageFit > 0 && isShown) easeFit(fit) else takeFit(fit)
                 pageNeed = (message.optDouble("need", 0.0) * density).toInt()
                 pageBoxes.clear()
                 message.optJSONArray("boxes")?.let { boxes ->

@@ -51,6 +51,7 @@
 #include "reader/qt/popup_web.h"
 #include "reader/qt/reader_session.h"
 #include "settings_window.h"
+#include "reader/qt/choice_preview.h"
 
 namespace Home {
 
@@ -256,6 +257,19 @@ void SettingsWindow::AddSettingRow(QFormLayout* form, const PlaySetting& setting
         box->addItem(Shown(setting, value), value);
     }
     box->setCurrentIndex(own ? std::max(0, box->findData(play.Raw(key, layer.console, layer.game))) : 0);
+    if (key == QStringLiteral("popup.theme")) {
+        theme_box = box;
+        // Each theme shown in the preview as the list goes over it, before one is taken (the
+        // maintainer, 2026-11-24: "without a preview of them ... impossible to know the difference").
+        ReaderUi::PreviewWhileOpen(box, [this, box, next](int index) {
+            const QString value = index < 0 ? QString() : box->itemData(index).toString();
+            const QString theme = index < 0 ? QString() : value.isEmpty() ? next : value; // "Default (…)": the layer's below
+            if (trying_theme != theme) {
+                trying_theme = theme;
+                ShowPreview();
+            }
+        });
+    }
     connect(box, &QComboBox::currentIndexChanged, this, [this, box, key, layer](int) {
         if (filling) {
             return;
@@ -850,6 +864,15 @@ void SettingsWindow::PreviewMessage(const QJsonObject& message) {
     }
 }
 
+void SettingsWindow::TryTheme(int index) {
+    ShowTab(QStringLiteral("Popup"));
+    if (!theme_box || index < 0 || index >= theme_box->count()) {
+        return;
+    }
+    theme_box->showPopup();
+    theme_box->view()->setCurrentIndex(theme_box->model()->index(index, 0));
+}
+
 void SettingsWindow::ShowPreview() {
     if (!preview) {
         return;
@@ -862,7 +885,7 @@ void SettingsWindow::ShowPreview() {
         }
         return settings.Value(QString::fromLatin1(key)).toString();
     };
-    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(value("reader_popup_theme"));
+    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(trying_theme.isEmpty() ? value("reader_popup_theme") : trying_theme);
     if (theme == QStringLiteral("classic")) {
         theme = QStringLiteral("console"); // the classic popup is drawn without the page: the page in its colours
     }

@@ -61,6 +61,7 @@
 #include "reader/qt/lookup_flow.h"
 #include "reader/qt/reader_crt_page.h"
 #include "reader/qt/reader_dialogs.h"
+#include "reader/qt/choice_preview.h"
 #include "reader/qt/lookup_popup.h"
 #include "reader/desktop/popup_model.h"
 #include "reader/qt/popup_web.h"
@@ -1404,8 +1405,10 @@ void ReaderSettingsDialog(QWidget* parent) {
         const auto js = [](const QString& text) {
             return QString::fromUtf8(QJsonDocument(QJsonArray{text}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
         };
+        // The theme the open list is on, shown before it is taken (choice_preview.h).
+        auto trying = std::make_shared<QString>();
         const auto show = [=, &settings] {
-            QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(theme_box->currentData().toString());
+            QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(trying->isEmpty() ? theme_box->currentData().toString() : *trying);
             if (theme == QStringLiteral("classic")) {
                 theme = QStringLiteral("console");
             }
@@ -1448,6 +1451,13 @@ void ReaderSettingsDialog(QWidget* parent) {
         for (QCheckBox* box : {tags_box, mark_box}) {
             QObject::connect(box, &QCheckBox::toggled, demo, show);
         }
+        PreviewWhileOpen(theme_box, [=](int index) {
+            const QString value = index < 0 ? QString() : theme_box->itemData(index).toString();
+            if (*trying != value) {
+                *trying = value;
+                show();
+            }
+        });
         QObject::connect(demo, &PopupWeb::Message, demo, [show](const QJsonObject& message) {
             if (message.value(QStringLiteral("type")).toString() == QStringLiteral("ready")) {
                 show();

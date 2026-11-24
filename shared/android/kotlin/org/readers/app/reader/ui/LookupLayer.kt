@@ -496,7 +496,11 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                 popup.dictionaryKinds = settings.dictionaryKinds
                 // Marked with the controller's buttons only while a controller is the input.
                 popup.pad = PopupKeys.padInUse
-                popup.look = settings.popupLook.apply { if (!nameCards) put("cards", false) }
+                popup.look = settings.popupLook.apply {
+                    if (!nameCards) put("cards", false)
+                    // The height follows the entry scrolled to (popup.js, settled) where it fits the entry.
+                    put("fit", settings.popupFitEntry && !fillRoom)
+                }
                 popup.cardCorner = LookupPopupView.Corner.of(settings.cardCorner)
                 when {
                     !hasDictionaries ->

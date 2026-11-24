@@ -339,7 +339,9 @@ QJsonObject ReaderSettings::PopupLook() const {
                        {QStringLiteral("portrait"), PopupPortrait()},
                        {QStringLiteral("glossary"), PopupGlossary()},
                        {QStringLiteral("pitch"), PopupPitch()},
-                       {QStringLiteral("width"), PopupWidth()}};
+                       {QStringLiteral("width"), PopupWidth()},
+                       // The height follows the entry scrolled to (popup.js, settled).
+                       {QStringLiteral("fit"), PopupFitEntry()}};
 }
 QString ReaderSettings::PopupLookups() const {
     const QString value = String(KeyPopupLookups, QStringLiteral("count"));

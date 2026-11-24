@@ -301,7 +301,16 @@ class OcrSource(
                         val pixels = pixels(part)
                         OcrText.clean(deviceEngine().read(pixels), pixels.width, pixels.height)
                     }
-                    OcrEngine.SERVICE -> service().read(jpeg(part))
+                    OcrEngine.SERVICE -> if (serviceLacksReading) onDevice(part) else try {
+                        service().read(jpeg(part))
+                    } catch (e: java.io.IOException) {
+                        // An older OCR service without POST /api/ocr/read answers 404: fall back
+                        // to reading on the device for the rest of this game.
+                        if (e.message?.startsWith("HTTP 404") != true) throw e
+                        serviceLacksReading = true
+                        android.util.Log.w("Furoshiki", "OCR: the service has no /api/ocr/read (404); read on the device")
+                        onDevice(part)
+                    }
                     OcrEngine.LENS -> OcrText.clean(GoogleLens.read(png(part), part.width, part.height), part.width, part.height, "glens")
                 }
             } finally {
@@ -318,6 +327,18 @@ class OcrSource(
             }
         }
         return OcrRead(lines, name)
+    }
+
+    /** The service answered 404 to a reading: this game is read on the device instead. */
+    @Volatile
+    private var serviceLacksReading = false
+
+    /** [part] read here: the device's own engine where it has one, else Google Lens. */
+    private fun onDevice(part: Bitmap): OcrRead = if (deviceAvailable(activity)) {
+        val pixels = pixels(part)
+        OcrText.clean(deviceEngine().read(pixels), pixels.width, pixels.height)
+    } else {
+        OcrText.clean(GoogleLens.read(png(part), part.width, part.height), part.width, part.height, "glens")
     }
 
     /** The engine to read with now, or null when there is none. */

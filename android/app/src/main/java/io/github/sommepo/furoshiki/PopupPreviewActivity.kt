@@ -16,7 +16,6 @@ import io.github.sommepo.furoshiki.reader.Console
 import io.github.sommepo.furoshiki.reader.ReaderSettings
 import io.github.sommepo.furoshiki.reader.ui.PopupPage
 import io.github.sommepo.furoshiki.reader.ui.ReaderSettingsActivity
-import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -85,7 +84,7 @@ class PopupPreviewActivity : Activity(), SharedPreferences.OnSharedPreferenceCha
             .put("addAudio", getString(R.string.reader_lookup_add_audio))
             .put("book", getString(R.string.reader_lookup_in_deck))
             .put("more", getString(R.string.reader_lookup_more))
-        val model = PopupPage.model(SAMPLE, null, settings.cardCorner, false, true, settings.popupScale, Console.APP_KEY, "", labels, settings.popupLook)
+        val model = PopupPage.model(PopupPage.SAMPLE, null, settings.cardCorner, false, true, settings.popupScale, Console.APP_KEY, "", labels, settings.popupLook)
         page.call("Reader.show($model)")
     }
 
@@ -107,24 +106,5 @@ class PopupPreviewActivity : Activity(), SharedPreferences.OnSharedPreferenceCha
             }
         }
         window.decorView.postDelayed(check, 500)
-    }
-
-    companion object {
-        /** A word with its grammar entry: enough to see a theme, its size, its tabs. */
-        private val SAMPLE: JSONArray = JSONArray(
-            """
-            [{"expression":"くらい","reading":"くらい","reasons":[],"pitches":["[0]"],
-              "frequencies":[{"dictionary":"JPDB","value":"312"}],"unknown":true,"state":"add","forms":[],
-              "senses":[
-                {"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["prt"],"glosses":["approximately","about","around"],"notes":""},
-                {"dictionary":"JMdict","kind":"word","number":2,"tags":[],"glosses":["to (about) the same degree as","at least"],"notes":""},
-                {"heading":"日本語文法辞典","dictionary":"日本語文法辞典","kind":"grammar","number":1,"tags":[],"glosses":[],"notes":"",
-                 "content":["[意味]\nApproximately; about\n\n[例文]\n東京から大阪まで新幹線で三時間くらいかかる。\nIt takes about three hours to Osaka by Shinkansen."]}
-              ]},
-             {"expression":"暗い","reading":"くらい","reasons":[],"pitches":["[0]"],
-              "frequencies":[{"dictionary":"JPDB","value":"2290"}],"unknown":false,"state":"inDeck","forms":["昏い","冥い"],
-              "senses":[{"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["adj-i"],"glosses":["dark","gloomy","murky"],"notes":""}]}]
-            """.trimIndent()
-        )
     }
 }

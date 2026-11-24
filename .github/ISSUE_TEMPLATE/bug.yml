@@ -11,8 +11,8 @@ body:
     id: version
     attributes:
       label: Furoshiki version
-      description: Settings › About, or the file name you downloaded (for example 0.4.0).
-      placeholder: "0.4.0"
+      description: Settings › About, or the file name you downloaded (for example 0.4.0.1).
+      placeholder: "0.4.0.1"
     validations:
       required: true
   - type: dropdown

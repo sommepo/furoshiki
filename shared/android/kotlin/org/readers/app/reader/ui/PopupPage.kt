@@ -114,6 +114,23 @@ class PopupPage(context: Context, private val onMessage: (JSONObject) -> Unit) :
         private const val PAGE = "file:///android_asset/reader/popup/popup.html"
         private const val THEMES = "reader/popup/themes/"
 
+        /** A word with its grammar entry: enough to see a theme, its size, its tabs. */
+        val SAMPLE: JSONArray = JSONArray(
+            """
+            [{"expression":"くらい","reading":"くらい","reasons":[],"pitches":["[0]"],
+              "frequencies":[{"dictionary":"JPDB","value":"312"}],"unknown":true,"state":"add","forms":[],
+              "senses":[
+                {"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["prt"],"glosses":["approximately","about","around"],"notes":""},
+                {"dictionary":"JMdict","kind":"word","number":2,"tags":[],"glosses":["to (about) the same degree as","at least"],"notes":""},
+                {"heading":"日本語文法辞典","dictionary":"日本語文法辞典","kind":"grammar","number":1,"tags":[],"glosses":[],"notes":"",
+                 "content":["[意味]\nApproximately; about\n\n[例文]\n東京から大阪まで新幹線で三時間くらいかかる。\nIt takes about three hours to Osaka by Shinkansen."]}
+              ]},
+             {"expression":"暗い","reading":"くらい","reasons":[],"pitches":["[0]"],
+              "frequencies":[{"dictionary":"JPDB","value":"2290"}],"unknown":false,"state":"inDeck","forms":["昏い","冥い"],
+              "senses":[{"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["adj-i"],"glosses":["dark","gloomy","murky"],"notes":""}]}]
+            """.trimIndent()
+        )
+
         /** Whether a WebView can be had here (not in the JVM tests, which have none that runs). */
         val available: Boolean get() = Build.FINGERPRINT != "robolectric"
 

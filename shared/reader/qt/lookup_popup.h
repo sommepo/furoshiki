@@ -16,6 +16,7 @@
 #include <QRect>
 #include <QString>
 #include <QTimer>
+#include <QVariantAnimation>
 #include <QWidget>
 #include "reader/desktop/dictionary.h"
 #include "reader/desktop/reader_database.h"
@@ -279,6 +280,9 @@ private:
     /// From the page's "size": the height that shows the entry in hand whole, and the least that
     /// still shows where its definition begins.
     int web_fit{};
+    /// A step to another entry (the d-pad, the height following the scroll) eases web_fit to it.
+    QVariantAnimation* fit_ease{};
+    int fit_target{};
     int web_need{};
     bool fit_entry{};
     int web_scrolled{};

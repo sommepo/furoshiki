@@ -209,6 +209,15 @@ class ReaderSettingsActivity : ReaderScreen() {
 
     /** One section's settings. */
     class SectionPage : PreferenceFragmentCompat() {
+        override fun onDisplayPreferenceDialog(preference: Preference) {
+            // The popup theme with the popup drawn in it, not a plain list (ThemeChooser).
+            if (preference is androidx.preference.ListPreference && preference.key == ReaderSettings.KEY_POPUP_THEME && PopupPage.available) {
+                ThemeChooser.show(requireContext(), preference)
+                return
+            }
+            super.onDisplayPreferenceDialog(preference)
+        }
+
         // A popup style file (PopupStyle), in and out.
         private val importStyle = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@registerForActivityResult

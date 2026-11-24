@@ -243,6 +243,11 @@
    * buttons are the ones marked and pressed: Reader.entry, Reader.addChosen), or -1.
    */
   let chosen = -1;
+  // The height following the scroll (look.fit; settled() below says how).
+  let follow = -1;     // the entry the height follows (-1: the first)
+  let restTop = 0;     // where the scroll was when it last came to rest
+  let easeUntil = 0;   // till when a change of height is to be eased by the host
+  let touching = false, settling = 0, stepping = false;
 
   /** Marks entry [index] as the chosen one and brings it into view ([scroll]). */
   function chooseEntry(index, scroll, step) {
@@ -259,6 +264,7 @@
     // Under the tab row where it stays at the top; the first entry from the very top.
     const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
     const first = popup.querySelector(".entry") === section;
+    easeUntil = performance.now() + 600; // the host brings the height to the entry smoothly
     glide(first ? 0 : Math.max(0, top - above - 2));
     // A very short move from the side it came from, so the eye sees which way it went.
     if (step) {
@@ -270,16 +276,16 @@
   /** The popup's scroll taken to [to] in about a tenth of a second (at once where motion is unwanted). */
   let gliding = 0;
   const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function glide(to) {
+  function glide(to, done) {
     cancelAnimationFrame(gliding);
     const from = popup.scrollTop;
-    if (still || Math.abs(to - from) < 2) { popup.scrollTop = to; return; }
+    if (still || Math.abs(to - from) < 2) { popup.scrollTop = to; if (done) done(); return; }
     const began = performance.now(), time = 110;
     const frame = (now) => {
       const part = Math.min(1, (now - began) / time);
       popup.scrollTop = from + (to - from) * (1 - Math.pow(1 - part, 3));
       if (part < 1) gliding = requestAnimationFrame(frame);
-      else reportSoon();
+      else { if (done) done(); reportSoon(); }
     };
     gliding = requestAnimationFrame(frame);
   }
@@ -1180,6 +1186,9 @@
     // A controller's d-pad starts on the first entry of the tab.
     popup.classList.toggle("choosing", !!model.choose);
     chosen = -1;
+    follow = -1;
+    restTop = 0;
+    stepping = false;
     if (model.choose) {
       const first = popup.querySelector(".entry");
       if (first) chooseEntry(Number(first.dataset.index), false);
@@ -1205,7 +1214,8 @@
     const style = getComputedStyle(popup);
     const under = parseFloat(style.paddingBottom) || 0;
     const entries = Array.from(popup.querySelectorAll(".entry"));
-    const section = entries.find((node) => Number(node.dataset.index) === chosen) || entries[0];
+    const hand = chosen >= 0 ? chosen : follow;
+    const section = entries.find((node) => Number(node.dataset.index) === hand) || entries[0];
     let fit = content, need = 0;
     if (section) {
       const box = popup.getBoundingClientRect();
@@ -1222,7 +1232,7 @@
       need = content; // a message
     }
     post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
-           scrolled: popup.scrollTop, boxes: boxes });
+           scrolled: popup.scrollTop, boxes: boxes, ease: performance.now() < easeUntil });
   }
 
   let pending = false;
@@ -1262,6 +1272,88 @@
   }
 
   popup.addEventListener("scroll", reportSoon);
+
+  /**
+   * The height follows the entry as the popup is scrolled (look.fit, the "fit height to entry"
+   * setting; the maintainer, 2026-11-24: "as you scroll, the height begins to match the next entry
+   * down"). Once a scroll comes to rest (a finger lifted, a fling or the wheel stopped), the popup
+   * steps to the entry it was scrolled towards, as the controller's d-pad does: that entry's top
+   * glides to the top and the host brings the height to it. Down goes on to an entry after the
+   * one in hand, up back to one before it, so a short entry is never left half shown with the next
+   * one's start under it and a short scroll never springs back. Inside an entry taller than the
+   * popup the scroll is free until its end (or its start, going up) comes into view.
+   */
+  function settleSoon() {
+    clearTimeout(settling);
+    settling = setTimeout(settled, 180);
+  }
+  function settled() {
+    if (touching || stepping || chosen >= 0 || asking >= 0 || !(model.look || {}).fit) return;
+    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const moved = popup.scrollTop - restTop;
+    if (entries.length < 2 || Math.abs(moved) < 12) return;
+    const box = popup.getBoundingClientRect();
+    const padTop = parseFloat(getComputedStyle(popup).paddingTop) || 0;
+    const viewTop = box.top + padTop, viewBottom = box.bottom;
+    const at = Math.max(0, entries.findIndex((node) => Number(node.dataset.index) === follow));
+    const current = entries[at].getBoundingClientRect();
+    let target = at;
+    // In a tall entry this scroll began in, the gesture that brings its end (or start) into view
+    // stops there: the next one steps on.
+    const reached = (moved > 0 ? current.bottom + moved > viewBottom + 2 : current.top + moved < viewTop - 2);
+    if (moved > 0) {
+      if (current.bottom > viewBottom + 2 || reached) { restTop = popup.scrollTop; return; } // in a tall entry
+      // On to the entry after it that is most in view (a fling may have passed several).
+      let most = -1;
+      for (let i = at + 1; i < entries.length; i++) {
+        const r = entries[i].getBoundingClientRect();
+        const seen = Math.min(r.bottom, viewBottom) - Math.max(r.top, viewTop);
+        if (seen > most) { most = seen; target = i; }
+        if (r.top > viewBottom) break;
+      }
+      if (target === at && at + 1 < entries.length) target = at + 1;
+    } else {
+      if (current.top < viewTop - 2) { restTop = popup.scrollTop; return; } // in a tall entry
+      if (reached) {
+        // Its start came into view: there it stands, at the top.
+        glideTo(at);
+        return;
+      }
+      // Back to the entry that holds the top of the view.
+      target = at > 0 ? at - 1 : 0;
+      for (let i = at - 1; i >= 0; i--) {
+        const r = entries[i].getBoundingClientRect();
+        if (r.top <= viewTop + 2) { target = i; break; }
+      }
+    }
+    glideTo(target);
+  }
+  /** The scroll glides to entry [target]'s top (of the tab's entries), and the height follows it. */
+  function glideTo(target) {
+    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const section = entries[target];
+    if (!section) return;
+    const box = popup.getBoundingClientRect();
+    const padTop = parseFloat(getComputedStyle(popup).paddingTop) || 0;
+    follow = Number(section.dataset.index);
+    const top = target === 0 ? 0 : section.getBoundingClientRect().top - box.top + popup.scrollTop - padTop;
+    easeUntil = performance.now() + 600;
+    stepping = true;
+    const landed = () => {
+      if (!stepping) return;
+      stepping = false;
+      restTop = popup.scrollTop;
+      reportSoon();
+    };
+    glide(Math.max(0, top), landed);
+    setTimeout(landed, 400); // a page that is given no frames (hidden) is not left stepping
+    reportSoon();
+  }
+  popup.addEventListener("scroll", () => { if (!stepping) settleSoon(); });
+  popup.addEventListener("touchstart", () => { touching = true; clearTimeout(settling); }, { passive: true });
+  const lifted = () => { touching = false; settleSoon(); };
+  popup.addEventListener("touchend", lifted, { passive: true });
+  popup.addEventListener("touchcancel", lifted, { passive: true });
 
   /**
    * The headline of an entry taller than the popup stays at the top (base.css: sticky); what
@@ -1533,6 +1625,7 @@
       });
       const scrolled = popup.scrollTop;
       const wasChosen = chosen;
+      const wasFollowed = follow, wasRest = restTop;
       model.entries = merged;
       const found = tabsOf(model.entries);
       tabs = found.tabs;
@@ -1543,6 +1636,8 @@
       }
       if (asking >= 0) drawAsk(false);
       popup.scrollTop = scrolled;
+      follow = wasFollowed;
+      restTop = wasRest;
       reportSoon();
     },
     /** The next tab (1) or the one before (-1), round the row: a controller's R1 and L1. */

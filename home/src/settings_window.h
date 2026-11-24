@@ -17,6 +17,7 @@
 #include <QHash>
 #include <QList>
 #include <QMap>
+#include <QPointer>
 #include <QString>
 #include "crt_layers.h"
 #include "play_settings.h"
@@ -86,6 +87,9 @@ public:
     void Refresh();
     /// Brings a tab to the front by its name ("Save sync", "Achievements", "Text server", ...).
     void ShowTab(const QString& name);
+    /// The Popup tab's theme list opened at item [index], as the keys would move it (for a page
+    /// script's pictures: "settings Popup theme N").
+    void TryTheme(int index);
 #ifndef READER_NO_SAVE_SYNC
     /// A pairing link given to the program (pasted, or as its argument): read into the Save
     /// sync tab and kept. False, with why in `error`, when it is not one.
@@ -180,6 +184,10 @@ private:
     PopupDesign::Design design; ///< As it is in its file (or about to be)
     bool design_loaded{};
     QString picked_element{QStringLiteral("headword")};
+    /// The popup theme the open theme list is on, shown in the preview before it is taken
+    /// (ReaderUi::PreviewWhileOpen); empty: the setting's own.
+    QString trying_theme;
+    QPointer<QComboBox> theme_box; ///< The Popup tab's theme list
     QTimer* design_save_timer{};
     QHash<QString, std::function<void()>> inspector_sync; ///< Shows a property's value again (by its key)
     ReaderUi::PopupWeb* preview{};
