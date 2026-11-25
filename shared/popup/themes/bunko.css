@@ -1,0 +1,18 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Bunko: low-glare e-reader sepia with warm parchment, walnut ink, burnt sienna. */
+:root {
+  --font: "Noto Serif JP", "Yu Mincho", serif;
+  --ground: #f0e6d2; --text: #2e241b; --dim: #756554; --accent: #9c5a2d; --edge: #cfc0a3; --radius: 6px;
+  --box: rgba(156, 90, 45, 0.14); --box-pressed: rgba(156, 90, 45, 0.26); --sign: #8c4e24; --book: #2f6b47;
+}
+.popup { border: 1px solid #cfc0a3; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 8px 20px rgba(46, 36, 27, 0.18); }
+.entry + .entry { border-top-color: #d8cab0; }
+.headword { color: #2e241b; font-weight: 500; font-size: calc(19px * var(--scale)); }
+.headword rt { display: revert; color: #756554; }
+.reading { display: none; }
+.tag { font-family: "Noto Sans JP", sans-serif; background: rgba(46, 36, 27, 0.07); color: #4f3f31; border: 1px solid #c4b394; border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: rgba(156, 90, 45, 0.12); color: #7d4520; border-color: rgba(156, 90, 45, 0.28); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #9c5a2d; border-radius: 0; padding: 0; }
+.card { border-color: #b59a74; border-radius: 4px; }
+.link { color: #9c5a2d; }

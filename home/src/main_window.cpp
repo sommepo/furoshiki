@@ -620,6 +620,7 @@ MainWindow::MainWindow() {
     home->SetPopupPreview([this](const QRect& place) {
         popup_preview_place = place;
         if (place.isEmpty()) {
+            popup_preview_override_theme.clear();
             if (popup_preview != nullptr) {
                 popup_preview->hide();
             }
@@ -635,7 +636,13 @@ MainWindow::MainWindow() {
             }
             // As tall as the popup would be over a game: its entry, or the height set.
             connect(popup_preview, &ReaderUi::PopupWeb::Message, this, [this](const QJsonObject& message) {
-                if (message.value(QStringLiteral("type")).toString() != QStringLiteral("size") || popup_preview_place.isEmpty()) {
+                const QString type = message.value(QStringLiteral("type")).toString();
+                if (type == QStringLiteral("ready")) {
+                    popup_preview_shown.clear();
+                    ShowPopupPreview();
+                    return;
+                }
+                if (type != QStringLiteral("size") || popup_preview_place.isEmpty()) {
                     return;
                 }
                 auto& settings = ReaderUi::ReaderSession::Instance().Settings();
@@ -656,6 +663,19 @@ MainWindow::MainWindow() {
         popup_preview_shown.clear();
         ShowPopupPreview();
         popup_preview_timer->start();
+    });
+    const auto popup_theme_setting = [this]() -> PlaySetting {
+        for (const PlaySetting& s : PopupStyle::Settings(popup_folder)) {
+            if (s.key == QStringLiteral("popup.theme")) {
+                return s;
+            }
+        }
+        return {};
+    };
+    home->SetPopupThemePreview([this, popup_theme_setting](int index) {
+        const PlaySetting theme = popup_theme_setting();
+        popup_preview_override_theme = index >= 0 && index < theme.choices.size() ? theme.choices[index] : QString();
+        ShowPopupPreview();
     });
     // The Reader settings' popup page opens this program's customiser (the settings window's Popup tab).
     ReaderUi::PopupCustomiser() = [this] { OpenSettings(QStringLiteral("Popup")); };
@@ -742,20 +762,73 @@ MainWindow::MainWindow() {
         if (ReaderRows::IsNumber(row) && step == 0) {
             return;
         }
-        if (row == QStringLiteral("How solid")) {
-            // The popup's own, in the layers (all consoles'): 0 is "as its look has it", then
-            // 20 % to 100 % in fives. Shown at once in a game that plays.
-            if (step != 0) {
-                // Nothing set is 90 % since 2026-11-15, so "as its look has it" is a 0 kept.
-                const QString raw = play_settings.Raw(QStringLiteral("popup.opacity"));
-                const int now = raw.isEmpty() ? 90 : raw.toInt();
-                int next = now == 0 ? (step > 0 ? 20 : 0) : now + step * 5;
-                next = next < 20 ? 0 : std::min(next, 100);
-                play_settings.Set(QStringLiteral("popup.opacity"), QString::number(next));
+        if (row == QStringLiteral("Popup theme")) {
+            const PlaySetting theme = PopupStyle::Settings(popup_folder).value(0);
+            if (theme.key == QStringLiteral("popup.theme") && !theme.choices.isEmpty()) {
+                const QString current_theme = play_settings.Value(theme, {}).value;
+                const int now = std::max<int>(0, static_cast<int>(theme.choices.indexOf(current_theme)));
+                const int delta = step == 0 ? 1 : step;
+                const int count = static_cast<int>(theme.choices.size());
+                const int next = ((now + delta) % count + count) % count;
+                play_settings.Set(QStringLiteral("popup.theme"), theme.choices[next]);
+                play_settings.Clear(QStringLiteral("popup.design"));
                 play_settings.Save();
+                popup_preview_override_theme.clear();
                 ApplyPlaySettings(playing_id);
+                ShowPopupPreview();
             }
             return;
+        }
+        if (row == QStringLiteral("How solid")) {
+            // 4 fixed opacity choices: 100%, 80%, 60%, 40%.
+            static const QStringList choices = {QStringLiteral("100"), QStringLiteral("80"), QStringLiteral("60"), QStringLiteral("40")};
+            const QString raw = play_settings.Raw(QStringLiteral("popup.opacity"));
+            const int cur_val = raw.isEmpty() ? 100 : raw.toInt();
+            int now = cur_val >= 90 ? 0 : cur_val >= 70 ? 1 : cur_val >= 50 ? 2 : 3;
+            const int delta = step == 0 ? 1 : step;
+            const int next = ((now + delta) % choices.size() + choices.size()) % choices.size();
+            play_settings.Set(QStringLiteral("popup.opacity"), choices[next]);
+            play_settings.Save();
+            ApplyPlaySettings(playing_id);
+            ShowPopupPreview();
+            return;
+        }
+        if (row == QStringLiteral("Corner radius")) {
+            // 3 fixed corner choices: Sharp (0px), Rounded (12px), Rounded+ (24px).
+            static const QStringList choices = {QStringLiteral("0"), QStringLiteral("12"), QStringLiteral("24")};
+            const QString raw = play_settings.Raw(QStringLiteral("popup.radius"));
+            const int cur_val = raw.isEmpty() ? 0 : raw.toInt();
+            int now = cur_val >= 18 ? 2 : cur_val >= 6 ? 1 : 0;
+            const int delta = step == 0 ? 1 : step;
+            const int next = ((now + delta) % choices.size() + choices.size()) % choices.size();
+            play_settings.Set(QStringLiteral("popup.radius"), choices[next]);
+            play_settings.Save();
+            ApplyPlaySettings(playing_id);
+            ShowPopupPreview();
+            return;
+        }
+        for (const PlaySetting& ps : PopupStyle::Settings(popup_folder)) {
+            if (ps.label == row && ps.key != QStringLiteral("popup.theme") && ps.key != QStringLiteral("popup.design")) {
+                if (ps.kind == PlaySetting::Switch) {
+                    const bool on = play_settings.Value(ps, {}).value == QStringLiteral("1");
+                    play_settings.Set(ps.key, on ? QStringLiteral("0") : QStringLiteral("1"));
+                } else if (ps.kind == PlaySetting::Choice && !ps.choices.isEmpty()) {
+                    const QString cur = play_settings.Value(ps, {}).value;
+                    const int now = std::max<int>(0, static_cast<int>(ps.choices.indexOf(cur)));
+                    const int delta = step == 0 ? 1 : step;
+                    const int count = static_cast<int>(ps.choices.size());
+                    play_settings.Set(ps.key, ps.choices[((now + delta) % count + count) % count]);
+                } else if (ps.kind == PlaySetting::Number && step != 0) {
+                    const int cur = play_settings.Value(ps, {}).value.toInt();
+                    const int inc = std::max(1, static_cast<int>(ps.step));
+                    const int next = std::clamp(cur + step * inc, static_cast<int>(ps.low), static_cast<int>(ps.high));
+                    play_settings.Set(ps.key, QString::number(next));
+                }
+                play_settings.Save();
+                ApplyPlaySettings(playing_id);
+                ShowPopupPreview();
+                return;
+            }
         }
         if (ReaderRows::Step(settings, row, step == 0 ? 1 : step)) {
             session.OnSettingsChanged();
@@ -854,6 +927,37 @@ MainWindow::MainWindow() {
     });
     home->SetSettingChoices([this](const QString& row) -> std::pair<QStringList, int> {
         const ReaderApp::ReaderSettings& settings = ReaderUi::ReaderSession::Instance().Settings();
+        if (row == QStringLiteral("Popup theme")) {
+            const PlaySetting theme = PopupStyle::Settings(popup_folder).value(0);
+            QStringList said;
+            for (const QString& choice : theme.choices) {
+                said.append(theme.Said(choice));
+            }
+            const QString current_theme = play_settings.Value(theme, {}).value;
+            return {said, std::max<int>(0, static_cast<int>(theme.choices.indexOf(current_theme)))};
+        }
+        if (row == QStringLiteral("Corner radius")) {
+            const QString raw = play_settings.Raw(QStringLiteral("popup.radius"));
+            const int cur_val = raw.isEmpty() ? 0 : raw.toInt();
+            const int now = cur_val >= 18 ? 2 : cur_val >= 6 ? 1 : 0;
+            return {{QStringLiteral("Sharp"), QStringLiteral("Rounded"), QStringLiteral("Rounded+")}, now};
+        }
+        if (row == QStringLiteral("How solid")) {
+            const QString raw = play_settings.Raw(QStringLiteral("popup.opacity"));
+            const int cur_val = raw.isEmpty() ? 100 : raw.toInt();
+            const int now = cur_val >= 90 ? 0 : cur_val >= 70 ? 1 : cur_val >= 50 ? 2 : 3;
+            return {{QStringLiteral("100%"), QStringLiteral("80%"), QStringLiteral("60%"), QStringLiteral("40%")}, now};
+        }
+        for (const PlaySetting& ps : PopupStyle::Settings(popup_folder)) {
+            if (ps.label == row && ps.kind == PlaySetting::Choice && !ps.choices.isEmpty()) {
+                QStringList said;
+                for (const QString& c : ps.choices) {
+                    said.append(ps.Said(c));
+                }
+                const QString cur = play_settings.Value(ps, {}).value;
+                return {said, std::max<int>(0, static_cast<int>(ps.choices.indexOf(cur)))};
+            }
+        }
         if (row == QStringLiteral("Controller layout")) {
             SDL_GameController* pad = ActivePad();
             if (pad == nullptr || steam_last) {
@@ -891,17 +995,54 @@ MainWindow::MainWindow() {
     });
     home->SetSettingReset(
         [this](const QString& row) {
+            if (row == QStringLiteral("Popup theme")) {
+                return play_settings.IsSet(QStringLiteral("popup.theme"));
+            }
             if (row == QStringLiteral("How solid")) {
                 return play_settings.IsSet(QStringLiteral("popup.opacity"));
+            }
+            if (row == QStringLiteral("Corner radius")) {
+                return play_settings.IsSet(QStringLiteral("popup.radius"));
+            }
+            for (const PlaySetting& ps : PopupStyle::Settings(popup_folder)) {
+                if (ps.label == row) {
+                    return play_settings.IsSet(ps.key);
+                }
             }
             return ReaderRows::IsSet(ReaderUi::ReaderSession::Instance().Settings(), row);
         },
         [this](const QString& row) {
+            if (row == QStringLiteral("Popup theme")) {
+                play_settings.Clear(QStringLiteral("popup.theme"));
+                play_settings.Clear(QStringLiteral("popup.design"));
+                play_settings.Save();
+                popup_preview_override_theme.clear();
+                ApplyPlaySettings(playing_id);
+                ShowPopupPreview();
+                return;
+            }
             if (row == QStringLiteral("How solid")) {
                 play_settings.Clear(QStringLiteral("popup.opacity"));
                 play_settings.Save();
                 ApplyPlaySettings(playing_id);
+                ShowPopupPreview();
                 return;
+            }
+            if (row == QStringLiteral("Corner radius")) {
+                play_settings.Clear(QStringLiteral("popup.radius"));
+                play_settings.Save();
+                ApplyPlaySettings(playing_id);
+                ShowPopupPreview();
+                return;
+            }
+            for (const PlaySetting& ps : PopupStyle::Settings(popup_folder)) {
+                if (ps.label == row) {
+                    play_settings.Clear(ps.key);
+                    play_settings.Save();
+                    ApplyPlaySettings(playing_id);
+                    ShowPopupPreview();
+                    return;
+                }
             }
             auto& session = ReaderUi::ReaderSession::Instance();
             if (ReaderRows::Reset(session.Settings(), row)) {
@@ -964,9 +1105,24 @@ MainWindow::MainWindow() {
         if (const QString said = ReaderRows::Value(settings, row); !said.isEmpty()) {
             return said;
         }
+        if (row == QStringLiteral("Popup theme")) {
+            const PlaySetting theme = PopupStyle::Settings(popup_folder).value(0);
+            return theme.Said(play_settings.Value(theme, {}).value).toUpper();
+        }
         if (row == QStringLiteral("How solid")) {
-            const int now = play_settings.Raw(QStringLiteral("popup.opacity")).toInt();
-            return now == 0 ? QStringLiteral("DEFAULT") : QStringLiteral("%1%").arg(now);
+            const QString raw = play_settings.Raw(QStringLiteral("popup.opacity"));
+            const int now = raw.isEmpty() ? 100 : raw.toInt();
+            return now >= 90 ? QStringLiteral("100%") : now >= 70 ? QStringLiteral("80%") : now >= 50 ? QStringLiteral("60%") : QStringLiteral("40%");
+        }
+        if (row == QStringLiteral("Corner radius")) {
+            const QString raw = play_settings.Raw(QStringLiteral("popup.radius"));
+            const int now = raw.isEmpty() ? 0 : raw.toInt();
+            return now >= 18 ? QStringLiteral("ROUNDED+") : now >= 6 ? QStringLiteral("ROUNDED") : QStringLiteral("SHARP");
+        }
+        for (const PlaySetting& ps : PopupStyle::Settings(popup_folder)) {
+            if (ps.label == row && ps.key != QStringLiteral("popup.theme") && ps.key != QStringLiteral("popup.design")) {
+                return ps.Said(play_settings.Value(ps, {}).value).toUpper();
+            }
         }
         if (row == QStringLiteral("Explain with")) {
             // "claude-sonnet-5-5" as SONNET 5.5
@@ -1217,9 +1373,7 @@ MainWindow::MainWindow() {
     connect(screen, &GameScreen::ReadAskedWanted, this, [this] { ReadAskedBoxes(); });
     home->SetCoreOcrAdder([this](const QString& console, const QString& path) { return AddCoreOcrGame(console, path); });
     connect(screen, &GameScreen::ReaderMenuWanted, this, [this] {
-        if (QMenu* menu = ReaderUi::Menu()) {
-            menu->popup(screen->mapToGlobal(screen->rect().center()));
-        }
+        OpenReadingMenu();
     });
     connect(screen, &GameScreen::FullScreenWanted, this, [this] { ToggleFullScreen(); });
     connect(screen, &GameScreen::QuickStateWanted, this, [this](bool load) {
@@ -1702,14 +1856,13 @@ void MainWindow::OpenSettings(const QString& tab) {
 }
 
 void MainWindow::AddPopupSettings() {
-    const QList<PlaySetting> popup = PopupStyle::Settings(popup_folder);
+    // Popup settings live on Settings › Popup globally, not per-console under Consoles.
     for (PlayConsole& console : consoles) {
         console.settings.erase(std::remove_if(console.settings.begin(), console.settings.end(),
                                               [](const PlaySetting& setting) {
                                                   return setting.key.startsWith(QStringLiteral("popup."));
                                               }),
                                console.settings.end());
-        console.settings += popup;
     }
 }
 
@@ -3259,7 +3412,9 @@ void MainWindow::ShowPopupPreview() {
     }
     auto& settings = ReaderUi::ReaderSession::Instance().Settings();
     const auto value = [&](const QString& key) { return settings.Value(key).toString(); };
-    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(value(QStringLiteral("reader_popup_theme")));
+    const QString raw_theme = popup_preview_override_theme.isEmpty() ? value(QStringLiteral("reader_popup_theme"))
+                                                                     : popup_preview_override_theme;
+    QString theme = ReaderApp::ReaderSettings::ResolvePopupTheme(raw_theme);
     if (theme == QStringLiteral("classic")) {
         theme = QStringLiteral("console");
     }
@@ -3272,7 +3427,7 @@ void MainWindow::ShowPopupPreview() {
                             {QStringLiteral("look"), PopupStyle::LookOf(value)},
                             {QStringLiteral("labels"), QJsonObject{{QStringLiteral("forms"), QStringLiteral("forms")},
                                                                    {QStringLiteral("more"), QStringLiteral("more")}}}};
-    const QString css = settings.PopupCss();
+    const QString css = popup_preview_override_theme.isEmpty() ? settings.PopupCss() : QString();
     const QString now = theme + QLatin1Char('\n') + css + QLatin1Char('\n') + QString::number(settings.PopupFitEntry()) +
                         QString::number(settings.PopupHeightPercent()) + QString::fromUtf8(QJsonDocument(model).toJson(QJsonDocument::Compact));
     if (now == popup_preview_shown) {
@@ -3471,19 +3626,22 @@ void MainWindow::PollPads() {
 #else
     const bool guide_combo = false;
 #endif
-    // While the menu is open the controller works it, and the game gets nothing.
-    if (menu != nullptr && menu->isVisible()) {
+    // While the in-game menu overlay or a QMenu is open, the controller drives it and the game gets nothing.
+    if ((game_picker != nullptr && game_picker->isVisible()) || (menu != nullptr && menu->isVisible())) {
         static uint32_t menu_held = 0;
         const std::pair<int, int> keys[] = {
             {SDL_CONTROLLER_BUTTON_DPAD_UP, Qt::Key_Up},       {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Qt::Key_Down},
             {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Qt::Key_Left},   {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Qt::Key_Right},
             {SDL_CONTROLLER_BUTTON_A, Qt::Key_Return},         {SDL_CONTROLLER_BUTTON_B, Qt::Key_Escape},
+            {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Qt::Key_PageUp}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Qt::Key_PageDown},
         };
         for (const auto& [sdl, key] : keys) {
             const bool down = button(sdl);
             const uint32_t mask = 1U << sdl;
             if (down && (menu_held & mask) == 0) {
-                if (QWidget* target = QApplication::activePopupWidget() ? QApplication::activePopupWidget() : menu) {
+                if (game_picker != nullptr && game_picker->isVisible()) {
+                    game_picker->Key(key);
+                } else if (QWidget* target = QApplication::activePopupWidget() ? QApplication::activePopupWidget() : menu) {
                     QApplication::postEvent(target, new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier));
                     QApplication::postEvent(target, new QKeyEvent(QEvent::KeyRelease, key, Qt::NoModifier));
                 }
@@ -3765,6 +3923,7 @@ void MainWindow::PollPads() {
             using Key = ReaderUi::LookupFlow::PadKey;
             const std::pair<int, Key> popup_keys[] = {
                 {SDL_CONTROLLER_BUTTON_DPAD_UP, Key::EntryBefore},   {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Key::EntryNext},
+                {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Key::KanjiBefore}, {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Key::KanjiNext},
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Key::TabBefore}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Key::TabNext},
                 {SDL_CONTROLLER_BUTTON_Y, Key::Card},                {SDL_CONTROLLER_BUTTON_B, Key::CardWithAudio},
                 {SDL_CONTROLLER_BUTTON_A, Key::Close},
@@ -4626,14 +4785,179 @@ ReaderUi::LookupFlow* MainWindow::OpenPopup() const {
     return nullptr;
 }
 
+void MainWindow::CloseGamePicker() {
+    if (game_picker != nullptr) {
+        game_picker_replacing = true;
+        game_picker->hide();
+        delete game_picker;
+        game_picker = nullptr;
+        game_picker_replacing = false;
+    }
+}
+
+void MainWindow::OpenPickerOverlay(const QString& title, const QStringList& labels, int now, std::function<void(int)> picked) {
+    if (labels.isEmpty()) {
+        return;
+    }
+    CloseGamePicker();
+    ReaderUi::ProgramPaused(true);
+    Home::ChoicePicker::Colours colours;
+    colours.scale = std::clamp(std::min(width() / 1280.0, height() / 720.0), 0.75, 1.8);
+    colours.card = QColor(QStringLiteral("#101a3a"));
+    colours.txt = QColor(QStringLiteral("#ece5d3"));
+    colours.sel = QColor(QStringLiteral("#ece5d3"));
+    colours.dim = QColor(QStringLiteral("#8a93b5"));
+    colours.accent = QColor(QStringLiteral("#d9472b"));
+    colours.rule = QColor(236, 229, 211, 62);
+    colours.title = QFont(QStringLiteral("Michroma"), static_cast<int>(std::lround(11 * colours.scale)));
+    colours.title.setLetterSpacing(QFont::PercentageSpacing, 114);
+    colours.row = QFont(QStringLiteral("Space Grotesk"), static_cast<int>(std::lround(15 * colours.scale)), QFont::Medium);
+    game_picker = Home::ChoicePicker::Open(screen, title, labels, now, colours, [this, fn = std::move(picked)](int index) {
+        QTimer::singleShot(0, this, [this, fn, index] {
+            if (fn) {
+                fn(index);
+            }
+        });
+    });
+    connect(game_picker, &QObject::destroyed, this, [this] {
+        if (!game_picker_replacing && (menu == nullptr || !menu->isVisible()) && pages->currentWidget() == screen) {
+            ReaderUi::ProgramPaused(false);
+            screen->setFocus();
+        }
+    });
+}
+
+void MainWindow::OpenStatePicker(bool load) {
+    if (current == nullptr) {
+        return;
+    }
+    QStringList labels;
+    std::vector<std::function<void()>> actions;
+    labels.append(QStringLiteral("‹ Back to Game menu"));
+    actions.push_back([this] { OpenMenu(); });
+    const int count = StateSlots(*current->core.info);
+    for (int slot = 1; slot <= count; ++slot) {
+        const std::optional<CoreSession::StateSlot> info = current->session->StateInfo(slot);
+        if (load && info && !info->exists) {
+            continue;
+        }
+        QString text = QStringLiteral("Slot %1").arg(slot);
+        if (info && info->exists) {
+            text += QStringLiteral("  ·  ") + QDateTime::fromMSecsSinceEpoch(info->saved_ms).toString(QStringLiteral("yyyy/MM/dd HH:mm"));
+        } else if (info) {
+            text += QStringLiteral("  ·  Empty");
+        }
+        if (slot == state_slot) {
+            text += load ? QStringLiteral("  ·  Quick load") : QStringLiteral("  ·  Quick save");
+        }
+        labels.append(text);
+        actions.push_back([this, slot, load] { load ? LoadStateFrom(slot) : SaveStateTo(slot); });
+    }
+    OpenPickerOverlay(load ? QStringLiteral("Load state") : QStringLiteral("Save state"), labels, 1 < labels.size() ? 1 : 0,
+                      [actions = std::move(actions)](int index) {
+                          if (index >= 0 && index < static_cast<int>(actions.size())) {
+                              actions[index]();
+                          }
+                      });
+}
+
+void MainWindow::OpenReadingMenu() {
+    if (current == nullptr) {
+        return;
+    }
+    const auto trigger_reader = [](const char* name) {
+        if (QMenu* reader = ReaderUi::Menu()) {
+            if (auto* act = reader->findChild<QAction*>(QString::fromLatin1(name))) {
+                act->trigger();
+            }
+        }
+    };
+    QStringList labels;
+    std::vector<std::function<void()>> actions;
+    const auto add = [&](const QString& label, std::function<void()> fn) {
+        labels.append(label);
+        actions.push_back(std::move(fn));
+    };
+    add(QStringLiteral("‹ Back to Game menu"), [this] { OpenMenu(); });
+#ifndef READER_NO_EXPLAIN
+    add(QStringLiteral("Explain this line  ·  Ctrl+E"), [trigger_reader] { trigger_reader("reader_explain"); });
+#endif
+    add(QStringLiteral("Backlog  ·  Ctrl+H"), [trigger_reader] { trigger_reader("reader_backlog"); });
+    add(QStringLiteral("Add sentence card  ·  Ctrl+D"), [trigger_reader] { trigger_reader("reader_sentence_card"); });
+    add(QStringLiteral("Undo last card  ·  Ctrl+Z"), [trigger_reader] { trigger_reader("reader_undo_card"); });
+#ifndef READER_NO_SAVE_SYNC
+    if (!Home::Services::Of(QStringLiteral("furochibi")).isEmpty()) {
+        add(QStringLiteral("Toggle guide step"), [this] { ToggleGuide(); });
+    }
+#endif
+    auto& session = ReaderUi::ReaderSession::Instance();
+    const bool click_on = session.Settings().ScreenText();
+    add(QStringLiteral("Click to look up  ·  %1").arg(click_on ? QStringLiteral("ON") : QStringLiteral("OFF")), [this] {
+        auto& s = ReaderUi::ReaderSession::Instance();
+        s.Settings().SetValue(ReaderApp::ReaderSettings::KeyScreenText, !s.Settings().ScreenText());
+        s.Settings().Sync();
+        s.OnSettingsChanged();
+        OpenReadingMenu();
+    });
+    if (!playing_id.isEmpty() && !HasScript(playing_id)) {
+        add(QStringLiteral("Read text now (OCR)  ·  Ctrl+Shift+R"), [this] { ReadAskedBoxes(); });
+    }
+    add(QStringLiteral("Statistics"), [trigger_reader] { trigger_reader("reader_statistics"); });
+    add(QStringLiteral("Dictionaries"), [this] {
+        ShowSettingsPages();
+        home->ShowDictionaries();
+    });
+    add(QStringLiteral("Reload game script"), [trigger_reader] { trigger_reader("reader_reload_profile"); });
+#ifndef READER_NO_SAVE_SYNC
+    add(QStringLiteral("Save sync…"), [this] { OpenSaveSync(); });
+#endif
+    OpenPickerOverlay(QStringLiteral("Reading & Tools"), labels, 1, [actions = std::move(actions)](int index) {
+        if (index >= 0 && index < static_cast<int>(actions.size())) {
+            actions[index]();
+        }
+    });
+}
+
 void MainWindow::OpenMenu() {
-    if (menu != nullptr && menu->isVisible()) {
-        menu->hide(); // Escape again: back to the game
+    if (game_picker != nullptr && game_picker->isVisible()) {
+        CloseGamePicker();
+        ReaderUi::ProgramPaused(false);
+        screen->setFocus();
         return;
     }
     if (current == nullptr) {
         return;
     }
+    QStringList labels;
+    std::vector<std::function<void()>> actions;
+    const auto add = [&](const QString& label, std::function<void()> fn) {
+        labels.append(label);
+        actions.push_back(std::move(fn));
+    };
+    const uint32_t features = current->session->Features();
+    add(QStringLiteral("Resume"), [] {});
+    add(QStringLiteral("Reading & Tools  ·  F1"), [this] { OpenReadingMenu(); });
+    if ((features & READER_CORE_HAS_STATES) != 0) {
+        add(QStringLiteral("Save state"), [this] { OpenStatePicker(false); });
+        add(QStringLiteral("Load state"), [this] { OpenStatePicker(true); });
+    }
+    add(QStringLiteral("Full screen  ·  %1").arg(isFullScreen() ? QStringLiteral("ON") : QStringLiteral("OFF")), [this] {
+        ToggleFullScreen();
+    });
+    add(QStringLiteral("Settings  ·  F2"), [this] { ShowSettingsPages(); });
+    add(QStringLiteral("Quit game"), [this] {
+        OpenPickerOverlay(QStringLiteral("Quit game?"), {QStringLiteral("Cancel"), QStringLiteral("Quit to Library")}, 0, [this](int idx) {
+            if (idx == 1) {
+                ShowGame(false);
+            }
+        });
+    });
+    OpenPickerOverlay(QStringLiteral("Game menu"), labels, 0, [actions = std::move(actions)](int index) {
+        if (index >= 0 && index < static_cast<int>(actions.size())) {
+            actions[index]();
+        }
+    });
+    return;
     if (menu == nullptr) {
         // The program's own menu over the game; the game stands still while it is open. Not
         // run in a loop of its own (popup): the core goes on drawing, and a key handed in by

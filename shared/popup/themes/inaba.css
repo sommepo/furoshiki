@@ -1,0 +1,16 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Inaba: warm charcoal with crisp goldenrod accent. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #181714; --text: #f6f4ec; --dim: #a39f91; --accent: #eab308; --edge: rgba(234, 179, 8, 0.38); --radius: 3px;
+  --box: rgba(234, 179, 8, 0.22); --box-pressed: rgba(234, 179, 8, 0.34); --sign: #fde047; --book: #4ade80;
+}
+.popup { border: 1px solid var(--edge); padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.56); }
+.entry + .entry { border-top-color: rgba(234, 179, 8, 0.22); }
+.headword { color: #f6f4ec; font-weight: 700; font-size: calc(19px * var(--scale)); }
+.tag { background: rgba(234, 179, 8, 0.13); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.30); border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: rgba(255, 255, 255, 0.08); color: #e7e4d9; border-color: rgba(255, 255, 255, 0.16); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #eab308; border-radius: 0; padding: 0; }
+.card { border-color: rgba(234, 179, 8, 0.45); border-radius: 3px; }
+.link { color: #fde047; }

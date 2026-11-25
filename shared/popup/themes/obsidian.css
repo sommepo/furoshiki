@@ -1,0 +1,16 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Obsidian: monochrome dark studio card with crisp hairline border. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #111113; --text: #f4f4f5; --dim: #8e8e98; --accent: #e4e4e7; --edge: #2c2c32; --radius: 6px;
+  --box: #27272c; --box-pressed: #34343c; --sign: #ffffff; --book: #4ade80;
+}
+.popup { border: 1px solid #2c2c32; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6); }
+.entry + .entry { border-top-color: #24242a; }
+.headword { color: #ffffff; font-weight: 600; font-size: calc(19px * var(--scale)); }
+.tag { background: #202024; color: #d4d4d8; border: 1px solid #34343c; border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: #27272c; color: #e4e4e7; border-color: #3a3a44; }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #e4e4e7; border-radius: 0; padding: 0; }
+.card { border-color: #3f3f48; border-radius: 5px; }
+.link { color: #ffffff; }

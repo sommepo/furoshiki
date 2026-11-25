@@ -5,7 +5,7 @@
      slider says the word there (ReaderSettingsActivity.SectionPage). -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:initialExpandedChildrenCount="4">
+    app:initialExpandedChildrenCount="5">
 
     <ListPreference
         app:key="reader_popup_theme"
@@ -13,6 +13,22 @@
         app:entries="@array/reader_popup_theme_entries"
         app:entryValues="@array/reader_popup_theme_values"
         app:title="@string/reader_pref_popup_theme"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_radius"
+        app:defaultValue="0"
+        app:entries="@array/reader_popup_radius_entries"
+        app:entryValues="@array/reader_popup_radius_values"
+        app:title="@string/reader_pref_popup_radius"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+    <ListPreference
+        app:key="reader_popup_opacity"
+        app:defaultValue="100"
+        app:entries="@array/reader_popup_opacity_entries"
+        app:entryValues="@array/reader_popup_opacity_values"
+        app:title="@string/reader_pref_popup_opacity"
         app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
@@ -24,6 +40,11 @@
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_popup_scale"
         app:iconSpaceReserved="false" />
+    <SwitchPreferenceCompat
+        app:key="reader_popup_fit"
+        app:defaultValue="true"
+        app:title="@string/reader_pref_popup_fit"
+        app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_hover_delay_ms"
         app:defaultValue="100"
@@ -32,11 +53,6 @@
         app:seekBarIncrement="50"
         app:showSeekBarValue="true"
         app:title="@string/reader_pref_hover_delay"
-        app:iconSpaceReserved="false" />
-    <SwitchPreferenceCompat
-        app:key="reader_popup_fit"
-        app:defaultValue="true"
-        app:title="@string/reader_pref_popup_fit"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_height"
@@ -73,24 +89,6 @@
         app:entryValues="@array/reader_card_corner_values"
         app:title="@string/reader_pref_card_corner"
         app:useSimpleSummaryProvider="true"
-        app:iconSpaceReserved="false" />
-    <SeekBarPreference
-        app:key="reader_popup_opacity"
-        app:defaultValue="90"
-        app:min="0"
-        android:max="100"
-        app:seekBarIncrement="5"
-        app:showSeekBarValue="true"
-        app:title="@string/reader_pref_popup_opacity"
-        app:iconSpaceReserved="false" />
-    <SeekBarPreference
-        app:key="reader_popup_radius"
-        app:defaultValue="-1"
-        app:min="-1"
-        android:max="28"
-        app:seekBarIncrement="1"
-        app:showSeekBarValue="true"
-        app:title="@string/reader_pref_popup_radius"
         app:iconSpaceReserved="false" />
     <SeekBarPreference
         app:key="reader_popup_width"

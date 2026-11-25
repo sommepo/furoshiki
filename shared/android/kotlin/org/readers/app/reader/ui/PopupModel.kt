@@ -181,10 +181,25 @@ object PopupModel {
     fun kanjiOf(text: String): String? {
         if (text.isEmpty()) return null
         val code = text.codePointAt(0)
-        val ideograph = code in 0x4E00..0x9FFF || code in 0x3400..0x4DBF || code in 0xF900..0xFAFF ||
-            code in 0x20000..0x3134F || code == 0x3005
-        return if (ideograph) String(Character.toChars(code)) else null
+        return if (isIdeograph(code)) String(Character.toChars(code)) else null
     }
+
+    /** Every unique kanji (or 々) in [text], in order of appearance, for the multi-kanji Kanji tab. */
+    fun kanjiListOf(text: String): List<String> {
+        if (text.isEmpty()) return emptyList()
+        val seen = LinkedHashSet<String>()
+        var i = 0
+        while (i < text.length) {
+            val code = text.codePointAt(i)
+            if (isIdeograph(code)) seen.add(String(Character.toChars(code)))
+            i += Character.charCount(code)
+        }
+        return seen.toList()
+    }
+
+    private fun isIdeograph(code: Int): Boolean =
+        code in 0x4E00..0x9FFF || code in 0x3400..0x4DBF || code in 0xF900..0xFAFF ||
+            code in 0x20000..0x3134F || code == 0x3005
 
     /**
      * A character's entries from the kanji dictionaries, as the page's JSON text (no brackets):

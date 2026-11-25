@@ -96,7 +96,7 @@ const QList<Entry>& Entries() {
             Number("Height, at most", Settings::KeyPopupHeight, &Settings::PopupHeightPercent, 10, 80, 5, "%"),
             Number("Close after", Settings::KeyPopupAutoHide, &Settings::PopupAutoHideSeconds, 0, 120, 5, "S"),
             Switch("Close when the pointer leaves", Settings::KeyPopupHideOnExit, &Settings::PopupHideOnExit),
-            Chosen("Add button position", Settings::KeyCardCorner, text(&Settings::CardCorner),
+            Chosen("Add button's corner", Settings::KeyCardCorner, text(&Settings::CardCorner),
                    {{QStringLiteral("Bottom left"), QStringLiteral("bottom_left")},
                     {QStringLiteral("Bottom right"), QStringLiteral("bottom_right")},
                     {QStringLiteral("Top left"), QStringLiteral("top_left")},

@@ -75,6 +75,9 @@ object ShelfLook {
     fun text(context: Context, bold: Boolean = false): Typeface =
         face(context, if (bold) "ZenKakuGothicNew-Bold.ttf" else "ZenKakuGothicNew-Medium.ttf", if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT)
 
+    /** The page's display face for titles (Michroma). */
+    fun display(context: Context): Typeface = face(context, "Michroma-Regular.ttf", Typeface.SANS_SERIF)
+
     /** The page's face for small capitals and figures (IBM Plex Mono). */
     fun mono(context: Context): Typeface = face(context, "IBMPlexMono-Medium.ttf", Typeface.MONOSPACE)
 }

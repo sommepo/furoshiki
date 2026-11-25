@@ -327,20 +327,40 @@ void LookupPopup::ShowResults(const QList<LookupResult>& results,
                 results.at(i), counted ? HistoryLine(history.at(i), with_where) : QString(), kinds, web_pictures,
                 pictures);
         }
-        // The character the word begins with, from the kanji dictionaries: on the page's Kanji tab.
-        if (!results.isEmpty() && !results.first().matched_text.isEmpty()) {
-            const QString text = results.first().matched_text;
-            const QString character = text.at(0).isHighSurrogate() && text.size() > 1 ? text.left(2) : text.left(1);
-            const char32_t code = character.toUcs4().value(0);
-            const bool ideograph = (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF) ||
-                                   (code >= 0xF900 && code <= 0xFAFF) || (code >= 0x20000 && code <= 0x3134F) ||
-                                   code == 0x3005;
-            if (ideograph) {
+        // Every unique kanji of the looked-up word, from the kanji dictionaries: on the Kanji tab.
+        if (!results.isEmpty()) {
+            const auto extract = [](const QString& text) {
+                QStringList chars;
+                QSet<QString> seen;
+                const auto ucs4 = text.toUcs4();
+                for (const uint raw : ucs4) {
+                    const char32_t code = raw;
+                    const bool ideograph = (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF) ||
+                                           (code >= 0xF900 && code <= 0xFAFF) || (code >= 0x20000 && code <= 0x3134F) ||
+                                           code == 0x3005;
+                    if (!ideograph) {
+                        continue;
+                    }
+                    const QString ch = QString::fromUcs4(&code, 1);
+                    if (!seen.contains(ch)) {
+                        seen.insert(ch);
+                        chars.append(ch);
+                    }
+                }
+                return chars;
+            };
+            QStringList chars = extract(results.first().matched_text);
+            if (chars.isEmpty()) {
+                chars = extract(results.first().expression);
+            }
+            if (!chars.isEmpty()) {
                 auto& dictionaries = ReaderSession::Instance().Dictionaries();
-                const QByteArray kanji = ReaderApp::PopupModel::KanjiText(dictionaries.FindKanji(character),
-                                                                          dictionaries.FindKanjiMeta(character));
-                if (!kanji.isEmpty()) {
-                    model += (model.size() > 1 ? "," : "") + kanji;
+                for (const QString& character : chars) {
+                    const QByteArray kanji = ReaderApp::PopupModel::KanjiText(dictionaries.FindKanji(character),
+                                                                              dictionaries.FindKanjiMeta(character));
+                    if (!kanji.isEmpty()) {
+                        model += (model.size() > 1 ? "," : "") + kanji;
+                    }
                 }
             }
         }
@@ -527,6 +547,13 @@ void LookupPopup::PadTab(int step) {
     if (web) {
         ShowPad();
         web->Call(QStringLiteral("Reader.tab(%1)").arg(step < 0 ? -1 : 1));
+    }
+}
+
+void LookupPopup::PadKanji(int step) {
+    if (web) {
+        ShowPad();
+        web->Call(QStringLiteral("Reader.kanjiStep(%1)").arg(step < 0 ? -1 : 1));
     }
 }
 

@@ -12,21 +12,23 @@
  * the row in hand said large at the left. */
 
 @font-face { font-family: "Machine"; src: url("fonts/Michroma-Regular.ttf"); }
+@font-face { font-family: "TextLatin"; font-weight: 500; src: url("fonts/SpaceGrotesk-Medium.ttf"); unicode-range: U+0000-024F, U+2000-206F; }
 @font-face { font-family: "Text"; font-weight: 700; src: url("fonts/ZenKakuGothicNew-Bold.ttf"); }
 @font-face { font-family: "Text"; font-weight: 500; src: url("fonts/ZenKakuGothicNew-Medium.ttf"); }
-@font-face { font-family: "Facts"; src: url("fonts/IBMPlexMono-Medium.ttf"); }
+@font-face { font-family: "Facts"; font-weight: 500; src: url("fonts/ChakraPetch-Medium.ttf"); }
+@font-face { font-family: "Facts"; font-weight: 600; src: url("fonts/ChakraPetch-SemiBold.ttf"); }
 
 :root {
   --s: 1px;
   --ground: #101a3a; --raised: #18244d; --ink: #ece5d3; --muted: #8a93b5; --accent: #d9472b;
   --rule: rgba(236, 229, 211, .24);
   --display: "Machine", "Text", sans-serif;
-  --text: "Text", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
-  --mono: "Facts", monospace;
+  --text: "TextLatin", "Text", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+  --mono: "Facts", sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink); overflow: hidden; }
-body { font-family: var(--text); font-weight: 500; -webkit-user-select: none; user-select: none; }
+body { font-family: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; -webkit-user-select: none; user-select: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; outline: none; }
 
 #sheet {
@@ -771,3 +773,237 @@ body.tall #tab { min-width: 0; flex: 1 1 auto; }
 body.tall #tab-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 body.tall #tab-text i { display: none; }
 body.tall #right { flex: none; white-space: nowrap; gap: calc(12 * var(--s)); }
+
+/* ---- 01 Chamfer micro-UI polish & Option A Editorial Split / Thor Editorial Ledger ---- */
+#head { position: relative; }
+#head::after {
+  content: ""; position: absolute; left: 0; bottom: -2px; width: calc(56 * var(--s)); height: 2px;
+  background: var(--accent);
+}
+.row { border-bottom-color: color-mix(in srgb, var(--rule) 65%, transparent); }
+.row.on { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.row.on .no { color: var(--accent); }
+
+/* Option A (single screen: Editorial Split; dual screen Thor: Editorial Ledger):
+   replace vertical spines with numbered hairline rows + colored game accent strip so
+   single-screen phones and Thor look sharp without spine art. */
+#main.shelf #list { overflow-y: auto; overflow-x: hidden; border-top: 1px solid var(--rule); }
+#main.shelf #rows { display: block; height: auto; }
+#main.shelf .row,
+#main.shelf .row.pictured,
+body.square #main.shelf .row,
+body.two #main.shelf .row {
+  flex: none;
+  display: grid;
+  grid-template-columns: calc(34 * var(--s)) calc(4 * var(--s)) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: calc(10 * var(--s));
+  height: auto;
+  min-height: calc(46 * var(--s));
+  padding: calc(4 * var(--s)) calc(6 * var(--s)) calc(4 * var(--s)) calc(14 * var(--s));
+  margin: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 65%, transparent);
+  transform: none;
+  transition: background .12s;
+}
+#main.shelf .row:last-child { border-right: 0; }
+#main.shelf .row .spine-wrap,
+#main.shelf .row img.spine,
+body.two #main.shelf .row .plate { display: none !important; }
+/* Iteration A: Authentic Studio Cases — uniform per-console generated horizontal spines. */
+#main.shelf .row.cased,
+body.square #main.shelf .row.cased,
+body.two #main.shelf .row.cased {
+  grid-template-columns: calc(28 * var(--s)) minmax(0, 1fr) calc(152 * var(--s)) calc(22 * var(--s));
+  min-height: calc(40 * var(--s));
+  padding: calc(3 * var(--s)) calc(6 * var(--s)) calc(3 * var(--s)) calc(12 * var(--s));
+  border-bottom: 0;
+}
+#main.shelf .row.cased .band,
+#main.shelf .row.cased .name { display: none !important; }
+#main.shelf .row.cased .side { grid-column: 3; grid-row: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#main.shelf .row.cased .mark { grid-column: 4; grid-row: 1; justify-self: end; margin-left: 0; }
+#main.shelf .row.cased .gen-spine {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  height: calc(32 * var(--s));
+  display: grid;
+  grid-template-columns: calc(52 * var(--s)) minmax(0, 1fr) calc(84 * var(--s));
+  align-items: stretch;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #e2e6ee;
+  color: #171717;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35);
+  opacity: 0.78;
+  transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+}
+#main.shelf .row.cased.on .gen-spine {
+  opacity: 1;
+  transform: translateX(calc(5 * var(--s)));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.5);
+}
+#main.shelf .row.cased .gen-spine .cap-l {
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: max(8px, calc(8.5 * var(--s)));
+  letter-spacing: 0.08em;
+  background: #1c243b;
+  color: #ece5d3;
+  border-right: 2px solid var(--accent);
+}
+#main.shelf .row.cased .gen-spine .spine-body {
+  display: flex;
+  align-items: center;
+  padding: 0 calc(11 * var(--s));
+  font: 600 max(12px, calc(13 * var(--s))) var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#main.shelf .row.cased .gen-spine .cap-r {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 calc(6 * var(--s));
+  font: 500 max(8px, calc(8.5 * var(--s))) var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.75;
+}
+/* Per-console authentic studio case palettes (matched specificity over .row.cased .gen-spine) */
+#main.shelf .row.cased .gen-spine[data-console="psp"] { background: #e8e5dc; color: #171717; }
+#main.shelf .row.cased .gen-spine[data-console="psp"] .cap-l { background: #141418; color: #f3f4f6; border-right: 2px solid #d4a017; }
+#main.shelf .row.cased .gen-spine[data-console="psp"] .cap-r { background: #1e3a5f; color: #e2e8f0; opacity: 1; }
+
+#main.shelf .row.cased .gen-spine[data-console="ps2"] { background: #eceff4; color: #0f172a; }
+#main.shelf .row.cased .gen-spine[data-console="ps2"] .cap-l { background: #0f172a; color: #f8fafc; border-right: 3px solid #2563eb; }
+#main.shelf .row.cased .gen-spine[data-console="ps2"] .cap-r { background: #1e293b; color: #93c5fd; opacity: 1; }
+
+#main.shelf .row.cased .gen-spine[data-console="switch"],
+#main.shelf .row.cased .gen-spine[data-console="swi"],
+#main.shelf .row.cased .gen-spine[data-console="eden"] { background: #c81e32; color: #ffffff; }
+#main.shelf .row.cased .gen-spine[data-console="switch"] .cap-l,
+#main.shelf .row.cased .gen-spine[data-console="swi"] .cap-l,
+#main.shelf .row.cased .gen-spine[data-console="eden"] .cap-l { background: #a81426; color: #ffffff; border-right: 1px solid rgba(255,255,255,0.2); }
+#main.shelf .row.cased .gen-spine[data-console="switch"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="swi"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="eden"] .cap-r { color: rgba(255,255,255,0.8); }
+
+#main.shelf .row.cased .gen-spine[data-console="ds"],
+#main.shelf .row.cased .gen-spine[data-console="nds"],
+#main.shelf .row.cased .gen-spine[data-console="3ds"] { background: #e2e6ee; color: #1e293b; }
+#main.shelf .row.cased .gen-spine[data-console="ds"] .cap-l,
+#main.shelf .row.cased .gen-spine[data-console="nds"] .cap-l { background: #cbd5e1; color: #0f172a; border-right: 2px solid #64748b; }
+#main.shelf .row.cased .gen-spine[data-console="3ds"] .cap-l { background: #f1f5f9; color: #0f172a; border-right: 3px solid #dc2626; }
+#main.shelf .row.cased .gen-spine[data-console="ds"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="nds"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="3ds"] .cap-r { color: #475569; }
+
+#main.shelf .row.cased .gen-spine[data-console="ps1"] { background: #1c1d22; color: #f4f4f5; }
+#main.shelf .row.cased .gen-spine[data-console="ps1"] .cap-l { background: #0b0b0e; color: #e4e4e7; border-right: 2px solid #9ca3af; }
+#main.shelf .row.cased .gen-spine[data-console="ps1"] .cap-r { color: #a1a1aa; }
+
+#main.shelf .row.cased .gen-spine[data-console="dc"],
+#main.shelf .row.cased .gen-spine[data-console="dreamcast"] { background: #ebe7de; color: #1f2937; }
+#main.shelf .row.cased .gen-spine[data-console="dc"] .cap-l,
+#main.shelf .row.cased .gen-spine[data-console="dreamcast"] .cap-l { background: #ea580c; color: #ffffff; border-right: 0; }
+#main.shelf .row.cased .gen-spine[data-console="dc"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="dreamcast"] .cap-r { color: #6b7280; }
+
+#main.shelf .row.cased .gen-spine[data-console="psvita"],
+#main.shelf .row.cased .gen-spine[data-console="vita"] { background: #1d4ed8; color: #ffffff; }
+#main.shelf .row.cased .gen-spine[data-console="psvita"] .cap-l,
+#main.shelf .row.cased .gen-spine[data-console="vita"] .cap-l { background: #172554; color: #93c5fd; border-right: 2px solid #38bdf8; }
+#main.shelf .row.cased .gen-spine[data-console="psvita"] .cap-r,
+#main.shelf .row.cased .gen-spine[data-console="vita"] .cap-r { color: rgba(255,255,255,0.8); }
+
+#main.shelf .row.cased .gen-spine[data-console="app"] { background: #1e2948; color: #ece5d3; }
+#main.shelf .row.cased .gen-spine[data-console="app"] .cap-l { background: #101a3a; color: #ece5d3; border-right: 2px solid var(--accent); }
+#main.shelf .row.cased .gen-spine[data-console="app"] .cap-r { color: #8a93b5; }
+@media (max-width: 720px) {
+  #main.shelf .row.cased .gen-spine { grid-template-columns: calc(52 * var(--s)) minmax(0, 1fr); }
+  #main.shelf .row.cased .gen-spine .cap-r { display: none; }
+}
+@media (max-width: 520px) {
+  #main.shelf .row.cased,
+  body.square #main.shelf .row.cased,
+  body.two #main.shelf .row.cased {
+    grid-template-columns: calc(26 * var(--s)) minmax(0, 1fr) calc(22 * var(--s));
+  }
+  #main.shelf .row.cased .side { display: none !important; }
+  #main.shelf .row.cased .mark { grid-column: 3; }
+}
+body.two #main.shelf .row.on.plated { margin-right: 0; }
+#main.shelf .row .no,
+#main.shelf .row.pictured .no {
+  position: static; transform: none; padding: 0; background: none;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: max(11px, calc(10 * var(--s)));
+}
+#main.shelf .row .band {
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: calc(4 * var(--s));
+  height: calc(20 * var(--s));
+  background: var(--band, var(--raised));
+  opacity: .6;
+}
+#main.shelf .row.on .band { opacity: 1; }
+#main.shelf .row .name,
+#main.shelf .row .name.latin,
+body.two #main.shelf .row .name,
+body.two #main.shelf .row .name.latin,
+body.square #main.shelf .row .name,
+body.square #main.shelf .row .name.latin {
+  display: block;
+  grid-column: 3;
+  grid-row: 1;
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  font: 500 max(13px, calc(15 * var(--s))) var(--text);
+  letter-spacing: .01em;
+  text-transform: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#main.shelf .row.on .name { font-weight: 700; color: var(--ink); }
+#main.shelf .row .side {
+  display: block;
+  grid-column: 4;
+  grid-row: 1;
+  font-size: max(11px, calc(11 * var(--s)));
+}
+#main.shelf .row .mark {
+  position: static;
+  grid-column: 5;
+  grid-row: 1;
+  margin-left: calc(4 * var(--s));
+}
+#main.shelf .row.on { transform: none; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+#main.shelf .row.on::before { left: 0; right: auto; top: 1px; bottom: 1px; width: 3px; height: auto; }
+
+/* Corner registration ticks on the active cover plate (Chamfer detail). */
+#main.shelf #art.boxed,
+body.lower #main.shelf #art.boxed {
+  position: relative;
+  padding: calc(4 * var(--s));
+  background:
+    linear-gradient(var(--accent), var(--accent)) top left / 7px 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top left / 1px 7px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top right / 7px 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top right / 1px 7px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom left / 7px 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom left / 1px 7px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 7px 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 1px 7px no-repeat;
+}

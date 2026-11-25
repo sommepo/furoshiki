@@ -45,6 +45,8 @@ class BacklogView(
     searchable: Boolean = true,
     /** The lines' size beside the game's text size: larger on a screen of its own, read from a distance. */
     private val textScale: Float = 0.9f,
+    /** Follow new lines as they arrive in play (live backlog on a second display). */
+    private val live: Boolean = false,
     openDictionaries: () -> Unit,
 ) : LinearLayout(context) {
     private val main = Handler(Looper.getMainLooper())
@@ -59,6 +61,25 @@ class BacklogView(
     private var loading = false
     private var reachedStart = false
     private var gone = false
+    private val liveListener = object : ReaderSession.Listener {
+        override fun onLine(presented: PresentedLine) {
+            if (gone || query.isNotEmpty() || presented.backlogId <= 0L) return
+            if (ReaderSession.gameKey.isNotEmpty() && ReaderSession.gameKey != game) return
+            val lm = listView.layoutManager as LinearLayoutManager
+            val nearBottom = adapter.itemCount == 0 || lm.findLastVisibleItemPosition() >= adapter.itemCount - 2
+            val entry = BacklogEntry(
+                id = presented.backlogId,
+                game = game,
+                line = presented.line,
+                characters = presented.accounting.characters,
+                reread = presented.accounting.reread,
+            )
+            if (adapter.append(entry)) {
+                empty.visibility = View.GONE
+                if (nearBottom) listView.scrollToPosition(adapter.itemCount - 1)
+            }
+        }
+    }
 
     /** The popup over the lines. */
     val lookups: LookupLayer
@@ -104,6 +125,7 @@ class BacklogView(
         lookups.passThrough = listView
         frame.addView(lookups)
         addView(frame, LayoutParams(MATCH, 0, 1f))
+        if (live) ReaderSession.addListener(liveListener)
         reload()
     }
 
@@ -115,6 +137,7 @@ class BacklogView(
     /** Lets its worker go: the view is not shown again. */
     fun release() {
         gone = true
+        if (live) ReaderSession.removeListener(liveListener)
         worker.shutdown()
     }
 
@@ -174,6 +197,13 @@ class BacklogView(
             if (entries.isEmpty()) return
             items.addAll(0, entries)
             notifyItemRangeInserted(0, entries.size)
+        }
+
+        fun append(entry: BacklogEntry): Boolean {
+            if (items.lastOrNull()?.id == entry.id) return false
+            items.add(entry)
+            notifyItemInserted(items.lastIndex)
+            return true
         }
 
         fun oldestId(): Long? = items.firstOrNull()?.id

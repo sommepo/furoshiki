@@ -50,8 +50,9 @@ QColor WithAlpha(QColor colour, double alpha) {
 } // namespace
 
 ChoicePicker* ChoicePicker::Open(QWidget* over, const QString& title, const QStringList& choices, int now,
-                                 const Colours& colours, std::function<void(int)> picked) {
-    auto* picker = new ChoicePicker(over, title, choices, now, colours, std::move(picked));
+                                 const Colours& colours, std::function<void(int)> picked,
+                                 std::function<void(int)> focused, const QRect& keep_clear) {
+    auto* picker = new ChoicePicker(over, title, choices, now, colours, std::move(picked), std::move(focused), keep_clear);
     picker->show();
     picker->raise();
     picker->setFocus(Qt::PopupFocusReason);
@@ -59,10 +60,11 @@ ChoicePicker* ChoicePicker::Open(QWidget* over, const QString& title, const QStr
 }
 
 ChoicePicker::ChoicePicker(QWidget* over, const QString& title_, const QStringList& choices_, int now_,
-                           const Colours& colours_, std::function<void(int)> picked_)
+                           const Colours& colours_, std::function<void(int)> picked_,
+                           std::function<void(int)> focused_, const QRect& keep_clear_)
     // None in use (-1, a list of actions): no mark, the first in hand.
     : QWidget(over), title(title_), choices(choices_), now(now_ < 0 ? -1 : std::min(now_, std::max(0, static_cast<int>(choices_.size()) - 1))),
-      chosen(std::max(now, 0)), colours(colours_), picked(std::move(picked_)) {
+      chosen(std::max(now, 0)), colours(colours_), picked(std::move(picked_)), focused(std::move(focused_)), keep_clear(keep_clear_) {
     Scale = colours.scale > 0 ? colours.scale : 1;
     setObjectName(QStringLiteral("choice-picker"));
     setGeometry(over->rect());
@@ -120,7 +122,8 @@ void ChoicePicker::Blur() {
 }
 
 int ChoicePicker::Visible() const {
-    const double room = height() * 0.74 - Head() - Foot();
+    const double ceiling = keep_clear.isEmpty() ? height() * 0.74 : std::max(Head() + RowHeight() + Foot(), keep_clear.top() - 28.0 * Scale);
+    const double room = ceiling - Head() - Foot();
     return std::clamp(static_cast<int>(room / RowHeight()), 1, std::max(1, static_cast<int>(choices.size())));
 }
 
@@ -133,6 +136,10 @@ QRectF ChoicePicker::Card() const {
     }
     const double w = std::clamp(widest, 400 * Scale, std::max(400 * Scale, width() * 0.7));
     const double h = Head() + Visible() * RowHeight() + Foot();
+    if (!keep_clear.isEmpty()) {
+        const double top_y = std::max(16.0 * Scale, (keep_clear.top() - 16.0 * Scale - h) / 2.0);
+        return {(width() - w) / 2, top_y, w, h};
+    }
     return {(width() - w) / 2, (height() - h) / 2, w, h};
 }
 
@@ -150,7 +157,11 @@ void ChoicePicker::Show(int index) {
     if (choices.isEmpty()) {
         return;
     }
+    const int prev = chosen;
     chosen = std::clamp(index, 0, static_cast<int>(choices.size()) - 1);
+    if (chosen != prev && focused) {
+        focused(chosen);
+    }
     const int visible = Visible();
     if (chosen < target) {
         target = chosen;
@@ -171,6 +182,7 @@ void ChoicePicker::Take(int index) {
     now = index; // marked as taken while the card fades
     auto then = std::move(picked);
     picked = nullptr;
+    focused = nullptr; // taken, not cancelled
     Leave();
     if (then) {
         then(index);
@@ -183,6 +195,11 @@ void ChoicePicker::Leave() {
     }
     leaving = true;
     left_at = clock.elapsed();
+    if (focused) {
+        auto notify = std::move(focused);
+        focused = nullptr;
+        notify(-1);
+    }
     setAttribute(Qt::WA_TransparentForMouseEvents);
     frames.start();
 }
@@ -242,8 +259,11 @@ void ChoicePicker::mouseMoveEvent(QMouseEvent* event) {
     const int at = RowAt(event->position());
     if (at != hover) {
         hover = at;
-        if (at >= 0) {
+        if (at >= 0 && at != chosen) {
             chosen = at;
+            if (focused) {
+                focused(chosen);
+            }
         }
         update();
     }

@@ -319,8 +319,8 @@ QWidget* SettingsWindow::PopupTab() {
     design_form = new QFormLayout;
     top->addLayout(look_form, 2);
     top->addLayout(design_form, 2);
-    auto* export_style = new QPushButton(QStringLiteral("Export…"), page);
-    auto* import_style = new QPushButton(QStringLiteral("Import…"), page);
+    auto* export_style = new QPushButton(QStringLiteral("Export theme…"), page);
+    auto* import_style = new QPushButton(QStringLiteral("Import theme…"), page);
     export_style->setToolTip(QStringLiteral("Popup style file (works with Android)"));
     top->addWidget(export_style);
     top->addWidget(import_style);
@@ -416,6 +416,14 @@ void SettingsWindow::FillPopupRows() {
     QList<PlaySetting> settings = PopupStyle::Settings(popup_folder);
     const QString base = PopupBase();
     for (PlaySetting& setting : settings) {
+        if (setting.key == QStringLiteral("popup.theme")) {
+            // Popup theme is chosen on the main Popup settings page; the editor fine-tunes it.
+            const QString current = play.Value(setting, layer.console, layer.game).value;
+            auto* shown = new QLabel(Shown(setting, current), this);
+            shown->setToolTip(QStringLiteral("Choose the base popup theme in Settings › Popup"));
+            look_form->addRow(QStringLiteral("Theme"), shown);
+            continue;
+        }
         if (setting.key == QStringLiteral("popup.design")) {
             // Only the designs over the look in use here: "yomitan-dark-mine" with Yomitan dark.
             setting.choices = {QStringLiteral("none")};
@@ -423,7 +431,7 @@ void SettingsWindow::FillPopupRows() {
                 setting.choices.append(one.name);
             }
         }
-        AddSettingRow(setting.key == QStringLiteral("popup.theme") ? look_form : setting.key == QStringLiteral("popup.design") ? design_form : popup_form, setting, layer);
+        AddSettingRow(setting.key == QStringLiteral("popup.design") ? design_form : popup_form, setting, layer);
     }
     filling = false;
     LoadDesign();

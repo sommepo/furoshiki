@@ -255,8 +255,6 @@ class ReaderSettingsActivity : ReaderScreen() {
          */
         private val valueWords = mapOf(
             ReaderSettings.KEY_POPUP_AUTOHIDE to (0 to R.string.reader_value_never),
-            ReaderSettings.KEY_POPUP_OPACITY to (0 to R.string.reader_value_default),
-            ReaderSettings.KEY_POPUP_RADIUS to (-1 to R.string.reader_value_default),
             ReaderSettings.KEY_POPUP_COMPACT to (0 to R.string.reader_value_all),
             ReaderSettings.KEY_POPUP_WIDTH to (0 to R.string.reader_value_default),
         )
@@ -291,6 +289,23 @@ class ReaderSettingsActivity : ReaderScreen() {
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             val section = section(requireArguments().getString(SECTION)) ?: Section.READING
+            if (section == Section.POPUP) {
+                // Migrate legacy SeekBarPreference Int values to ListPreference preset Strings.
+                val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                val edit = prefs.edit()
+                var changed = false
+                (prefs.all[ReaderSettings.KEY_POPUP_OPACITY] as? Number)?.toInt()?.let { v ->
+                    val snapped = when { v >= 90 -> "100"; v >= 70 -> "80"; v >= 50 -> "60"; else -> "40" }
+                    edit.putString(ReaderSettings.KEY_POPUP_OPACITY, snapped)
+                    changed = true
+                }
+                (prefs.all[ReaderSettings.KEY_POPUP_RADIUS] as? Number)?.toInt()?.let { v ->
+                    val snapped = when { v >= 18 -> "24"; v >= 6 -> "12"; else -> "0" }
+                    edit.putString(ReaderSettings.KEY_POPUP_RADIUS, snapped)
+                    changed = true
+                }
+                if (changed) edit.apply()
+            }
             // Play by touch's first value depends on the device: kept before its switch shows it.
             ReaderSettings(requireContext()).keepTouchPlayDefault()
             setPreferencesFromResource(section.preferences, rootKey)

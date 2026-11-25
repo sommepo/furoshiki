@@ -395,29 +395,20 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
     }
 
     /**
-     * The BACKLOG key: opens the backlog over the game; pressed again, moves it to the second
-     * display (the maintainer, 2026-11-20: it "should let it sit on the bottom screen instead"),
-     * where its own arrow closes it; with one display, closes it.
+     * The BACKLOG key: on dual-screen devices, toggles the live backlog directly on the bottom
+     * screen as an alternative to the trackpad pointer and line options; on single-screen devices,
+     * opens or closes the full-screen backlog activity.
      */
     private fun backlogKey() {
+        if (ReaderGlue.hasSecondScreen) {
+            ReaderGlue.setLowerBacklog(!ReaderGlue.lowerBacklogShown)
+            return
+        }
         val open = io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity.current
         if (open == null) {
             ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
-            return
-        }
-        val own = display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
-        val other = (getSystemService(DISPLAY_SERVICE) as android.hardware.display.DisplayManager).displays
-            .firstOrNull { it.displayId != own && it.isValid && it.state != android.view.Display.STATE_OFF }
-        val above = (open.display?.displayId ?: own) == own
-        open.finish()
-        if (above && other != null) {
-            runCatching {
-                startActivity(
-                    Intent(this, io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK),
-                    android.app.ActivityOptions.makeBasic().setLaunchDisplayId(other.displayId).toBundle()
-                )
-            }
+        } else {
+            open.finish()
         }
     }
 
@@ -428,16 +419,25 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             listOfNotNull(
                 LowerKeys.Key(getString(R.string.lower_key_pause), { held }, getString(R.string.lower_key_resume)) { act("pause") },
                 LowerKeys.Key(getString(R.string.lower_key_stats), { settings.statsPaused }, getString(R.string.lower_key_stats_on)) { act("stats") },
-                // Once more with the backlog open moves it to the second display, under the game.
+                // Dual-screen: live backlog on the bottom screen; single-screen: backlog screen.
                 LowerKeys.Key(
                     getString(R.string.lower_key_log),
-                    { io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity.current != null },
-                    getString(R.string.lower_key_log_below),
+                    {
+                        if (ReaderGlue.hasSecondScreen) ReaderGlue.lowerBacklogShown
+                        else io.github.sommepo.furoshiki.reader.ui.ReaderBacklogActivity.current != null
+                    },
                 ) { act("log") },
                 // The line shown always (on), or only where the game's own text can't be pointed at:
-                // the second display then the trackpad alone.
-                LowerKeys.Key(getString(R.string.lower_key_line), { !settings.panelAutoHide }) {
-                    settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_AUTO_HIDE, !settings.panelAutoHide).apply()
+                // on dual-screen, switching to Line puts the live backlog away.
+                LowerKeys.Key(getString(R.string.lower_key_line), { !ReaderGlue.lowerBacklogShown && !settings.panelAutoHide }) {
+                    if (ReaderGlue.lowerBacklogShown) {
+                        ReaderGlue.setLowerBacklog(false)
+                        if (settings.panelAutoHide) {
+                            settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_AUTO_HIDE, false).apply()
+                        }
+                    } else {
+                        settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_AUTO_HIDE, !settings.panelAutoHide).apply()
+                    }
                 },
                 LowerKeys.Key(getString(R.string.lower_key_explain)) { act("explain") }.takeIf { Explain.offered(this) },
                 LowerKeys.Key(getString(R.string.lower_key_read)) { act("ocr_now") }.takeIf { ocr?.active == true },
@@ -619,18 +619,25 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         val host = ReaderGlue.readerHost ?: return
         val settings = ReaderSettings(this)
         val list = menu(R.string.game_menu_reader)
-            .row(getString(R.string.reader_statistics)) { host.openStatistics() }
+        fun row(label: Int, shown: Boolean = true, act: () -> Unit) { if (shown) list.row(getString(label), act = act) }
+        row(R.string.game_menu_explain, Explain.offered(this)) { explain() }
+        row(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide, guide?.offered() == true) { guide?.toggle() }
+        row(R.string.game_menu_ocr_now, ocr?.active == true) { ocr?.readNow() }
+        row(R.string.game_menu_ocr_setup, ocr != null && started) { setUpOcr() }
+        list.keep(getString(R.string.reader_pref_screen_text), { onOff(settings.screenText) }) {
+            settings.preferences.edit().putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()
+        }
+        list.keep(getString(R.string.reader_pref_panel_enabled), { onOff(settings.panelEnabled) }) {
+            settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_ENABLED, !settings.panelEnabled).apply()
+        }
+        list.row(getString(R.string.reader_card_audio_game)) { pickCardAudio() }
+        row(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice, Console.HAS_NEXT_CHOICE) { NextChoice.toggle() }
+        row(R.string.game_menu_routes, Routes.offer() != null) { Routes.show(this) }
+        row(R.string.game_menu_patches, GameNative.features() and 32 != 0) { pickPatches() }
+        if (host.gameActions().isNotEmpty()) list.row(getString(R.string.reader_game_actions)) { pickGameAction() }
+        list.row(getString(R.string.reader_statistics)) { host.openStatistics() }
             .row(getString(R.string.reader_dictionaries)) { host.openDictionaries() }
             .row(getString(R.string.reader_anki_setup)) { host.openAnkiSetup() }
-            .row(getString(R.string.reader_card_audio_game)) { pickCardAudio() }
-        if (host.gameActions().isNotEmpty()) list.row(getString(R.string.reader_game_actions)) { pickGameAction() }
-        list.row(getString(R.string.reader_settings)) { host.openSettings() }
-            .keep(getString(R.string.reader_pref_screen_text), { onOff(settings.screenText) }) {
-                settings.preferences.edit().putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()
-            }
-            .keep(getString(R.string.reader_pref_panel_enabled), { onOff(settings.panelEnabled) }) {
-                settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_ENABLED, !settings.panelEnabled).apply()
-            }
             .row(getString(R.string.reader_reload_profile)) { io.github.sommepo.furoshiki.reader.ReaderNative.reloadProfile() }
             .overGame()
     }
@@ -686,18 +693,12 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         fun row(label: Int, shown: Boolean = true, act: () -> Unit) { if (shown) list.row(getString(label), act = act) }
         row(R.string.game_menu_resume) {}
         row(R.string.game_menu_reader) { showReaderMenu() }
-        row(R.string.game_menu_explain, Explain.offered(this)) { explain() }
-        row(R.string.game_menu_ocr_now, ocr?.active == true) { ocr?.readNow() }
-        row(R.string.game_menu_ocr_setup, ocr != null && started) { setUpOcr() }
         row(R.string.game_menu_save, states) { pickState(save = true) }
         row(R.string.game_menu_load, states) { pickState(save = false) }
         row(if (fast) R.string.game_menu_fast_off else R.string.game_menu_fast_on) { setFast(!fast) }
         // Not on a device with a second display, which never shows them (the maintainer, 2026-11-24).
         row(if (ReaderGlue.wantsTouchButtons()) R.string.game_menu_touch_off else R.string.game_menu_touch_on, !ReaderSettings(this).twoScreens) { toggleTouchButtons() }
-        row(if (NextChoice.going) R.string.game_menu_next_choice_stop else R.string.game_menu_next_choice, Console.HAS_NEXT_CHOICE) { NextChoice.toggle() }
-        row(R.string.game_menu_routes, Routes.offer() != null) { Routes.show(this) }
-        row(R.string.game_menu_patches, GameNative.features() and 32 != 0) { pickPatches() }
-        row(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide, guide?.offered() == true) { guide?.toggle() }
+        row(R.string.reader_settings, ReaderGlue.readerHost != null) { ReaderGlue.readerHost?.openSettings() }
         row(R.string.game_menu_home) { askQuit() }
         list.overGame()
     }
@@ -1045,7 +1046,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
             "reader_pause_stats" -> ReaderSession.toggleStatsPaused()
             "reader_sentence_card" -> ReaderSession.dispatch(ReaderSession.Command.SENTENCE_CARD)
             "reader_word_card" -> ReaderSession.dispatch(ReaderSession.Command.WORD_CARD)
-            "reader_backlog" -> ReaderSession.dispatch(ReaderSession.Command.BACKLOG)
+            "reader_backlog" -> backlogKey()
             "reader_close_popup" -> ReaderSession.dispatch(ReaderSession.Command.CLOSE_POPUP)
             "reader_next_choice" -> NextChoice.toggle()
             "furoshiki_game_menu" -> showMenu()

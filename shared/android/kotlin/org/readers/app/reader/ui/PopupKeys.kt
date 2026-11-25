@@ -77,6 +77,8 @@ object PopupKeys {
         when (code) {
             KeyEvent.KEYCODE_BUTTON_L1 -> layer.tab(-1)
             KeyEvent.KEYCODE_BUTTON_R1 -> layer.tab(1)
+            KeyEvent.KEYCODE_DPAD_LEFT -> layer.kanjiStep(-1)
+            KeyEvent.KEYCODE_DPAD_RIGHT -> layer.kanjiStep(1)
             KeyEvent.KEYCODE_DPAD_DOWN -> layer.entry(1, (STEP * 4).toInt())
             KeyEvent.KEYCODE_DPAD_UP -> layer.entry(-1, (-STEP * 4).toInt())
         }

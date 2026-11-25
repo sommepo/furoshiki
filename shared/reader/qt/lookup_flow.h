@@ -90,6 +90,8 @@ public:
     enum class PadKey {
         EntryBefore,   ///< d-pad up
         EntryNext,     ///< d-pad down
+        KanjiBefore,   ///< d-pad left (kanji tab)
+        KanjiNext,     ///< d-pad right (kanji tab)
         TabBefore,     ///< L1
         TabNext,       ///< R1
         Card,          ///< north: a card without the line's audio

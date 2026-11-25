@@ -33,6 +33,7 @@
 #include "play_settings.h"
 #include "pad_names.h"
 #include "pad_bluetooth.h"
+#include "choice_picker.h"
 
 class QAction;
 class QAudioSink;
@@ -218,6 +219,12 @@ private:
     /// The dictionary popup that is open (over the game, the OCR overlay or the line strip), or none.
     [[nodiscard]] ReaderUi::LookupFlow* OpenPopup() const;
     void OpenMenu();
+    void OpenReadingMenu();
+    void OpenStatePicker(bool load);
+    void OpenPickerOverlay(const QString& title, const QStringList& labels, int now, std::function<void(int)> picked);
+    void CloseGamePicker();
+    QPointer<Home::ChoicePicker> game_picker;
+    bool game_picker_replacing{};
     /// The text panel (the strip of lines) shown or hidden: a shortcut's action.
     void ToggleTextPanel();
     /// The pointer at `at` (the screen widget's units) to the game's screen under it, where
@@ -317,6 +324,7 @@ private:
     QTimer* popup_preview_timer{};
     QRect popup_preview_place;
     QString popup_preview_shown;
+    QString popup_preview_override_theme;
     void ShowPopupPreview();
     GameScreen* screen{};
     QStackedWidget* pages{};

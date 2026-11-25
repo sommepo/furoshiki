@@ -57,6 +57,15 @@ ShelfFace ShelfFaceOf(const QString& file) {
 QFont ShelfFont(const QString& file, double px, double spacing = 0) {
     const ShelfFace face = ShelfFaceOf(file);
     QFont font(face.family);
+    if (file.startsWith(QStringLiteral("ZenKakuGothicNew"))) {
+        const ShelfFace latin = ShelfFaceOf(QStringLiteral("SpaceGrotesk-Medium.ttf"));
+        if (!latin.family.isEmpty()) {
+            font.setFamilies({latin.family, face.family});
+        }
+    }
+    if (file.startsWith(QStringLiteral("ChakraPetch"))) {
+        font.setFeature(QFont::Tag("tnum"), 1);
+    }
     font.setWeight(static_cast<QFont::Weight>(face.weight));
     font.setPixelSize(std::max(1, static_cast<int>(std::lround(px))));
     font.setHintingPreference(QFont::PreferNoHinting); // it is drawn at the window's scale
@@ -65,6 +74,22 @@ QFont ShelfFont(const QString& file, double px, double spacing = 0) {
         font.setLetterSpacing(QFont::AbsoluteSpacing, px * spacing);
     }
     return font;
+}
+
+void PaintCornerTicks(QPainter& p, const QRectF& box, const QColor& colour, double arm = 7.0) {
+    const QRectF r = box.adjusted(-3.5, -3.5, 3.5, 3.5);
+    p.save();
+    p.setPen(QPen(colour, 1.0));
+    // Top-left, top-right, bottom-left, bottom-right registration brackets.
+    p.drawLine(QPointF(r.left(), r.top()), QPointF(r.left() + arm, r.top()));
+    p.drawLine(QPointF(r.left(), r.top()), QPointF(r.left(), r.top() + arm));
+    p.drawLine(QPointF(r.right(), r.top()), QPointF(r.right() - arm, r.top()));
+    p.drawLine(QPointF(r.right(), r.top()), QPointF(r.right(), r.top() + arm));
+    p.drawLine(QPointF(r.left(), r.bottom()), QPointF(r.left() + arm, r.bottom()));
+    p.drawLine(QPointF(r.left(), r.bottom()), QPointF(r.left(), r.bottom() - arm));
+    p.drawLine(QPointF(r.right(), r.bottom()), QPointF(r.right() - arm, r.bottom()));
+    p.drawLine(QPointF(r.right(), r.bottom()), QPointF(r.right(), r.bottom() - arm));
+    p.restore();
 }
 
 bool HasJapanese(const QString& text) {
@@ -281,34 +306,30 @@ double Put(QPainter& p, const QFont& font, double x, double baseline, const QStr
 /// console's spine art"). Their colours, bands and type only: nothing of a console maker's (no
 /// logo, wordmark or mark of a rating board) is drawn, as everywhere in Furoshiki.
 struct SpineStyle {
-    double shape;        ///< Width to height, as the real case's spine
-    QColor body, ink;    ///< The spine, and the title on it
+    double shape;          ///< Width to height, as the real case's spine
+    QColor body, ink;      ///< The spine, and the title on it
     QColor band, band_ink; ///< The band at its head with the console's name in plain type
-    double band_share;   ///< How much of the height the band takes (0: none)
-    const char* name;    ///< Said in the band, or at the head where there is none
-    QColor foot;         ///< A band at its foot (alpha 0: none), for the serial
+    double band_share;     ///< How much of the height the band takes (0: none)
+    const char* name;      ///< Said in the band, or at the head where there is none
+    QColor rule;           ///< Signature accent divider under the head band (alpha 0: none)
+    QColor foot;           ///< A band at its foot (alpha 0: none), for the serial
     QColor foot_ink;
-    bool serial;         ///< The game's ID at the foot, as the real ones print it
+    bool serial;           ///< The game's ID at the foot, as the real ones print it
 };
 
 const SpineStyle* SpineStyleOf(const QString& platform) {
     static const QHash<QString, SpineStyle> styles = {
-        // A red case's red insert: the title in white, no band.
-        {QStringLiteral("swi"), {0.066, QColor(0xe6, 0x00, 0x12), Qt::white, QColor(0xe6, 0x00, 0x12), Qt::white, 0.0, "SWITCH", QColor(0, 0, 0, 0), Qt::white, false}},
-        // The black head over a white spine, the serial at the foot.
-        {QStringLiteral("ps2"), {0.075, QColor(0xf4, 0xf4, 0xf2), QColor(0x14, 0x14, 0x14), QColor(0x0c, 0x0c, 0x0c), Qt::white, 0.16, "PlayStation 2", QColor(0xf4, 0xf4, 0xf2), QColor(0x14, 0x14, 0x14), true}},
-        {QStringLiteral("ps1"), {0.05, QColor(0xf2, 0xf2, 0xf0), QColor(0x14, 0x14, 0x14), QColor(0x0c, 0x0c, 0x0c), Qt::white, 0.17, "PlayStation", QColor(0xf2, 0xf2, 0xf0), QColor(0x14, 0x14, 0x14), true}},
-        {QStringLiteral("psp"), {0.082, QColor(0xf4, 0xf4, 0xf2), QColor(0x14, 0x14, 0x14), QColor(0x0c, 0x0c, 0x0c), Qt::white, 0.13, "PSP", QColor(0x1c, 0x2f, 0x6b), Qt::white, true}},
-        {QStringLiteral("psv"), {0.08, QColor(0xf4, 0xf4, 0xf2), QColor(0x14, 0x14, 0x14), QColor(0x0c, 0x0c, 0x0c), Qt::white, 0.13, "PS VITA", QColor(0xf4, 0xf4, 0xf2), QColor(0x14, 0x14, 0x14), true}},
-        // White with the orange head of Japan's Dreamcast boxes.
-        {QStringLiteral("drc"), {0.06, QColor(0xf6, 0xf5, 0xf1), QColor(0x14, 0x14, 0x14), QColor(0xf2, 0x6b, 0x1d), Qt::white, 0.15, "Dreamcast", QColor(0xf6, 0xf5, 0xf1), QColor(0x14, 0x14, 0x14), true}},
-        // White, the console's name in red at the head.
-        {QStringLiteral("n3d"), {0.07, QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), QColor(0xf6, 0xf6, 0xf4), QColor(0xd7, 0x0f, 0x1f), 0.12, "3DS", QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), true}},
-        // Japanese DS boxes: clean white spine with dark grey band at the head.
-        {QStringLiteral("nds"), {0.085, QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), QColor(0x3a, 0x3c, 0x42), Qt::white, 0.13, "DS", QColor(0xf6, 0xf6, 0xf4), QColor(0x14, 0x14, 0x14), true}},
-        // A Japanese PC game's box: a dark spine, the title in white, the maker's band left plain.
-        {QStringLiteral("pc"), {0.11, QColor(0x1c, 0x1e, 0x24), Qt::white, QColor(0x0c, 0x0d, 0x10), QColor(0xd8, 0xd8, 0xd4), 0.08, "PC", QColor(0, 0, 0, 0), Qt::white, false}},
-        {QStringLiteral("ps3"), {0.075, QColor(0x14, 0x14, 0x16), Qt::white, QColor(0x05, 0x05, 0x06), Qt::white, 0.12, "PS3", QColor(0, 0, 0, 0), Qt::white, false}},
+        // Iteration A (Authentic Studio Cases): matched across desktop and Android.
+        {QStringLiteral("swi"), {0.066, QColor(0xc8, 0x1e, 0x32), Qt::white, QColor(0xa8, 0x14, 0x26), Qt::white, 0.13, "SWI", QColor(255, 255, 255, 50), QColor(0, 0, 0, 0), QColor(255, 255, 255, 204), false}},
+        {QStringLiteral("ps2"), {0.075, QColor(0xec, 0xef, 0xf4), QColor(0x0f, 0x17, 0x2a), QColor(0x0f, 0x17, 0x2a), QColor(0xf8, 0xfa, 0xfc), 0.16, "PS2", QColor(0x25, 0x63, 0xeb), QColor(0x1e, 0x29, 0x3b), QColor(0x93, 0xc5, 0xfd), true}},
+        {QStringLiteral("ps1"), {0.055, QColor(0x1c, 0x1d, 0x22), QColor(0xf4, 0xf4, 0xf5), QColor(0x0b, 0x0b, 0x0e), QColor(0xe4, 0xe4, 0xe7), 0.16, "PS1", QColor(0x9c, 0xa3, 0xaf), QColor(0x1c, 0x1d, 0x22), QColor(0xa1, 0xa1, 0xaa), true}},
+        {QStringLiteral("psp"), {0.082, QColor(0xe8, 0xe5, 0xdc), QColor(0x17, 0x17, 0x17), QColor(0x14, 0x14, 0x18), QColor(0xf3, 0xf4, 0xf6), 0.13, "PSP", QColor(0xd4, 0xa0, 0x17), QColor(0x1e, 0x3a, 0x5f), QColor(0xe2, 0xe8, 0xf0), true}},
+        {QStringLiteral("psv"), {0.080, QColor(0x1d, 0x4e, 0xd8), Qt::white, QColor(0x17, 0x25, 0x54), QColor(0x93, 0xc5, 0xfd), 0.13, "VITA", QColor(0x38, 0xbd, 0xf8), QColor(0x17, 0x25, 0x54), QColor(0x93, 0xc5, 0xfd), true}},
+        {QStringLiteral("drc"), {0.062, QColor(0xeb, 0xe7, 0xde), QColor(0x1f, 0x29, 0x37), QColor(0xea, 0x58, 0x0c), Qt::white, 0.15, "DC", QColor(0, 0, 0, 0), QColor(0xeb, 0xe7, 0xde), QColor(0x6b, 0x72, 0x80), true}},
+        {QStringLiteral("n3d"), {0.070, QColor(0xe2, 0xe6, 0xee), QColor(0x1e, 0x29, 0x3b), QColor(0xf1, 0xf5, 0xf9), QColor(0x0f, 0x17, 0x2a), 0.12, "3DS", QColor(0xdc, 0x26, 0x26), QColor(0xe2, 0xe6, 0xee), QColor(0x47, 0x55, 0x69), true}},
+        {QStringLiteral("nds"), {0.085, QColor(0xe2, 0xe6, 0xee), QColor(0x1e, 0x29, 0x3b), QColor(0xcb, 0xd5, 0xe1), QColor(0x0f, 0x17, 0x2a), 0.13, "DS", QColor(0x64, 0x74, 0x8b), QColor(0xe2, 0xe6, 0xee), QColor(0x47, 0x55, 0x69), true}},
+        {QStringLiteral("pc"),  {0.100, QColor(0x1e, 0x29, 0x48), QColor(0xec, 0xe5, 0xd3), QColor(0x10, 0x1a, 0x3a), QColor(0xec, 0xe5, 0xd3), 0.10, "PC", QColor(0xd9, 0x47, 0x2b), QColor(0, 0, 0, 0), QColor(0x8a, 0x93, 0xb5), false}},
+        {QStringLiteral("ps3"), {0.075, QColor(0x14, 0x14, 0x16), Qt::white, QColor(0x05, 0x05, 0x06), Qt::white, 0.12, "PS3", QColor(0xd9, 0x47, 0x2b), QColor(0, 0, 0, 0), Qt::white, false}},
     };
     const auto found = styles.constFind(platform);
     return found == styles.constEnd() ? nullptr : &*found;
@@ -326,33 +347,37 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
     QPainter p(&image);
     p.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     double top = 0;
-    // The console's name, lying down along the band, in plain type.
+    // The console's name, lying down along the band, in Michroma (matching Android Iteration A).
     const double band = height * style.band_share;
     if (band > 0) {
         p.fillRect(QRectF(0, 0, width, band), style.band);
         p.save();
         p.translate(width / 2.0, band / 2.0);
         p.rotate(90);
-        // As large as fits along the band: "PlayStation 2" was cut at both ends.
-        double name_size = width * 0.42;
-        while (name_size > width * 0.18 && Advance(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), name_size), QLatin1String(style.name)) > band - 16) {
+        double name_size = width * 0.38;
+        while (name_size > width * 0.16 && Advance(ShelfFont(QStringLiteral("Michroma-Regular.ttf"), name_size), QLatin1String(style.name)) > band - 16) {
             name_size *= 0.93;
         }
-        p.setFont(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), name_size));
+        p.setFont(ShelfFont(QStringLiteral("Michroma-Regular.ttf"), name_size));
         p.setPen(style.band_ink);
         p.drawText(QRectF(-band / 2 + 6, -width / 2.0, band - 12, width), Qt::AlignCenter, QLatin1String(style.name));
         p.restore();
         top = band;
+        if (style.rule.alpha() > 0) {
+            const double rule_h = 8.0;
+            p.fillRect(QRectF(0, band, width, rule_h), style.rule);
+            top += rule_h;
+        }
     } else {
         // No band: the console's name small at the head, in the title's colour.
         p.save();
         p.translate(width / 2.0, 22);
         p.rotate(90);
-        p.setFont(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), width * 0.3));
+        p.setFont(ShelfFont(QStringLiteral("Michroma-Regular.ttf"), width * 0.28));
         p.setPen(style.ink);
         p.drawText(QPointF(0, width * 0.11), QLatin1String(style.name));
         p.restore();
-        top = 22 + Advance(ShelfFont(QStringLiteral("ZenKakuGothicNew-Bold.ttf"), width * 0.3), QLatin1String(style.name));
+        top = 22 + Advance(ShelfFont(QStringLiteral("Michroma-Regular.ttf"), width * 0.28), QLatin1String(style.name));
     }
     // The foot: the serial, as on the real ones.
     const double foot = style.serial ? height * 0.12 : height * 0.05;
@@ -378,13 +403,13 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
             lines = {id};
         }
         double size = width * 0.2;
-        QFont mono = ShelfFont(QStringLiteral("IBMPlexMono-Medium.ttf"), size);
+        QFont mono = ShelfFont(QStringLiteral("ChakraPetch-Medium.ttf"), size);
         double widest = 0;
         for (const QString& line : lines) {
             widest = std::max(widest, Advance(mono, line));
         }
         if (widest > width * 0.9) {
-            mono = ShelfFont(QStringLiteral("IBMPlexMono-Medium.ttf"), size * width * 0.9 / widest);
+            mono = ShelfFont(QStringLiteral("ChakraPetch-Medium.ttf"), size * width * 0.9 / widest);
         }
         p.setFont(mono);
         p.setPen(style.foot_ink);
@@ -462,9 +487,9 @@ QImage MadeSpine(const SpineStyle& style, const QString& title, const QString& s
         y += cell;
     }
     p.restore();
-    // The case's edges, a little darker than the spine.
-    p.fillRect(QRectF(0, 0, 1.5, height), QColor(0, 0, 0, 40));
-    p.fillRect(QRectF(width - 1.5, 0, 1.5, height), QColor(0, 0, 0, 40));
+    // Subtle 3D case bevel: light highlight on the left edge, darker shadow on the right.
+    p.fillRect(QRectF(0, 0, 2.0, height), QColor(255, 255, 255, 56));
+    p.fillRect(QRectF(width - 2.0, 0, 2.0, height), QColor(0, 0, 0, 88));
     return image;
 }
 
@@ -688,7 +713,7 @@ void HomeWindow::SetShelfTheme(const QString& key, bool keep) {
     look->rule = colour("rule", "#444444");
     look->display = values.value(QStringLiteral("display")).toString(QStringLiteral("Michroma-Regular.ttf"));
     look->text = values.value(QStringLiteral("text")).toString(QStringLiteral("ZenKakuGothicNew-Bold.ttf"));
-    look->mono = values.value(QStringLiteral("mono")).toString(QStringLiteral("IBMPlexMono-Medium.ttf"));
+    look->mono = values.value(QStringLiteral("mono")).toString(QStringLiteral("ChakraPetch-Medium.ttf"));
     shelf_look = look;
     // The popup takes the shelf's look unless one was chosen (its theme "auto", the default).
     ReaderApp::ReaderSettings::SetPopupThemeDefault(ReaderApp::ReaderSettings::PopupThemeOfShelf(chosen));
@@ -2286,7 +2311,8 @@ void HomeWindow::PaintPages(QPainter& p) {
     // Its rows: what each is, and what it is set to; the one in hand marked. The list stands
     // where the wheel left it; a row taken in hand by the keys is brought into it.
     const int count = static_cast<int>(rows.size());
-    const int shown = 12;
+    const bool popup_page = item.kind == Item::Settings && item.system == QStringLiteral("Popup");
+    const int shown = popup_page ? 7 : 12;
     const int last_first = std::max(0, count - shown);
     if (pages_seen != item.label) {
         // Another page: from its top, or where its row in hand is; its rows come in.
@@ -2305,11 +2331,11 @@ void HomeWindow::PaintPages(QPainter& p) {
     shelf_busy = shelf_busy || pages_first_at != pages_first || page_t != 1;
 
     const double list_top = ShelfTop + 8, list_tall = shown * row_height;
-    if (item.kind == Item::Settings && item.label == QStringLiteral("Popup")) {
-        // The room under the rows is the popup's live preview (SetPopupPreview).
-        const double top = list_top + std::min(count, shown) * row_height + 26;
-        if (ShelfBottom - 78 - top > 120) {
-            popup_preview_area = QRectF(left, top, right - left, ShelfBottom - 78 - top);
+    if (popup_page) {
+        // The room under the 7-row Popup list is permanently reserved for the live popup preview.
+        const double top = list_top + shown * row_height + 16;
+        if (ShelfBottom - 12 - top > 110) {
+            popup_preview_area = QRectF(left, top, right - left, ShelfBottom - 12 - top);
         }
     }
     p.fillRect(QRectF(left, list_top, right - left, 1), l.rule);
@@ -2317,8 +2343,12 @@ void HomeWindow::PaintPages(QPainter& p) {
     p.setClipRect(QRectF(left - 2, list_top + 1, right - left + 4, list_tall));
     p.setOpacity(p.opacity() * page_t);
     p.translate(12 * (1 - page_t) * (1 - page_t), 0);
-    // The mark of the row in hand, which glides from row to row.
-    p.fillRect(QRectF(left, list_top + 1 + (pages_bar_at - pages_first_at) * row_height, 3, row_height - 1),
+    // The mark of the row in hand, which glides from row to row, with a quiet flat wash.
+    const double bar_y = list_top + 1 + (pages_bar_at - pages_first_at) * row_height;
+    if (pages_rows) {
+        p.fillRect(QRectF(left, bar_y, right - left, row_height - 1), Faded(l.ink, 0.055));
+    }
+    p.fillRect(QRectF(left, bar_y, 3, row_height - 1),
                pages_rows ? l.accent : Faded(l.accent, 0.3)); // dimmed until the rows are entered
     const int from = std::max(0, static_cast<int>(std::floor(pages_first_at)));
     for (int i = from; i < std::min(count, from + shown + 1); ++i) {
@@ -2342,24 +2372,30 @@ void HomeWindow::PaintPages(QPainter& p) {
         const QString said = item.kind == Item::Settings && row.setting >= 0 && IsSetting(row.setting, "Look") ? l.name : row.value;
         // The value, with room at its right for the arrow of a row that left and right change.
         const double value_right = right - 22;
-        double value_wide = 0;
-        if (!said.isEmpty()) {
-            value_wide = Put(p, value, value_right, base - 1, Paint::Fit(Capitals(said), value, 290), row.dim && !on ? l.muted : on ? l.ink : Mix(l.muted, l.ink, lit), 1);
-        }
         if (row.steps && !renaming) {
+            // Fixed slot width so ‹ and › stay aligned across every setting regardless of label length.
+            const double slot_wide = 230;
+            const double arrow_left = value_right - slot_wide - 20;
+            const double slot_center = (arrow_left + 12 + value_right) / 2.0;
+            if (!said.isEmpty()) {
+                Put(p, value, slot_center, base - 1, Paint::Fit(Capitals(said), value, slot_wide),
+                    row.dim && !on ? l.muted : on ? l.ink : Mix(l.muted, l.ink, lit), 2);
+            }
             // Its two arrows, for the mouse: there while it is in hand or under the pointer.
             const double show = std::max(on ? 1.0 : 0.0, lit);
             const double before = Ease(15, i, ShelfHovered(15, i)), after = Ease(16, i, ShelfHovered(16, i));
-            const double arrow_left = value_right - value_wide - 20;
             if (show > 0) {
                 Put(p, value, arrow_left, base - 1, QStringLiteral("‹"), Faded(Mix(l.muted, l.accent, before), show));
                 Put(p, value, right - 2, base - 1, QStringLiteral("›"), Faded(Mix(l.muted, l.accent, after), show), 1);
             }
             const QRectF list(left, list_top, right - left, list_tall);
-            shelf_hits.append({QRectF(arrow_left - 14, base - 22, 14 + 20 + value_wide / 2, row_height).intersected(list), 15, i});
-            shelf_hits.append({QRectF(value_right - value_wide / 2, base - 22, value_wide / 2 + 22, row_height).intersected(list), 16, i});
+            shelf_hits.append({QRectF(arrow_left - 14, base - 22, slot_center - (arrow_left - 14), row_height).intersected(list), 15, i});
+            shelf_hits.append({QRectF(slot_center, base - 22, right - slot_center, row_height).intersected(list), 16, i});
+        } else if (!said.isEmpty()) {
+            Put(p, value, value_right, base - 1, Paint::Fit(Capitals(said), value, 290),
+                row.dim && !on ? l.muted : on ? l.ink : Mix(l.muted, l.ink, lit), 1);
         }
-        p.fillRect(QRectF(left, base + row_height - 22, right - left, 1), l.rule);
+        p.fillRect(QRectF(left, base + row_height - 22, right - left, 1), Faded(l.rule, 0.65));
     }
     p.restore();
     if (count > shown) {
@@ -2450,6 +2486,7 @@ void HomeWindow::PaintStage(QPainter& p) {
     p.setPen(QPen(l.rule, 1));
     p.setBrush(Qt::NoBrush);
     p.drawRect(plate.adjusted(0.5, 0.5, -0.5, -0.5));
+    PaintCornerTicks(p, plate, l.accent, 8.0);
 
     // Its name, as large as three lines of the column let it be.
     const double column = plate.left() - 48 - ShelfLeft;
@@ -2828,8 +2865,9 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
                 const double scale = std::min(plate.width() / cover.width(), plate.height() / cover.height());
                 const QSizeF shown(cover.width() * scale, cover.height() * scale);
                 p.fillRect(plate, l.ground);
-                p.drawPixmap(QRectF(plate.left() + (plate.width() - shown.width()) / 2, plate.top() + (plate.height() - shown.height()) / 2, shown.width(), shown.height()),
-                             cover, QRectF(0, 0, cover.width(), cover.height()));
+                const QRectF shown_rect(plate.left() + (plate.width() - shown.width()) / 2, plate.top() + (plate.height() - shown.height()) / 2, shown.width(), shown.height());
+                p.drawPixmap(shown_rect, cover, QRectF(0, 0, cover.width(), cover.height()));
+                PaintCornerTicks(p, shown_rect, l.accent, 7.0);
             }
             p.fillRect(QRectF(plate.right(), box.top(), 1, height), l.rule);
             const double tx = plate.right() + 28, tw = box.left() + plates[i] + SpineOpen * (1 - PlateShare) - 28 - tx;

@@ -30,7 +30,9 @@ class ReaderHost(
     /** The backlog shown by the app itself, not as a screen of its own (an app's companion). */
     private val backlog: (() -> Unit)? = null,
 ) : ReaderOverlay.Host {
-    override fun openBacklog() = backlog?.invoke() ?: open(ReaderBacklogActivity::class.java)
+    override fun openBacklog() = backlog?.invoke() ?: openBacklogScreen()
+
+    fun openBacklogScreen() = open(ReaderBacklogActivity::class.java)
 
     override fun openStatistics() = open(ReaderStatsActivity::class.java)
 

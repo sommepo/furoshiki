@@ -1,0 +1,17 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Notebook: pure white, jet black, sharp corners, signal red accent. */
+:root {
+  --font: "Noto Sans JP", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ground: #ffffff; --text: #111111; --dim: #666666; --accent: #d62828; --edge: #111111; --radius: 0px;
+  --box: #d62828; --box-pressed: #b21f1f; --sign: #ffffff; --book: #1b6b3a;
+}
+.popup { border: 1px solid #111111; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16); }
+.entry + .entry { border-top-color: #d4d4d4; }
+.headword { color: #111111; font-weight: 700; font-size: calc(19px * var(--scale)); }
+.tag { background: #f2f2f2; color: #222222; border: 1px solid #d4d4d4; border-radius: 0; padding: 0 5px; }
+.tag.frequency { background: #111111; color: #ffffff; border-color: #111111; }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #d62828; border-radius: 0; padding: 0; }
+.card { border-color: #d62828; border-radius: 0; }
+.card.book { background: #e8f5ed; border-color: #1b6b3a; color: #1b6b3a; }
+.link { color: #d62828; }

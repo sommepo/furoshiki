@@ -1345,16 +1345,16 @@ function appVersion() {
 // structure to match pc, with scripts and dictionaries on the main page"). A group of one row opens
 // that row's page at once. The desktop's Keys (a keyboard's) has no group here.
 const SETTING_GROUPS = [
-  {key: 'library', title: 'Library', ids: ['add', 'add-title', 'find', 'order', 'all', 'add-exports', 'scan', 'settings:SOURCES', 'ocr-engine', 'ocr-service']},
-  {key: 'reading', title: 'Reading', ids: ['settings:READING']},
+  {key: 'library', title: 'Library', ids: ['add', 'add-title', 'find', 'order', 'all', 'add-exports', 'scan']},
+  {key: 'text-ocr', title: 'Text & OCR', ids: ['settings:READING', 'ocr-engine', 'ocr-service', 'settings:SOURCES']},
   {key: 'dictionaries', title: 'Dictionaries', ids: ['dictionaries']},
   {key: 'scripts', title: 'Game scripts', ids: ['scripts']},
   {key: 'popup', title: 'Popup', ids: ['settings:POPUP']},
-  {key: 'cards', title: 'Cards', ids: ['settings:CARDS']},
+  {key: 'anki', title: 'Anki', ids: ['settings:CARDS']},
   {key: 'consoles', title: 'Consoles', ids: ['consoles-page']},
   {key: 'controls', title: 'Controls', ids: ['controller', 'haptics']},
   {key: 'display', title: 'Display', ids: ['look', 'icon', 'text-size', 'wide', 'crt', 'home']},
-  {key: 'about', title: 'About', ids: ['version', 'update', 'licences', 'achievements', 'settings:SAVE_SYNC', 'tracker', 'services']},
+  {key: 'about', title: 'Sync & About', ids: ['settings:SAVE_SYNC', 'tracker', 'services', 'achievements', 'version', 'update', 'licences']},
 ];
 
 function groupedSettings(rows) {
@@ -1559,18 +1559,32 @@ function rowElement(row, index, on) {
     item.append(mark);
   }
   if (row.game) {
-    // Japanese stands upright in the text face; Latin letters lie along the spine in the display face.
-    name.classList.toggle('latin', !hasJapanese(row.title));
-    if (row.spine) {
-      // Its box's own spine, as wide as that is to its height; the drawn one if the picture fails.
-      const picture = document.createElement('img');
-      picture.className = 'spine';
-      picture.alt = '';
-      picture.onload = () => item.classList.add('pictured');
-      picture.onerror = () => picture.remove();
-      picture.src = pictureSource(row.spine);
-      item.append(picture);
+    // Uniform per-console generated horizontal game cases (Iteration A: Authentic Studio Cases).
+    const key = (row.game.console || 'other').toLowerCase();
+    const shortCap = {
+      psp: 'PSP', ps2: 'PS2', ps1: 'PS1', ds: 'DS', nds: 'DS', '3ds': '3DS',
+      switch: 'SWI', swi: 'SWI', eden: 'SWI', dc: 'DC', dreamcast: 'DC',
+      psvita: 'VITA', vita: 'VITA', app: 'APP',
+    }[key] || tabName(row.game.console, row.game.system).slice(0, 4).toUpperCase();
+    const box = document.createElement('span');
+    box.className = 'gen-spine';
+    box.dataset.console = key;
+    const capL = document.createElement('span');
+    capL.className = 'cap-l';
+    capL.textContent = shortCap;
+    const body = document.createElement('span');
+    body.className = 'spine-body';
+    putText(body, row.title);
+    box.append(capL, body);
+    const id = (row.game.id || '').trim();
+    if (id && id.length <= 12 && !/^(APP|HASH|FILE|CUSTOM)-/i.test(id)) {
+      const capR = document.createElement('span');
+      capR.className = 'cap-r';
+      capR.textContent = id;
+      box.append(capR);
     }
+    item.classList.add('cased');
+    item.append(box);
   }
   if (row.game && state.playing?.path === row.game.path) item.classList.add('playing');
   item.onclick = () => choose(index, true);
@@ -2039,12 +2053,12 @@ const Front = {
       step(name === 'ArrowLeft' ? -1 : 1);
       return;
     }
-    if (current.shelf && (name === 'ArrowLeft' || name === 'ArrowRight')) {
-      // On a shelf, as on the desktop's: left and right along its spines, up and down to another.
-      const next = index + (name === 'ArrowLeft' ? -1 : 1);
+    if (current.shelf && (name === 'ArrowUp' || name === 'ArrowDown')) {
+      // Option A editorial list: up and down move through titles, left and right switch console tabs.
+      const next = index + (name === 'ArrowUp' ? -1 : 1);
       if (next >= 0 && next < current.rows.length) choose(next, false);
-    } else if (current.shelf && (name === 'ArrowUp' || name === 'ArrowDown')) {
-      goTo(state.page + (name === 'ArrowUp' ? -1 : 1));
+    } else if (current.shelf && (name === 'ArrowLeft' || name === 'ArrowRight')) {
+      goTo(state.page + (name === 'ArrowLeft' ? -1 : 1));
     } else if (name === 'ArrowUp' || name === 'ArrowDown') {
       const next = index + (name === 'ArrowUp' ? -1 : 1);
       if (next >= 0 && next < current.rows.length) choose(next, false);

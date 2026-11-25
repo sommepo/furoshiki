@@ -1,0 +1,19 @@
+/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Kon Neo: deep navy, warm ivory, vermilion accent, sharp corners. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #101a3a; --text: #ece5d3; --dim: #8a93b5; --accent: #d9472b; --edge: rgba(236, 229, 211, 0.28); --radius: 0px;
+  --box: #d9472b; --box-pressed: #b83820; --sign: #101a3a; --book: #4ade80;
+}
+.popup { border: 1px solid rgba(236, 229, 211, 0.28); padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(5, 9, 24, 0.6); }
+.entry + .entry { border-top-color: rgba(236, 229, 211, 0.16); }
+.headword { color: #ece5d3; font-weight: 600; font-size: calc(19px * var(--scale)); }
+.headword rt { display: revert; color: #8a93b5; }
+.reading { display: none; }
+.tag { background: rgba(236, 229, 211, 0.08); color: #d8d1bf; border: 1px solid rgba(236, 229, 211, 0.20); border-radius: 0; padding: 0 5px; }
+.tag.frequency { background: rgba(217, 71, 43, 0.16); color: #f2927e; border-color: rgba(217, 71, 43, 0.34); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #d9472b; border-radius: 0; padding: 0; }
+.card { border-color: #d9472b; border-radius: 0; }
+.card.book { background: rgba(74, 222, 128, 0.14); border-color: #4ade80; color: #4ade80; }
+.link { color: #f2927e; }

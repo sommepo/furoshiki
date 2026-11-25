@@ -67,7 +67,20 @@ object ReaderGlue : ReaderNative.Frontend {
         HoverCursor.holdSticks = { held -> ReaderNative.holdSticks(held) }
         val secondScreen = SecondScreen(activity) { overlay?.refresh() }
         // One of the reader's own screens over the game (the backlog, the settings): the second display stays.
-        val readerHost = ReaderHost(activity, secondaryActive = { secondScreen.active }, onLeaving = { covered = true })
+        lateinit var readerHost: ReaderHost
+        readerHost = ReaderHost(
+            activity,
+            secondaryActive = { secondScreen.active },
+            onLeaving = { covered = true },
+            backlog = {
+                if (secondScreen.active) {
+                    if (secondScreen.backlogShown) secondScreen.setBacklog(null)
+                    else secondScreen.setBacklog(ReaderSession.gameKey.takeIf { it.isNotEmpty() })
+                } else {
+                    readerHost.openBacklogScreen()
+                }
+            },
+        )
         secondScreen.host = readerHost
         secondScreen.touched = { refocus?.invoke() }
         // The app's keys along the foot of the second display (LowerKeys), where a game leaves it free.
@@ -128,6 +141,19 @@ object ReaderGlue : ReaderNative.Frontend {
 
     /** The reader's host of the game in play: what the app's Quick menu opens through (GameActivity). */
     val readerHost: ReaderHost? get() = host
+
+    /** True when the second display is active (dual-screen devices like the Thor). */
+    val hasSecondScreen: Boolean get() = second?.active == true
+
+    /** True while the live backlog is shown on the second display. */
+    val lowerBacklogShown: Boolean get() = second?.backlogShown == true
+
+    /** Shows or hides the live backlog on the second display (no-op on single-screen devices). */
+    fun setLowerBacklog(shown: Boolean) {
+        val sec = second ?: return
+        if (!sec.active) return
+        sec.setBacklog(if (shown) ReaderSession.gameKey.takeIf { it.isNotEmpty() } else null)
+    }
 
     /** The reader's own menu (*More settings*); [onClosed] once it is shut, whatever was chosen. */
     fun showMenu(onClosed: () -> Unit = {}) {

@@ -160,6 +160,8 @@ public:
     static void SetFeedback(std::function<void(const QString& kind)> feedback);
     /// The tab before (-1) or the next (1): words, grammar, kanji, names.
     void PadTab(int step);
+    /// The kanji before (-1) or the next (1) on the Kanji tab.
+    void PadKanji(int step);
     /// How many tabs the popup shows (words, grammar, kanji, names): 0 or 1 is no row of tabs.
     [[nodiscard]] int Tabs() const {
         return web ? web_tabs : 0;

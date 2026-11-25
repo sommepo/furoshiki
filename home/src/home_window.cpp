@@ -178,69 +178,77 @@ struct SettingRow {
     bool more;
 };
 constexpr SettingRow SettingRows[] = {
-    {"Click words in the game's text", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
-    {"Look up by pointing", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
-    {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Click words in the game's text", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, false},
+    {"Look up by pointing", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, false},
+    {"Mark the word looked up", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, false},
 #ifndef READER_NO_EXPLAIN
-    {"Explain with", "Translation and grammar (Ctrl+E)", nullptr, 0, 0, 0, 0, "Reading", 1, false},
+    {"Explain with", "Translation and grammar (Ctrl+E)", nullptr, 0, 0, 0, 0, "Text & OCR", 1, false},
 #endif
-    {"More", "", nullptr, 0, 0, 0, 0, "Reading", 0, false},
-    {"Play by touch", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Outline what can be clicked", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Session line over the game", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Session line's look", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Pause the reading clock", "", nullptr, 0, 0, 0, 0, "Reading", 1, true},
-    {"Idle after", "", nullptr, 0, 0, 0, 0, "Reading", 3, true},
-    {"Tidy reading time", "", nullptr, 0, 0, 0, 0, "Reading", 2, true},
-    {"Daily goal", "Characters a day", nullptr, 0, 0, 0, 0, "Reading", 0, true},
-    {"Customise the popup", "Theme and layout", nullptr, 0, 0, 0, 0, "Popup", 2, false},
-    {"How solid", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"OCR runs on", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, false},
+    {"OCR helper", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, false},
+    {"OCR service", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, false},
+    {"OCR engine", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, false},
+    {"Lines address", "", nullptr, 0, 0, 0, 0, "Text & OCR", 0, true},
+    {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+#ifndef READER_NO_TEXT_SERVER
+    {"Text server", "For texthooker pages", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Text server's port", "", nullptr, 0, 0, 0, 0, "Text & OCR", 3, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Other devices may connect", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Text server's format", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+#endif
+#ifndef READER_NO_TEXT_SERVER
+    {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+#endif
+    {"Play by touch", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+    {"Outline what can be clicked", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+    {"Session line over the game", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+    {"Session line's look", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+    {"Pause the reading clock", "", nullptr, 0, 0, 0, 0, "Text & OCR", 1, true},
+    {"Idle after", "", nullptr, 0, 0, 0, 0, "Text & OCR", 3, true},
+    {"Tidy reading time", "", nullptr, 0, 0, 0, 0, "Text & OCR", 2, true},
+    {"Daily goal", "Characters a day", nullptr, 0, 0, 0, 0, "Text & OCR", 0, true},
+    {"Popup theme", "", nullptr, 0, 0, 0, 0, "Popup", 1, false},
+    {"Corner radius", "", nullptr, 0, 0, 0, 0, "Popup", 1, false},
+    {"How solid", "", nullptr, 0, 0, 0, 0, "Popup", 1, false},
     {"Text size", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
     {"Fit height to entry", "", nullptr, 0, 0, 0, 0, "Popup", 1, false},
-    {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, false},
+    {"Customise the popup", "Fine-tune layout and colours", nullptr, 0, 0, 0, 0, "Popup", 2, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Popup", 0, false},
+    {"Height, at most", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
+    {"Maximum width", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
+    {"Pitch accent", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Definition layout", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Meanings before \"more\"", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
+    {"Hide grammar tags", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Highlight words not in Anki", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Lookup count", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Character portraits", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
+    {"Add button's corner", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
     {"Close after", "", nullptr, 0, 0, 0, 0, "Popup", 3, true},
     {"Close when the pointer leaves", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
-    {"Add button's corner", "", nullptr, 0, 0, 0, 0, "Popup", 1, true},
-    {"Export popup style", "", nullptr, 0, 0, 0, 0, "Popup", 0, true},
-    {"Import popup style", "", nullptr, 0, 0, 0, 0, "Popup", 0, true},
-    {"Anki", "Deck, note type and fields", nullptr, 0, 0, 0, 0, "Cards", 2, false},
-    {"Line audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
-    {"Cut the clip to the voice", "", nullptr, 0, 0, 0, 0, "Cards", 1, false},
-    {"Lines before, in {context}", "", nullptr, 0, 0, 0, 0, "Cards", 3, false},
-    {"More", "", nullptr, 0, 0, 0, 0, "Cards", 0, false},
-    {"Keep the game's audio", "", nullptr, 0, 0, 0, 0, "Cards", 1, true},
-    {"Clip, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
-    {"Start the clip earlier by", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
-    {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
-    {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Cards", 3, true},
+    {"Anki", "Deck, note type and fields", nullptr, 0, 0, 0, 0, "Anki", 2, false},
+    {"Line audio", "", nullptr, 0, 0, 0, 0, "Anki", 1, false},
+    {"Cut the clip to the voice", "", nullptr, 0, 0, 0, 0, "Anki", 1, false},
+    {"Lines before, in {context}", "", nullptr, 0, 0, 0, 0, "Anki", 3, false},
+    {"More", "", nullptr, 0, 0, 0, 0, "Anki", 0, false},
+    {"Keep the game's audio", "", nullptr, 0, 0, 0, 0, "Anki", 1, true},
+    {"Clip, at most", "", nullptr, 0, 0, 0, 0, "Anki", 3, true},
+    {"Start the clip earlier by", "", nullptr, 0, 0, 0, 0, "Anki", 3, true},
+    {"Pictures kept", "", nullptr, 0, 0, 0, 0, "Anki", 3, true},
+    {"Picture width, at most", "", nullptr, 0, 0, 0, 0, "Anki", 3, true},
     {"Add a title", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"OCR runs on", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"OCR helper", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"OCR service", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"OCR engine", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"Lines address", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     // Where Find box art and the Game scripts page look (art_fetch.h, Sources).
     {"Box art from VNDB", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"Box art from ScreenScraper", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"ScreenScraper account", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
     {"More", "", nullptr, 0, 0, 0, 0, "Library", 0, false},
-    {"Copy each line to the clipboard", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
-#ifndef READER_NO_TEXT_SERVER
-    {"Text server", "For texthooker pages", nullptr, 0, 0, 0, 0, "Library", 1, true},
-#endif
-#ifndef READER_NO_TEXT_SERVER
-    {"Text server's port", "", nullptr, 0, 0, 0, 0, "Library", 3, true},
-#endif
-#ifndef READER_NO_TEXT_SERVER
-    {"Other devices may connect", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
-#endif
-#ifndef READER_NO_TEXT_SERVER
-    {"Text server's format", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
-#endif
-#ifndef READER_NO_TEXT_SERVER
-    {"Speaker's name before the line", "", nullptr, 0, 0, 0, 0, "Library", 1, true},
-#endif
     {"Read again what the reader apps say", "", nullptr, 0, 0, 0, 0, "Library", 0, true},
     {"Map the controller", "", nullptr, 0, 0, 0, 0, "Controls", 2, false},
     {"Controller layout", "", nullptr, 0, 0, 0, 0, "Controls", 1, false},
@@ -296,24 +304,25 @@ constexpr SettingRow SettingRows[] = {
     {"Full screen", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Games start in a window", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Menu sounds", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
-    // About: the program itself, its first steps again, the accounts it signs in to.
-    {"Version", "", nullptr, 0, 0, 0, 0, "About", 0, false},
-    {"Setup", "", nullptr, 0, 0, 0, 0, "About", 0, false},
-    {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "About", 0, false},
-    {"Discord status", "", nullptr, 0, 0, 0, 0, "About", 1, false},
-    {"Discord application ID", "", nullptr, 0, 0, 0, 0, "About", 2, false},
+    // Sync & About: save sync, accounts, updates, and program info.
 #ifndef READER_NO_SAVE_SYNC
-    {"Save sync", "Keep saves in sync across devices", nullptr, 0, 0, 0, 0, "About", 0, false},
-    {"Pair a device", "Paste a pairing link", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"Save sync", "Keep saves in sync across devices", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
+    {"Pair a device", "Paste a pairing link", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
 #endif
 #ifdef HOME_TRACKER // the study tracker is the dev line's (CMakeLists.txt): no row where nothing asks it
-    {"Study tracker", "", nullptr, 0, 0, 0, 0, "About", 2, false},
+    {"Study tracker", "", nullptr, 0, 0, 0, 0, "Sync & About", 2, false},
 #endif
 #ifndef HOME_PUBLIC
-    {"Update", "", nullptr, 0, 0, 0, 0, "About", 2, false},
-    {"Home server's services", "", nullptr, 0, 0, 0, 0, "About", 2, false},
+    {"Home server's services", "", nullptr, 0, 0, 0, 0, "Sync & About", 2, false},
 #endif
-    {"Exit", "", nullptr, 0, 0, 0, 0, "About", 0, false},
+    {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
+    {"Discord status", "", nullptr, 0, 0, 0, 0, "Sync & About", 1, false},
+#ifndef HOME_PUBLIC
+    {"Update", "", nullptr, 0, 0, 0, 0, "Sync & About", 2, false},
+#endif
+    {"Version", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
+    {"Setup", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
+    {"Exit", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
     {"Fuzz", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
     {"Moving cursor", "", nullptr, 0, 0, 0, 0, "Save menu", 0, false},
     // The Developer page (renaming labels) is gone from every build, by the maintainer's word
@@ -330,7 +339,7 @@ bool IsSetting(int row, const char* name) {
 }
 
 /// The shelf's settings pages, in their order.
-constexpr const char* SettingSections[] = {"Library", "Reading", "Popup", "Cards", "Controls", "Keys", "Display", "About"};
+constexpr const char* SettingSections[] = {"Library", "Text & OCR", "Popup", "Anki", "Controls", "Keys", "Display", "Sync & About"};
 
 /// What a row is called on the shelf's pages, where that is not its name in the table (the
 /// maintainer, 2026-11-11: labels that say what the row does, and no "reader" in them). The
@@ -350,10 +359,11 @@ constexpr RowLabel RowLabels[] = {
     {"Outline what can be clicked", "Outline clickable text"},
     {"Session line over the game", "Session stats overlay"},
     {"Session line's look", "Session overlay style"},
-    {"Reading/Pause the reading clock", "Pause reading timer"},
+    {"Text & OCR/Pause the reading clock", "Pause reading timer"},
     {"Idle after", "Idle timeout"},
     {"Tidy reading time", "Recalculate reading time"},
     {"Customise the popup", "Popup editor"},
+    {"Corner radius", "Corners"},
     {"How solid", "Opacity"},
     {"Height, at most", "Maximum height"},
     {"Close after", "Auto-close after"},
@@ -956,15 +966,15 @@ QList<HomeWindow::Item> HomeWindow::Items() const {
     for (const char* section : SettingSections) {
         const QString name = QString::fromLatin1(section);
         items.append({Item::Settings, name.toUpper(), name});
-        if (name == QStringLiteral("Reading") && dictionaries != nullptr) {
+        if (name == QStringLiteral("Text & OCR") && dictionaries != nullptr) {
             // Its own page since 2026-11-23 (home_dictionaries.inc), where the Reading page had a row.
             items.append({Item::Dictionaries, QStringLiteral("DICTIONARIES"), QStringLiteral("Dictionaries")});
         }
-        if (name == QStringLiteral("Reading") && scripts != nullptr) {
+        if (name == QStringLiteral("Text & OCR") && scripts != nullptr) {
             // Every console's game scripts, names and box art (home_dictionaries.inc, 2026-11-23).
             items.append({Item::Scripts, QStringLiteral("GAME SCRIPTS"), QStringLiteral("Game scripts")});
         }
-        if (name == QStringLiteral("Cards") && !consoles.isEmpty() && play != nullptr) {
+        if (name == QStringLiteral("Anki") && !consoles.isEmpty() && play != nullptr) {
             items.append({Item::Consoles, QStringLiteral("CONSOLES"), {}});
         }
     }
@@ -1810,6 +1820,10 @@ HomeWindow::Pick HomeWindow::PickAt(int row) {
                     setting_step(name, index - std::max(0, now));
                 }
             });
+            if (name == QStringLiteral("Popup theme") && popup_theme_preview) {
+                pick.focus = popup_theme_preview;
+                pick.keep_preview = true;
+            }
         }
     }
     if (pick.said.size() < 3) {
@@ -3410,7 +3424,8 @@ void HomeWindow::paintEvent(QPaintEvent*) {
         // The popup's preview on the Popup page: told where it stands once the page is at rest.
         if (popup_preview) {
             const double scale = std::min(width() / SheetW, height() / SheetH);
-            const bool there = !popup_preview_area.isEmpty() && shelf_pages && pages_at > 0.98 && !wizard_on && picker == nullptr;
+            const bool there = !popup_preview_area.isEmpty() && shelf_pages && pages_at > 0.98 && !wizard_on &&
+                               (picker == nullptr || picker_keeps_preview);
             const QRect place = there ? QRectF((width() - SheetW * scale) / 2 + popup_preview_area.x() * scale,
                                                (height() - SheetH * scale) / 2 + popup_preview_area.y() * scale,
                                                popup_preview_area.width() * scale, popup_preview_area.height() * scale).toRect()
@@ -3945,11 +3960,12 @@ bool HomeWindow::OpenPick(int row) {
     if (pick.said.isEmpty() || !pick.take) {
         return false;
     }
-    OpenChoices(pick.title, pick.said, pick.now, pick.take);
+    OpenChoices(pick.title, pick.said, pick.now, pick.take, pick.focus, pick.keep_preview);
     return true;
 }
 
-void HomeWindow::OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take) {
+void HomeWindow::OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take,
+                             std::function<void(int)> focus, bool keep_preview) {
     if (said.isEmpty()) {
         return;
     }
@@ -3958,6 +3974,7 @@ void HomeWindow::OpenChoices(const QString& title, const QStringList& said, int 
         picker->hide();
         delete picker;
         picker = nullptr;
+        picker_keeps_preview = false;
     }
     // In the page's own colours and type: the shelf's theme, or the save menu's look.
     ChoicePicker::Colours colours;
@@ -3987,7 +4004,18 @@ void HomeWindow::OpenChoices(const QString& title, const QStringList& said, int 
     }
     HoverNone();
     sounds.Play(Sound::Select);
-    picker = ChoicePicker::Open(this, title, said, now, colours, std::move(take));
+    const QRect keep_clear = keep_preview && !popup_preview_said.isEmpty() ? popup_preview_said : QRect();
+    picker_keeps_preview = !keep_clear.isEmpty();
+    picker = ChoicePicker::Open(this, title, said, now, colours, std::move(take), std::move(focus), keep_clear);
+    if (picker_keeps_preview && popup_preview) {
+        connect(picker, &QObject::destroyed, this, [this] {
+            picker_keeps_preview = false;
+            update();
+        });
+        // Re-raise the live popup preview above the picker overlay.
+        const QRect place = popup_preview_said;
+        QTimer::singleShot(0, this, [this, place] { popup_preview(place); });
+    }
 }
 
 } // namespace Home

@@ -420,6 +420,12 @@
         <item>Shoin</item>
         <item>Kumihan</item>
         <item>Kon</item>
+        <item>Kon Neo</item>
+        <item>Inaba</item>
+        <item>Obsidian</item>
+        <item>Bunko</item>
+        <item>Notebook</item>
+        <item>Ki</item>
         <item>Classic</item>
     </string-array>
     <string-array name="reader_popup_theme_values" translatable="false">
@@ -437,12 +443,40 @@
         <item>shoin</item>
         <item>kumihan</item>
         <item>kon</item>
+        <item>kon-neo</item>
+        <item>inaba</item>
+        <item>obsidian</item>
+        <item>bunko</item>
+        <item>notebook</item>
+        <item>ki</item>
         <item>classic</item>
     </string-array>
-    <string name="reader_pref_popup_opacity">Popup opacity (%)</string>
+    <string name="reader_pref_popup_opacity">Opacity</string>
     <string name="reader_pref_popup_opacity_summary"></string>
-    <string name="reader_pref_popup_radius">Corner radius (px)</string>
+    <string-array name="reader_popup_opacity_entries">
+        <item>100%</item>
+        <item>80%</item>
+        <item>60%</item>
+        <item>40%</item>
+    </string-array>
+    <string-array name="reader_popup_opacity_values" translatable="false">
+        <item>100</item>
+        <item>80</item>
+        <item>60</item>
+        <item>40</item>
+    </string-array>
+    <string name="reader_pref_popup_radius">Corners</string>
     <string name="reader_pref_popup_radius_summary"></string>
+    <string-array name="reader_popup_radius_entries">
+        <item>Sharp</item>
+        <item>Rounded</item>
+        <item>Rounded+</item>
+    </string-array>
+    <string-array name="reader_popup_radius_values" translatable="false">
+        <item>0</item>
+        <item>12</item>
+        <item>24</item>
+    </string-array>
     <string name="reader_pref_popup_width">Maximum width (dp)</string>
     <string name="reader_pref_popup_glossary">Definition layout</string>
     <string-array name="reader_popup_glossary_entries">

@@ -117,17 +117,20 @@ class PopupPage(context: Context, private val onMessage: (JSONObject) -> Unit) :
         /** A word with its grammar entry: enough to see a theme, its size, its tabs. */
         val SAMPLE: JSONArray = JSONArray(
             """
-            [{"expression":"くらい","reading":"くらい","reasons":[],"pitches":["[0]"],
-              "frequencies":[{"dictionary":"JPDB","value":"312"}],"unknown":true,"state":"add","forms":[],
+            [{"expression":"風呂敷","reading":"ふろしき","reasons":[],"pitches":["[0]"],
+              "frequencies":[{"dictionary":"JPDB","value":"18200"}],"unknown":true,"state":"add","forms":["ふろしき"],
               "senses":[
-                {"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["prt"],"glosses":["approximately","about","around"],"notes":""},
-                {"dictionary":"JMdict","kind":"word","number":2,"tags":[],"glosses":["to (about) the same degree as","at least"],"notes":""},
-                {"heading":"日本語文法辞典","dictionary":"日本語文法辞典","kind":"grammar","number":1,"tags":[],"glosses":[],"notes":"",
-                 "content":["[意味]\nApproximately; about\n\n[例文]\n東京から大阪まで新幹線で三時間くらいかかる。\nIt takes about three hours to Osaka by Shinkansen."]}
+                {"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["n"],"glosses":["wrapping cloth","cloth wrapper (traditionally used to carry clothes, gifts, or books)"],"notes":""},
+                {"dictionary":"JMdict","kind":"word","number":2,"tags":[],"glosses":["traditional Japanese square cloth folded around items for transport"],"notes":""},
+                {"heading":"大辞林","dictionary":"大辞林","kind":"word","number":1,"tags":[],"glosses":[],"notes":"",
+                 "content":["物を包んで持ち運ぶための正方形の布。"]}
               ]},
-             {"expression":"暗い","reading":"くらい","reasons":[],"pitches":["[0]"],
-              "frequencies":[{"dictionary":"JPDB","value":"2290"}],"unknown":false,"state":"inDeck","forms":["昏い","冥い"],
-              "senses":[{"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["adj-i"],"glosses":["dark","gloomy","murky"],"notes":""}]}]
+             {"expression":"風呂","reading":"ふろ","reasons":[],"pitches":["[2]"],
+              "frequencies":[{"dictionary":"JPDB","value":"3400"}],"unknown":false,"state":"inDeck","forms":[],
+              "senses":[{"heading":"JMdict","dictionary":"JMdict","kind":"word","number":1,"tags":["n"],"glosses":["bath","bathhouse"],"notes":""}]},
+             {"expression":"風","kanji":{"character":"風","dictionary":"KANJIDIC","meanings":["wind","air","style","manner"],"onyomi":["フウ","フ"],"kunyomi":["かぜ","かざ-"],"stats":{"strokes":9,"grade":2,"jlpt":4,"freq":558},"parts":["几","虫"]}},
+             {"expression":"呂","kanji":{"character":"呂","dictionary":"KANJIDIC","meanings":["spine","backbone"],"onyomi":["ロ","リョ"],"kunyomi":["せぼね"],"stats":{"strokes":7,"grade":8,"jlpt":1,"freq":1978},"parts":["口","ノ"]}},
+             {"expression":"敷","kanji":{"character":"敷","dictionary":"KANJIDIC","meanings":["spread","pave","sit","promulgate"],"onyomi":["フ"],"kunyomi":["し.く","-し.き"],"stats":{"strokes":15,"grade":8,"jlpt":1,"freq":1246},"parts":["甫","攵"]}}]
             """.trimIndent()
         )
 

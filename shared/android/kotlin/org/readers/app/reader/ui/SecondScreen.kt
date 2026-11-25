@@ -12,11 +12,14 @@ import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.ContextThemeWrapper
 import android.view.Display
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import com.google.android.material.color.MaterialColors
+import org.readers.app.R
 import org.readers.app.reader.ReaderLog as Log
 import org.readers.app.reader.ReaderSettings
 
@@ -39,6 +42,7 @@ class SecondScreen(
     private val settings = ReaderSettings(activity)
     private var pad: Pad? = null
     private var started = false
+    private var backlogGame: String? = null
 
     /** What the overlay on the second display needs; set before [start]. */
     var host: ReaderOverlay.Host? = null
@@ -63,6 +67,17 @@ class SecondScreen(
 
     /** True while the second display is the reader's. */
     val active: Boolean get() = pad != null
+
+    /** True while the live backlog is shown on the second display (dual-screen exclusive). */
+    val backlogShown: Boolean get() = pad != null && backlogGame != null
+
+    /** Shows or hides the live backlog on the second display over the trackpad and line. */
+    fun setBacklog(game: String?) {
+        val next = game?.takeIf { it.isNotEmpty() }
+        if (backlogGame == next) return
+        backlogGame = next
+        pad?.showBacklog(next)
+    }
 
     fun start() {
         if (started) return
@@ -123,6 +138,7 @@ class SecondScreen(
                         if (pad === made) Handler(Looper.getMainLooper()).postDelayed({ if (pad === made) update() }, 300)
                     }
                     made.show()
+                    backlogGame?.let { made.showBacklog(it) }
                 }
             } catch (e: WindowManager.InvalidDisplayException) {
                 // The display went away meanwhile; the listener hears of it.
@@ -140,6 +156,7 @@ class SecondScreen(
         val current = pad ?: return
         pad = null
         try {
+            current.showBacklog(null)
             current.dismiss()
         } catch (_: Exception) {
             // Its display is gone, and the window with it.
@@ -158,10 +175,46 @@ class SecondScreen(
         private val lifted: () -> Unit = {}
     ) : Presentation(context, display) {
 
+        private var backlogSlot: FrameLayout? = null
+        private var backlogView: BacklogView? = null
+        private var backlogFor: String? = null
+
         override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
             val taken = super.dispatchTouchEvent(event)
             if (event.actionMasked == android.view.MotionEvent.ACTION_UP) lifted()
             return taken
+        }
+
+        fun showBacklog(game: String?) {
+            val slot = backlogSlot ?: return
+            if (game == null) {
+                backlogView?.release()
+                backlogView = null
+                backlogFor = null
+                slot.removeAllViews()
+                slot.visibility = View.GONE
+                return
+            }
+            if (backlogFor == game && backlogView != null) {
+                slot.visibility = View.VISIBLE
+                return
+            }
+            backlogView?.release()
+            slot.removeAllViews()
+            val themed = ContextThemeWrapper(context, R.style.Theme_Reader)
+            val view = BacklogView(themed, game, searchable = false, live = true) { host.openDictionaries() }.apply {
+                setBackgroundColor(MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSurface, Color.BLACK))
+                isClickable = true
+            }
+            slot.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            slot.visibility = View.VISIBLE
+            backlogView = view
+            backlogFor = game
+        }
+
+        override fun onStop() {
+            showBacklog(null)
+            super.onStop()
         }
 
         override fun onCreate(savedInstanceState: Bundle?) {
@@ -185,6 +238,9 @@ class SecondScreen(
                 ReaderOverlay(context, host, secondary = true),
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             )
+            val slot = FrameLayout(context).apply { visibility = View.GONE }
+            backlogSlot = slot
+            stage.addView(slot, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             corner?.invoke(context)?.let {
                 stage.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             }

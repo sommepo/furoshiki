@@ -46,20 +46,19 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   font-size: calc(13px * var(--scale));
   line-height: 1.35;
 }
-/* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, a thin
-   rounded thumb in the text's own colour, faint until the pointer is over the popup. (No
-   scrollbar-width or scrollbar-color here: with either, Chromium draws its own bar with a track
-   and passes these rules over.) */
+/* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, hidden at
+   rest and shown only while actively scrolling. (No scrollbar-width or scrollbar-color here: with
+   either, Chromium draws its own bar with a track and passes these rules over.) */
 .popup::-webkit-scrollbar { width: 7px; height: 7px; background: transparent; }
 .popup::-webkit-scrollbar-track, .popup::-webkit-scrollbar-corner { background: transparent; }
 .popup::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 .popup::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text) 16%, transparent);
+  background: transparent;
   background-clip: padding-box;
   border: 2px solid transparent;
   border-radius: 4px;
 }
-.popup:hover::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 34%, transparent); }
+.popup.scrolling::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--text) 34%, transparent); }
 .popup::-webkit-scrollbar-thumb:active { background-color: color-mix(in srgb, var(--text) 52%, transparent); }
 .entry { position: relative; padding: 3px 0 4px; }
 .entry + .entry { border-top: 1px solid var(--edge); }
@@ -133,6 +132,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   animation: none !important;
 }
 .card[data-state="working"] { opacity: 0.4; }
+.card[data-state="done"] { opacity: 0.35; pointer-events: none; cursor: default; }
 .card.making { opacity: 1; }
 .card.making svg { animation: reader-turn 0.7s linear infinite; width: 52%; height: 52%; }
 /* A press: the button gives and springs back, and a ring goes out from it. */
@@ -355,6 +355,30 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 }
 .sc [data-sc-content="example-sentence-b"], .sc [data-sc-content="translation"] { color: var(--dim); }
 /* ---- A character, as a character dictionary sets it out ---- */
+.kanji-rail {
+  display: flex; flex-wrap: wrap; align-items: center; gap: calc(6px * var(--scale));
+  margin: calc(2px * var(--scale)) 0 calc(8px * var(--scale));
+  padding-bottom: calc(6px * var(--scale));
+  border-bottom: 1px solid var(--edge);
+}
+.kanji-chip {
+  min-width: calc(32px * var(--scale)); height: calc(28px * var(--scale));
+  padding: 0 calc(7px * var(--scale)); border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--text) 26%, transparent);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--dim); font-family: inherit; font-size: calc(15px * var(--scale)); line-height: 1;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+.kanji-chip.active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent); color: var(--text); font-weight: 600;
+}
+.kanji-rail-meta {
+  margin-left: auto; display: inline-flex; align-items: center; gap: calc(4px * var(--scale));
+  font-size: calc(10px * var(--scale)); color: var(--dim);
+}
+.popup:not(.pad) .kanji-rail-keys { display: none; }
+.popup.pad .kanji-rail-count { display: none; }
 .kanji { display: grid; grid-template-columns: auto 1fr; gap: 0 calc(12px * var(--scale)); align-items: start; margin: calc(2px * var(--scale)) 0; }
 .kanji .glyph { font-size: calc(54px * var(--scale)); line-height: 1.05; font-weight: 400; }
 .kanji-rows { display: grid; grid-template-columns: auto 1fr; gap: calc(1px * var(--scale)) calc(10px * var(--scale)); margin: calc(2px * var(--scale)) 0 0; }
@@ -367,6 +391,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
    here instead of before it. */
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
   .popup { background: var(--ground); }
+  .popup.scrolling::-webkit-scrollbar-thumb { background-color: rgba(236, 229, 211, 0.34); }
+  .popup::-webkit-scrollbar-thumb:active { background-color: rgba(236, 229, 211, 0.52); }
+  .kanji-chip { border-color: var(--edge); background: var(--box); }
+  .kanji-chip.active { border-color: var(--accent); background: rgba(217, 71, 43, 0.24); }
   .entry.unknown .headword { background: rgba(127, 127, 127, 0.25); box-shadow: none; }
   .tag.name { border-color: var(--accent); }
   .card { border-color: var(--edge); }
@@ -520,12 +548,13 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     // The one pressed turns while its card is made; the other waits, dimmed.
     const making = state === "working" && pressed.index === index && pressed.kind === kind;
     if (making) node.classList.add("making");
+    if (state === "done") node.disabled = true;
     node.appendChild(sign(kind === "book" ? "book" : state === "checking" || making ? "ring" : "plus"));
     if (kind === "addAudio") node.appendChild(speaker());
     if (keyOf(kind)) node.appendChild(keyMark(keyOf(kind)));
     node.addEventListener("click", (event) => {
       event.stopPropagation();
-      if (node.dataset.state === "working") return;
+      if (node.dataset.state === "working" || node.dataset.state === "done") return;
       pressed = { index: index, kind: kind };
       press(node);
       // Both pluses say "add"; "audio" says which (an app from before them reads only the index).
@@ -576,12 +605,21 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     // The pluses are the ones nearer the corner, the book beside them.
     const left = /left$/.test(model.corner || "top_right");
     const parts = [];
-    if (!inDeck || model.duplicates) {
-      const state = inDeck ? "add" : entry.state;
-      parts.push(button("add", index, state, labels.add));
-      parts.push(button("addAudio", index, state, labels.addAudio || labels.add));
+    if (inDeck && !model.duplicates && entry.addedKind) {
+      parts.push(entry.addedKind === "add"
+        ? button("book", index, "inDeck", labels.book)
+        : button("add", index, "done", labels.add));
+      parts.push(entry.addedKind === "addAudio"
+        ? button("book", index, "inDeck", labels.book)
+        : button("addAudio", index, "done", labels.addAudio || labels.add));
+    } else {
+      if (!inDeck || model.duplicates) {
+        const state = inDeck ? "add" : entry.state;
+        parts.push(button("add", index, state, labels.add));
+        parts.push(button("addAudio", index, state, labels.addAudio || labels.add));
+      }
+      if (inDeck) parts.push(button("book", index, "inDeck", labels.book));
     }
-    if (inDeck) parts.push(button("book", index, "inDeck", labels.book));
     (left ? parts : parts.reverse()).forEach((part) => box.appendChild(part));
     return box;
   }
@@ -621,6 +659,62 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 
   let tabs = [];
   let tab = "word";
+  let kanjiIndex = 0;
+
+  /** The single character a kanji entry represents (empty if not a kanji entry). */
+  function kanjiCharOf(entry) {
+    if (entry.kanji && entry.kanji.character) return entry.kanji.character;
+    if (kindsOf(entry).indexOf("kanji") >= 0 && entry.expression) return entry.expression;
+    return "";
+  }
+
+  /** Ordered unique characters available on the Kanji tab. */
+  function kanjiCharsOf(entries) {
+    const out = [];
+    (entries || []).forEach((entry) => {
+      const ch = kanjiCharOf(entry);
+      if (ch && out.indexOf(ch) < 0) out.push(ch);
+    });
+    return out;
+  }
+
+  /** Compact character rail at the top of the Kanji tab when a word has 2+ kanji. */
+  function kanjiRail(chars) {
+    const rail = element("div", "kanji-rail");
+    chars.forEach((ch, i) => {
+      const chip = element("button", "kanji-chip" + (i === kanjiIndex ? " active" : ""), ch);
+      chip.type = "button";
+      chip.lang = "ja";
+      chip.setAttribute("aria-pressed", i === kanjiIndex ? "true" : "false");
+      chip.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (kanjiIndex === i) return;
+        kanjiIndex = i;
+        draw(false);
+        reportSoon();
+      });
+      rail.appendChild(chip);
+    });
+    const keys = element("span", "kanji-rail-meta kanji-rail-keys");
+    keys.appendChild(keyMark("◀"));
+    keys.appendChild(keyMark("▶"));
+    rail.appendChild(keys);
+    const count = element("span", "kanji-rail-meta kanji-rail-count", (kanjiIndex + 1) + " / " + chars.length);
+    rail.appendChild(count);
+    return rail;
+  }
+
+  /** Steps to the previous (-1) or next (1) kanji character when the Kanji tab has 2+ characters. */
+  function stepKanji(step) {
+    if (tab !== "kanji") return false;
+    const chars = kanjiCharsOf(model.entries || []);
+    if (chars.length < 2) return false;
+    kanjiIndex = (kanjiIndex + (step < 0 ? -1 : 1) + chars.length) % chars.length;
+    draw(false);
+    post({ type: "feedback", kind: "step" });
+    reportSoon();
+    return true;
+  }
   /**
    * The entry the controller is on (model.choose: the d-pad goes from one to the next, its card
    * buttons are the ones marked and pressed: Reader.entry, Reader.addChosen), or -1.
@@ -1508,11 +1602,18 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       const found = tabsOf(model.entries);
       tabs = found.tabs;
       tab = found.first;
+      kanjiIndex = 0;
     }
     const tabbed = tabs.length > 1;
     popup.classList.toggle("tabbed", tabbed);
     popup.dataset.tab = tab;
     if (tabbed && !model.message) popup.appendChild(tabRow());
+    const kanjiChars = (tab === "kanji" || (!tabbed && tabs.length === 1 && tabs[0].kind === "kanji"))
+      ? kanjiCharsOf(model.entries || [])
+      : [];
+    if (kanjiChars.length > 0 && kanjiIndex >= kanjiChars.length) kanjiIndex = 0;
+    const activeKanji = kanjiChars.length > 1 ? kanjiChars[kanjiIndex] : "";
+    if (kanjiChars.length > 1 && !model.message) popup.appendChild(kanjiRail(kanjiChars));
     // The first entries are drawn at once; the others' definitions a moment later, one entry at
     // a time, so that a hover with many dictionaries shows its best match without waiting for
     // the rest (a long headword list of big dictionaries took tens of milliseconds).
@@ -1522,6 +1623,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     (model.entries || []).forEach((entry, index) => {
       const kinds = kindsOf(entry);
       if (tabbed && kinds.indexOf(tab) < 0) return;
+      if (activeKanji && kanjiCharOf(entry) !== activeKanji) return;
       const kind = tabbed ? tab : "";
       const section = element("section", "entry");
       section.dataset.index = String(index);
@@ -2003,6 +2105,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
         if (!old || old.expression !== entry.expression || old.reading !== entry.reading) return entry;
         return Object.assign({}, entry, {
           state: old.state && old.state !== "add" ? old.state : entry.state,
+          addedKind: old.addedKind || "",
           unknown: old.unknown !== undefined ? old.unknown : entry.unknown,
         });
       });
@@ -2028,6 +2131,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (tabs.length < 2) return;
       const at = Math.max(0, tabs.findIndex((one) => one.kind === tab));
       choose(tabs[(at + (step < 0 ? tabs.length - 1 : 1)) % tabs.length].kind);
+    },
+    /** Cycles characters on the Kanji tab (d-pad Left / Right on a controller). */
+    kanjiStep(step) {
+      stepKanji(step);
     },
     /**
      * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
@@ -2086,6 +2193,11 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (!entry || entry.state === state) return;
       const was = entry.state;
       entry.state = state;
+      if (state === "inDeck" && pressed.index === index && (pressed.kind === "add" || pressed.kind === "addAudio")) {
+        entry.addedKind = pressed.kind;
+      } else if (state !== "inDeck" && state !== "working") {
+        entry.addedKind = "";
+      }
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
       if (!section) return;
       section.dataset.state = state;
@@ -2130,6 +2242,28 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (design) mark(id);
     },
   };
+  // Scroll-only scrollbar thumb: visible while actively scrolling, hidden at rest.
+  let scrollHideTimer = 0;
+  popup.addEventListener("scroll", () => {
+    popup.classList.add("scrolling");
+    clearTimeout(scrollHideTimer);
+    scrollHideTimer = setTimeout(() => popup.classList.remove("scrolling"), 700);
+  }, { passive: true });
+  // Horizontal swipe on the Kanji tab cycles characters for single-screen touch users.
+  let swipeX = 0, swipeY = 0, swiping = false;
+  popup.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1 || tab !== "kanji") { swiping = false; return; }
+    swipeX = event.touches[0].clientX;
+    swipeY = event.touches[0].clientY;
+    swiping = true;
+  }, { passive: true });
+  popup.addEventListener("touchend", (event) => {
+    if (!swiping || !event.changedTouches.length) return;
+    swiping = false;
+    const dx = event.changedTouches[0].clientX - swipeX;
+    const dy = event.changedTouches[0].clientY - swipeY;
+    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.5) stepKanji(dx < 0 ? 1 : -1);
+  }, { passive: true });
   post({ type: "ready" });
 })();
 </script>
@@ -2141,6 +2275,25 @@ struct PopupTheme {
     const char* css;
 };
 static const PopupTheme PopupThemes[] = {
+    {"bunko", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Bunko: low-glare e-reader sepia with warm parchment, walnut ink, burnt sienna. */
+:root {
+  --font: "Noto Serif JP", "Yu Mincho", serif;
+  --ground: #f0e6d2; --text: #2e241b; --dim: #756554; --accent: #9c5a2d; --edge: #cfc0a3; --radius: 6px;
+  --box: rgba(156, 90, 45, 0.14); --box-pressed: rgba(156, 90, 45, 0.26); --sign: #8c4e24; --book: #2f6b47;
+}
+.popup { border: 1px solid #cfc0a3; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 8px 20px rgba(46, 36, 27, 0.18); }
+.entry + .entry { border-top-color: #d8cab0; }
+.headword { color: #2e241b; font-weight: 500; font-size: calc(19px * var(--scale)); }
+.headword rt { display: revert; color: #756554; }
+.reading { display: none; }
+.tag { font-family: "Noto Sans JP", sans-serif; background: rgba(46, 36, 27, 0.07); color: #4f3f31; border: 1px solid #c4b394; border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: rgba(156, 90, 45, 0.12); color: #7d4520; border-color: rgba(156, 90, 45, 0.28); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #9c5a2d; border-radius: 0; padding: 0; }
+.card { border-color: #b59a74; border-radius: 4px; }
+.link { color: #9c5a2d; }
+)popup"},
     {"dense", R"popup(/* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later
    Dense: as much as fits, for a small popup and a quick glance (after Nazeka): the word, its
@@ -2247,6 +2400,62 @@ static const PopupTheme PopupThemes[] = {
 .alias + .alias::before { content: "/ "; color: var(--dim); }
 .also { gap: 0 0.8em; }
 .card { border-radius: 999px; border-color: rgba(255, 255, 255, 0.4); text-shadow: none; }
+)popup"},
+    {"inaba", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Inaba: warm charcoal with crisp goldenrod accent. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #181714; --text: #f6f4ec; --dim: #a39f91; --accent: #eab308; --edge: rgba(234, 179, 8, 0.38); --radius: 3px;
+  --box: rgba(234, 179, 8, 0.22); --box-pressed: rgba(234, 179, 8, 0.34); --sign: #fde047; --book: #4ade80;
+}
+.popup { border: 1px solid var(--edge); padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.56); }
+.entry + .entry { border-top-color: rgba(234, 179, 8, 0.22); }
+.headword { color: #f6f4ec; font-weight: 700; font-size: calc(19px * var(--scale)); }
+.tag { background: rgba(234, 179, 8, 0.13); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.30); border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: rgba(255, 255, 255, 0.08); color: #e7e4d9; border-color: rgba(255, 255, 255, 0.16); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #eab308; border-radius: 0; padding: 0; }
+.card { border-color: rgba(234, 179, 8, 0.45); border-radius: 3px; }
+.link { color: #fde047; }
+)popup"},
+    {"ki", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Ki: pale celadon porcelain with deep moss ink and soft matcha green. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #f2f5f0; --text: #1f2b22; --dim: #5e7062; --accent: #4a7c59; --edge: #cdd9cc; --radius: 8px;
+  --box: rgba(74, 124, 89, 0.14); --box-pressed: rgba(74, 124, 89, 0.25); --sign: #366344; --book: #2e5c3c;
+}
+.popup { border: 1px solid #cdd9cc; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 8px 22px rgba(31, 43, 34, 0.14); }
+.entry + .entry { border-top-color: #dce6db; }
+.headword { color: #1f2b22; font-weight: 500; font-size: calc(19px * var(--scale)); }
+.headword rt { display: revert; color: #5e7062; }
+.reading { display: none; }
+.tag { background: #e6eee4; color: #334d39; border: 1px solid #bfd0bc; border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: rgba(74, 124, 89, 0.14); color: #2e5c3c; border-color: rgba(74, 124, 89, 0.30); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #4a7c59; border-radius: 0; padding: 0; }
+.card { border-color: #8eb097; border-radius: 5px; }
+.link { color: #366344; }
+)popup"},
+    {"kon-neo", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Kon Neo: deep navy, warm ivory, vermilion accent, sharp corners. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #101a3a; --text: #ece5d3; --dim: #8a93b5; --accent: #d9472b; --edge: rgba(236, 229, 211, 0.28); --radius: 0px;
+  --box: #d9472b; --box-pressed: #b83820; --sign: #101a3a; --book: #4ade80;
+}
+.popup { border: 1px solid rgba(236, 229, 211, 0.28); padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(5, 9, 24, 0.6); }
+.entry + .entry { border-top-color: rgba(236, 229, 211, 0.16); }
+.headword { color: #ece5d3; font-weight: 600; font-size: calc(19px * var(--scale)); }
+.headword rt { display: revert; color: #8a93b5; }
+.reading { display: none; }
+.tag { background: rgba(236, 229, 211, 0.08); color: #d8d1bf; border: 1px solid rgba(236, 229, 211, 0.20); border-radius: 0; padding: 0 5px; }
+.tag.frequency { background: rgba(217, 71, 43, 0.16); color: #f2927e; border-color: rgba(217, 71, 43, 0.34); }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #d9472b; border-radius: 0; padding: 0; }
+.card { border-color: #d9472b; border-radius: 0; }
+.card.book { background: rgba(74, 222, 128, 0.14); border-color: #4ade80; color: #4ade80; }
+.link { color: #f2927e; }
 )popup"},
     {"kon", R"popup(/* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later
@@ -2420,6 +2629,41 @@ static const PopupTheme PopupThemes[] = {
 .name-card .portrait { border-radius: 0; border-color: #5a5a5a; }
 .alias { border-radius: 0; background: none; border-color: #3d3d3d; color: #ffd75e; }
 .card { border-radius: 0; border-color: #5a5a5a; }
+)popup"},
+    {"notebook", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Notebook: pure white, jet black, sharp corners, signal red accent. */
+:root {
+  --font: "Noto Sans JP", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ground: #ffffff; --text: #111111; --dim: #666666; --accent: #d62828; --edge: #111111; --radius: 0px;
+  --box: #d62828; --box-pressed: #b21f1f; --sign: #ffffff; --book: #1b6b3a;
+}
+.popup { border: 1px solid #111111; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16); }
+.entry + .entry { border-top-color: #d4d4d4; }
+.headword { color: #111111; font-weight: 700; font-size: calc(19px * var(--scale)); }
+.tag { background: #f2f2f2; color: #222222; border: 1px solid #d4d4d4; border-radius: 0; padding: 0 5px; }
+.tag.frequency { background: #111111; color: #ffffff; border-color: #111111; }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #d62828; border-radius: 0; padding: 0; }
+.card { border-color: #d62828; border-radius: 0; }
+.card.book { background: #e8f5ed; border-color: #1b6b3a; color: #1b6b3a; }
+.link { color: #d62828; }
+)popup"},
+    {"obsidian", R"popup(/* SPDX-FileCopyrightText: Readers contributors
+   SPDX-License-Identifier: GPL-2.0-or-later
+   Obsidian: monochrome dark studio card with crisp hairline border. */
+:root {
+  --font: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --ground: #111113; --text: #f4f4f5; --dim: #8e8e98; --accent: #e4e4e7; --edge: #2c2c32; --radius: 6px;
+  --box: #27272c; --box-pressed: #34343c; --sign: #ffffff; --book: #4ade80;
+}
+.popup { border: 1px solid #2c2c32; padding: calc(9px * var(--scale)) calc(12px * var(--scale)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6); }
+.entry + .entry { border-top-color: #24242a; }
+.headword { color: #ffffff; font-weight: 600; font-size: calc(19px * var(--scale)); }
+.tag { background: #202024; color: #d4d4d8; border: 1px solid #34343c; border-radius: 3px; padding: 0 5px; }
+.tag.frequency { background: #27272c; color: #e4e4e7; border-color: #3a3a44; }
+.entry.unknown .headword { background: none; box-shadow: inset 0 -2px 0 #e4e4e7; border-radius: 0; padding: 0; }
+.card { border-color: #3f3f48; border-radius: 5px; }
+.link { color: #ffffff; }
 )popup"},
     {"ookii", R"popup(/* SPDX-FileCopyrightText: Readers contributors
    SPDX-License-Identifier: GPL-2.0-or-later

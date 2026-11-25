@@ -68,8 +68,41 @@ class ShelfMenu(private val context: Context) {
         val look = ShelfLook.of(context)
         val density = context.resources.displayMetrics.density
         fun dp(value: Float) = (value * density).toInt()
-        val dialog = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
         var picked: (() -> Unit)? = null
+        val views = ArrayList<View>()
+        val marks = ArrayList<(Boolean) -> Unit>()
+        var inHand = at.coerceIn(0, maxOf(rows.lastIndex, 0))
+        fun mark(index: Int) {
+            inHand = index.coerceIn(0, maxOf(rows.lastIndex, 0))
+            marks.forEachIndexed { i, set -> set(i == inHand) }
+            views.getOrNull(inHand)?.let { it.requestRectangleOnScreen(android.graphics.Rect(0, 0, it.width, it.height), false) }
+        }
+        // Intercept controller keys before ViewRootImpl's touch-mode exit / focus search can
+        // swallow the first press or paint a full-screen focus highlight over the dialog.
+        val dialog = object : Dialog(context, android.R.style.Theme_Translucent_NoTitleBar) {
+            override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (event.action == KeyEvent.ACTION_DOWN) mark(inHand + if (event.keyCode == KeyEvent.KEYCODE_DPAD_UP) -1 else 1)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        if (event.action == KeyEvent.ACTION_UP) views.getOrNull(inHand)?.performClick()
+                        return true
+                    }
+                    KeyEvent.KEYCODE_BUTTON_B -> {
+                        if (event.action == KeyEvent.ACTION_UP) dismiss()
+                        return true
+                    }
+                }
+                return super.dispatchKeyEvent(event)
+            }
+        }
+        fun noFocusHighlight(view: View) {
+            view.isFocusable = false
+            view.isFocusableInTouchMode = false
+            view.defaultFocusHighlightEnabled = false
+        }
 
         val box = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -82,6 +115,7 @@ class ShelfMenu(private val context: Context) {
             ).apply { setLayerGravity(1, Gravity.TOP); setLayerHeight(1, dp(2f)) }
             setPadding(0, dp(2f), 0, 0)
             isClickable = true // a tap on the sheet is not a tap beside it
+            noFocusHighlight(this)
         }
         fun hairline() = View(context).apply {
             setBackgroundColor(look.rule)
@@ -90,7 +124,7 @@ class ShelfMenu(private val context: Context) {
         if (title.isNotEmpty()) {
             box.addView(TextView(context).apply {
                 text = title.toString().uppercase()
-                typeface = ShelfLook.mono(context)
+                typeface = ShelfLook.display(context)
                 textSize = 12f
                 letterSpacing = .14f
                 setTextColor(look.muted)
@@ -115,16 +149,6 @@ class ShelfMenu(private val context: Context) {
         }
 
         val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        val views = ArrayList<View>()
-        // The row in hand is the menu's own to keep (not Android's focus, which a finger's touch
-        // takes away): its accent bar and full ink, as on the page.
-        val marks = ArrayList<(Boolean) -> Unit>()
-        var inHand = at.coerceIn(0, maxOf(rows.lastIndex, 0))
-        fun mark(index: Int) {
-            inHand = index.coerceIn(0, maxOf(rows.lastIndex, 0))
-            marks.forEachIndexed { i, set -> set(i == inHand) }
-            views.getOrNull(inHand)?.let { it.requestRectangleOnScreen(android.graphics.Rect(0, 0, it.width, it.height), false) }
-        }
         val faint = Color.argb(158, Color.red(look.ink), Color.green(look.ink), Color.blue(look.ink))
         rows.forEachIndexed { index, row ->
             val bar = View(context).apply { setBackgroundColor(look.accent); visibility = View.INVISIBLE }
@@ -162,6 +186,7 @@ class ShelfMenu(private val context: Context) {
                         dialog.dismiss()
                     }
                 }
+                noFocusHighlight(this)
             }
             views += line
             marks += { on ->
@@ -171,13 +196,18 @@ class ShelfMenu(private val context: Context) {
             list.addView(line)
             if (index < rows.lastIndex) list.addView(hairline())
         }
-        box.addView(ScrollView(context).apply { isVerticalScrollBarEnabled = false; addView(list) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        box.addView(ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            noFocusHighlight(this)
+            addView(list)
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         val metrics = context.resources.displayMetrics
         val root = FrameLayout(context).apply {
             // The page behind, dimmed in the theme's ground; a tap beside the sheet shuts it.
             setBackgroundColor(Color.argb(209, Color.red(look.ground), Color.green(look.ground), Color.blue(look.ground)))
             setOnClickListener { dialog.dismiss() }
+            noFocusHighlight(this)
             setPadding(dp(16f), dp(16f), dp(16f), dp(16f))
             addView(
                 box,
@@ -186,30 +216,12 @@ class ShelfMenu(private val context: Context) {
         }
         dialog.setContentView(root)
         dialog.window?.let { window ->
+            window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
             // Over a game the system's bars stay away, as they are over the game itself.
             window.insetsController?.let {
                 it.hide(WindowInsets.Type.systemBars())
                 it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
-        // A controller's keys: the d-pad walks the rows, A (or Enter) does the row in hand, B shuts
-        // (Back does by itself).
-        dialog.setOnKeyListener { _, code, event ->
-            when (code) {
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    if (event.action == KeyEvent.ACTION_DOWN) mark(inHand + if (code == KeyEvent.KEYCODE_DPAD_UP) -1 else 1)
-                    true
-                }
-                KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    if (event.action == KeyEvent.ACTION_UP) views.getOrNull(inHand)?.performClick()
-                    true
-                }
-                KeyEvent.KEYCODE_BUTTON_B -> {
-                    if (event.action == KeyEvent.ACTION_UP) dialog.dismiss()
-                    true
-                }
-                else -> false
             }
         }
         dialog.setOnDismissListener { closed(picked) }

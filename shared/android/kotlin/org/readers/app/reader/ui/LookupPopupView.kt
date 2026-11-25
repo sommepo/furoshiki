@@ -228,6 +228,10 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             ReaderLog.warning("[Reader] No WebView for the popup: ${it.message}")
             null
         }?.also {
+            // Clear the square native fallback background and elevation so the WebView's own
+            // rounded corners (.popup border-radius) are never backed by sharp corners.
+            background = null
+            elevation = 0f
             addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             it.setStyle("console", PopupPage.consoleCss(context))
             it.setStyle("theme", PopupPage.themeCss(context, theme))
@@ -245,6 +249,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             it.destroy()
         }
         page = null
+        background = ConsoleLook.ground(resources.displayMetrics.density)
+        elevation = dp(6f)
         scroll.visibility = VISIBLE
         alpha = 1f
         // Its native entries were made without their definitions: made again whole.
@@ -539,12 +545,21 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             if (index > 0) model.append(',')
             model.append(PopupModel.entryText(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, dictionaryKinds, pagePictures, pictures))
         }
-        // The character the word begins with, from the kanji dictionaries: on the page's Kanji tab.
-        PopupModel.kanjiOf(results.firstOrNull()?.matchedText.orEmpty())?.let { character ->
-            runCatching {
-                val database = org.readers.app.reader.dict.DictionaryStore.get(context).database
-                PopupModel.kanjiText(database.findKanji(character), database.findKanjiMeta(character))
-            }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { model.append(if (results.isEmpty()) "" else ",").append(it) }
+        // Every unique kanji of the looked-up word, from the kanji dictionaries: on the Kanji tab.
+        val first = results.firstOrNull()
+        val characters = PopupModel.kanjiListOf(first?.matchedText.orEmpty())
+            .ifEmpty { PopupModel.kanjiListOf(first?.expression.orEmpty()) }
+        if (characters.isNotEmpty()) {
+            val database = runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database }.getOrNull()
+            if (database != null) {
+                for (character in characters) {
+                    runCatching {
+                        PopupModel.kanjiText(database.findKanji(character), database.findKanjiMeta(character))
+                    }.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
+                        model.append(if (model.length > 1) "," else "").append(it)
+                    }
+                }
+            }
         }
         return model.append(']').toString()
     }
@@ -628,6 +643,18 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** What the box of [result] offers, or null when the popup no longer shows it. */
     fun cardState(result: LookupResult): CardState? = entries[result]?.state
+
+    /** Cycles characters on the Kanji tab (d-pad Left / Right on a controller). */
+    fun kanjiStep(step: Int) {
+        page?.call("Reader.kanjiStep(${if (step < 0) -1 else 1})")
+    }
+
+    /** Presses the chosen entry's card button ([audio]: with the line's audio) through the page. */
+    fun addChosen(audio: Boolean): Boolean {
+        val p = page ?: return false
+        p.call("Reader.addChosen($audio)")
+        return true
+    }
 
     /** Changes what the box of [result] offers. Does nothing when it is no longer shown. */
     fun setCardState(result: LookupResult, state: CardState) {

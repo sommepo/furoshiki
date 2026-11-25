@@ -1337,6 +1337,12 @@ void ReaderSettingsDialog(QWidget* parent) {
             {Tr("Ookii (large text)"), QStringLiteral("ookii")},
             {Tr("Kumihan"), QStringLiteral("kumihan")},
             {Tr("Kon (indigo)"), QStringLiteral("kon")},
+            {Tr("Kon Neo"), QStringLiteral("kon-neo")},
+            {Tr("Inaba"), QStringLiteral("inaba")},
+            {Tr("Obsidian"), QStringLiteral("obsidian")},
+            {Tr("Bunko"), QStringLiteral("bunko")},
+            {Tr("Notebook"), QStringLiteral("notebook")},
+            {Tr("Ki"), QStringLiteral("ki")},
             {Tr("Classic"), QStringLiteral("classic")}},
            // "auto" (the default) stays itself here: the look of Furoshiki's shelf theme.
            [&settings] {

@@ -96,11 +96,15 @@ class ReaderSettings(context: Context) {
     val dictionaryKinds: Map<String, String> get() =
         org.readers.app.reader.dict.DictionaryKinds.parse(preferences.getString(KEY_DICTIONARY_KINDS, null))
 
-    /** How solid the popup's ground is, 20 to 100 %; 0: as its look has it. 90 by default (2026-11-15). */
-    val popupOpacity: Int get() = preferences.getInt(KEY_POPUP_OPACITY, POPUP_OPACITY_DEFAULT).coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
+    /** How solid the popup's ground is (100, 80, 60, or 40 %). Accepts legacy Int or String. */
+    val popupOpacity: Int get() {
+        val v = preferences.all[KEY_POPUP_OPACITY]?.toString()?.toIntOrNull() ?: 100
+        return v.coerceIn(0, 100).let { if (it == 0) 0 else maxOf(20, it) }
+    }
 
-    /** The popup's corners, 0 to 28 px; -1: as its look has them. */
-    val popupRadius: Int get() = preferences.getInt(KEY_POPUP_RADIUS, -1).coerceIn(-1, 28)
+    /** The popup's corners (Sharp = 0, Rounded = 12, Rounded+ = 24). Accepts legacy Int or String. */
+    val popupRadius: Int get() =
+        (preferences.all[KEY_POPUP_RADIUS]?.toString()?.toIntOrNull() ?: 0).coerceIn(-1, 28)
 
     /** How many senses of a word are shown before "more" (1 to 9); 0: all of them. */
     val popupCompact: Int get() = preferences.getInt(KEY_POPUP_COMPACT, 0).coerceIn(0, 9)
@@ -551,7 +555,7 @@ class ReaderSettings(context: Context) {
         const val KEY_POPUP_PORTRAIT = "reader_popup_portrait"
         /** The looks the page has besides the console's own colours (shared/popup/themes). */
         val POPUP_THEMES = listOf("furoshiki", "yomitan-dark", "paper", "paper-dark", "solarized-dark", "solarized-light",
-            "glass", "dense", "kuro", "shoin", "kumihan", "kon")
+            "glass", "dense", "kuro", "shoin", "kumihan", "kon", "kon-neo", "inaba", "obsidian", "bunko", "notebook", "ki")
         const val KEY_POPUP_LOOKUPS = "reader_popup_lookups"
         const val KEY_CURSOR_BUTTON = "reader_cursor_button"
         const val KEY_CURSOR_TOGGLE = "reader_cursor_toggle"

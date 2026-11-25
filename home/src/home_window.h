@@ -139,6 +139,11 @@ public:
     void SetPopupPreview(std::function<void(const QRect& place)> place) {
         popup_preview = std::move(place);
     }
+    /// Called while the Popup theme picker highlights a choice (or -1 on cancel), so the live
+    /// popup preview at the bottom of the Popup page renders each theme before it is chosen.
+    void SetPopupThemePreview(std::function<void(int)> preview) {
+        popup_theme_preview = std::move(preview);
+    }
     /// What the Settings page's rows of the settings window's pages show (RetroAchievements,
     /// Text server, Pair a device), by the row's name.
     void SetSettingValue(std::function<QString(const QString& row)> value) {
@@ -817,8 +822,10 @@ private:
     std::function<void()> save_sync_open;
     std::function<void(const QString&)> open_settings;
     std::function<void(const QRect&)> popup_preview;
+    std::function<void(int)> popup_theme_preview;
     QRectF popup_preview_area; ///< On the sheet, as PaintPages last left it
     QRect popup_preview_said;
+    bool picker_keeps_preview{};
     std::function<QString(const QString&)> setting_value;
     std::function<void(const QString&, int)> setting_step;
     std::function<std::pair<QStringList, int>(const QString&)> setting_choices;
@@ -828,11 +835,14 @@ private:
         QStringList said;
         int now{-1};
         std::function<void(int)> take;
+        std::function<void(int)> focus;
+        bool keep_preview{};
     };
     [[nodiscard]] Pick PickAt(int row);
     bool OpenPick(int row);
     /// A picker of these choices over the window, in the page's colours (OpenPick's).
-    void OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take);
+    void OpenChoices(const QString& title, const QStringList& said, int now, std::function<void(int)> take,
+                     std::function<void(int)> focus = {}, bool keep_preview = false);
     /// The Dictionaries page (home_dictionaries.inc): a list of its own over the page's place for
     /// rows (dictionary_panel.h), placed and dressed as the page is drawn.
     void DictionaryImportAsk();

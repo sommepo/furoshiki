@@ -137,12 +137,13 @@
     // The one pressed turns while its card is made; the other waits, dimmed.
     const making = state === "working" && pressed.index === index && pressed.kind === kind;
     if (making) node.classList.add("making");
+    if (state === "done") node.disabled = true;
     node.appendChild(sign(kind === "book" ? "book" : state === "checking" || making ? "ring" : "plus"));
     if (kind === "addAudio") node.appendChild(speaker());
     if (keyOf(kind)) node.appendChild(keyMark(keyOf(kind)));
     node.addEventListener("click", (event) => {
       event.stopPropagation();
-      if (node.dataset.state === "working") return;
+      if (node.dataset.state === "working" || node.dataset.state === "done") return;
       pressed = { index: index, kind: kind };
       press(node);
       // Both pluses say "add"; "audio" says which (an app from before them reads only the index).
@@ -193,12 +194,21 @@
     // The pluses are the ones nearer the corner, the book beside them.
     const left = /left$/.test(model.corner || "top_right");
     const parts = [];
-    if (!inDeck || model.duplicates) {
-      const state = inDeck ? "add" : entry.state;
-      parts.push(button("add", index, state, labels.add));
-      parts.push(button("addAudio", index, state, labels.addAudio || labels.add));
+    if (inDeck && !model.duplicates && entry.addedKind) {
+      parts.push(entry.addedKind === "add"
+        ? button("book", index, "inDeck", labels.book)
+        : button("add", index, "done", labels.add));
+      parts.push(entry.addedKind === "addAudio"
+        ? button("book", index, "inDeck", labels.book)
+        : button("addAudio", index, "done", labels.addAudio || labels.add));
+    } else {
+      if (!inDeck || model.duplicates) {
+        const state = inDeck ? "add" : entry.state;
+        parts.push(button("add", index, state, labels.add));
+        parts.push(button("addAudio", index, state, labels.addAudio || labels.add));
+      }
+      if (inDeck) parts.push(button("book", index, "inDeck", labels.book));
     }
-    if (inDeck) parts.push(button("book", index, "inDeck", labels.book));
     (left ? parts : parts.reverse()).forEach((part) => box.appendChild(part));
     return box;
   }
@@ -238,6 +248,62 @@
 
   let tabs = [];
   let tab = "word";
+  let kanjiIndex = 0;
+
+  /** The single character a kanji entry represents (empty if not a kanji entry). */
+  function kanjiCharOf(entry) {
+    if (entry.kanji && entry.kanji.character) return entry.kanji.character;
+    if (kindsOf(entry).indexOf("kanji") >= 0 && entry.expression) return entry.expression;
+    return "";
+  }
+
+  /** Ordered unique characters available on the Kanji tab. */
+  function kanjiCharsOf(entries) {
+    const out = [];
+    (entries || []).forEach((entry) => {
+      const ch = kanjiCharOf(entry);
+      if (ch && out.indexOf(ch) < 0) out.push(ch);
+    });
+    return out;
+  }
+
+  /** Compact character rail at the top of the Kanji tab when a word has 2+ kanji. */
+  function kanjiRail(chars) {
+    const rail = element("div", "kanji-rail");
+    chars.forEach((ch, i) => {
+      const chip = element("button", "kanji-chip" + (i === kanjiIndex ? " active" : ""), ch);
+      chip.type = "button";
+      chip.lang = "ja";
+      chip.setAttribute("aria-pressed", i === kanjiIndex ? "true" : "false");
+      chip.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (kanjiIndex === i) return;
+        kanjiIndex = i;
+        draw(false);
+        reportSoon();
+      });
+      rail.appendChild(chip);
+    });
+    const keys = element("span", "kanji-rail-meta kanji-rail-keys");
+    keys.appendChild(keyMark("◀"));
+    keys.appendChild(keyMark("▶"));
+    rail.appendChild(keys);
+    const count = element("span", "kanji-rail-meta kanji-rail-count", (kanjiIndex + 1) + " / " + chars.length);
+    rail.appendChild(count);
+    return rail;
+  }
+
+  /** Steps to the previous (-1) or next (1) kanji character when the Kanji tab has 2+ characters. */
+  function stepKanji(step) {
+    if (tab !== "kanji") return false;
+    const chars = kanjiCharsOf(model.entries || []);
+    if (chars.length < 2) return false;
+    kanjiIndex = (kanjiIndex + (step < 0 ? -1 : 1) + chars.length) % chars.length;
+    draw(false);
+    post({ type: "feedback", kind: "step" });
+    reportSoon();
+    return true;
+  }
   /**
    * The entry the controller is on (model.choose: the d-pad goes from one to the next, its card
    * buttons are the ones marked and pressed: Reader.entry, Reader.addChosen), or -1.
@@ -1125,11 +1191,18 @@
       const found = tabsOf(model.entries);
       tabs = found.tabs;
       tab = found.first;
+      kanjiIndex = 0;
     }
     const tabbed = tabs.length > 1;
     popup.classList.toggle("tabbed", tabbed);
     popup.dataset.tab = tab;
     if (tabbed && !model.message) popup.appendChild(tabRow());
+    const kanjiChars = (tab === "kanji" || (!tabbed && tabs.length === 1 && tabs[0].kind === "kanji"))
+      ? kanjiCharsOf(model.entries || [])
+      : [];
+    if (kanjiChars.length > 0 && kanjiIndex >= kanjiChars.length) kanjiIndex = 0;
+    const activeKanji = kanjiChars.length > 1 ? kanjiChars[kanjiIndex] : "";
+    if (kanjiChars.length > 1 && !model.message) popup.appendChild(kanjiRail(kanjiChars));
     // The first entries are drawn at once; the others' definitions a moment later, one entry at
     // a time, so that a hover with many dictionaries shows its best match without waiting for
     // the rest (a long headword list of big dictionaries took tens of milliseconds).
@@ -1139,6 +1212,7 @@
     (model.entries || []).forEach((entry, index) => {
       const kinds = kindsOf(entry);
       if (tabbed && kinds.indexOf(tab) < 0) return;
+      if (activeKanji && kanjiCharOf(entry) !== activeKanji) return;
       const kind = tabbed ? tab : "";
       const section = element("section", "entry");
       section.dataset.index = String(index);
@@ -1620,6 +1694,7 @@
         if (!old || old.expression !== entry.expression || old.reading !== entry.reading) return entry;
         return Object.assign({}, entry, {
           state: old.state && old.state !== "add" ? old.state : entry.state,
+          addedKind: old.addedKind || "",
           unknown: old.unknown !== undefined ? old.unknown : entry.unknown,
         });
       });
@@ -1645,6 +1720,10 @@
       if (tabs.length < 2) return;
       const at = Math.max(0, tabs.findIndex((one) => one.kind === tab));
       choose(tabs[(at + (step < 0 ? tabs.length - 1 : 1)) % tabs.length].kind);
+    },
+    /** Cycles characters on the Kanji tab (d-pad Left / Right on a controller). */
+    kanjiStep(step) {
+      stepKanji(step);
     },
     /**
      * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
@@ -1703,6 +1782,11 @@
       if (!entry || entry.state === state) return;
       const was = entry.state;
       entry.state = state;
+      if (state === "inDeck" && pressed.index === index && (pressed.kind === "add" || pressed.kind === "addAudio")) {
+        entry.addedKind = pressed.kind;
+      } else if (state !== "inDeck" && state !== "working") {
+        entry.addedKind = "";
+      }
       const section = popup.querySelector('.entry[data-index="' + index + '"]');
       if (!section) return;
       section.dataset.state = state;
@@ -1747,5 +1831,27 @@
       if (design) mark(id);
     },
   };
+  // Scroll-only scrollbar thumb: visible while actively scrolling, hidden at rest.
+  let scrollHideTimer = 0;
+  popup.addEventListener("scroll", () => {
+    popup.classList.add("scrolling");
+    clearTimeout(scrollHideTimer);
+    scrollHideTimer = setTimeout(() => popup.classList.remove("scrolling"), 700);
+  }, { passive: true });
+  // Horizontal swipe on the Kanji tab cycles characters for single-screen touch users.
+  let swipeX = 0, swipeY = 0, swiping = false;
+  popup.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1 || tab !== "kanji") { swiping = false; return; }
+    swipeX = event.touches[0].clientX;
+    swipeY = event.touches[0].clientY;
+    swiping = true;
+  }, { passive: true });
+  popup.addEventListener("touchend", (event) => {
+    if (!swiping || !event.changedTouches.length) return;
+    swiping = false;
+    const dx = event.changedTouches[0].clientX - swipeX;
+    const dy = event.changedTouches[0].clientY - swipeY;
+    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.5) stepKanji(dx < 0 ? 1 : -1);
+  }, { passive: true });
   post({ type: "ready" });
 })();

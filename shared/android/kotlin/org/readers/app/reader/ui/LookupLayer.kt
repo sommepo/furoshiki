@@ -623,6 +623,7 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     fun mineWord(audio: Boolean? = null): Boolean {
         val pin = pinned ?: return false
         if (!isOpen) return false
+        if (audio != null && popup.addChosen(audio)) return true
         mine(pin.word, audio)
         return true
     }
@@ -630,6 +631,11 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     /** Another tab of the open popup (PopupKeys: R1 and L1). */
     fun tab(step: Int) {
         if (isOpen) popup.tab(step)
+    }
+
+    /** Cycles characters on the Kanji tab (PopupKeys: d-pad Left and Right). */
+    fun kanjiStep(step: Int) {
+        if (isOpen) popup.kanjiStep(step)
     }
 
     /** The controller became the input, or touch did: the open popup's marks follow. */

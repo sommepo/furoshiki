@@ -137,6 +137,10 @@ bool LookupFlow::OnPad(PadKey key) {
     case PadKey::EntryNext:
         popup->PadEntry(key == PadKey::EntryNext ? 1 : -1);
         break;
+    case PadKey::KanjiBefore:
+    case PadKey::KanjiNext:
+        popup->PadKanji(key == PadKey::KanjiNext ? 1 : -1);
+        break;
     case PadKey::TabBefore:
     case PadKey::TabNext:
         popup->PadTab(key == PadKey::TabNext ? 1 : -1);

@@ -716,46 +716,75 @@ QString StateName(int state) {
 /// Anki has.
 QJsonArray Sample() {
     LookupResult unknown;
-    unknown.expression = QStringLiteral("死ぬほど");
-    unknown.reading = QStringLiteral("しぬほど");
-    unknown.frequencies = {Frequency{QStringLiteral("JPDB"), QStringLiteral("7621"), 7621.0, true}};
+    unknown.expression = QStringLiteral("風呂敷");
+    unknown.reading = QStringLiteral("ふろしき");
+    unknown.pitches = {PitchAccent{QStringLiteral("NHK"), QStringLiteral("ふろしき"), {0}}};
+    unknown.frequencies = {Frequency{QStringLiteral("JPDB"), QStringLiteral("18200"), 18200.0, true}};
     TermEntry sense;
     sense.dictionary = QStringLiteral("JMdict");
-    sense.definition_tags = QStringLiteral("exp");
-    sense.glossary_json = QString::fromUtf8(R"j(["to death (bored, scared, etc.)","to distraction","like crazy","so much"])j");
+    sense.definition_tags = QStringLiteral("n");
+    sense.glossary_json = QString::fromUtf8(
+        R"j(["wrapping cloth","cloth wrapper (traditionally used to carry clothes, gifts, or books)","traditional Japanese square cloth folded around items for transport"])j");
     TermEntry forms;
     forms.dictionary = QStringLiteral("JMdict");
     forms.definition_tags = QStringLiteral("forms");
-    forms.glossary_json = QString::fromUtf8(R"j(["死ぬほど | 死ぬ程"])j");
+    forms.glossary_json = QString::fromUtf8(R"j(["風呂敷 | ふろしき"])j");
     unknown.entries = {sense, forms};
     QJsonObject first = Entry(unknown, QStringLiteral("Looked up 7 times · first 3 Oct in STEINS;GATE"));
     first.insert(QStringLiteral("unknown"), true);
 
     LookupResult known;
-    known.expression = QStringLiteral("死ぬ");
-    known.reading = QStringLiteral("しぬ");
-    known.reasons = {QStringLiteral("masu")};
-    known.pitches = {PitchAccent{QStringLiteral("NHK"), QStringLiteral("しぬ"), {0}}};
-    TermEntry die;
-    die.dictionary = QStringLiteral("JMdict");
-    die.definition_tags = QStringLiteral("v5n vi");
-    die.glossary_json = QString::fromUtf8(R"j(["to die","to pass away"])j");
-    known.entries = {die};
+    known.expression = QStringLiteral("風呂");
+    known.reading = QStringLiteral("ふろ");
+    known.pitches = {PitchAccent{QStringLiteral("NHK"), QStringLiteral("ふろ"), {2}}};
+    TermEntry bath;
+    bath.dictionary = QStringLiteral("JMdict");
+    bath.definition_tags = QStringLiteral("n");
+    bath.glossary_json = QString::fromUtf8(R"j(["bath","bathhouse"])j");
+    known.entries = {bath};
     QJsonObject second = Entry(known, {});
     second.insert(QStringLiteral("state"), QStringLiteral("inDeck"));
-    // A name of a game, as its names dictionary gives it (no picture here: those are in the zips).
-    LookupResult who;
-    who.expression = QStringLiteral("助手");
-    who.reading = QStringLiteral("じょしゅ");
-    TermEntry name;
-    name.dictionary = QStringLiteral("名前 · STEINS;GATE");
-    name.definition_tags = NameTag;
-    name.scoped = true;
-    name.glossary_json = QString::fromUtf8(
-        R"j([{"type":"structured-content","content":{"tag":"div","data":{"furoshiki":"name","id":"c6487","kind":"person","name":"牧瀬 紅莉栖","reading":"まきせ くりす","romaji":"Makise Kurisu","role":"Main character","also":"助手、クリスティーナ","about":"A neuroscience researcher of eighteen whom Okabe insists on calling his assistant."},"content":[{"tag":"div","content":"牧瀬 紅莉栖（まきせ くりす）"}]}}])j");
-    who.entries = {name};
-    const QJsonObject third = Entry(who, {});
-    return {first, second, third};
+    // The three kanji of 風呂敷 for the Kanji tab's Character Rail preview.
+    const auto sample_kanji = [](const QString& ch, const QJsonArray& meanings, const QJsonArray& on,
+                                 const QJsonArray& kun, int strokes, int grade, int jlpt, int freq,
+                                 const QJsonArray& parts) {
+        return QJsonObject{
+            {QStringLiteral("expression"), ch},
+            {QStringLiteral("kanji"),
+             QJsonObject{
+                 {QStringLiteral("character"), ch},
+                 {QStringLiteral("dictionary"), QStringLiteral("KANJIDIC")},
+                 {QStringLiteral("meanings"), meanings},
+                 {QStringLiteral("onyomi"), on},
+                 {QStringLiteral("kunyomi"), kun},
+                 {QStringLiteral("stats"),
+                  QJsonObject{{QStringLiteral("strokes"), strokes},
+                              {QStringLiteral("grade"), grade},
+                              {QStringLiteral("jlpt"), jlpt},
+                              {QStringLiteral("freq"), freq}}},
+                 {QStringLiteral("parts"), parts},
+             }},
+        };
+    };
+    const QJsonObject k1 = sample_kanji(
+        QStringLiteral("風"),
+        QJsonArray{QStringLiteral("wind"), QStringLiteral("air"), QStringLiteral("style"), QStringLiteral("manner")},
+        QJsonArray{QStringLiteral("フウ"), QStringLiteral("フ")},
+        QJsonArray{QStringLiteral("かぜ"), QStringLiteral("かざ-")},
+        9, 2, 4, 558, QJsonArray{QStringLiteral("几"), QStringLiteral("虫")});
+    const QJsonObject k2 = sample_kanji(
+        QStringLiteral("呂"),
+        QJsonArray{QStringLiteral("spine"), QStringLiteral("backbone")},
+        QJsonArray{QStringLiteral("ロ"), QStringLiteral("リョ")},
+        QJsonArray{QStringLiteral("せぼね")},
+        7, 8, 1, 1978, QJsonArray{QStringLiteral("口"), QStringLiteral("ノ")});
+    const QJsonObject k3 = sample_kanji(
+        QStringLiteral("敷"),
+        QJsonArray{QStringLiteral("spread"), QStringLiteral("pave"), QStringLiteral("sit"), QStringLiteral("promulgate")},
+        QJsonArray{QStringLiteral("フ")},
+        QJsonArray{QStringLiteral("し.く"), QStringLiteral("-し.き")},
+        15, 8, 1, 1246, QJsonArray{QStringLiteral("甫"), QStringLiteral("攵")});
+    return {first, second, k1, k2, k3};
 }
 
 void SharePictures(QJsonArray& entries, QSet<QString>& sent, QJsonObject& pictures) {

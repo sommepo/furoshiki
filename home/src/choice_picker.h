@@ -29,8 +29,12 @@ public:
     };
 
     /// Opens over `over` (its whole area); `picked` hears the index taken, never a cancel.
+    /// `focused` (optional) hears the index highlighted as the pointer or keys move over the list,
+    /// and -1 when the picker closes without picking. `keep_clear` (optional) keeps a bottom band
+    /// (such as the live popup preview) uncovered by placing the card above it.
     static ChoicePicker* Open(QWidget* over, const QString& title, const QStringList& choices, int now,
-                              const Colours& colours, std::function<void(int)> picked);
+                              const Colours& colours, std::function<void(int)> picked,
+                              std::function<void(int)> focused = {}, const QRect& keep_clear = {});
 
     /// A key handed in by the window (a controller's, through its own key handling): true when
     /// the picker took it.
@@ -46,7 +50,7 @@ protected:
 
 private:
     ChoicePicker(QWidget* over, const QString& title, const QStringList& choices, int now, const Colours& colours,
-                 std::function<void(int)> picked);
+                 std::function<void(int)> picked, std::function<void(int)> focused, const QRect& keep_clear);
     void Blur();
     [[nodiscard]] QRectF Card() const;
     [[nodiscard]] int Visible() const;
@@ -64,6 +68,8 @@ private:
     double target{}; ///< Where `top` glides to
     Colours colours;
     std::function<void(int)> picked;
+    std::function<void(int)> focused;
+    QRect keep_clear;
     QPixmap behind;
     QElapsedTimer clock;
     QTimer frames;

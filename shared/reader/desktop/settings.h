@@ -157,7 +157,10 @@ public:
             QStringLiteral("furoshiki"),     QStringLiteral("yomitan-dark"),   QStringLiteral("paper"),
             QStringLiteral("paper-dark"),    QStringLiteral("solarized-dark"), QStringLiteral("solarized-light"),
             QStringLiteral("glass"),         QStringLiteral("dense"),          QStringLiteral("kuro"),
-            QStringLiteral("shoin"),         QStringLiteral("ookii"),          QStringLiteral("kumihan"), QStringLiteral("kon")};
+            QStringLiteral("shoin"),         QStringLiteral("ookii"),          QStringLiteral("kumihan"),
+            QStringLiteral("kon"),           QStringLiteral("kon-neo"),        QStringLiteral("inaba"),
+            QStringLiteral("obsidian"),      QStringLiteral("bunko"),          QStringLiteral("notebook"),
+            QStringLiteral("ki")};
         return themes;
     }
     /// How solid the popup's ground is, 20 to 100 %; 0: as its look has it.
