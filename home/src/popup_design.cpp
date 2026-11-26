@@ -519,8 +519,11 @@ QString FreeName(const QString& folder, const QString& base) {
 }
 
 QString Shown(const QString& name, const QString& base) {
-    // "yomitan-dark-mine" over yomitan-dark: "Yomitan dark · mine".
+    // "yomitan-dark-mine" over yomitan-dark: "Serif noir · mine".
     const auto words = [](QString text) {
+        if (text == QStringLiteral("yomitan-dark")) {
+            return QStringLiteral("Serif noir");
+        }
         text.replace(QLatin1Char('-'), QLatin1Char(' '));
         if (!text.isEmpty()) {
             text[0] = text[0].toUpper();

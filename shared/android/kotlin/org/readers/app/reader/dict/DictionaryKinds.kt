@@ -14,8 +14,8 @@ import org.json.JSONObject
  *
  *  1. the kind the user gave the dictionary (the dictionaries page; [parse] reads the setting);
  *  2. a names dictionary of the running game (its `furoshikiScope`): names;
- *  3. its title: "grammar", 文法, 文型, 語法, DOJG, Bunpro → grammar; JMnedict, 人名 → names;
- *     "kanji", 漢字, KANJIDIC, 字典 → kanji, for an entry of one character only (a compound
+ *  3. its title: "grammar", 文法, 文型, 語法, DOJG, Bunpro, 絵でわかる日本語, 日本語教師 → grammar;
+ *     JMnedict, 人名 → names; "kanji" (not Kanjium, a pitch dictionary), 漢字, 字典, 字源, 字通, 漢和 → kanji, for an entry of one character only (a compound
  *     in such a dictionary is a word);
  *  4. words.
  *
@@ -28,9 +28,9 @@ object DictionaryKinds {
     const val NAME = "name"
     val ALL = listOf(WORD, GRAMMAR, KANJI, NAME)
 
-    private val GRAMMAR_TITLE = Regex("grammar|文法|文型|語法|dojg|bunpro", RegexOption.IGNORE_CASE)
+    private val GRAMMAR_TITLE = Regex("grammar|文法|文型|語法|dojg|bunpro|絵でわかる日本語|日本語教師", RegexOption.IGNORE_CASE)
     private val NAMES_TITLE = Regex("jmnedict|人名", RegexOption.IGNORE_CASE)
-    private val KANJI_TITLE = Regex("kanji|漢字|字典", RegexOption.IGNORE_CASE)
+    private val KANJI_TITLE = Regex("kanji(?!um)|漢字|字典|字源|字通|漢和", RegexOption.IGNORE_CASE)
 
     /** The kind its title says, or null when it says none (words). */
     fun ofTitle(title: String): String? = when {

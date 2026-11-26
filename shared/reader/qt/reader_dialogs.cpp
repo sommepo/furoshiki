@@ -1325,7 +1325,7 @@ void ReaderSettingsDialog(QWidget* parent) {
            {{Tr("Match home theme"), QStringLiteral("auto")},
             {Tr("Console colours"), QStringLiteral("console")},
             {Tr("Furoshiki glass"), QStringLiteral("furoshiki")},
-            {Tr("Yomitan dark"), QStringLiteral("yomitan-dark")},
+            {Tr("Serif noir"), QStringLiteral("yomitan-dark")},
             {Tr("Paper"), QStringLiteral("paper")},
             {Tr("Paper dark"), QStringLiteral("paper-dark")},
             {Tr("Solarized dark"), QStringLiteral("solarized-dark")},

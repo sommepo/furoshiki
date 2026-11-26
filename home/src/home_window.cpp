@@ -57,6 +57,7 @@
 #include <QWheelEvent>
 #include "app_icon.h"
 #include "home_window.h"
+#include "goal_abacus.h"
 #include "conversion_box.h"
 #include "dictionary_panel.h"
 #include "scripts_panel.h"
@@ -298,6 +299,9 @@ constexpr SettingRow SettingRows[] = {
     {"Quit Furoshiki", "Ctrl+Q", nullptr, 0, 0, 0, 0, "Keys", 0, false},
     // Display: how the program and the games look and sound.
     {"Look", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Library layout", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Animated dots", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Show statistics tab", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Icon", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Wide picture", "Supported PS2 and Switch games", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"CRT picture", "", nullptr, 0, 0, 0, 0, "Display", 2, false},
@@ -474,7 +478,7 @@ int SettingAt(const QString& section, bool more, int row) {
 }
 
 /// The daily goal's steps: off, then every 500 characters.
-constexpr int GoalStep = 500, GoalMost = 30000;
+constexpr int GoalStep = 500, GoalMost = 50000;
 
 /// Whether every key the page takes is written to the log (with where it came from): while a
 /// file "trace-keys" is in the shared folder's "program" folder (a controller that doubles keys).
@@ -1188,6 +1192,14 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                                           : (Slide(i, 0) != 0 ? QStringLiteral("ON") : QStringLiteral("OFF"));
             } else if (name == QStringLiteral("Look")) {
                 value = look->theme.Name().toUpper();
+            } else if (name == QStringLiteral("Library layout")) {
+                value = shelf_layout == 1 ? QStringLiteral("CASE STAGE")
+                        : shelf_layout == 2 ? QStringLiteral("COVER FLOW")
+                                            : QStringLiteral("SPINE SHELF");
+            } else if (name == QStringLiteral("Animated dots")) {
+                value = dots_on ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Show statistics tab")) {
+                value = show_stats_tab ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Version")) {
                 value = QStringLiteral(FUROSHIKI_VERSION);
             } else if (name == QStringLiteral("Icon")) {
@@ -1248,7 +1260,7 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                                                       : (setting.host == 1 || setting.host == 3) && setting_is_set && setting_is_set(name);
             rows.append({name, meta, value, {}, i, false, yours});
             rows.last().steps = setting.host == 1 || setting.host == 3 || (setting.key != nullptr && setting.step != 0) ||
-                                name == QStringLiteral("Look") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
+                                name == QStringLiteral("Look") || name == QStringLiteral("Library layout") || name == QStringLiteral("Icon") || name == QStringLiteral("Fuzz") ||
                                 name == QStringLiteral("Daily goal") || name == QStringLiteral("Wide picture") ||
                                 name == QStringLiteral("Box art from VNDB") || name == QStringLiteral("Box art from ScreenScraper") ||
                                 name == QStringLiteral("OCR engine") || name == QStringLiteral("OCR runs on");
@@ -1320,6 +1332,14 @@ int HomeWindow::DailyGoal() const {
 
 void HomeWindow::SetDailyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/goal"), std::clamp(characters / GoalStep * GoalStep, 0, GoalMost));
+}
+
+int HomeWindow::YearlyGoal() const {
+    return std::clamp(QSettings().value(QStringLiteral("stats/yearly_goal"), 0).toInt(), 0, 50000000);
+}
+
+void HomeWindow::SetYearlyGoal(int characters) {
+    QSettings().setValue(QStringLiteral("stats/yearly_goal"), std::clamp(characters, 0, 50000000));
 }
 
 double HomeWindow::Slide(int row, int steps) {
@@ -1913,6 +1933,13 @@ void HomeWindow::Key(int key) {
             Changed();
             return;
         }
+        if (IsSetting(srow, "Library layout")) {
+            shelf_layout = (shelf_layout + (key == Qt::Key_Left ? 2 : 1)) % 3;
+            QSettings().setValue(QStringLiteral("shelf/layout"), shelf_layout);
+            sounds.Play(Sound::Move);
+            Changed();
+            return;
+        }
         if (IsSetting(srow, "Icon")) {
             const QList<IconColours>& choices = IconChoices();
             int index = 0;
@@ -2148,6 +2175,24 @@ void HomeWindow::Accept() {
         } else if (name == QStringLiteral("Moving cursor")) {
             SetMotion(!motion, true);
             sounds.Play(Sound::Select);
+        } else if (name == QStringLiteral("Library layout")) {
+            shelf_layout = (shelf_layout + 1) % 3;
+            settings.setValue(QStringLiteral("shelf/layout"), shelf_layout);
+            sounds.Play(Sound::Select);
+            update();
+        } else if (name == QStringLiteral("Animated dots")) {
+            dots_on = !dots_on;
+            settings.setValue(QStringLiteral("shelf/dots"), dots_on);
+            sounds.Play(Sound::Select);
+            update();
+        } else if (name == QStringLiteral("Show statistics tab")) {
+            show_stats_tab = !show_stats_tab;
+            settings.setValue(QStringLiteral("shelf/show_stats"), show_stats_tab);
+            if (!show_stats_tab && shelf_stats) {
+                SetStats(false);
+            }
+            sounds.Play(Sound::Select);
+            update();
         } else if (name == QStringLiteral("Menu sounds")) {
             sound_on = !sound_on;
             settings.setValue(QStringLiteral("sounds"), sound_on);
@@ -2552,6 +2597,17 @@ void HomeWindow::wheelEvent(QWheelEvent* event) {
             return;
         }
         wheel_side += by;
+        if (shelf_stats && goal_open != 0) {
+            // The open goal soroban: a bead of the rod in hand for each notch.
+            const int notches = static_cast<int>(wheel_side / 120);
+            if (notches != 0) {
+                wheel_side -= notches * 120;
+                for (int i = 0; i < std::abs(notches); ++i) {
+                    GoalKey(notches > 0 ? Qt::Key_Right : Qt::Key_Left);
+                }
+            }
+            return;
+        }
         if (shelf_pages && !wizard_on) {
             // The pages: the list of rows goes, by a touchpad's small turns too.
             const int rows = static_cast<int>(wheel_side / 40);

@@ -1,0 +1,14 @@
+{
+  "name": "Nocturne",
+  "order": 5,
+  "ground": "#000000",
+  "raised": "#0c1222",
+  "ink": "#ffffff",
+  "muted": "#889bc0",
+  "accent": "#60a5fa",
+  "rule": "rgba(130,178,255,0.22)",
+  "beam": true,
+  "display": "Michroma-Regular.ttf",
+  "text": "ZenKakuGothicNew-Bold.ttf",
+  "mono": "ChakraPetch-Medium.ttf"
+}

@@ -1037,10 +1037,11 @@ def dictionary_rows(rec: dict, names: dict, notes: dict, public: bool,
     """The dictionary's term rows. `images`: an entry's id to its picture's path in the zip."""
     images = images or {}
     rows, seq = [], 0
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, int]] = set()
 
     def add(expression: str, reading: str, gloss: list[str], score: int, tags: str = "名前") -> None:
-        key = (expression, reading)
+        # Once for each entry: two people of one family (春原 芽衣 and 春原 陽平) each answer to 春原.
+        key = (expression, reading, seq)
         if not expression or key in seen:
             return
         seen.add(key)
@@ -1088,7 +1089,8 @@ def make_zip(key: str, rec: dict, names: dict, notes: dict | None, public: bool)
     source = names.get("source", {})
     # What the zip holds besides the names' own date: the card's form (c1), the dev line's notes,
     # and its pictures (a zip with other pictures is another revision, so a device takes it).
-    marks = "-c1" + ("" if public else "-dev")
+    # c2 (2026-11-26): each person of a family answers to the family name, not only the first.
+    marks = "-c2" + ("" if public else "-dev")
     if pictures:
         digest = hashlib.sha256(b"".join(pictures[k] for k in sorted(pictures))).hexdigest()[:8]
         marks += f"-p{len(pictures)}.{digest}"

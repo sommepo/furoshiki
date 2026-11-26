@@ -19,10 +19,10 @@ bool IsFormsList(const TermEntry& entry) {
 }
 
 QString KindOfTitle(const QString& title) {
-    static const QRegularExpression grammar{QStringLiteral("grammar|文法|文型|語法|dojg|bunpro"),
+    static const QRegularExpression grammar{QStringLiteral("grammar|文法|文型|語法|dojg|bunpro|絵でわかる日本語|日本語教師"),
                                             QRegularExpression::CaseInsensitiveOption};
     static const QRegularExpression names{QStringLiteral("jmnedict|人名"), QRegularExpression::CaseInsensitiveOption};
-    static const QRegularExpression kanji{QStringLiteral("kanji|漢字|字典"), QRegularExpression::CaseInsensitiveOption};
+    static const QRegularExpression kanji{QStringLiteral("kanji(?!um)|漢字|字典|字源|字通|漢和"), QRegularExpression::CaseInsensitiveOption};
     if (grammar.match(title).hasMatch()) {
         return QStringLiteral("grammar");
     }
@@ -206,8 +206,17 @@ Kept Make(const LookupResult& result, const QHash<QString, QString>& kinds) {
     if (!result.entries.isEmpty() && result.entries.first().scoped) {
         // Who or what it is, as a card, when its dictionary says (tools/titles.py): the page
         // draws that in place of the senses, with the picture the dictionary's zip has.
-        const TermEntry& first = result.entries.first();
-        if (const Names::Card card = Names::CardOf(first.glossary_json); card.found) {
+        // Every further person or place written and read the same (a family name two characters
+        // share) is a card of its own, in the first one's "others".
+        QJsonArray others;
+        for (const TermEntry& entry : result.entries) {
+            if (!entry.scoped) {
+                continue;
+            }
+            const Names::Card card = Names::CardOf(entry.glossary_json);
+            if (!card.found) {
+                continue;
+            }
             QJsonObject shown{{QStringLiteral("name"), card.name},
                               {QStringLiteral("kind"), card.kind.isEmpty() ? QStringLiteral("person") : card.kind},
                               {QStringLiteral("also"), QJsonArray::fromStringList(card.also)}};
@@ -221,8 +230,15 @@ Kept Make(const LookupResult& result, const QHash<QString, QString>& kinds) {
             put("romaji", card.romaji);
             put("role", card.role);
             put("about", card.about);
-            put("image", Names::Picture(first.dictionary, card.image));
-            made.card = shown;
+            put("image", Names::Picture(entry.dictionary, card.image));
+            if (made.card.isEmpty()) {
+                made.card = shown;
+            } else {
+                others.append(shown);
+            }
+        }
+        if (!others.isEmpty()) {
+            made.card.insert(QStringLiteral("others"), others);
         }
     }
     return made;

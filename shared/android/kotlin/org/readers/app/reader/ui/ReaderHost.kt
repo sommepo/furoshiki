@@ -183,6 +183,8 @@ class ReaderHost(
 
         /** Hands the session a way to take screenshots of [surface] while it is on screen. */
         fun provideFrames(surface: SurfaceView) {
+            // The popup blurs this picture behind itself where it is see-through (PopupBlur).
+            PopupBlur.surface = java.lang.ref.WeakReference(surface)
             ReaderSession.media?.frameSource = { maxWidth, callback ->
                 copyFrame(surface, maxWidth, callback)
             }

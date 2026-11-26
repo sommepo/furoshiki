@@ -7,9 +7,11 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -107,6 +109,10 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** The look's own settings as the page takes them (ReaderSettings.popupLook); the classic popup has none. */
     var look: JSONObject? = null
+        set(value) {
+            field = value
+            refreshBlur()
+        }
 
     /**
      * The popup's look: "classic" (drawn by these views, as before) or a theme of the popup page
@@ -117,6 +123,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         set(value) {
             field = value
             if (value == "classic" || !PopupPage.available) dropPage() else page?.setStyle("theme", PopupPage.themeCss(context, value))
+            refreshBlur()
         }
 
     /** The user's own CSS, applied after the theme. */
@@ -331,9 +338,12 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
                         )
                     }
                 }
+                blurRadius = (message.optDouble("radius", 0.0) * density).toFloat()
+                blurBox = (message.optDouble("box", 0.0) * density).toFloat()
                 alpha = 1f
                 requestLayout()
                 onLayoutChanged?.invoke()
+                refreshBlur()
             }
 
             "add" -> shownResults.getOrNull(index)?.let { result ->
@@ -481,6 +491,103 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         placeBoxes()
+        // Moved or another size: what is behind it now, from the picture in hand, at once.
+        if (changed) cutBlur()
+    }
+
+    // The game blurred behind a see-through popup (PopupBlur): a small copy of the game's picture,
+    // what of it lies under the popup blurred, drawn behind the page within the popup's corners.
+    private var blurFrame: PopupBlur.Picture? = null
+    private var blurSurface: PopupBlur.Box? = null
+    private var blurShrink = PopupBlur.SHRINK.toFloat()
+    private var blurPicture: Bitmap? = null
+    private var blurRadius = 0f
+    // How tall the page has drawn the popup: the view is taller for a moment as it grows, and
+    // the blur is not drawn where the page has no ground over it yet.
+    private var blurBox = 0f
+    private var blurAsked = false
+    private val blurPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val blurClip = Path()
+    private val blurPlace = RectF()
+    private val blurAgain = Runnable { refreshBlur() }
+
+    private val blurWanted: Boolean
+        get() = isPage && isShown && PopupBlur.on(theme, look?.optInt("opacity", 100) ?: 100)
+
+    /** Takes the game's picture again, while a see-through popup is shown; else lets the blur go. */
+    private fun refreshBlur() {
+        removeCallbacks(blurAgain)
+        val surface = PopupBlur.surface?.get()
+        // A game on another display (a handheld's second screen) is not behind this popup.
+        if (!blurWanted || surface == null || !surface.isShown || surface.display?.displayId != display?.displayId) {
+            if (blurPicture != null || blurFrame != null) {
+                blurFrame = null
+                blurPicture = null
+                invalidate()
+            }
+            return
+        }
+        if (blurAsked) return
+        blurAsked = true
+        val maxWidth = maxOf(1, surface.width / PopupBlur.SHRINK)
+        ReaderHost.copyFrame(surface, maxWidth) { copy ->
+            blurAsked = false
+            if (copy != null && blurWanted) {
+                val pixels = IntArray(copy.width * copy.height)
+                copy.getPixels(pixels, 0, copy.width, 0, 0, copy.width, copy.height)
+                val at = IntArray(2).also { surface.getLocationOnScreen(it) }
+                blurFrame = PopupBlur.Picture(copy.width, copy.height, pixels)
+                blurSurface = PopupBlur.Box(at[0], at[1], at[0] + surface.width, at[1] + surface.height)
+                blurShrink = surface.width.toFloat() / copy.width
+                cutBlur()
+            }
+            copy?.recycle()
+            if (blurWanted) postDelayed(blurAgain, PopupBlur.REFRESH_MS)
+        }
+    }
+
+    /** What of the picture in hand lies under the popup where it stands now, blurred. */
+    private fun cutBlur() {
+        val frame = blurFrame ?: return
+        val surface = blurSurface ?: return
+        if (width <= 0 || height <= 0) return
+        val at = IntArray(2).also { getLocationOnScreen(it) }
+        val under = PopupBlur.under(frame, surface, PopupBlur.Box(at[0], at[1], at[0] + width, at[1] + height)) ?: return
+        PopupBlur.blur(under, PopupBlur.reach(resources.displayMetrics.density, blurShrink))
+        blurPicture = Bitmap.createBitmap(under.pixels, under.width, under.height, Bitmap.Config.ARGB_8888)
+        invalidate()
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        val picture = blurPicture
+        if (picture != null && isPage) {
+            val save = canvas.save()
+            val drawn = if (blurBox > 0f && blurBox < height) Math.ceil(blurBox.toDouble()).toFloat() else height.toFloat()
+            blurPlace.set(0f, 0f, width.toFloat(), drawn)
+            if (blurRadius > 0f) {
+                blurClip.rewind()
+                blurClip.addRoundRect(blurPlace, blurRadius, blurRadius, Path.Direction.CW)
+                canvas.clipPath(blurClip)
+            } else {
+                canvas.clipRect(blurPlace)
+            }
+            blurPlace.set(0f, 0f, width.toFloat(), height.toFloat())
+            canvas.drawBitmap(picture, null, blurPlace, blurPaint)
+            canvas.restoreToCount(save)
+        }
+        super.dispatchDraw(canvas)
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        post { refreshBlur() }
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(blurAgain)
+        blurFrame = null
+        blurPicture = null
+        super.onDetachedFromWindow()
     }
 
     /**

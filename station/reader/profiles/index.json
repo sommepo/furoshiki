@@ -14,7 +14,7 @@
       "names": {
         "file": "names-double-cast.zip",
         "size": 2566,
-        "sha256": "5ff6ea9d88cfd4ac77c5707a206cd4dddf92bd2fefb23b6c66b3fa6f79d071f8"
+        "sha256": "5b16b4fea118306a6c8d09e2983f661f6d6d891b77abd566af3276500c04efc3"
       }
     },
     {
@@ -29,7 +29,7 @@
       "names": {
         "file": "names-double-cast.zip",
         "size": 2566,
-        "sha256": "5ff6ea9d88cfd4ac77c5707a206cd4dddf92bd2fefb23b6c66b3fa6f79d071f8"
+        "sha256": "5b16b4fea118306a6c8d09e2983f661f6d6d891b77abd566af3276500c04efc3"
       }
     },
     {
@@ -43,8 +43,8 @@
       "sha256": "275755b42ba2feff4f13d8b95b81ccf4f5611ea07bfaec1927f4e58796ec8e8a",
       "names": {
         "file": "names-aconcagua.zip",
-        "size": 2602,
-        "sha256": "94ec45dc6764d95d6758045d31760d9d5d496f55e105bde3430a4fae5310b47b"
+        "size": 2603,
+        "sha256": "422128bff8a896d3f077a70e4aebd9bed5ba6294554776eb512acf8fd5e1c037"
       }
     },
     {
@@ -58,8 +58,8 @@
       "sha256": "2ef9e124a929d38b79f0365841b7af84a21a7ed7d119cf739f15b4c933cf85df",
       "names": {
         "file": "names-aconcagua.zip",
-        "size": 2602,
-        "sha256": "94ec45dc6764d95d6758045d31760d9d5d496f55e105bde3430a4fae5310b47b"
+        "size": 2603,
+        "sha256": "422128bff8a896d3f077a70e4aebd9bed5ba6294554776eb512acf8fd5e1c037"
       }
     },
     {
@@ -74,7 +74,7 @@
       "names": {
         "file": "names-gakkou-de-atta-kowai-hanashi-s.zip",
         "size": 3152,
-        "sha256": "3b0349630b969e98b2b7b03f4d4c8fbce8577333789269a3be9b54c085edbb90"
+        "sha256": "6047666edc9cdb3dc3e7feb9a255ea3b889852e115c399404c88018455713628"
       }
     },
     {
@@ -88,8 +88,8 @@
       "sha256": "181a750b7017ef820beb40043ddc655927139debab075460da3fabf2bf5a11e6",
       "names": {
         "file": "names-kamaitachi-no-yoru.zip",
-        "size": 3707,
-        "sha256": "f3ad073b3bd41823c5705f1b2c1ae1675c0c53b5cb9991a0f4687603d6db71ee"
+        "size": 3869,
+        "sha256": "fbdc9c725989c1bcece203f790454619f9f568827aaa36cc1717cfa208af88dc"
       }
     }
   ]

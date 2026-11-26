@@ -14,7 +14,7 @@
       "names": {
         "file": "names-layton-vs-ace-attorney.zip",
         "size": 4076,
-        "sha256": "d8a215888539e598741c36e82bca3240e7aa4de3995062ee1f678f426c5cd6a1"
+        "sha256": "1ebabcd9ad30c083070a0b5867eb749a973087af4ad028975dcca8dfdaf39ecd"
       }
     },
     {
@@ -29,7 +29,7 @@
       "names": {
         "file": "names-shin-megami-tensei-iv.zip",
         "size": 6232,
-        "sha256": "3a592c99c8d1376a2aa5679c6c7b9fb786983bbdeb44bc3f9d33bf6449ab331b"
+        "sha256": "232976e0914bd437e80c5a9dde4ccc93c9d6a5aa17a7bf9cac0d39ce944cdc8c"
       }
     },
     {
@@ -43,8 +43,8 @@
       "sha256": "a2e2da2834c534ec696c5e595061accf55bc14c1ffbe63ba288a0fb57f1d6249",
       "names": {
         "file": "names-phoenix-wright-ace-attorney-trilogy.zip",
-        "size": 21176,
-        "sha256": "bd6e2aa23cb363793f5ce83924af94d79a30b04cf6983b18e2c29685eb546011"
+        "size": 22353,
+        "sha256": "550e46bb7e52ac89105e9d1793733f80fac22e3d81be61630aea22ba2f98e437"
       }
     }
   ]

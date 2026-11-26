@@ -46,20 +46,7 @@ object PopupModel {
             put("name", true)
             // Who or what it is, as a card, when its dictionary says (tools/titles.py): the page
             // draws that in place of the senses, with the picture the dictionary's zip has.
-            if (!withoutSenses) NamesDictionaries.cardOf(first.glossaryJson)?.let { card ->
-                put("card", JSONObject().apply {
-                    put("name", card.name)
-                    put("kind", card.kind)
-                    put("also", JSONArray(card.also))
-                    fun say(name: String, value: String) { if (value.isNotEmpty()) put(name, value) }
-                    say("id", card.id)
-                    say("reading", card.reading)
-                    say("romaji", card.romaji)
-                    say("role", card.role)
-                    say("about", card.about)
-                    say("image", NamesDictionaries.picture(first.dictionary, card.image))
-                })
-            }
+            if (!withoutSenses) cardOf(result)?.let { put("card", it) }
         }
         if (!history.isNullOrEmpty()) put("history", history)
     }
@@ -134,8 +121,19 @@ object PopupModel {
             any = true
         }
         senses.append(']')
-        val card = result.entries.firstOrNull()?.takeIf { it.scoped }?.let { first ->
-            NamesDictionaries.cardOf(first.glossaryJson)?.let { card ->
+        val card = cardOf(result)?.toString()
+        return KeptText(senses.toString(), JSONArray(forms(result)).toString(), card, pictures)
+    }
+
+    /**
+     * Who a name of the running game is, as the page's card: the first entry's, and in its
+     * "others" every further person or place written and read the same (a family name two
+     * characters share), each a card of its own.
+     */
+    private fun cardOf(result: LookupResult): JSONObject? {
+        if (result.entries.firstOrNull()?.scoped != true) return null
+        val cards = result.entries.filter { it.scoped }.mapNotNull { entry ->
+            NamesDictionaries.cardOf(entry.glossaryJson)?.let { card ->
                 JSONObject().apply {
                     put("name", card.name)
                     put("kind", card.kind)
@@ -146,11 +144,13 @@ object PopupModel {
                     say("romaji", card.romaji)
                     say("role", card.role)
                     say("about", card.about)
-                    say("image", NamesDictionaries.picture(first.dictionary, card.image))
-                }.toString()
+                    say("image", NamesDictionaries.picture(entry.dictionary, card.image))
+                }
             }
         }
-        return KeptText(senses.toString(), JSONArray(forms(result)).toString(), card, pictures)
+        val first = cards.firstOrNull() ?: return null
+        if (cards.size > 1) first.put("others", JSONArray(cards.drop(1)))
+        return first
     }
 
     private fun keptOrMade(result: LookupResult, kinds: Map<String, String>): KeptText {

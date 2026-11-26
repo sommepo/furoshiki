@@ -101,6 +101,7 @@ QString PlaySetting::Said(const QString& value) const {
             {QStringLiteral("popup.theme/auto"), QStringLiteral("Match theme")},
             {QStringLiteral("popup.theme/console"), QStringLiteral("Console colours")},
             {QStringLiteral("popup.theme/furoshiki"), QStringLiteral("Furoshiki glass")},
+            {QStringLiteral("popup.theme/yomitan-dark"), QStringLiteral("Serif noir")},
             {QStringLiteral("popup.lookups/where"), QStringLiteral("Count and first seen")},
             {QStringLiteral("popup.glossary/full"), QStringLiteral("Dictionary layout")},
             {QStringLiteral("popup.glossary/compact"), QStringLiteral("Compact")},

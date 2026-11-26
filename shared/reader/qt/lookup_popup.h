@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QImage>
 #include <QSet>
 
 #include <functional>
@@ -106,9 +107,17 @@ public:
     void SetMarkUnknown(bool mark);
     /// The look's own settings as the page takes them (ReaderSettings::PopupLook): how solid,
     /// how round, how many senses, the tags, a name's picture. The classic popup has none of it.
-    void SetLook(const QJsonObject& look_) {
-        look = look_;
-    }
+    void SetLook(const QJsonObject& look_);
+    /**
+     * Whether the popup wants a blurred picture of what is behind it drawn under its page: a
+     * page popup that is see-through (the look's opacity under 100, or a glass theme), where
+     * the system does not blur behind a window itself (not on Windows: UpdateBackdropBlur).
+     */
+    [[nodiscard]] bool WantsBackdrop() const;
+    /// That picture, drawn over the whole popup inside its corners; none takes it away.
+    void SetBackdrop(const QImage& picture);
+    /// How round the popup's corners are, in its own pixels: the look's, else its theme's.
+    [[nodiscard]] int CornerRadius() const;
     void SetUnknown(int index, bool unknown);
     [[nodiscard]] bool IsUnknown(int index) const;
     void ShowMessage(const QString& message, bool offer_dictionaries);
@@ -202,8 +211,12 @@ protected:
     void wheelEvent(QWheelEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 private:
+    void UpdateBackdropBlur();
+    /// See-through: the look's opacity under 100, or a theme that is glass by itself.
+    [[nodiscard]] bool Translucent() const;
     bool pointer_set{};
 
     struct Entry {
@@ -248,6 +261,12 @@ private:
     bool allow_duplicates{};
     bool mark_unknown{true};
     QJsonObject look;
+    /// What is behind the popup, blurred (SetBackdrop).
+    QImage backdrop;
+    /// Until when the backdrop is not drawn: the page takes a moment to draw itself at a new
+    /// size, and the blur alone, with no page over it, would flash as an empty box.
+    qint64 backdrop_held_until{};
+    void HoldBackdrop();
     Corner card_corner{Corner::TopRight};
     int content_width{};
     int content_height{};

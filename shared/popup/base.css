@@ -34,6 +34,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   font-size: calc(13px * var(--scale));
   line-height: 1.35;
 }
+.popup.translucent {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
 /* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, hidden at
    rest and shown only while actively scrolling. (No scrollbar-width or scrollbar-color here: with
    either, Chromium draws its own bar with a track and passes these rules over.) */
@@ -244,7 +248,14 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .sc .sc-img { color: var(--dim); }
 /* ---- A word's definitions as its dictionary set them (look.glossary "full", Yomitan's way) ----
    The variables some dictionaries' stylesheets read from Yomitan's page are the popup's colours. */
-.sc { --text-color: var(--text); --fg: var(--text); --background-color: transparent; --font-size-no-units: 13; }
+/* Yomitan's own colour names, which dictionaries' stylesheets use. A label "in the background's
+   colour on a filled box" (角川新字源's red and black labels) needs a real colour for its text, so
+   --background-color-light is the popup's ground; --background-color stays clear for the boxes
+   that only repeat the page's background. Plain rgba: WebView 109 has no color-mix. */
+.sc { --text-color: var(--text); --fg: var(--text); --background-color: transparent; --background-color-light: var(--ground);
+  --accent-color: var(--accent); --link-color: var(--accent); --input-background-color: rgba(128, 128, 128, 0.18);
+  --danger-color: #cc3a34; --danger-color-lighter: rgba(204, 58, 52, 0.42); --danger-color-lightest: rgba(204, 58, 52, 0.2);
+  --font-size-no-units: 13; }
 /* Each line finds its own direction (an Arabic gloss right to left, a Japanese example left to
    right), and is set from its own start. */
 .sc-definition, .sc [dir="auto"], .glosses .gloss { unicode-bidi: plaintext; text-align: start; }
@@ -297,6 +308,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .sc [data-sc-content="xref"], .sc [data-sc-content="antonym"] { color: var(--dim); font-size: 0.92em; }
 .sc .sc-a.link { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: default; }
 /* A picture from the dictionary's zip: within the popup's width, at the size it asks for. */
+.sc .gloss-image-link { display: inline-block; max-width: 100%; vertical-align: middle; line-height: 0; }
 .sc .sc-img.gloss-image-container { display: inline-block; position: relative; max-width: 100%; vertical-align: middle; line-height: 0; }
 /* As Yomitan has it: in a picture's box an em is a fourteenth of the text (a pixel at Yomitan's
    14 px), which dictionaries' stylesheets size their pictures by: 明鏡's symbols are "15em" wide,

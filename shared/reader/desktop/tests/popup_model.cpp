@@ -123,6 +123,13 @@ TEST_CASE("PopupModel: a name of the running game is a card", "[reader][popup][n
     REQUIRE(shown.value(QStringLiteral("role")).toString() == QStringLiteral("Main character"));
     REQUIRE(shown.value(QStringLiteral("also")).toArray().size() == 2);
     REQUIRE(shown.value(QStringLiteral("about")).toString() == QStringLiteral("He studies folklore."));
+    REQUIRE_FALSE(shown.contains(QStringLiteral("others")));
+    // Two people written and read the same: the second is a card too, in the first's "others".
+    result.entries = {name, name};
+    const QJsonArray others =
+        PopupModel::Entry(result, {}).value(QStringLiteral("card")).toObject().value(QStringLiteral("others")).toArray();
+    REQUIRE(others.size() == 1);
+    REQUIRE(others.first().toObject().value(QStringLiteral("name")).toString() == Q(u"真宮寺 是清"));
     REQUIRE_FALSE(shown.contains(QStringLiteral("image"))); // no zip remembered: no picture, the card all the same
     // The name's own sense is the card's words as plain lines, for the popup drawn without the page.
     const QJsonArray senses = entry.value(QStringLiteral("senses")).toArray();
@@ -155,6 +162,14 @@ TEST_CASE("PopupModel: each sense says its dictionary's kind, for the popup's ta
     REQUIRE(kind(QStringLiteral("JMdict")) == QStringLiteral("word"));
     REQUIRE(kind(Q(u"漢字辞典"), Q(u"位")) == QStringLiteral("kanji"));
     REQUIRE(kind(Q(u"漢字辞典"), Q(u"位置")) == QStringLiteral("word"));
+    // Titles the rule missed (2026-11-26): a pitch dictionary named after kanji is not a kanji
+    // dictionary, 字源 is one, and two grammar dictionaries say neither 文法 nor grammar.
+    REQUIRE(kind(QStringLiteral("Kanjium Pitch Accents"), Q(u"位")) == QStringLiteral("word"));
+    REQUIRE(kind(Q(u"角川新字源 改訂新版"), Q(u"髪")) == QStringLiteral("kanji"));
+    REQUIRE(kind(Q(u"旺文社漢字典 第四版"), Q(u"髪")) == QStringLiteral("kanji"));
+    REQUIRE(kind(Q(u"[画像付き] 絵でわかる日本語")) == QStringLiteral("grammar"));
+    REQUIRE(kind(Q(u"毎日のんびり日本語教師")) == QStringLiteral("grammar"));
+    REQUIRE(kind(Q(u"JLPT文法解説まとめ")) == QStringLiteral("grammar"));
     REQUIRE(kind(Q(u"名前 · Game"), Q(u"紅莉栖"), true) == QStringLiteral("name"));
     // The user's kind wins.
     TermEntry other = Sense(Q(u"大辞林"), {}, QStringLiteral("[]"));

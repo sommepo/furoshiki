@@ -1401,6 +1401,10 @@ MainWindow::MainWindow() {
     // for each time; SDL's own thread takes the device messages that are left.
     SDL_SetHint(SDL_HINT_JOYSTICK_RAWINPUT, "0");
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+#ifdef SDL_HINT_JOYSTICK_HIDAPI_STEAM
+    // Home::SteamPad reads Valve's Steam Controller directly on Windows; keep SDL from opening it too.
+    SDL_SetHintWithPriority(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "0", SDL_HINT_OVERRIDE);
+#endif
 #endif
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
     {
@@ -3626,31 +3630,75 @@ void MainWindow::PollPads() {
 #else
     const bool guide_combo = false;
 #endif
+    static uint32_t popup_swallow = 0; // by SDL's number; bits 30 and 31 the triggers
     // While the in-game menu overlay or a QMenu is open, the controller drives it and the game gets nothing.
-    if ((game_picker != nullptr && game_picker->isVisible()) || (menu != nullptr && menu->isVisible())) {
-        static uint32_t menu_held = 0;
+    const bool menu_open = (game_picker != nullptr && game_picker->isVisible()) || (menu != nullptr && menu->isVisible());
+    static bool menu_was_open = false;
+    static uint32_t menu_held = 0;
+    static int menu_stick_x = 0;
+    static int menu_stick_y = 0;
+    if (menu_open) {
         const std::pair<int, int> keys[] = {
             {SDL_CONTROLLER_BUTTON_DPAD_UP, Qt::Key_Up},       {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Qt::Key_Down},
             {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Qt::Key_Left},   {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Qt::Key_Right},
             {SDL_CONTROLLER_BUTTON_A, Qt::Key_Return},         {SDL_CONTROLLER_BUTTON_B, Qt::Key_Escape},
             {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Qt::Key_PageUp}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Qt::Key_PageDown},
         };
+        const auto axis_dir = [&](SDL_GameControllerAxis sdl_axis, int steam_axis, int prev) {
+            const int from_sdl = pad != nullptr ? SDL_GameControllerGetAxis(pad, sdl_axis) : 0;
+            const int from_steam = steam_axes[steam_axis];
+            const int value = std::abs(from_steam) > std::abs(from_sdl) ? from_steam : from_sdl;
+            return value > 18000 ? 1 : value < -18000 ? -1 : (std::abs(value) < 9000 ? 0 : prev);
+        };
+        if (!menu_was_open) {
+            menu_held = 0;
+            for (const auto& [sdl, key] : keys) {
+                if (button(sdl)) {
+                    menu_held |= 1U << sdl;
+                }
+            }
+            menu_stick_x = axis_dir(SDL_CONTROLLER_AXIS_LEFTX, ReaderApp::SteamBridge::LeftX, 0);
+            menu_stick_y = axis_dir(SDL_CONTROLLER_AXIS_LEFTY, ReaderApp::SteamBridge::LeftY, 0);
+            menu_was_open = true;
+        }
+        const auto send_menu_key = [&](int key) {
+            if (game_picker != nullptr && game_picker->isVisible()) {
+                game_picker->Key(key);
+            } else if (QWidget* target = QApplication::activePopupWidget() ? QApplication::activePopupWidget() : menu) {
+                QApplication::postEvent(target, new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier));
+                QApplication::postEvent(target, new QKeyEvent(QEvent::KeyRelease, key, Qt::NoModifier));
+            }
+        };
         for (const auto& [sdl, key] : keys) {
             const bool down = button(sdl);
             const uint32_t mask = 1U << sdl;
             if (down && (menu_held & mask) == 0) {
-                if (game_picker != nullptr && game_picker->isVisible()) {
-                    game_picker->Key(key);
-                } else if (QWidget* target = QApplication::activePopupWidget() ? QApplication::activePopupWidget() : menu) {
-                    QApplication::postEvent(target, new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier));
-                    QApplication::postEvent(target, new QKeyEvent(QEvent::KeyRelease, key, Qt::NoModifier));
-                }
+                send_menu_key(key);
             }
             menu_held = down ? menu_held | mask : menu_held & ~mask;
+            if (down) {
+                popup_swallow |= mask;
+            }
         }
+        const int next_x = axis_dir(SDL_CONTROLLER_AXIS_LEFTX, ReaderApp::SteamBridge::LeftX, menu_stick_x);
+        if (next_x != menu_stick_x && next_x != 0) {
+            send_menu_key(next_x > 0 ? Qt::Key_Right : Qt::Key_Left);
+        }
+        menu_stick_x = next_x;
+        const int next_y = axis_dir(SDL_CONTROLLER_AXIS_LEFTY, ReaderApp::SteamBridge::LeftY, menu_stick_y);
+        if (next_y != menu_stick_y && next_y != 0) {
+            send_menu_key(next_y > 0 ? Qt::Key_Down : Qt::Key_Up);
+        }
+        menu_stick_y = next_y;
         std::scoped_lock lock{pads_mutex};
         std::fill(std::begin(gamepads), std::end(gamepads), reader_core_pad{});
         return;
+    }
+    if (menu_was_open) {
+        menu_was_open = false;
+        menu_held = 0;
+        menu_stick_x = 0;
+        menu_stick_y = 0;
     }
     // An open dictionary popup is modal, as on Android (PopupKeys): the d-pad goes from entry to
     // entry, L1 and R1 from tab to tab (words, grammar, kanji, names), north makes a card of the
@@ -3659,7 +3707,6 @@ void MainWindow::PollPads() {
     // south, X west. The game hears none of the controller meanwhile, and a button pressed in the
     // popup stays away from it until it is let go (A closing the popup does not press A in the
     // game). The cursor's button, the menu's (Guide; Select and Start) and the back grips stay theirs.
-    static uint32_t popup_swallow = 0; // by SDL's number; bits 30 and 31 the triggers
     ReaderUi::LookupFlow* const open_popup = OpenPopup();
     // Reading with the d-pad (below): buttons kept from the game for now (what starts reading,
     // and a button of a two-button start for a moment), ones it has a moment late, and whether
@@ -4053,7 +4100,8 @@ void MainWindow::PollPads() {
                 const Role& role = Roles[i];
                 const bool down = role.sdl >= 0 ? button(role.sdl)
                                                 : (pad != nullptr && SDL_GameControllerGetAxis(pad, role.filter == 104 ? SDL_CONTROLLER_AXIS_TRIGGERLEFT
-                                                                                                                         : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000);
+                                                                                                                         : SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000) ||
+                                                      steam_axes[role.filter == 104 ? ReaderApp::SteamBridge::LeftTrigger : ReaderApp::SteamBridge::RightTrigger] > 16000;
                 raw |= down ? uint64_t{1} << i : 0;
             }
             const auto index_of = [](int filter) {
@@ -4948,7 +4996,7 @@ void MainWindow::OpenMenu() {
     add(QStringLiteral("Quit game"), [this] {
         OpenPickerOverlay(QStringLiteral("Quit game?"), {QStringLiteral("Cancel"), QStringLiteral("Quit to Library")}, 0, [this](int idx) {
             if (idx == 1) {
-                ShowGame(false);
+                EndGame();
             }
         });
     });

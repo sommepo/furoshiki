@@ -333,7 +333,9 @@ if(HOME_CORES)
 		target_sources(home_reader PRIVATE ${HOME_READER}/qt/save_sync_dialog.cpp ${HOME_READER}/qt/save_sync_dialog.h)
 		target_link_libraries(home_reader PUBLIC home_save_sync)
 	endif()
-	target_compile_definitions(home_reader PRIVATE READER_SDL_MAJOR=2)
+	# Home::SteamPad already reads Valve's Steam Controller on Windows; disabling the reader
+	# bridge's HID scanner prevents both from opening the same controller and doubling inputs.
+	target_compile_definitions(home_reader PRIVATE READER_SDL_MAJOR=2 READER_NO_STEAM_BRIDGE=1)
 	if(WIN32)
 		target_link_libraries(home_reader PRIVATE hid setupapi)
 	endif()

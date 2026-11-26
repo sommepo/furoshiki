@@ -66,7 +66,7 @@ void SharePictures(QJsonArray& entries, QSet<QString>& sent, QJsonObject& pictur
  * What kind of dictionary an entry comes from, for the popup's tabs: "word", "grammar", "kanji"
  * or "name". The kind the user gave it (`kinds`, by title); a names dictionary of the running
  * game: names; its title: grammar|文法|文型|語法|DOJG|Bunpro → grammar, JMnedict|人名 → names,
- * kanji|漢字|字典 → kanji for an entry of one character (a compound there is a word); else words.
+ * kanji (not Kanjium)|漢字|字典|字源|字通|漢和 → kanji for an entry of one character (a compound there is a word); else words.
  * The same rule as Android's DictionaryKinds.
  */
 [[nodiscard]] QString KindOf(const TermEntry& entry, const QHash<QString, QString>& kinds = {});

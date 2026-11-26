@@ -4,10 +4,17 @@
 #include <utility>
 #include <algorithm>
 #include <cmath>
+#include <QRegularExpression>
+#include <QPainterPath>
 #include <QMouseEvent>
 #include <QDateTime>
+#include <QTimer>
 #include <QImage>
 #include <QResizeEvent>
+#include <QShowEvent>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 #include <QJsonDocument>
 #include <QLocale>
 #include <QPainter>
@@ -445,6 +452,120 @@ void LookupPopup::SetTheme(const QString& theme) {
     const QString css = ThemeCss(theme);
     web->Call(QStringLiteral("Reader.setStyle(\"theme\", %1)")
                   .arg(JsString(css)));
+    UpdateBackdropBlur();
+}
+
+void LookupPopup::SetLook(const QJsonObject& look_) {
+    look = look_;
+    UpdateBackdropBlur();
+}
+
+bool LookupPopup::Translucent() const {
+    const int opacity = look.value(QStringLiteral("opacity")).toInt(0);
+    return opacity > 0 ? (opacity < 100)
+                       : (theme_name == QStringLiteral("glass") || theme_name == QStringLiteral("kuro") ||
+                          theme_name == QStringLiteral("furoshiki"));
+}
+
+bool LookupPopup::WantsBackdrop() const {
+#if defined(_WIN32)
+    return false; // the compositor blurs behind the window (UpdateBackdropBlur)
+#else
+    return web != nullptr && Translucent();
+#endif
+}
+
+void LookupPopup::SetBackdrop(const QImage& picture) {
+    if (picture.isNull() && backdrop.isNull()) {
+        return;
+    }
+    backdrop = picture;
+    update();
+}
+
+int LookupPopup::CornerRadius() const {
+    const int set = look.value(QStringLiteral("radius")).toInt(-1);
+    if (set >= 0) {
+        return std::min(set, 28);
+    }
+    // The theme's own --radius (base.css has 4px for a theme that says none).
+    static const QRegularExpression radius(QStringLiteral("--radius:\\s*(\\d+)px"));
+    const QRegularExpressionMatch match = radius.match(ThemeCss(theme_name));
+    return match.hasMatch() ? match.captured(1).toInt() : 4;
+}
+
+void LookupPopup::UpdateBackdropBlur() {
+#if !defined(_WIN32)
+    if (!WantsBackdrop()) {
+        SetBackdrop(QImage()); // solid again: nothing of the game under the page
+    }
+#endif
+#if defined(_WIN32)
+    if (!web || !testAttribute(Qt::WA_WState_Created)) {
+        return;
+    }
+    const HWND hwnd = reinterpret_cast<HWND>(winId());
+    if (!hwnd) {
+        return;
+    }
+    const bool translucent = Translucent();
+
+    struct AccentPolicy {
+        int accent_state;
+        int accent_flags;
+        unsigned int gradient_color;
+        int animation_id;
+    };
+    struct WindowCompositionAttributeData {
+        int attribute;
+        void* data;
+        std::size_t size;
+    };
+    using SetWcaFn = BOOL(WINAPI*)(HWND, WindowCompositionAttributeData*);
+    static const SetWcaFn set_wca = [] {
+        HMODULE user32 = GetModuleHandleW(L"user32.dll");
+        return user32 ? reinterpret_cast<SetWcaFn>(
+                            reinterpret_cast<void*>(GetProcAddress(user32, "SetWindowCompositionAttribute")))
+                      : nullptr;
+    }();
+    if (set_wca) {
+        AccentPolicy policy{translucent ? 3 /* ACCENT_ENABLE_BLURBEHIND */ : 0 /* ACCENT_DISABLED */, 0, 0, 0};
+        WindowCompositionAttributeData data{19 /* WCA_ACCENT_POLICY */, &policy, sizeof(policy)};
+        set_wca(hwnd, &data);
+    }
+
+    // Match Windows 11's DWM corner clip to the popup's rounded corners so the blur never bleeds outside.
+    using DwmSetAttrFn = HRESULT(WINAPI*)(HWND, DWORD, LPCVOID, DWORD);
+    static const DwmSetAttrFn dwm_set_attr = [] {
+        HMODULE dwm = LoadLibraryW(L"dwmapi.dll");
+        return dwm ? reinterpret_cast<DwmSetAttrFn>(
+                         reinterpret_cast<void*>(GetProcAddress(dwm, "DwmSetWindowAttribute")))
+                   : nullptr;
+    }();
+    if (dwm_set_attr) {
+        DWORD corner_pref = 0; // DWMWCP_DEFAULT
+        if (translucent) {
+            const int radius = look.value(QStringLiteral("radius")).toInt(-1);
+            if (radius == 0) {
+                corner_pref = 1; // DWMWCP_DONOTROUND
+            } else if (radius > 0 && radius <= 6) {
+                corner_pref = 3; // DWMWCP_ROUNDSMALL
+            } else if (radius > 6) {
+                corner_pref = 2; // DWMWCP_ROUND
+            } else if (theme_name == QStringLiteral("kuro") || theme_name == QStringLiteral("notebook") ||
+                       theme_name == QStringLiteral("shoin") || theme_name == QStringLiteral("kon-neo")) {
+                corner_pref = 1; // DWMWCP_DONOTROUND
+            } else if (theme_name == QStringLiteral("paper") || theme_name == QStringLiteral("paper-dark") ||
+                       theme_name == QStringLiteral("inaba") || theme_name == QStringLiteral("dense") ||
+                       theme_name == QStringLiteral("console")) {
+                corner_pref = 3; // DWMWCP_ROUNDSMALL
+            } else {
+                corner_pref = 2; // DWMWCP_ROUND
+            }
+        }
+        dwm_set_attr(hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &corner_pref, sizeof(corner_pref));
+    }
+#endif
 }
 
 namespace {
@@ -782,11 +903,29 @@ void LookupPopup::OnPageMessage(const QJsonObject& message) {
     }
 }
 
+void LookupPopup::HoldBackdrop() {
+    if (!WantsBackdrop()) {
+        return;
+    }
+    constexpr int HoldMs = 150;
+    backdrop_held_until = QDateTime::currentMSecsSinceEpoch() + HoldMs;
+    QTimer::singleShot(HoldMs + 5, this, [this] { update(); });
+}
+
 void LookupPopup::resizeEvent(QResizeEvent* event) {
     QWidget::resizeEvent(event);
     if (web) {
         web->setGeometry(rect());
     }
+    if (event->size().width() != event->oldSize().width()) {
+        HoldBackdrop(); // a new width: the page is laid out again
+    }
+}
+
+void LookupPopup::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+    UpdateBackdropBlur();
+    HoldBackdrop();
 }
 
 void LookupPopup::SetMarkUnknown(bool mark) {
@@ -1073,6 +1212,17 @@ void LookupPopup::paintEvent(QPaintEvent*) {
         QPainter painter(this);
         painter.setCompositionMode(QPainter::CompositionMode_Source);
         painter.fillRect(rect(), QColor(0, 0, 0, 1));
+        if (!backdrop.isNull() && QDateTime::currentMSecsSinceEpoch() >= backdrop_held_until) {
+            // What is behind the popup, blurred, inside the page's own corners: the see-through
+            // page is drawn over it (where the system blurs nothing behind a window).
+            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+            painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+            QPainterPath corners;
+            const int radius = CornerRadius();
+            corners.addRoundedRect(QRectF(rect()), radius, radius);
+            painter.setClipPath(corners);
+            painter.drawImage(QRectF(rect()), backdrop);
+        }
         return;
     }
     QPainter painter(this);

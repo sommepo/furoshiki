@@ -64,6 +64,11 @@ class PopupModelTest {
         assertEquals(2, card.getJSONArray("also").length())
         assertEquals("He studies folklore.", card.getString("about"))
         assertEquals("data:image/jpeg;base64,AQID", card.getString("image"))
+        // Two people written and read the same: the second is a card too, in the first's "others".
+        val both = PopupModel.entry(result(listOf(name, name)), null).getJSONObject("card")
+        assertEquals(1, both.getJSONArray("others").length())
+        assertEquals("真宮寺 是清", both.getJSONArray("others").getJSONObject(0).getString("name"))
+        assertFalse(card.has("others"))
         // Only a picture of the zip's own img/ folder; another dictionary's has none.
         assertEquals("", NamesDictionaries.picture("名前 · Test", "../index.json"))
         assertEquals("", NamesDictionaries.picture("名前 · Other", "img/c53392.jpg"))

@@ -59,6 +59,7 @@
 #include "sounds.h"
 #include "pad_names.h"
 #include "pad_bluetooth.h"
+#include "goal_abacus.h"
 
 namespace {
 
@@ -310,7 +311,7 @@ int main(int argc, char** argv) {
         CHECK(css.contains(QStringLiteral(".headword { font-size: calc(31px * var(--scale)) !important; }")));
         CHECK(css.contains(QStringLiteral("color: #ff00ff !important")) && css.contains(QStringLiteral(".entry > .head { order: 2 !important; }")));
         CHECK(Home::PopupDesign::FreeName(folder, QStringLiteral("yomitan-dark")) == QStringLiteral("yomitan-dark-mine-2"));
-        CHECK(Home::PopupDesign::Shown(mine.name, mine.base) == QStringLiteral("Yomitan dark · mine"));
+        CHECK(Home::PopupDesign::Shown(mine.name, mine.base) == QStringLiteral("Serif noir · mine"));
         CHECK(Home::PopupDesign::InFolder(folder, QStringLiteral("paper")).isEmpty() && Home::PopupDesign::InFolder(folder, QStringLiteral("yomitan-dark")).size() == 1);
         const QList<Home::PlaySetting> popup = Home::PopupStyle::Settings(folder);
         CHECK(popup.size() == 12 && popup[0].Common() && popup[1].key == QStringLiteral("popup.design") && popup[1].choices.contains(mine.name));
@@ -1932,6 +1933,43 @@ function handler(regs, index) {
 #if !defined(_WIN32)
         CHECK(Find(path, 0x045E, 0x02E0).address.isEmpty()); // only Windows looks
 #endif
+    }
+
+    // The goal soroban's numbers (goal_abacus.h).
+    {
+        using namespace GoalAbacus;
+        CHECK((Digits(Daily, 12500) == std::array<int, 3>{1, 2, 5}));
+        CHECK((Digits(Daily, 0) == std::array<int, 3>{0, 0, 0}));
+        CHECK((Digits(Daily, 50000) == std::array<int, 3>{5, 0, 0}));
+        CHECK((Digits(Yearly, 5000000) == std::array<int, 3>{0, 5, 0}));
+        CHECK((Digits(Yearly, 30000000) == std::array<int, 3>{3, 0, 0}));
+        CHECK((Digits(Yearly, 12300000) == std::array<int, 3>{1, 2, 3}));
+        CHECK(Place(Daily, 0) == 10000 && Place(Daily, 1) == 1000 && Place(Daily, 2) == 500);
+        CHECK(Place(Yearly, 0) == 10000000 && Place(Yearly, 1) == 1000000 && Place(Yearly, 2) == 100000);
+        CHECK(Stepped(Daily, 12500, 2, 1) == 13000); // the half carries into the ones
+        CHECK(Stepped(Daily, 9000, 1, 1) == 10000);  // and the ones into the tens
+        CHECK(Stepped(Daily, 0, 1, -1) == 0);        // off is the lowest
+        CHECK(Stepped(Daily, 48000, 0, 1) == 50000); // and the most the highest
+        CHECK(Stepped(Yearly, 29900000, 2, 1) == 30000000);
+        CHECK(Stepped(Yearly, 30000000, 2, 1) == 30000000);
+        CHECK(WithDigit(Daily, 12500, 1, 7) == 17500);
+        CHECK(WithDigit(Daily, 12500, 2, 0) == 12000);
+        CHECK(WithDigit(Daily, 42500, 0, 5) == 50000); // 52,500 is past the most
+        CHECK(WithDigit(Yearly, 5000000, 0, 9) == 30000000); // the first rod has three beads
+        CHECK(WithDigit(Yearly, 5000000, 2, 4) == 5400000);
+        CHECK(Snap(Daily, 12740) == 12500 && Snap(Daily, 12750) == 13000 && Snap(Daily, 99999) == 50000);
+        CHECK(Round(Daily, 12500, 1) == 15000 && Round(Daily, 12500, -1) == 10000);
+        CHECK(Round(Daily, 50000, 1) == 50000 && Round(Daily, 0, -1) == 0);
+        CHECK(Round(Yearly, 5000000, 1) == 8000000 && Round(Yearly, 5000000, -1) == 3000000);
+        // Every goal the beads can show comes back from its own digits.
+        for (int goal = 0; goal <= Daily.most; goal += Daily.step) {
+            const auto d = Digits(Daily, goal);
+            CHECK(WithDigit(Daily, WithDigit(Daily, WithDigit(Daily, 0, 0, d[0]), 1, d[1]), 2, d[2]) == goal);
+        }
+        for (int goal = 0; goal <= Yearly.most; goal += Yearly.step) {
+            const auto d = Digits(Yearly, goal);
+            CHECK(WithDigit(Yearly, WithDigit(Yearly, WithDigit(Yearly, 0, 0, d[0]), 1, d[1]), 2, d[2]) == goal);
+        }
     }
 
     std::printf(failures == 0 ? "All tests passed\n" : "%d failure(s)\n", failures);

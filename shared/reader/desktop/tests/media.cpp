@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 #include <catch2/catch_test_macros.hpp>
+#include "reader/desktop/backdrop_blur.h"
 #include "reader/desktop/media.h"
 #include "reader/desktop/tests/test_util.h"
 
@@ -192,4 +193,33 @@ TEST_CASE("EncodeOggOpusAt: a clip at the PSP's rate lasts as long as it did", "
     const double wrong = seconds(EncodeOggOpusAt(samples, 2, OggOpusRate));
     CHECK(wrong > 1.82);
     CHECK(wrong < 1.87);
+}
+
+TEST_CASE("Blurred: an edge is spread, a flat picture and its size are kept", "[reader][media]") {
+    QImage flat(40, 30, QImage::Format_RGB32);
+    flat.fill(QColor(30, 60, 90));
+    const QImage same = ReaderApp::Blurred(flat, 4.0);
+    REQUIRE(same.size() == flat.size());
+    REQUIRE(same.pixel(0, 0) == flat.pixel(0, 0));
+    REQUIRE(same.pixel(20, 15) == flat.pixel(20, 15));
+
+    // Black on the left, white on the right: after the blur the edge is a slope, the far ends
+    // still black and white, and nothing is brighter or darker than before.
+    QImage edge(80, 20, QImage::Format_RGB32);
+    for (int y = 0; y < edge.height(); ++y) {
+        for (int x = 0; x < edge.width(); ++x) {
+            edge.setPixel(x, y, x < 40 ? qRgb(0, 0, 0) : qRgb(255, 255, 255));
+        }
+    }
+    const QImage soft = ReaderApp::Blurred(edge, 4.0);
+    REQUIRE(qRed(soft.pixel(0, 10)) == 0);
+    REQUIRE(qRed(soft.pixel(79, 10)) == 255);
+    REQUIRE(qRed(soft.pixel(38, 10)) > 40);
+    REQUIRE(qRed(soft.pixel(41, 10)) < 215);
+    for (int x = 1; x < edge.width(); ++x) {
+        REQUIRE(qRed(soft.pixel(x, 10)) >= qRed(soft.pixel(x - 1, 10)));
+    }
+    // Too small a radius, and no picture: as they came.
+    REQUIRE(ReaderApp::Blurred(edge, 0.2).pixel(39, 10) == edge.pixel(39, 10));
+    REQUIRE(ReaderApp::Blurred(QImage(), 4.0).isNull());
 }

@@ -46,6 +46,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   font-size: calc(13px * var(--scale));
   line-height: 1.35;
 }
+.popup.translucent {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
 /* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, hidden at
    rest and shown only while actively scrolling. (No scrollbar-width or scrollbar-color here: with
    either, Chromium draws its own bar with a track and passes these rules over.) */
@@ -256,7 +260,14 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .sc .sc-img { color: var(--dim); }
 /* ---- A word's definitions as its dictionary set them (look.glossary "full", Yomitan's way) ----
    The variables some dictionaries' stylesheets read from Yomitan's page are the popup's colours. */
-.sc { --text-color: var(--text); --fg: var(--text); --background-color: transparent; --font-size-no-units: 13; }
+/* Yomitan's own colour names, which dictionaries' stylesheets use. A label "in the background's
+   colour on a filled box" (角川新字源's red and black labels) needs a real colour for its text, so
+   --background-color-light is the popup's ground; --background-color stays clear for the boxes
+   that only repeat the page's background. Plain rgba: WebView 109 has no color-mix. */
+.sc { --text-color: var(--text); --fg: var(--text); --background-color: transparent; --background-color-light: var(--ground);
+  --accent-color: var(--accent); --link-color: var(--accent); --input-background-color: rgba(128, 128, 128, 0.18);
+  --danger-color: #cc3a34; --danger-color-lighter: rgba(204, 58, 52, 0.42); --danger-color-lightest: rgba(204, 58, 52, 0.2);
+  --font-size-no-units: 13; }
 /* Each line finds its own direction (an Arabic gloss right to left, a Japanese example left to
    right), and is set from its own start. */
 .sc-definition, .sc [dir="auto"], .glosses .gloss { unicode-bidi: plaintext; text-align: start; }
@@ -309,6 +320,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .sc [data-sc-content="xref"], .sc [data-sc-content="antonym"] { color: var(--dim); font-size: 0.92em; }
 .sc .sc-a.link { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: default; }
 /* A picture from the dictionary's zip: within the popup's width, at the size it asks for. */
+.sc .gloss-image-link { display: inline-block; max-width: 100%; vertical-align: middle; line-height: 0; }
 .sc .sc-img.gloss-image-container { display: inline-block; position: relative; max-width: 100%; vertical-align: middle; line-height: 0; }
 /* As Yomitan has it: in a picture's box an em is a fourteenth of the text (a pixel at Yomitan's
    14 px), which dictionaries' stylesheets size their pictures by: 明鏡's symbols are "15em" wide,
@@ -937,12 +949,26 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (node.pixelated || node.imageRendering === "pixelated") image.style.imageRendering = "pixelated";
       else if (node.imageRendering === "crisp-edges") image.style.imageRendering = "crisp-edges";
       if (node.background === false) box.classList.add("no-background");
-      image.addEventListener("load", reportSoon);
+      image.addEventListener("load", () => {
+        // A picture that says no size takes its own, as Yomitan gives it (it keeps each picture's
+        // size when it imports), so that the dictionary's stylesheet can cap it (max-width on
+        // .gloss-image-link: a rhyme mark or a rare character one letter wide).
+        if (!width && !height && image.naturalWidth > 0 && image.naturalHeight > 0) {
+          box.style.width = image.naturalWidth + "px";
+          box.style.aspectRatio = image.naturalWidth + " / " + image.naturalHeight;
+          box.classList.remove("natural");
+        }
+        reportSoon();
+      });
       image.src = source;
       box.appendChild(image);
     }
     if (!width && !height) box.classList.add("natural");
-    return box;
+    // Yomitan's own wrapper, which dictionaries' stylesheets size and pick pictures by.
+    const link = element("span", "gloss-image-link");
+    if (typeof node.path === "string") link.dataset.path = node.path;
+    link.appendChild(box);
+    return link;
   }
 
   /**
@@ -1146,19 +1172,28 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       // word once tapped.
       const few = (model.look || {}).frequencies;
       const shown = allFrequencies ? 0 : (few === undefined ? FREQUENCIES_SHOWN : Number(few) || 0);
-      entry.frequencies.forEach((frequency, index) => {
+      // One badge a dictionary: a list with several figures for a word (BCCWJ's short and long
+      // units) says its name once, the figures after it.
+      const lists = [];
+      entry.frequencies.forEach((frequency) => {
+        const said = String(frequency.value);
+        const list = lists.find((one) => one.dictionary === frequency.dictionary);
+        if (!list) lists.push({ dictionary: frequency.dictionary, values: [said] });
+        else if (list.values.indexOf(said) < 0) list.values.push(said);
+      });
+      lists.forEach((list, index) => {
         if (shown && index >= shown) return;
         const tag = element("span", "tag frequency");
         tag.dataset.category = "frequency";
-        tag.dataset.dictionary = frequency.dictionary;
-        tag.appendChild(element("span", "tag-name", frequency.dictionary));
-        tag.appendChild(element("span", "tag-value", frequency.value));
+        tag.dataset.dictionary = list.dictionary;
+        tag.appendChild(element("span", "tag-name", list.dictionary));
+        tag.appendChild(element("span", "tag-value", list.values.join(", ")));
         tags.appendChild(tag);
       });
-      if (shown && entry.frequencies.length > shown) {
-        const more = element("span", "tag frequency more-frequencies", "+" + (entry.frequencies.length - shown));
+      if (shown && lists.length > shown) {
+        const more = element("span", "tag frequency more-frequencies", "+" + (lists.length - shown));
         more.dataset.category = "frequency";
-        more.title = entry.frequencies.slice(shown).map((f) => f.dictionary + " " + f.value).join("\n");
+        more.title = lists.slice(shown).map((f) => f.dictionary + " " + f.values.join(", ")).join("\n");
         more.addEventListener("click", (event) => {
           event.stopPropagation();
           allFrequencies = true;
@@ -1580,6 +1615,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     const share = (value, low, high) => Math.min(high, Math.max(low, Number(value)));
     if (look.opacity > 0) root.setProperty("--opacity", String(share(look.opacity, 20, 100) / 100));
     else root.removeProperty("--opacity");
+    popup.classList.toggle("translucent", look.opacity > 0 && look.opacity < 100);
     if (look.radius >= 0 && look.radius !== null && look.radius !== undefined && look.radius !== "") root.setProperty("--radius", share(look.radius, 0, 28) + "px");
     else root.removeProperty("--radius");
     if (look.accent && /^#[0-9a-fA-F]{6}$/.test(look.accent)) root.setProperty("--accent", look.accent);
@@ -1636,7 +1672,10 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
         const before = section.querySelector(":scope > .card-buttons");
         const put = (node) => section.insertBefore(node, before);
         // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
-        if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) put(nameCard(entry.card));
+        if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) {
+          // Two people who share the name (a family name): a card each, the dictionary's first first.
+          [entry.card].concat(entry.card.others || []).forEach((card) => put(nameCard(card)));
+        }
         if (asCharacter) put(character(entry, kind));
         else put(senses(entry, kind, (job) => later.push(job)));
         if (entry.forms && entry.forms.length && (!kind || kind === "word")) put(forms(entry));
@@ -1716,8 +1755,11 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     } else if (popup.firstElementChild) {
       need = content; // a message
     }
+    // The corners and the height as drawn, for what an app draws behind the page (Android's blurred game).
     post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
-           scrolled: popup.scrollTop, boxes: boxes, ease: performance.now() < easeUntil });
+           scrolled: popup.scrollTop, boxes: boxes, ease: performance.now() < easeUntil,
+           radius: parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 0,
+           box: popup.getBoundingClientRect().height });
   }
 
   let pending = false;

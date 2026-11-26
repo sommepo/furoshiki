@@ -14,7 +14,7 @@
       "names": {
         "file": "names-whats-shenmue.zip",
         "size": 2664,
-        "sha256": "a184c7a4879d84d8d3c1606263f30eac6bd7e640cac633cfea6f3eab4869605e"
+        "sha256": "c69538735435682f4f703a2af535a5d224653322bd84a27a0ed4bee658638339"
       }
     },
     {
@@ -29,7 +29,7 @@
       "names": {
         "file": "names-sakura-taisen.zip",
         "size": 5911,
-        "sha256": "e0b6d01144726b626aecb7a177aeb53e3ece66a4fd834b86d0a4daa24c9d3ed7"
+        "sha256": "94004db25888ea1d6ed6ac300f66de6cb0dca4be3ba962f287fe27327eeda6cf"
       }
     },
     {
@@ -43,8 +43,8 @@
       "sha256": "235f6e4dba3af933ce484f94049181922e7f6d0a5588563e1b2148fd1d8baa21",
       "names": {
         "file": "names-rent-a-hero.zip",
-        "size": 3845,
-        "sha256": "7d00b63884a14430e00c39a2f76d03dea9539d88c5be038c586391f95c3af6f5"
+        "size": 4008,
+        "sha256": "ffa36d139982555769f5f75deae2a4e1e34e3686fb681a18f55a94f01f794019"
       }
     },
     {
@@ -58,8 +58,8 @@
       "sha256": "7dd353a4e78fc1325b536dada0e6c8d337262efc122d4b9fe8defaa13a121486",
       "names": {
         "file": "names-segagaga.zip",
-        "size": 3760,
-        "sha256": "43418fef3f2080cd5f0fd1a5ed6d50787af09f6dff0eba9dd5a96017591f91a9"
+        "size": 3813,
+        "sha256": "84a94faf6a488e396e30b9640a518d5771db9f1c33b32d6e444d7c661f885ef2"
       }
     },
     {
@@ -73,8 +73,8 @@
       "sha256": "65bbcf6bae5de5748ce7871bb44987093966aea519e662b86f44ccb98a1ce2a0",
       "names": {
         "file": "names-shenmue-ii.zip",
-        "size": 8021,
-        "sha256": "4aa3dd6e32a1f71ab809bb9767f9c01dae6aa765ffc6ffef08d6884471d190e0"
+        "size": 8122,
+        "sha256": "2c6705b3e5b050eef96c80c7f5613af8146f97eb38d56c56433969c764869bac"
       }
     },
     {
@@ -88,8 +88,8 @@
       "sha256": "150d7cc07f7047613c3d7994ff4f6f76d450dc0aa26c9755b66342ba5225ca9f",
       "names": {
         "file": "names-kita-e.zip",
-        "size": 3564,
-        "sha256": "f356d6d1d6c8652952d6d3f3ee992ffffdb584f246742e38ee5aa5530154aa7c"
+        "size": 3792,
+        "sha256": "b74b44d55ca1beaf80fbae93af592b3aee88ee913dc9bf800db9b471c19d2dc3"
       }
     },
     {
@@ -103,8 +103,8 @@
       "sha256": "6f3165720e5a1112e4c958f59c848dfd03f1f38f0c9bfa55c470509687584abe",
       "names": {
         "file": "names-july.zip",
-        "size": 1667,
-        "sha256": "595c0f01f0f4a5a7f2e349ebdc3a1881bd326ff6f2ab61e7f00c4f0eb656f213"
+        "size": 1666,
+        "sha256": "0902e57ca1fa9d72c78a5606d9026ceee520308e80f77d7579c0091371607177"
       }
     },
     {
@@ -118,8 +118,8 @@
       "sha256": "e0dba653ca4bac7378ddd0d79adc3073fd1a8a55a1ab7f76eab12620e6029ce0",
       "names": {
         "file": "names-ayanami-ikusei-keikaku.zip",
-        "size": 6143,
-        "sha256": "2d3ee2626adbec8b583114cb3fee81fc61dba785a93eb2ccd08afedd2eeb59f5"
+        "size": 6202,
+        "sha256": "9b10b190bc06d533aa2dd93d1b58256ba093cf40315551740a8c497fcc2b05ec"
       }
     }
   ]

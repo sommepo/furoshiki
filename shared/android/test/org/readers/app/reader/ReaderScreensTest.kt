@@ -459,10 +459,12 @@ class ReaderScreensTest {
                 ReaderSettings.KEY_SESSION_HUD, ReaderSettings.KEY_STATS_STYLE, ReaderSettings.KEY_STATS_PAUSED,
                 ReaderSettings.KEY_IDLE_MINUTES, ReaderSettings.KEY_CLIPBOARD_AUTO,
                 // Popup
-                ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_HOVER_DELAY, ReaderSettings.KEY_POPUP_FIT, ReaderSettings.KEY_POPUP_HEIGHT,
+                // Corners and opacity stand right after the theme since the settings were tidied (0.7.24).
+                ReaderSettings.KEY_POPUP_THEME, ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_OPACITY,
+                ReaderSettings.KEY_POPUP_SCALE, ReaderSettings.KEY_POPUP_FIT, ReaderSettings.KEY_HOVER_DELAY, ReaderSettings.KEY_POPUP_HEIGHT,
                 ReaderSettings.KEY_POPUP_MARK_UNKNOWN, ReaderSettings.KEY_POPUP_AUTOHIDE,
-                ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CARD_CORNER, ReaderSettings.KEY_POPUP_OPACITY,
-                ReaderSettings.KEY_POPUP_RADIUS, ReaderSettings.KEY_POPUP_WIDTH, ReaderSettings.KEY_POPUP_GLOSSARY,
+                ReaderSettings.KEY_POPUP_HIDE_ON_EXIT, ReaderSettings.KEY_CARD_CORNER,
+                ReaderSettings.KEY_POPUP_WIDTH, ReaderSettings.KEY_POPUP_GLOSSARY,
                 ReaderSettings.KEY_POPUP_COMPACT, ReaderSettings.KEY_POPUP_PITCH, ReaderSettings.KEY_POPUP_HIDE_TAGS,
                 ReaderSettings.KEY_POPUP_PORTRAIT, ReaderSettings.KEY_POPUP_LOOKUPS, ReaderSettings.KEY_POPUP_CSS,
                 "reader_popup_import", "reader_popup_export",

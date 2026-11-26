@@ -374,6 +374,16 @@ private:
     qint64 read_looked_line{-1};
     ReaderApp::WordWalk::Span read_looked;
     QTimer read_timer;
+    /// The blurred game picture under a see-through popup, where the system blurs nothing
+    /// behind a window (UpdateBackdrop): the whole frame, small and blurred, when it was asked
+    /// for, and where of it the popup last stood.
+    QTimer backdrop_timer;
+    QImage backdrop_frame;
+    QRect backdrop_at;
+    qint64 backdrop_asked_ms{};
+    bool backdrop_asking{};
+    bool backdrop_fresh{};
+    void UpdateBackdrop();
     QThreadPool read_worker;
 
     /// The cursor steered with a controller's sticks.

@@ -42,6 +42,12 @@ class PopupKindsTest {
         assertEquals(DictionaryKinds.NAME, DictionaryKinds.of(term("JMnedict", "[]")))
         assertEquals(DictionaryKinds.WORD, DictionaryKinds.of(term("JMdict", "[]")))
         assertEquals(DictionaryKinds.WORD, DictionaryKinds.of(term("大辞林", "[]")))
+        // Titles the rule missed (2026-11-26).
+        assertEquals(null, DictionaryKinds.ofTitle("Kanjium Pitch Accents"))
+        assertEquals(DictionaryKinds.KANJI, DictionaryKinds.ofTitle("角川新字源 改訂新版"))
+        assertEquals(DictionaryKinds.KANJI, DictionaryKinds.ofTitle("旺文社漢字典 第四版"))
+        assertEquals(DictionaryKinds.GRAMMAR, DictionaryKinds.ofTitle("[画像付き] 絵でわかる日本語"))
+        assertEquals(DictionaryKinds.GRAMMAR, DictionaryKinds.ofTitle("毎日のんびり日本語教師"))
         // A character dictionary's characters are kanji; a compound in it is a word.
         assertEquals(DictionaryKinds.KANJI, DictionaryKinds.of(term("漢字辞典", "[]", expression = "位")))
         assertEquals(DictionaryKinds.WORD, DictionaryKinds.of(term("漢字辞典", "[]", expression = "位置")))

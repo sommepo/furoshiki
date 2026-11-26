@@ -26,12 +26,14 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPushButton>
 #include <QScreen>
 #include <QTimer>
 #include <QUrl>
 #include "reader/qt/host.h"
 #include "reader/qt/reader_controller.h"
+#include "reader/desktop/backdrop_blur.h"
 #include "reader/desktop/popup_model.h"
 #include "reader/qt/reader_pad.h"
 #include "reader/qt/reader_steam.h"
@@ -160,6 +162,19 @@ ReaderController::ReaderController(QMainWindow* main_window_, QWidget* render_wi
     read_timer.setSingleShot(true);
     read_timer.setInterval(ReadFollowMs);
     connect(&read_timer, &QTimer::timeout, this, [this] { ReadLookup(); });
+    // A see-through popup's ground: looked at often (the popup shown, moved, gone), the game's
+    // picture itself asked for a few times a second at most.
+    backdrop_timer.setInterval(80);
+    connect(&backdrop_timer, &QTimer::timeout, this, &ReaderController::UpdateBackdrop);
+    connect(lookups.get(), &LookupFlow::Opened, this, [this] {
+        UpdateBackdrop();
+        backdrop_timer.start();
+    });
+    connect(lookups.get(), &LookupFlow::Closed, this, [this] {
+        backdrop_timer.stop();
+        lookups->Popup()->SetBackdrop(QImage());
+        backdrop_at = QRect();
+    });
     read_worker.setMaxThreadCount(1);
 
     hover_timer.setSingleShot(true);
@@ -2025,6 +2040,64 @@ void ReaderController::SyncWindows() {
 }
 
 // ---- The game's picture, for cards ----
+
+void ReaderController::UpdateBackdrop() {
+    // The blur behind a see-through popup, drawn here where no compositor does it (on Windows
+    // DWM does: LookupPopup::UpdateBackdropBlur). The game's picture is taken small, blurred
+    // whole, and the part the popup stands on is handed to the popup, which draws it under its
+    // page. Over anything that is not the game's picture (no game, the bars beside it) there
+    // is nothing to blur and the popup is as it was.
+    LookupPopup* popup = lookups->Popup();
+    const QRectF picture = PictureArea();
+    if (!popup->isVisible() || !popup->WantsBackdrop() || !picture.isValid() || !host.grab_picture ||
+        !host.is_powered_on || !host.is_powered_on()) {
+        popup->SetBackdrop(QImage());
+        backdrop_at = QRect();
+        return;
+    }
+    // Where the popup stands in the render window: where the reader placed it (a window
+    // manager may show it elsewhere), else where it is on the screen.
+    const QVariant placed = popup->property("placed_at");
+    const QPoint corner = placed.isValid() && popup->parentWidget() != nullptr &&
+                                  popup->parentWidget()->window() == render_window->window()
+                              ? render_window->mapFrom(render_window->window(), placed.toPoint())
+                              : render_window->mapFromGlobal(popup->mapToGlobal(QPoint(0, 0)));
+    const QRect at(corner, popup->size());
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (!backdrop_asking && now - backdrop_asked_ms >= 280) {
+        backdrop_asking = true;
+        backdrop_asked_ms = now;
+        const double window_width = picture.width();
+        CaptureFrame(480, [this, window_width](const QImage& frame) {
+            backdrop_asking = false;
+            if (frame.isNull() || window_width <= 0) {
+                return;
+            }
+            // As strong as the page's own blur(8px) would be, at the frame's size.
+            backdrop_frame = ReaderApp::Blurred(frame, 8.0 * frame.width() / window_width);
+            backdrop_fresh = true;
+            UpdateBackdrop();
+        });
+    }
+    if (backdrop_frame.isNull() || (at == backdrop_at && !backdrop_fresh)) {
+        return;
+    }
+    backdrop_at = at;
+    backdrop_fresh = false;
+    // The popup's place in the frame; what of it is outside the game's picture is black, as the
+    // window is there.
+    const double sx = backdrop_frame.width() / picture.width();
+    const double sy = backdrop_frame.height() / picture.height();
+    const QRect part = QRectF((at.x() - picture.x()) * sx, (at.y() - picture.y()) * sy, at.width() * sx, at.height() * sy).toAlignedRect();
+    QImage under(part.size().expandedTo(QSize(1, 1)), QImage::Format_RGB32);
+    under.fill(Qt::black);
+    const QRect inside = part.intersected(backdrop_frame.rect());
+    if (!inside.isEmpty()) {
+        QPainter painter(&under);
+        painter.drawImage(inside.topLeft() - part.topLeft(), backdrop_frame, inside);
+    }
+    popup->SetBackdrop(under);
+}
 
 void ReaderController::CaptureFrame(int max_width, std::function<void(const QImage&)> callback) {
     TryCapture(max_width, std::move(callback), 8);

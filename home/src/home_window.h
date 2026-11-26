@@ -232,6 +232,9 @@ public:
     /// Characters to read in a day (0: no goal), kept in QSettings (stats/goal).
     [[nodiscard]] int DailyGoal() const;
     void SetDailyGoal(int characters);
+    /// Characters to read in a year (0: no goal), kept in QSettings (stats/yearly_goal).
+    [[nodiscard]] int YearlyGoal() const;
+    void SetYearlyGoal(int characters);
     [[nodiscard]] QString TrackerUrl() const;
     void SetTrackerUrl(const QString& url);
     /// The shelf's theme as the text strip over the desktop is drawn with it (text_strip.h).
@@ -658,6 +661,40 @@ private:
     double shelf_at{};     ///< Where the open spine is on its way to the chosen one
     bool shelf_stage{};    ///< The stage is shown, not the shelf
     bool shelf_pages{};    ///< The pages are shown
+    bool shelf_stats{};    ///< The top-level Statistics dashboard is shown
+    double stats_at{};     ///< 0 hidden, 1 shown
+    int tab_dir{1};        ///< Horizontal tab slide direction: +1 right, -1 left
+    double tab_body_dx{};  ///< Current horizontal slide offset for tab content body (header/footer stay pinned)
+    int stats_range{2};    ///< Arc graph range: 0 week, 1 month, 2 year, 3 all time
+    int stats_focus{0};    ///< Controller focus on Statistics: 0 arc range, 1 daily goal, 2 yearly goal
+    /// The goal soroban (goal_abacus.h): the goal it is open on, what its beads say so far (kept
+    /// only on confirm), the rod in hand, and where each bead is drawn on its way.
+    int goal_open{0};      ///< 0 closed, 1 the daily goal, 2 the yearly goal
+    int goal_draft{0};
+    int goal_rod{1};
+    qint64 goal_opened_ms{0};
+    qint64 goal_kept_ms{-10000};
+    int goal_kept{0};      ///< The goal last confirmed, for its mark
+    qint64 goal_painted_ms{0};
+    QHash<int, double> goal_beads;
+    bool dots_on{true};    ///< Animated dot-matrix background (Display › Animated dots)
+    bool show_stats_tab{true}; ///< Statistics tab in top bar (Display › Show statistics tab)
+    int shelf_layout{0};   ///< Library layout: 0 Spine shelf, 1 Case stage, 2 Cover flow
+    int dots_mode{0};      ///< Randomly chosen on startup: 0 drift, 1 vortex, 2 pulse
+    double dots_time{0};   ///< Elapsed animation phase in seconds
+    qint64 dots_last_ms{0};
+    void SetStats(bool on);
+    void PaintStats(QPainter& p);
+    /// A goal's row on the Statistics page: its words, or its soroban while it is open.
+    void PaintGoal(QPainter& p, int which, double x, double baseline);
+    void OpenGoal(int which);
+    void CloseGoal(bool keep);
+    /// A key for the open soroban; false when it is closed.
+    bool GoalKey(int key);
+    void PaintLibraryCaseStage(QPainter& p);
+    void PaintLibraryCoverFlow(QPainter& p);
+    void PaintDotMatrix(QPainter& p, bool clear_stats_band);
+    void PaintTopTabs(QPainter& p, int active_tab, const QString& right_note);
     bool pages_rows{};     ///< On the pages, the rows have the keys (else the sections at the left)
     bool pages_visited{};  ///< They were shown before in this run: they open where they were left
     QHash<QString, QPair<QString, QString>> elsewhere; ///< A game's ID: the device, the day

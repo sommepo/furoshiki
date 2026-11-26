@@ -265,7 +265,7 @@ struct SteamControllerBridge::Private {
     QString PulsesText() {
         int sent = injected_pulses.load(), failed = 0;
         unsigned long error = 0;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(READER_NO_STEAM_BRIDGE)
         for (auto& [path, listener] : listeners) {
             sent += listener->pulses_sent.load();
             failed += listener->pulses_failed.load();
@@ -281,7 +281,7 @@ struct SteamControllerBridge::Private {
     std::atomic<int> controllers{0};
     std::atomic<bool> steam_runs{false};
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(READER_NO_STEAM_BRIDGE)
     struct Listener {
         std::thread thread;
         HANDLE device{INVALID_HANDLE_VALUE};
