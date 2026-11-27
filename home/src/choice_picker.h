@@ -26,6 +26,7 @@ public:
         QColor card, txt, sel, dim, accent, rule;
         QFont title, row; ///< At the window's size already
         double scale{1}; ///< The window's pixels for one of the page's
+        bool blur{true}; ///< Blur the window behind the card
     };
 
     /// Opens over `over` (its whole area); `picked` hears the index taken, never a cancel.

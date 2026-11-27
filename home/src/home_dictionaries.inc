@@ -81,6 +81,21 @@ void HomeWindow::ShowDictionaries() {
     update();
 }
 
+void HomeWindow::ShowSettingsSection(const QString& section) {
+    if (!shelf_pages) {
+        OpenPages();
+    }
+    const QList<Item> items = Items();
+    for (int i = 0; i < items.size(); ++i) {
+        if (items[i].kind == Item::Settings && items[i].system == section) {
+            axis_choice = i;
+            pages_rows = true;
+            break;
+        }
+    }
+    update();
+}
+
 namespace {
 
 /// A console's name as the library names it (what Art::VndbPlatform reads), by its key.

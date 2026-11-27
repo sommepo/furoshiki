@@ -17,7 +17,7 @@ class ReaderBacklogActivity : ReaderScreen() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val game = intent.getStringExtra(EXTRA_GAME) ?: ReaderSession.gameKey
-        backlog = BacklogView(this, game, textScale = 1.25f) {
+        backlog = BacklogView(this, game, textScale = 1.45f) {
             startActivity(android.content.Intent(this, DictionaryManagerActivity::class.java))
         }
         content.addView(backlog, LinearLayout.LayoutParams(MATCH, 0, 1f))
@@ -46,17 +46,31 @@ class ReaderBacklogActivity : ReaderScreen() {
     }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        val step = when (event.keyCode) {
-            android.view.KeyEvent.KEYCODE_DPAD_DOWN -> 1
-            android.view.KeyEvent.KEYCODE_DPAD_UP -> -1
-            android.view.KeyEvent.KEYCODE_BUTTON_R1, android.view.KeyEvent.KEYCODE_PAGE_DOWN -> 3
-            android.view.KeyEvent.KEYCODE_BUTTON_L1, android.view.KeyEvent.KEYCODE_PAGE_UP -> -3
-            else -> 0
-        }
-        // A popup open over the lines has the d-pad (PopupKeys); the search field its own keys.
-        if (step != 0 && !backlog.lookups.isOpen && currentFocus !is android.widget.EditText) {
-            if (event.action == android.view.KeyEvent.ACTION_DOWN) backlog.scrollLines(step * backlog.height * 3 / 10)
-            return true
+        val editing = currentFocus is android.widget.EditText
+        if (!backlog.lookups.isOpen && !editing) {
+            val delta = when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> 1
+                android.view.KeyEvent.KEYCODE_DPAD_UP -> -1
+                android.view.KeyEvent.KEYCODE_BUTTON_R1, android.view.KeyEvent.KEYCODE_PAGE_DOWN -> 6
+                android.view.KeyEvent.KEYCODE_BUTTON_L1, android.view.KeyEvent.KEYCODE_PAGE_UP -> -6
+                else -> 0
+            }
+            if (delta != 0) {
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) backlog.moveSelection(delta)
+                return true
+            }
+            if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_A || event.keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) backlog.lookupSelected()
+                return true
+            }
+            if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_Y) {
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) backlog.toggleSelectedCounted()
+                return true
+            }
+            if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_SELECT || event.keyCode == android.view.KeyEvent.KEYCODE_DEL) {
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) backlog.clearDuplicates()
+                return true
+            }
         }
         if (event.keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B && !backlog.lookups.isOpen) {
             if (event.action == android.view.KeyEvent.ACTION_UP) finish()

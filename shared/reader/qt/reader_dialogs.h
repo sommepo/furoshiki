@@ -59,5 +59,9 @@ std::function<void()>& SettingsPages();
 /// What shows a program's own dictionaries page in place of the Dictionaries window (Furoshiki's
 /// Settings › Dictionaries); none in an app that has none.
 std::function<void()>& DictionaryPages();
+/// What shows a program's own in-game backlog overlay in place of the Backlog dialog; none in an app that has none.
+std::function<void()>& BacklogPage();
+/// What shows a program's own in-game Explain line overlay in place of the Explain dialog; none in an app that has none.
+std::function<void()>& ExplainPage();
 
 } // namespace ReaderUi

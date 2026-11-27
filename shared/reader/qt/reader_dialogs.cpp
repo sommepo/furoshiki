@@ -1639,6 +1639,16 @@ std::function<void()>& DictionaryPages() {
     return open;
 }
 
+std::function<void()>& BacklogPage() {
+    static std::function<void()> open;
+    return open;
+}
+
+std::function<void()>& ExplainPage() {
+    static std::function<void()> open;
+    return open;
+}
+
 // ---- Progress set by hand (reader.progress) ----
 
 /// The routes (or whatever else the game's script offers to mark) with a box each: for

@@ -96,7 +96,7 @@ void DrawSoftShadow(QPainter& painter, const QRectF& box, qreal radius, qreal si
 /// The session line in the top right corner of `picture`, in one of its looks (proposals G,
 /// H, F and D of the maintainer's choice): "paper", "paper-dark", "card", "ink".
 void DrawSessionLine(QPainter& painter, const QString& style, const QString& line, bool paused,
-                     const QRectF& picture) {
+                     const QRectF& picture, const ReaderOverlay::SessionTheme& theme) {
     const qreal size = std::clamp(picture.height() / 45.0, 11.0, 22.0);
     const QList<Figure> figures = Figures(line);
     const qreal margin = size * 0.6;
@@ -176,7 +176,26 @@ void DrawSessionLine(QPainter& painter, const QString& style, const QString& lin
                      number_metrics.height() + 2 * pad_y);
     const qreal baseline = box.top() + pad_y + number_metrics.ascent();
     QColor text_colour, unit_colour, sep_colour, bars_colour;
-    if (ink) {
+    if (theme.active) {
+        const qreal radius = size * 0.45;
+        DrawSoftShadow(painter, box, radius, size, 95);
+        QColor bg = theme.bg;
+        bg.setAlpha(204); // 80% opacity
+        painter.setPen(QPen(theme.rule, 1));
+        painter.setBrush(bg);
+        painter.drawRoundedRect(box, radius, radius);
+        // Subtle frosted glass sheen across top half of the pill
+        QLinearGradient sheen(box.topLeft(), QPointF(box.left(), box.center().y()));
+        sheen.setColorAt(0.0, QColor(255, 255, 255, 22));
+        sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(sheen);
+        painter.drawRoundedRect(box.adjusted(1, 1, -1, -box.height() * 0.45), radius - 1, radius - 1);
+        text_colour = theme.ink;
+        unit_colour = theme.muted;
+        sep_colour = theme.muted;
+        bars_colour = theme.accent;
+    } else if (ink) {
         text_colour = QColor(0xFF, 0xFF, 0xFF);
         unit_colour = QColor(0xFF, 0xFF, 0xFF, 0xCC);
         sep_colour = QColor(0xB9, 0xB0, 0xF2);
@@ -399,6 +418,17 @@ void ReaderOverlay::SetOutlines(const QList<ReaderApp::PlacedText>& texts) {
     emit ContentChanged();
 }
 
+namespace {
+ReaderOverlay::SessionTheme& HeldSessionTheme() {
+    static ReaderOverlay::SessionTheme theme;
+    return theme;
+}
+} // namespace
+
+void ReaderOverlay::SetSessionTheme(const SessionTheme& theme) {
+    HeldSessionTheme() = theme;
+}
+
 void ReaderOverlay::SetSessionLine(const QString& text, const QRectF& picture, bool paused,
                                    const QString& style) {
     if (session_line == text && session_picture == picture && session_paused == paused &&
@@ -497,7 +527,8 @@ void ReaderOverlay::paintEvent(QPaintEvent*) {
     if ((!session_line.isEmpty() || session_paused) && session_picture.isValid()) {
         painter.save();
         painter.setRenderHint(QPainter::Antialiasing);
-        DrawSessionLine(painter, session_style, session_line, session_paused, session_picture);
+        DrawSessionLine(painter, session_style, session_line, session_paused, session_picture,
+                        HeldSessionTheme());
         painter.restore();
     }
 

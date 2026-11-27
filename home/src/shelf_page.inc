@@ -23,7 +23,7 @@ constexpr double SpineOpen = 560, SpineGap = 6, SpineMin = 34, SpineMax = 64;
 constexpr double ShelfGlide = 0.075; // seconds: the open spine is most of the way there in a tenth
 constexpr double PlateShare = 0.44;  // of an open spine: its cover
 constexpr double SpinePlate = 38;    // over a real spine's picture: its number on the ground
-constexpr double FloorColumn = 150;  // the shelves' floors, at the right of the shelf
+constexpr double FloorColumn = 168;  // the shelves' floors, at the right of the shelf
 constexpr double FloorPitch = 38;
 constexpr double FloorFirst = FloorPitch + 14; // the shelves' floors, under the settings' one
 
@@ -793,6 +793,7 @@ void HomeWindow::ShelfLoad() {
 #endif
     dots_on = settings.value(QStringLiteral("shelf/dots"), true).toBool();
     show_stats_tab = settings.value(QStringLiteral("shelf/show_stats"), true).toBool();
+    overlay_blur = settings.value(QStringLiteral("shelf/overlay_blur"), true).toBool();
     shelf_layout = std::clamp(settings.value(QStringLiteral("shelf/layout"), 0).toInt(), 0, 2);
     dots_mode = static_cast<int>((QDateTime::currentMSecsSinceEpoch() ^ reinterpret_cast<quintptr>(this)) % 3);
     if (dots_mode < 0) {
@@ -833,10 +834,29 @@ void HomeWindow::SetShelfTheme(const QString& key, bool keep) {
     shelf_look = look;
     // The popup takes the shelf's look unless one was chosen (its theme "auto", the default).
     ReaderApp::ReaderSettings::SetPopupThemeDefault(ReaderApp::ReaderSettings::PopupThemeOfShelf(chosen));
+    // Upper-right playing screen stats badge follows the active shelf theme (rounded, 80% opacity, blurred).
+    ReaderUi::ReaderOverlay::SetSessionTheme({true, look->raised, look->ink, look->muted, look->accent, look->rule});
     if (keep) {
         QSettings().setValue(QStringLiteral("shelf/theme"), chosen);
     }
     update();
+}
+
+ChoicePicker::Colours HomeWindow::ShelfThemeColours(int win_w, int win_h) const {
+    const ShelfLook& l = *shelf_look;
+    ChoicePicker::Colours colours;
+    colours.scale = std::clamp(std::min(win_w / 1280.0, win_h / 720.0), 0.75, 1.8);
+    colours.card = l.raised;
+    colours.card.setAlphaF(overlay_blur ? 0.80 : 1.0);
+    colours.txt = l.ink;
+    colours.sel = l.ink;
+    colours.dim = l.muted;
+    colours.accent = l.accent;
+    colours.rule = l.rule;
+    colours.blur = overlay_blur;
+    colours.title = ShelfFont(l.display, 11 * colours.scale, 0.14);
+    colours.row = ShelfFont(l.text, 15 * colours.scale);
+    return colours;
 }
 
 void HomeWindow::SetShelf(bool on, bool keep) {
@@ -1795,6 +1815,125 @@ bool HomeWindow::ShelfKey(int key) {
         if (GoalKey(key)) {
             return true;
         }
+        if (stats_period_open) {
+            switch (key) {
+            case Qt::Key_Up:
+            case Qt::Key_Left:
+                stats_range = (stats_range + 3) % 4;
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_Down:
+            case Qt::Key_Right:
+                stats_range = (stats_range + 1) % 4;
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_Return:
+            case Qt::Key_Enter:
+            case Qt::Key_Space:
+            case Qt::Key_Escape:
+            case Qt::Key_Backspace:
+                stats_period_open = false;
+                sounds.Play(key == Qt::Key_Escape || key == Qt::Key_Backspace ? Sound::Back : Sound::Select);
+                update();
+                return true;
+            default:
+                return true;
+            }
+        }
+        if (stats_breakdown) {
+            switch (key) {
+            case Qt::Key_Escape:
+            case Qt::Key_Backspace:
+            case Qt::Key_Return:
+            case Qt::Key_Enter:
+                stats_breakdown = false;
+                sounds.Play(Sound::Back);
+                update();
+                return true;
+            case Qt::Key_Up:
+                stats_breakdown_scroll = std::max(0, stats_breakdown_scroll - 1);
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_Down:
+                ++stats_breakdown_scroll;
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_PageUp:
+                stats_breakdown_scroll = std::max(0, stats_breakdown_scroll - 5);
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_PageDown:
+                stats_breakdown_scroll += 5;
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            default:
+                return true;
+            }
+        }
+        if (stats_focus == 4) {
+            const QDate today = QDate::currentDate();
+            const QDate first_day = today.addDays(-(today.dayOfWeek() - 1) - 7 * 51);
+            switch (key) {
+            case Qt::Key_Escape:
+            case Qt::Key_Backspace:
+                stats_focus = 1;
+                sounds.Play(Sound::Back);
+                update();
+                return true;
+            case Qt::Key_Q:
+            case Qt::Key_PageUp:
+                SetStats(false);
+                return true;
+            case Qt::Key_E:
+            case Qt::Key_PageDown:
+            case Qt::Key_Tab:
+                SetPages(true);
+                return true;
+            case Qt::Key_Left:
+                stats_dot_week = std::max(0, stats_dot_week - 1);
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_Right: {
+                const int nw = std::min(51, stats_dot_week + 1);
+                int nd = stats_dot_day;
+                if (first_day.addDays(nw * 7 + nd) > today) {
+                    nd = today.dayOfWeek() - 1;
+                }
+                stats_dot_week = nw;
+                stats_dot_day = nd;
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            }
+            case Qt::Key_Up:
+                if (stats_dot_day <= 0) {
+                    stats_focus = 1;
+                } else {
+                    --stats_dot_day;
+                }
+                sounds.Play(Sound::Move);
+                update();
+                return true;
+            case Qt::Key_Down: {
+                const int nd = std::min(6, stats_dot_day + 1);
+                if (first_day.addDays(stats_dot_week * 7 + nd) <= today) {
+                    stats_dot_day = nd;
+                    sounds.Play(Sound::Move);
+                    update();
+                }
+                return true;
+            }
+            default:
+                return true;
+            }
+        }
         switch (key) {
         case Qt::Key_Escape:
         case Qt::Key_Backspace:
@@ -1810,33 +1949,66 @@ bool HomeWindow::ShelfKey(int key) {
             SetPages(true); // forward to Settings
             return true;
         case Qt::Key_Up:
-            stats_focus = (stats_focus + 2) % 3;
-            sounds.Play(Sound::Move);
-            update();
-            return true;
-        case Qt::Key_Down:
-            stats_focus = (stats_focus + 1) % 3;
-            sounds.Play(Sound::Move);
-            update();
-            return true;
-        case Qt::Key_Left:
-        case Qt::Key_Right:
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-        case Qt::Key_Space: {
-            const int dir = key == Qt::Key_Left ? -1 : 1;
-            if (stats_focus == 0) {
-                stats_range = (stats_range + dir + 4) % 4;
-            } else if (key == Qt::Key_Left || key == Qt::Key_Right) {
-                stats_focus = stats_focus == 1 ? 2 : 1; // the two goals stand side by side
-            } else {
-                OpenGoal(stats_focus); // confirm opens the goal's soroban
-                return true;
+            if (stats_focus == 1) {
+                stats_focus = 0;
+            } else if (stats_focus == 2) {
+                stats_focus = 1;
+            } else if (stats_focus == 3) {
+                stats_focus = 0;
             }
             sounds.Play(Sound::Move);
             update();
             return true;
-        }
+        case Qt::Key_Down:
+            if (stats_focus == 0) {
+                stats_focus = 1;
+            } else if (stats_focus == 1) {
+                stats_focus = stats_range != 3 ? 2 : 4;
+                if (stats_focus == 4) {
+                    stats_dot_week = 51;
+                    stats_dot_day = QDate::currentDate().dayOfWeek() - 1;
+                }
+            } else {
+                stats_focus = 4;
+                stats_dot_week = 51;
+                stats_dot_day = QDate::currentDate().dayOfWeek() - 1;
+            }
+            sounds.Play(Sound::Move);
+            update();
+            return true;
+        case Qt::Key_Left:
+            if (stats_focus == 3) {
+                stats_focus = stats_range != 3 ? 2 : 1;
+            }
+            sounds.Play(Sound::Move);
+            update();
+            return true;
+        case Qt::Key_Right:
+            if (stats_focus == 0 || stats_focus == 1 || stats_focus == 2) {
+                stats_focus = 3;
+            }
+            sounds.Play(Sound::Move);
+            update();
+            return true;
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+        case Qt::Key_Space:
+            if (stats_focus == 0) {
+                stats_period_open = true;
+                sounds.Play(Sound::Select);
+                update();
+            } else if (stats_focus == 1) {
+                stats_breakdown = true;
+                stats_breakdown_scroll = 0;
+                sounds.Play(Sound::Select);
+                update();
+            } else if (stats_focus == 2) {
+                const int which = stats_range == 0 ? 3 : stats_range == 1 ? 4 : 2;
+                OpenGoal(which);
+            } else if (stats_focus == 3) {
+                OpenGoal(1);
+            }
+            return true;
         case Qt::Key_F4: {
             const int at = static_cast<int>(shelf_themes.indexOf(shelf_look->key));
             SetShelfTheme(shelf_themes.value((at + 1) % std::max<int>(1, shelf_themes.size())), true);
@@ -2158,7 +2330,10 @@ bool HomeWindow::ShelfClick(const QPointF& at) {
     if (shelf_stats && goal_open != 0) {
         // The open soroban: a bead pushes itself and those before it to the bar, a rod is taken
         // in hand, and a click anywhere else keeps what the beads say.
-        const GoalAbacus::Kind& kind = goal_open == 1 ? GoalAbacus::Daily : GoalAbacus::Yearly;
+        const GoalAbacus::Kind& kind = goal_open == 1 ? GoalAbacus::Daily
+                                     : goal_open == 3 ? GoalAbacus::Weekly
+                                     : goal_open == 4 ? GoalAbacus::Monthly
+                                                      : GoalAbacus::Yearly;
         for (const Hit& hit : hits) {
             if (!hit.area.contains(at) || (hit.kind != 24 && hit.kind != 25)) {
                 continue;
@@ -2229,11 +2404,29 @@ bool HomeWindow::ShelfClick(const QPointF& at) {
                 }
             } else if (hit.kind == 21) {
                 stats_focus = 0;
-                stats_range = std::clamp(hit.index, 0, 3);
+                stats_range = (stats_range + 1) % 4;
                 sounds.Play(Sound::Move);
                 update();
+            } else if (hit.kind == 27) {
+                stats_focus = 1;
+                stats_breakdown = true;
+                stats_breakdown_scroll = 0;
+                sounds.Play(Sound::Select);
+                update();
+            } else if (hit.kind == 26) {
+                stats_focus = 4;
+                stats_dot_week = hit.index / 7;
+                stats_dot_day = hit.index % 7;
+                sounds.Play(Sound::Move);
+                update();
+            } else if (hit.kind == 28) {
+                stats_breakdown = false;
+                sounds.Play(Sound::Back);
+                update();
+            } else if (hit.kind == -1) {
+                return true;
             } else if (hit.kind == 22) {
-                OpenGoal(hit.index == 1 ? 1 : 2);
+                OpenGoal(hit.index);
             } else if (hit.kind == 23) {
                 OpenChoices(QStringLiteral("Quit Furoshiki?"), {QStringLiteral("Cancel"), QStringLiteral("Quit Furoshiki")}, 0, [this](int idx) {
                     if (idx == 1) {
@@ -2275,7 +2468,8 @@ void HomeWindow::ShelfStep() {
     }
     WizardStep();
     if (std::fabs(pages_at - (shelf_pages ? 1 : 0)) > 0.001 || std::fabs(stats_at - (shelf_stats ? 1 : 0)) > 0.001 ||
-        std::fabs(log_at - (shelf_log ? 1 : 0)) > 0.001 || std::fabs(wizard_at - (wizard_on ? 1 : 0)) > 0.001) {
+        std::fabs(log_at - (shelf_log ? 1 : 0)) > 0.001 || std::fabs(wizard_at - (wizard_on ? 1 : 0)) > 0.001 ||
+        std::fabs(stats_range_at - stats_range) > 0.001) {
         update();
     }
     if (shelf_busy || goal_open != 0 || clock.elapsed() - goal_kept_ms < 700) {
@@ -2329,6 +2523,7 @@ void HomeWindow::PaintShelf() {
     glide(stage_at, shelf_stage ? 1 : 0, 0.085);
     glide(pages_at, shelf_pages ? 1 : 0, 0.085);
     glide(stats_at, shelf_stats ? 1 : 0, 0.085);
+    glide(stats_range_at, static_cast<double>(stats_range), 0.075);
     glide(log_at, shelf_log ? 1 : 0, 0.085);
     if (dots_on && !still) {
         dots_time += dt * 0.8;
@@ -2388,10 +2583,11 @@ void HomeWindow::PaintShelf() {
     const double tab_slide = 56.0;
     const bool lib_target = !shelf_pages && !shelf_stats;
     const double lib_dx = (lib_target ? 1.0 : -1.0) * tab_dir * tab_slide * over;
-    if (stage_at < 0.999 && under > 0.001) {
+    const double sub_at = std::max(stage_at, log_at);
+    if (sub_at < 0.999 && under > 0.001) {
         p.save();
-        p.setOpacity((1 - stage_at) * under);
-        p.translate(0, -14 * stage_at);
+        p.setOpacity((1 - sub_at) * under);
+        p.translate(0, -14 * sub_at);
         tab_body_dx = lib_dx;
         if (!lift_old.isNull() && leave < 1) {
             p.save();
@@ -2448,7 +2644,7 @@ void HomeWindow::PaintShelf() {
         p.restore();
     }
     // Pinned top header across Library / Statistics / Settings (never slides horizontally).
-    const double header_alpha = behind * (1.0 - stage_at * (1.0 - over));
+    const double header_alpha = behind * (1.0 - sub_at * (1.0 - over));
     if (header_alpha > 0.001) {
         const int active_tab = shelf_pages ? 2 : shelf_stats ? 1 : 0;
         QString right_note;
@@ -2582,10 +2778,18 @@ void HomeWindow::PaintTopTabs(QPainter& p, int active_tab, const QString& right_
 }
 
 void HomeWindow::OpenGoal(int which) {
-    const GoalAbacus::Kind& kind = which == 1 ? GoalAbacus::Daily : GoalAbacus::Yearly;
-    stats_focus = which;
+    const GoalAbacus::Kind& kind = which == 1 ? GoalAbacus::Daily
+                                 : which == 3 ? GoalAbacus::Weekly
+                                 : which == 4 ? GoalAbacus::Monthly
+                                              : GoalAbacus::Yearly;
+    const int cur = which == 1 ? DailyGoal()
+                  : which == 3 ? WeeklyGoal()
+                  : which == 4 ? MonthlyGoal()
+                               : YearlyGoal();
+    stats_period_open = false;
+    stats_focus = which == 1 ? 3 : 2;
     goal_open = which;
-    goal_draft = GoalAbacus::Snap(kind, which == 1 ? DailyGoal() : YearlyGoal());
+    goal_draft = GoalAbacus::Snap(kind, cur);
     goal_rod = 1;
     goal_beads.clear();
     goal_opened_ms = goal_painted_ms = clock.elapsed();
@@ -2600,6 +2804,10 @@ void HomeWindow::CloseGoal(bool keep) {
     if (keep) {
         if (goal_open == 1) {
             SetDailyGoal(goal_draft);
+        } else if (goal_open == 3) {
+            SetWeeklyGoal(goal_draft);
+        } else if (goal_open == 4) {
+            SetMonthlyGoal(goal_draft);
         } else {
             SetYearlyGoal(goal_draft);
         }
@@ -2615,7 +2823,10 @@ bool HomeWindow::GoalKey(int key) {
     if (goal_open == 0) {
         return false;
     }
-    const GoalAbacus::Kind& kind = goal_open == 1 ? GoalAbacus::Daily : GoalAbacus::Yearly;
+    const GoalAbacus::Kind& kind = goal_open == 1 ? GoalAbacus::Daily
+                                 : goal_open == 3 ? GoalAbacus::Weekly
+                                 : goal_open == 4 ? GoalAbacus::Monthly
+                                                  : GoalAbacus::Yearly;
     const auto set = [this](int to) {
         if (to != goal_draft) {
             goal_draft = to;
@@ -2664,14 +2875,21 @@ void HomeWindow::PaintGoal(QPainter& p, int which, double x, double baseline) {
     const QFont tiny = ShelfFont(l.mono, 9.5, 0.14);
     const QFont mono = ShelfFont(l.mono, 11.5, 0.08);
     const bool daily = which == 1;
-    const GoalAbacus::Kind& kind = daily ? GoalAbacus::Daily : GoalAbacus::Yearly;
+    const GoalAbacus::Kind& kind = which == 1 ? GoalAbacus::Daily
+                                 : which == 3 ? GoalAbacus::Weekly
+                                 : which == 4 ? GoalAbacus::Monthly
+                                              : GoalAbacus::Yearly;
     const qint64 now = clock.elapsed();
     if (goal_open != which) {
         // Closed: the goal in words. Confirm on it, or a click, opens the soroban in its place.
-        const int goal = daily ? DailyGoal() : YearlyGoal();
+        const int goal = which == 1 ? DailyGoal()
+                       : which == 3 ? WeeklyGoal()
+                       : which == 4 ? MonthlyGoal()
+                                    : YearlyGoal();
         const QString text = (daily ? QStringLiteral("DAILY GOAL %1") : QStringLiteral("GOAL %1"))
                                  .arg(goal > 0 ? ShortCount(goal) : QStringLiteral("OFF"));
-        const bool focused = stats_focus == which && goal_open == 0;
+        const bool focused = (stats_focus == (daily ? 3 : 2) && goal_open == 0 && !stats_period_open && !stats_breakdown) ||
+                             ShelfHovered(22, which);
         const double width = focused ? PutHalo(p, tiny, x, baseline, text, l.ink, l.accent, dots_time, light_ground)
                                      : Put(p, tiny, x, baseline, text, l.muted);
         const double since = (now - goal_kept_ms) / 600.0;
@@ -2749,13 +2967,31 @@ void HomeWindow::PaintStats(QPainter& p) {
     QHash<QString, qint64> day_chars;
     QHash<QString, qint64> day_ms;
     qint64 year_chars = 0, year_ms = 0, recent30_chars = 0;
-    int year_active = 0;
+    qint64 period_chars = 0, period_ms = 0;
+    int year_active = 0, period_active = 0;
     struct PeakDay {
         QDate date;
         qint64 chars{};
         qint64 ms{};
     };
     QList<PeakDay> peaks;
+    const auto in_period = [&](const QDate& dt) {
+        if (!dt.isValid()) {
+            return false;
+        }
+        if (stats_range == 0) {
+            const qint64 diff = dt.daysTo(today);
+            return diff >= 0 && diff < 7;
+        }
+        if (stats_range == 1) {
+            const qint64 diff = dt.daysTo(today);
+            return diff >= 0 && diff < 30;
+        }
+        if (stats_range == 2) {
+            return dt.year() == today.year();
+        }
+        return true;
+    };
     for (const Day& d : library.days) {
         day_chars[d.day] += d.chars;
         day_ms[d.day] += d.active_ms;
@@ -2766,6 +3002,13 @@ void HomeWindow::PaintStats(QPainter& p) {
                 year_ms += d.active_ms;
                 if (d.chars > 0) {
                     ++year_active;
+                }
+            }
+            if (in_period(dt)) {
+                period_chars += d.chars;
+                period_ms += d.active_ms;
+                if (d.chars > 0) {
+                    ++period_active;
                 }
             }
             if (dt.daysTo(today) >= 0 && dt.daysTo(today) < 30) {
@@ -2783,9 +3026,13 @@ void HomeWindow::PaintStats(QPainter& p) {
     const qint64 today_ms = day_ms.value(today_iso);
     // While a goal's soroban is open the bars and percentages follow its beads.
     const int daily_goal = goal_open == 1 ? goal_draft : DailyGoal();
+    const int weekly_goal = goal_open == 3 ? goal_draft : WeeklyGoal();
+    const int monthly_goal = goal_open == 4 ? goal_draft : MonthlyGoal();
     const int yearly_goal = goal_open == 2 ? goal_draft : YearlyGoal();
     const qint64 eff_year_goal = yearly_goal > 0 ? yearly_goal : (daily_goal > 0 ? qint64(daily_goal) * 365 : 5000000);
     const qint64 eff_daily_goal = daily_goal > 0 ? daily_goal : 10000;
+    const qint64 eff_weekly_goal = weekly_goal > 0 ? weekly_goal : eff_daily_goal * 7;
+    const qint64 eff_monthly_goal = monthly_goal > 0 ? monthly_goal : eff_daily_goal * 30;
     const int streak = Streak(library.days, today_iso);
     const int active_days = std::max(1, static_cast<int>(library.days.size()));
     const qint64 avg_day_chars = library.chars / active_days;
@@ -2811,13 +3058,52 @@ void HomeWindow::PaintStats(QPainter& p) {
         const double px = c == 0 ? cx : cx + 18;
         const double pw = (c == 0 ? col_w[c] : col_w[c] - 18) - 16;
         if (c == 0) {
-            const int pct = eff_year_goal > 0 ? std::min(100, static_cast<int>(year_chars * 100 / eff_year_goal)) : 0;
-            Put(p, tiny, px, 96, QStringLiteral("YEAR CHARACTERS"), l.muted);
-            Put(p, tiny, px + pw, 96, QStringLiteral("%1%").arg(pct), l.accent, 1);
-            const double vw = PutHalo(p, hero, px, 134, ShortCount(year_chars), l.ink, l.accent, dots_time, light_ground);
-            Put(p, mono, px + vw + 8, 134, ShortHours(year_ms), l.muted);
+            static const char* const PeriodWords[4] = {"WEEK", "MONTH", "YEAR", "ALL TIME"};
+            const qint64 eff_period_goal = stats_range == 0 ? eff_weekly_goal
+                                         : stats_range == 1 ? eff_monthly_goal
+                                         : stats_range == 2 ? eff_year_goal
+                                                            : 0;
+            const int pct = eff_period_goal > 0 ? std::min(100, static_cast<int>(period_chars * 100 / eff_period_goal)) : 0;
+
+            // Vertical-slide period word (glow only when focused/open/hovered, same as soroban widget)
+            const QString cur_word = QString::fromLatin1(PeriodWords[std::clamp(stats_range, 0, 3)]);
+            const double word_w = Advance(tiny, cur_word) + 4.0;
+            const QRectF drum_r(px - 2.0, 81.0, word_w + 4.0, 20.0);
+            const bool drum_glow = (stats_focus == 0 && !stats_breakdown && goal_open == 0) || stats_period_open || ShelfHovered(21, 0);
+            p.save();
+            p.setClipRect(QRectF(px - 6.0, 80.0, word_w + 18.0, 22.0));
+            const double pitch = 20.0;
+            for (int r = 0; r < 4; ++r) {
+                const double wy = 96.0 + (r - stats_range_at) * pitch;
+                const QString lbl = QString::fromLatin1(PeriodWords[r]);
+                if (drum_glow) {
+                    PutHalo(p, tiny, px, wy, lbl, l.ink, l.accent, dots_time, light_ground);
+                } else {
+                    Put(p, tiny, px, wy, lbl, l.muted);
+                }
+            }
+            p.restore();
+            if (stats_period_open) {
+                p.fillRect(QRectF(px, 100.5, word_w - 2.0, 1.2), Faded(l.accent, 0.85));
+            }
+            shelf_hits.append({drum_r.adjusted(-4, -4, 4, 4), 21, 0});
+
+            Put(p, tiny, px + word_w + 4.0, 96, QStringLiteral("CHARACTERS"), l.muted);
+            if (eff_period_goal > 0) {
+                Put(p, tiny, px + pw, 96, QStringLiteral("%1%").arg(pct), l.accent, 1);
+            }
+
+            // Clickable / controller-enterable Characters figure (glow only when focused/hovered)
+            const bool fig_glow = (stats_focus == 1 && !stats_breakdown && !stats_period_open && goal_open == 0) || ShelfHovered(27, 0);
+            const QString chars_str = ShortCount(period_chars);
+            const QString hrs_str = ShortHours(period_ms);
+            const double vw = fig_glow ? PutHalo(p, hero, px, 134, chars_str, l.ink, l.accent, dots_time, light_ground)
+                                       : Put(p, hero, px, 134, chars_str, l.ink);
+            const double hw = Put(p, mono, px + vw + 8, 134, hrs_str, l.muted);
+            shelf_hits.append({QRectF(px - 4.0, 106.0, std::min(pw + 8.0, vw + hw + 16.0), 34.0), 27, 0});
+
             // 24-dot segmented goal bar
-            const int lit = std::clamp(pct * 24 / 100, 0, 24);
+            const int lit = eff_period_goal > 0 ? std::clamp(pct * 24 / 100, 0, 24) : 24;
             p.save();
             p.setPen(Qt::NoPen);
             for (int i = 0; i < 24; ++i) {
@@ -2825,8 +3111,16 @@ void HomeWindow::PaintStats(QPainter& p) {
                 p.drawEllipse(QPointF(px + 3 + i * 10.5, 152), 3.0, 3.0);
             }
             p.restore();
-            PaintGoal(p, 2, px, 174);
-            Put(p, tiny, px + pw, 174, QStringLiteral("%1 ACTIVE").arg(year_active), l.muted, 1);
+            if (stats_range == 0) {
+                PaintGoal(p, 3, px, 174);
+            } else if (stats_range == 1) {
+                PaintGoal(p, 4, px, 174);
+            } else if (stats_range == 2) {
+                PaintGoal(p, 2, px, 174);
+            } else {
+                Put(p, tiny, px, 174, QStringLiteral("%1 TITLES").arg(titles_read), l.muted);
+            }
+            Put(p, tiny, px + pw, 174, QStringLiteral("%1 ACTIVE").arg(period_active), l.muted, 1);
         } else if (c == 1) {
             const int pct = eff_daily_goal > 0 ? std::min(100, static_cast<int>(today_chars * 100 / eff_daily_goal)) : 0;
             Put(p, tiny, px, 96, QStringLiteral("TODAY"), l.muted);
@@ -2925,6 +3219,7 @@ void HomeWindow::PaintStats(QPainter& p) {
     const double dot_top = 304.0, row_gap = 14.2;
     int last_month = -1;
     QPolygonF wave;
+    int hovered_dot = -1;
     p.save();
     for (int w = 0; w < weeks; ++w) {
         const QDate wstart = first_day.addDays(w * 7);
@@ -2941,6 +3236,11 @@ void HomeWindow::PaintStats(QPainter& p) {
             const double norm = std::clamp(static_cast<double>(ch) / max_day, 0.0, 1.0);
             const double dx = ShelfLeft + (w + 0.5) * col_gap;
             const double dy = dot_top + (d + 0.5) * row_gap;
+            const int dot_idx = w * 7 + d;
+            shelf_hits.append({QRectF(dx - col_gap * 0.5, dy - row_gap * 0.5, col_gap, row_gap), 26, dot_idx});
+            if (!stats_breakdown && ShelfHovered(26, dot_idx)) {
+                hovered_dot = dot_idx;
+            }
             if (dt == today) {
                 p.setPen(QPen(l.accent, 2.0));
                 p.setBrush(Qt::NoBrush);
@@ -2974,39 +3274,52 @@ void HomeWindow::PaintStats(QPainter& p) {
         p.setBrush(Qt::NoBrush);
         p.drawPolyline(wave);
     }
+    // Floating tooltip for hovered or controller-focused daily dot
+    const int active_dot = hovered_dot >= 0 ? hovered_dot
+                         : (!stats_breakdown && stats_focus == 4 ? stats_dot_week * 7 + stats_dot_day : -1);
+    if (active_dot >= 0) {
+        const int aw = active_dot / 7;
+        const int ad = active_dot % 7;
+        const QDate adt = first_day.addDays(active_dot);
+        if (adt <= today) {
+            const double dx = ShelfLeft + (aw + 0.5) * col_gap;
+            const double dy = dot_top + (ad + 0.5) * row_gap;
+            p.setPen(QPen(l.accent, 2.0));
+            p.setBrush(Qt::NoBrush);
+            p.drawEllipse(QPointF(dx, dy), 7.0, 7.0);
+
+            const QString iso = adt.toString(Qt::ISODate);
+            const qint64 ch = day_chars.value(iso);
+            const qint64 ms = day_ms.value(iso);
+            const QString date_str = adt.toString(QStringLiteral("ddd · d MMM yyyy")).toUpper();
+            const QString ch_str = ch > 0 ? (CountText(ch) + QStringLiteral(" CH")) : QStringLiteral("0 CH");
+            const QString tm_str = ch > 0 ? ShortHours(ms) : QStringLiteral("No reading");
+
+            const double tw = std::max({150.0, Advance(tiny, date_str) + 24.0, Advance(mono, ch_str) + Advance(tiny, tm_str) + 34.0});
+            const double th = 48.0;
+            const double tx = std::clamp(dx - tw * 0.5, ShelfLeft, ShelfRight - tw);
+            const double ty = (dy - th - 12.0 >= 274.0) ? (dy - th - 12.0) : (dy + 12.0);
+            const QRectF tip(tx, ty, tw, th);
+            QColor bg = l.ground;
+            bg.setAlphaF(0.94);
+            p.setBrush(bg);
+            p.setPen(QPen(Faded(l.accent, 0.72), 1.2));
+            p.drawRoundedRect(tip, 8.0, 8.0);
+            Put(p, tiny, tip.left() + 12.0, tip.top() + 17.0, date_str, l.muted);
+            const double cw = Put(p, mono, tip.left() + 12.0, tip.top() + 37.0, ch_str, l.ink);
+            Put(p, tiny, tip.left() + 12.0 + cw + 10.0, tip.top() + 36.0, tm_str, l.muted);
+        }
+    }
     p.restore();
     p.fillRect(QRectF(ShelfLeft, 488, w_all, 1), l.rule);
 
-    // ---- Band 4: Bottom Split — Arc Graph (left, with Week/Month/Year/All Time) + Peak Days (right) ----
+    // ---- Band 4: Bottom Split — Arc Graph (automatically respects period selector) + Peak Days ----
     const double arc_left = ShelfLeft, arc_w = w_all * 0.61;
     const double peak_left = ShelfLeft + arc_w + 34, peak_w = ShelfRight - peak_left;
 
-    // Range selector pills (ONLY affects the Arc Graph)
     static const char* const RangeNames[4] = {"WEEK", "MONTH", "YEAR", "ALL TIME"};
     Put(p, tiny, arc_left, 510, QStringLiteral("CHARACTERS ARC"), l.muted);
-    double rx = arc_left + arc_w;
-    for (int r = 3; r >= 0; --r) {
-        const QString lbl = QString::fromLatin1(RangeNames[r]);
-        const double rw = Advance(tiny, lbl) + 14;
-        rx -= rw;
-        const bool on = stats_range == r;
-        const bool lit = ShelfHovered(21, r);
-        if (on) {
-            p.fillRect(QRectF(rx, 496, rw, 20), Faded(l.accent, stats_focus == 0 ? 0.20 : 0.10));
-            p.setPen(QPen(stats_focus == 0 ? l.accent : l.rule, 1));
-            p.setBrush(Qt::NoBrush);
-            p.drawRect(QRectF(rx + 0.5, 496.5, rw - 1, 19));
-            if (stats_focus == 0) {
-                PutHalo(p, tiny, rx + rw / 2, 510, lbl, l.ink, l.accent, dots_time, light_ground, 2);
-            } else {
-                Put(p, tiny, rx + rw / 2, 510, lbl, l.ink, 2);
-            }
-        } else {
-            Put(p, tiny, rx + rw / 2, 510, lbl, lit ? l.ink : l.muted, 2);
-        }
-        shelf_hits.append({QRectF(rx, 494, rw, 24), 21, r});
-        rx -= 6;
-    }
+    Put(p, tiny, arc_left + arc_w, 510, QString::fromLatin1(RangeNames[std::clamp(stats_range, 0, 3)]), l.muted, 1);
 
     // Build Arc Graph points for the chosen range (characters only)
     struct ArcPt {
@@ -3178,9 +3491,120 @@ void HomeWindow::PaintStats(QPainter& p) {
     p.fillRect(QRectF(ShelfLeft, 646, w_all, 1), l.rule);
     PutKeys(p, tiny, ShelfRight, 674,
             {{QStringLiteral("↑"), Qt::Key_Up}, {QStringLiteral("↓ FOCUS"), Qt::Key_Down},
-             {QStringLiteral("←"), Qt::Key_Left}, {QStringLiteral("→ CHANGE"), Qt::Key_Right},
+             {QStringLiteral("←"), Qt::Key_Left}, {QStringLiteral("→ MOVE"), Qt::Key_Right},
              {QStringLiteral("Q"), Qt::Key_Q}, {QStringLiteral("E TAB"), Qt::Key_E},
              {QStringLiteral("ESC LIBRARY"), Qt::Key_Escape}});
+
+    // Per-game breakdown modal for the chosen period
+    if (stats_breakdown) {
+        shelf_hits.clear();
+        struct GameRow {
+            QString id, title, system;
+            qint64 chars{}, ms{};
+        };
+        QHash<QString, GameRow> by_game;
+        for (const GameDay& gd : library.game_days) {
+            const QDate dt = QDate::fromString(gd.day, Qt::ISODate);
+            if (!in_period(dt)) {
+                continue;
+            }
+            GameRow& r = by_game[gd.game];
+            if (r.id.isEmpty()) {
+                r.id = gd.game;
+                r.title = ShelfTitleOf(gd.game, gd.title);
+                r.system = gd.system.isEmpty() ? QString() : SystemLabel(library, gd.system).toUpper();
+            }
+            r.chars += gd.chars;
+            r.ms += gd.active_ms;
+        }
+        QList<GameRow> rows = by_game.values();
+        std::sort(rows.begin(), rows.end(), [](const GameRow& a, const GameRow& b) { return a.chars > b.chars; });
+        qint64 total_ch = 0, total_ms = 0;
+        for (const GameRow& r : rows) {
+            total_ch += r.chars;
+            total_ms += r.ms;
+        }
+
+        p.save();
+        p.fillRect(QRectF(0, 0, SheetW, SheetH), light_ground ? QColor(244, 241, 234, 185) : QColor(8, 10, 16, 185));
+
+        const double cw = 680.0, ch = 480.0;
+        const QRectF card((SheetW - cw) * 0.5, (SheetH - ch) * 0.5, cw, ch);
+        QColor card_bg = l.ground;
+        card_bg.setAlphaF(0.95);
+        p.setBrush(card_bg);
+        p.setPen(QPen(l.rule, 1.2));
+        p.drawRoundedRect(card, 12.0, 12.0);
+
+        const QString title_txt = QStringLiteral("%1 CHARACTERS  ·  BY GAME").arg(QString::fromLatin1(RangeNames[std::clamp(stats_range, 0, 3)]));
+        Put(p, ShelfFont(l.display, 14, 0.08), card.left() + 26, card.top() + 34, title_txt, l.ink);
+        const QString sub_txt = rows.isEmpty()
+                                    ? QStringLiteral("No games recorded in this period")
+                                    : QStringLiteral("%1 characters across %2 games  ·  %3")
+                                          .arg(CountText(total_ch))
+                                          .arg(rows.size())
+                                          .arg(ShortHours(total_ms));
+        Put(p, tiny, card.left() + 26, card.top() + 54, sub_txt, l.muted);
+
+        const QRectF close_r(card.right() - 102, card.top() + 20, 76, 26);
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(l.rule, 1.0));
+        p.drawRoundedRect(close_r, 6.0, 6.0);
+        Put(p, tiny, close_r.center().x(), close_r.center().y() + 3.5, QStringLiteral("CLOSE"), l.ink, 2);
+        // ShelfPress iterates in reverse (topmost last): backdrop first, card interior second, Close button last.
+        shelf_hits.append({QRectF(0, 0, SheetW, SheetH), 28, 0});
+        shelf_hits.append({card, -1, 0});
+        shelf_hits.append({close_r, 28, 1});
+        p.fillRect(QRectF(card.left() + 22, card.top() + 68, card.width() - 44, 1), l.rule);
+
+        const int visible = 6;
+        const int max_scroll = std::max(0, static_cast<int>(rows.size()) - visible);
+        stats_breakdown_scroll = std::clamp(stats_breakdown_scroll, 0, max_scroll);
+        const QFont jp_title = ShelfFont(QStringLiteral("ZenKakuGothicNew-Medium.ttf"), 13.5);
+        if (rows.isEmpty()) {
+            Put(p, mono, card.center().x(), card.center().y() + 10, QStringLiteral("NO READING DATA IN THIS PERIOD"), l.muted, 2);
+        } else {
+            double ry = card.top() + 84.0;
+            const double row_h = 60.0;
+            for (int i = stats_breakdown_scroll; i < std::min<int>(rows.size(), stats_breakdown_scroll + visible); ++i) {
+                const GameRow& r = rows[i];
+                const int pct = total_ch > 0 ? std::max(1, static_cast<int>(std::lround(r.chars * 100.0 / total_ch))) : 0;
+                const QRectF rr(card.left() + 24, ry, card.width() - 48, row_h - 8);
+                p.setBrush(i == 0 ? Faded(l.accent, 0.10) : Faded(l.ink, 0.04));
+                p.setPen(QPen(Faded(l.rule, 0.75), 1.0));
+                p.drawRoundedRect(rr, 8.0, 8.0);
+
+                double tx = rr.left() + 12.0;
+                if (!r.system.isEmpty()) {
+                    const double sw = Advance(tiny, r.system) + 12.0;
+                    const QRectF sr(tx, rr.top() + 9.0, sw, 18.0);
+                    p.setBrush(Qt::NoBrush);
+                    p.setPen(QPen(l.rule, 1.0));
+                    p.drawRoundedRect(sr, 4.0, 4.0);
+                    Put(p, tiny, sr.center().x(), sr.center().y() + 3.5, r.system, l.muted, 2);
+                    tx += sw + 10.0;
+                }
+                const QString ch_s = CountText(r.chars);
+                const QString pct_s = QStringLiteral("%1%").arg(pct);
+                const QString tm_s = ShortHours(r.ms);
+                const double right_block = 175.0;
+                const double max_title_w = std::max(80.0, rr.right() - tx - right_block);
+                Put(p, jp_title, tx, rr.top() + 23.0, Paint::Fit(r.title, jp_title, max_title_w), l.ink);
+                Put(p, mono, rr.right() - 102.0, rr.top() + 22.0, ch_s, l.ink, 1);
+                Put(p, tiny, rr.right() - 56.0, rr.top() + 22.0, pct_s, l.accent, 1);
+                Put(p, tiny, rr.right() - 12.0, rr.top() + 22.0, tm_s, l.muted, 1);
+
+                const QRectF bar(rr.left() + 12.0, rr.bottom() - 11.0, rr.width() - 24.0, 4.0);
+                p.setPen(Qt::NoPen);
+                p.setBrush(Faded(l.muted, 0.20));
+                p.drawRoundedRect(bar, 2.0, 2.0);
+                p.setBrush(i == 0 ? l.accent : l.ink);
+                p.drawRoundedRect(QRectF(bar.left(), bar.top(), bar.width() * std::clamp(pct / 100.0, 0.0, 1.0), bar.height()), 2.0, 2.0);
+                ry += row_h;
+            }
+        }
+        p.restore();
+    }
 }
 
 void HomeWindow::PaintLog(QPainter& p) {
@@ -3869,7 +4293,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
                 // Its real spine, as its box has it, filling the spine here; its number on a
                 // small plate of the ground so that it can be read on any picture.
                 p.save();
-                p.setClipRect(box);
+                p.setClipRect(box, Qt::IntersectClip);
                 p.setOpacity(p.opacity() * seen);
                 const QRectF picture = box.adjusted(0, SpinePlate, 0, 0);
                 const double scale = std::max(picture.width() / spine.width(), picture.height() / spine.height());
@@ -3880,7 +4304,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
                 p.restore();
             }
             p.save();
-            p.setClipRect(box);
+            p.setClipRect(box, Qt::IntersectClip);
             if (!spine.isNull()) {
                 p.setOpacity(0); // drawn above; what follows is the drawn spine's
             }
@@ -3962,7 +4386,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
         if (open > 0.02) {
             // Open: laid out at its whole width from its left edge, seen through what is open of it.
             p.save();
-            p.setClipRect(box);
+            p.setClipRect(box, Qt::IntersectClip);
             p.setOpacity(p.opacity() * open);
             const QRectF plate(box.left(), box.top(), plates[i], height);
             const QPixmap cover = TitleCover(game);
@@ -3992,9 +4416,10 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             }
             const QString said = ShelfTitleOf(game.id, game.title);
             const bool japanese = HasJapanese(said);
+            const bool has_sub = !japanese && HasJapanese(game.title);
             const QString name = japanese ? said : said.toUpper();
-            const QRectF name_box(tx, box.top() + 52, tw, 86);
-            const QString size_key = l.display + QStringLiteral(":a:") + name;
+            const QRectF name_box(tx, box.top() + 52, tw, has_sub ? 68 : 86);
+            const QString size_key = l.display + (has_sub ? QStringLiteral(":as:") : QStringLiteral(":a:")) + name;
             int size = title_sizes.value(size_key);
             if (size == 0) {
                 for (size = japanese ? 34 : 26; size > 14; size -= 2) {
@@ -4008,22 +4433,25 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             }
             const QFont title_face = japanese ? ShelfFont(l.text, size) : ShelfFont(l.display, size, 0.02);
             const QString single_line = Paint::Fit(name, title_face, tw);
+            double title_bottom = box.top() + 56 + size + 4;
             if (single_line == name) {
                 PutHalo(p, title_face, tx, box.top() + 56 + size, name, l.ink, l.accent, dots_time, light_ground);
             } else {
                 p.setFont(title_face);
                 p.setPen(l.ink);
                 p.drawText(name_box, Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, name);
+                const QRectF used = QFontMetricsF(title_face).boundingRect(QRectF(0, 0, tw, 2000), Qt::TextWordWrap | Qt::AlignLeft, name);
+                title_bottom = box.top() + 52 + std::min(used.height(), name_box.height());
             }
-            if (!japanese && HasJapanese(game.title)) {
+            if (has_sub) {
                 const QFont sub = ShelfFont(QStringLiteral("ZenKakuGothicNew-Medium.ttf"), 12.5);
-                Put(p, sub, tx, box.top() + 124, Paint::Fit(ShelfName(game.title), sub, tw), l.muted);
+                Put(p, sub, tx, std::min(title_bottom + 18.0, box.top() + 138.0), Paint::Fit(ShelfName(game.title), sub, tw), l.muted);
             }
 
             // Story Bookmark: last read line from the title's backlog (omitted when none yet).
             const TitleReading& reading = ReadingOf(game.id);
             if (!reading.lines.isEmpty()) {
-                const double bm_top = box.top() + 146;
+                const double bm_top = box.top() + 148;
                 const double bm_h = 74;
                 QLinearGradient bm_bg(tx, bm_top, tx + tw, bm_top);
                 bm_bg.setColorAt(0.0, Faded(l.accent, 0.09));
@@ -4053,13 +4481,13 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
             const double tele_top = box.top() + 242;
             p.fillRect(QRectF(tx, tele_top, tw, 1), l.rule);
             p.fillRect(QRectF(tx, tele_top + 52, tw, 1), l.rule);
-            const double c1 = tx, c2 = tx + tw * 0.44, c3 = tx + tw * 0.74;
+            const double c1 = tx, c2 = tx + tw * 0.50, c3 = tx + tw;
             Put(p, tiny, c1, tele_top + 18, QStringLiteral("CHARACTERS"), l.muted);
             Put(p, value, c1, tele_top + 38, read > 0 ? (pct >= 0 ? QStringLiteral("%1 · %2%").arg(ShortCount(read)).arg(pct) : CountText(read)) : QStringLiteral("0"), l.ink);
-            Put(p, tiny, c2, tele_top + 18, QStringLiteral("PLAY TIME"), l.muted);
-            Put(p, value, c2, tele_top + 38, PlayClock(spent), l.ink);
-            Put(p, tiny, c3, tele_top + 18, QStringLiteral("LAST READ"), l.muted);
-            Put(p, value, c3, tele_top + 38, day.isEmpty() ? QStringLiteral("—") : DayText(day, true).toUpper(), l.ink);
+            Put(p, tiny, c2, tele_top + 18, QStringLiteral("PLAY TIME"), l.muted, 2);
+            Put(p, value, c2, tele_top + 38, PlayClock(spent), l.ink, 2);
+            Put(p, tiny, c3, tele_top + 18, QStringLiteral("LAST READ"), l.muted, 1);
+            Put(p, value, c3, tele_top + 38, day.isEmpty() ? QStringLiteral("—") : DayText(day, true).toUpper(), l.ink, 1);
 
             // Segmented dot progress bar (24 dots).
             const int dots_n = 24;
@@ -4136,7 +4564,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
         shelf_hits.append({box, 1, count});
         if (open < 0.98) {
             p.save();
-            p.setClipRect(box);
+            p.setClipRect(box, Qt::IntersectClip);
             const double seen = 1 - open;
             Put(p, ShelfFont(l.text, 17), box.center().x(), box.top() + 31, QStringLiteral("＋"), Faded(l.ink, seen), 2);
             const QFont face = ShelfFont(l.display, 12.5, 0.06);
@@ -4147,7 +4575,7 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
         }
         if (open > 0.02) {
             p.save();
-            p.setClipRect(box);
+            p.setClipRect(box, Qt::IntersectClip);
             p.setOpacity(p.opacity() * open);
             const double tx = box.left() + 28, tw = SpineOpen - 56;
             const double at = tx + Put(p, small, tx, box.top() + 36, QStringLiteral("＋"), l.accent);
@@ -4197,13 +4625,13 @@ void HomeWindow::PaintShelfBody(QPainter& p) {
     // The floors: halo-only console rail on the right (no hard vertical bar).
     const QStringList sections = ShelfSections();
     const QFont floor_font = ShelfFont(l.display, 10.5, 0.11);
-    const double floor_left = ShelfRight - FloorColumn + 22;
+    const double floor_left = ShelfRight - FloorColumn + 18;
     const bool light_ground = l.ground.lightness() > 140;
     for (int i = 0; i <= sections.size(); ++i) {
         const double y = ShelfTop + 10 + i * FloorPitch;
         const bool here = i == shelf_section;
         const QString name = i == 0 ? QStringLiteral("ALL") : SystemLabel(library, sections[i - 1]).toUpper();
-        const QString fit_name = Paint::Fit(name, floor_font, FloorColumn - 52);
+        const QString fit_name = Paint::Fit(name, floor_font, FloorColumn - 42);
         if (here) {
             PutHalo(p, floor_font, ShelfRight - 4, y + 22, fit_name, l.ink, l.accent, dots_time, light_ground, 1);
         } else {
@@ -4513,12 +4941,12 @@ void HomeWindow::PaintLibraryCoverFlow(QPainter& p) {
 
     // Halo-only console rail on the right
     const QFont floor_font = ShelfFont(l.display, 10.5, 0.11);
-    const double floor_left = ShelfRight - FloorColumn + 22;
+    const double floor_left = ShelfRight - FloorColumn + 18;
     for (int i = 0; i <= sections.size(); ++i) {
         const double y = ShelfTop + 10 + i * FloorPitch;
         const bool here = i == shelf_section;
         const QString name = i == 0 ? QStringLiteral("ALL") : SystemLabel(library, sections[i - 1]).toUpper();
-        const QString fit_name = Paint::Fit(name, floor_font, FloorColumn - 52);
+        const QString fit_name = Paint::Fit(name, floor_font, FloorColumn - 42);
         if (here) {
             PutHalo(p, floor_font, ShelfRight - 4, y + 22, fit_name, l.ink, l.accent, dots_time, light_ground, 1);
         } else {

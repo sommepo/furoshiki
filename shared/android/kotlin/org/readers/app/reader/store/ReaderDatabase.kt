@@ -23,7 +23,8 @@ data class BacklogEntry(
     val game: String,
     val line: TextLine,
     val characters: Int,
-    val reread: Boolean
+    val reread: Boolean,
+    val counted: Boolean = characters > 0
 )
 
 /** Totals of one game, for the statistics screen. */
@@ -312,7 +313,7 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
             "lines",
             arrayOf(
                 "id", "game", "ts", "channel", "speaker", "text", "ruby", "source_id", "meta",
-                "chars", "reread"
+                "chars", "reread", "session_id"
             ),
             where,
             args,
@@ -328,6 +329,7 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
                     for (key in m.keys()) meta[key] = m.get(key).toString()
                 }
                 val ruby = runCatching { JSONArray(c.getString(6)) }.getOrNull()
+                val chars = c.getInt(9)
                 out.add(
                     BacklogEntry(
                         id = c.getLong(0),
@@ -344,13 +346,182 @@ class ReaderDatabase(context: Context, name: String? = DATABASE_NAME) :
                             meta = meta,
                             timestamp = c.getLong(2)
                         ),
-                        characters = c.getInt(9),
-                        reread = c.getInt(10) != 0
+                        characters = chars,
+                        reread = c.getInt(10) != 0,
+                        counted = !c.isNull(11) && chars > 0
                     )
                 )
             }
         }
         return out
+    }
+
+    /**
+     * Toggles whether a backlog line is counted for reading stats, updating `lines` and `daily`.
+     * Returns true if the line's counted state changed.
+     */
+    fun toggleLineCounted(id: Long, counted: Boolean): Boolean {
+        val db = writableDatabase
+        var game = ""
+        var sessionId: Long? = null
+        var ts = 0L
+        var choice = false
+        var text = ""
+        var chars = 0
+        var reread = false
+        db.rawQuery(
+            "SELECT game, session_id, ts, channel, text, chars, reread FROM lines WHERE id = ?",
+            arrayOf(id.toString())
+        ).use { c ->
+            if (!c.moveToFirst()) return false
+            game = c.getString(0)
+            sessionId = if (c.isNull(1)) null else c.getLong(1)
+            ts = c.getLong(2)
+            choice = c.getString(3) == TextLine.CHANNEL_CHOICE
+            text = c.getString(4)
+            chars = c.getInt(5)
+            reread = c.getInt(6) != 0
+        }
+        val wasCounted = sessionId != null && chars > 0
+        if (wasCounted == counted) return false
+        val day = ReadingRules.readingDay(ts)
+        db.beginTransaction()
+        try {
+            if (!counted) {
+                db.execSQL("UPDATE lines SET session_id = NULL, chars = 0 WHERE id = ?", arrayOf<Any>(id))
+                if (choice) {
+                    db.execSQL(
+                        "UPDATE daily SET choice_chars = MAX(0, choice_chars - ?) WHERE session_id = ? AND day = ?",
+                        arrayOf<Any>(chars, sessionId!!, day)
+                    )
+                } else {
+                    val kind = if (reread) "reread_chars" else "unique_chars"
+                    db.execSQL(
+                        "UPDATE daily SET chars = MAX(0, chars - ?), $kind = MAX(0, $kind - ?), " +
+                            "lines = MAX(0, lines - 1) WHERE session_id = ? AND day = ?",
+                        arrayOf<Any>(chars, chars, sessionId!!, day)
+                    )
+                }
+            } else {
+                val n = ReadingRules.countCharacters(text)
+                if (n <= 0) return false
+                val targetSession = sessionId
+                    ?: db.rawQuery(
+                        "SELECT id FROM sessions WHERE game = ? AND ended IS NULL ORDER BY id DESC LIMIT 1",
+                        arrayOf(game)
+                    ).use { if (it.moveToFirst()) it.getLong(0) else null }
+                    ?: db.rawQuery(
+                        "SELECT id FROM sessions WHERE game = ? ORDER BY id DESC LIMIT 1",
+                        arrayOf(game)
+                    ).use { if (it.moveToFirst()) it.getLong(0) else null }
+                    ?: run {
+                        val v = ContentValues().apply {
+                            put("game", game)
+                            put("started", ts)
+                            put("last_activity", ts)
+                        }
+                        db.insert("sessions", null, v)
+                    }
+                db.execSQL(
+                    "UPDATE lines SET session_id = ?, chars = ? WHERE id = ?",
+                    arrayOf<Any>(targetSession, n, id)
+                )
+                val dChars = if (choice) 0 else n
+                val dUnique = if (!choice && !reread) n else 0
+                val dReread = if (!choice && reread) n else 0
+                val dLines = if (choice) 0 else 1
+                val dChoice = if (choice) n else 0
+                db.execSQL(
+                    """INSERT INTO daily(session_id, day, game, active_ms, chars, unique_chars,
+                           reread_chars, lines, choice_chars)
+                       VALUES(?, ?, ?, 0, ?, ?, ?, ?, ?)
+                       ON CONFLICT(session_id, day) DO UPDATE SET
+                           chars = chars + excluded.chars,
+                           unique_chars = unique_chars + excluded.unique_chars,
+                           reread_chars = reread_chars + excluded.reread_chars,
+                           lines = lines + excluded.lines,
+                           choice_chars = choice_chars + excluded.choice_chars""",
+                    arrayOf<Any>(targetSession, day, game, dChars, dUnique, dReread, dLines, dChoice)
+                )
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return true
+    }
+
+    /**
+     * Removes duplicate lines (same speaker and text) for [game], keeping one copy (preferring a
+     * counted copy) and adjusting `daily` totals for any removed counted rows. Returns count removed.
+     */
+    fun clearDuplicateLines(game: String): Int {
+        data class Row(
+            val id: Long,
+            val sessionId: Long?,
+            val ts: Long,
+            val choice: Boolean,
+            val key: String,
+            val chars: Int,
+            val reread: Boolean
+        )
+        val db = writableDatabase
+        val rows = ArrayList<Row>()
+        val keeper = HashMap<String, Long>()
+        val keeperCounted = HashMap<String, Boolean>()
+        db.rawQuery(
+            "SELECT id, session_id, ts, channel, speaker, text, chars, reread FROM lines WHERE game = ? ORDER BY id ASC",
+            arrayOf(game)
+        ).use { c ->
+            while (c.moveToNext()) {
+                val sid = if (c.isNull(1)) null else c.getLong(1)
+                val chars = c.getInt(6)
+                val key = "${c.getString(4)}\u001f${c.getString(5)}"
+                val row = Row(
+                    id = c.getLong(0),
+                    sessionId = sid,
+                    ts = c.getLong(2),
+                    choice = c.getString(3) == TextLine.CHANNEL_CHOICE,
+                    key = key,
+                    chars = chars,
+                    reread = c.getInt(7) != 0
+                )
+                val isCounted = sid != null && chars > 0
+                if (!keeper.containsKey(key) || (keeperCounted[key] != true && isCounted)) {
+                    keeper[key] = row.id
+                    keeperCounted[key] = isCounted
+                }
+                rows.add(row)
+            }
+        }
+        val toDelete = rows.filter { keeper[it.key] != it.id }
+        if (toDelete.isEmpty()) return 0
+        db.beginTransaction()
+        try {
+            for (r in toDelete) {
+                db.delete("lines", "id = ?", arrayOf(r.id.toString()))
+                if (r.sessionId != null && r.chars > 0) {
+                    val day = ReadingRules.readingDay(r.ts)
+                    if (r.choice) {
+                        db.execSQL(
+                            "UPDATE daily SET choice_chars = MAX(0, choice_chars - ?) WHERE session_id = ? AND day = ?",
+                            arrayOf<Any>(r.chars, r.sessionId, day)
+                        )
+                    } else {
+                        val kind = if (r.reread) "reread_chars" else "unique_chars"
+                        db.execSQL(
+                            "UPDATE daily SET chars = MAX(0, chars - ?), $kind = MAX(0, $kind - ?), " +
+                                "lines = MAX(0, lines - 1) WHERE session_id = ? AND day = ?",
+                            arrayOf<Any>(r.chars, r.chars, r.sessionId, day)
+                        )
+                    }
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return toDelete.size
     }
 
     // ---- ActivityStore ----

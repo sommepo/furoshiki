@@ -150,6 +150,9 @@ bool LookupFlow::OnPad(PadKey key) {
         CountLookup();
         popup->PadAdd(key == PadKey::CardWithAudio);
         break;
+    case PadKey::ToggleMore:
+        popup->PadToggleMore();
+        break;
     case PadKey::Close:
         Close();
         break;

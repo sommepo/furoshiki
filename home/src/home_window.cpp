@@ -35,6 +35,7 @@
 #include "ocr_client.h"
 #include "ocr_helper.h"
 #include "window_list.h"
+#include "reader/qt/reader_overlay.h"
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QRawFont>
@@ -302,6 +303,7 @@ constexpr SettingRow SettingRows[] = {
     {"Library layout", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Animated dots", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Show statistics tab", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
+    {"Translucent overlays", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Icon", "", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"Wide picture", "Supported PS2 and Switch games", nullptr, 0, 0, 0, 0, "Display", 0, false},
     {"CRT picture", "", nullptr, 0, 0, 0, 0, "Display", 2, false},
@@ -1200,6 +1202,8 @@ QList<HomeWindow::Row> HomeWindow::Rows(const Item& item) {
                 value = dots_on ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Show statistics tab")) {
                 value = show_stats_tab ? QStringLiteral("ON") : QStringLiteral("OFF");
+            } else if (name == QStringLiteral("Translucent overlays")) {
+                value = overlay_blur ? QStringLiteral("ON") : QStringLiteral("OFF");
             } else if (name == QStringLiteral("Version")) {
                 value = QStringLiteral(FUROSHIKI_VERSION);
             } else if (name == QStringLiteral("Icon")) {
@@ -1332,6 +1336,22 @@ int HomeWindow::DailyGoal() const {
 
 void HomeWindow::SetDailyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/goal"), std::clamp(characters / GoalStep * GoalStep, 0, GoalMost));
+}
+
+int HomeWindow::WeeklyGoal() const {
+    return std::clamp(QSettings().value(QStringLiteral("stats/weekly_goal"), 0).toInt(), 0, 500000);
+}
+
+void HomeWindow::SetWeeklyGoal(int characters) {
+    QSettings().setValue(QStringLiteral("stats/weekly_goal"), std::clamp(characters, 0, 500000));
+}
+
+int HomeWindow::MonthlyGoal() const {
+    return std::clamp(QSettings().value(QStringLiteral("stats/monthly_goal"), 0).toInt(), 0, 3000000);
+}
+
+void HomeWindow::SetMonthlyGoal(int characters) {
+    QSettings().setValue(QStringLiteral("stats/monthly_goal"), std::clamp(characters, 0, 3000000));
 }
 
 int HomeWindow::YearlyGoal() const {
@@ -2193,6 +2213,11 @@ void HomeWindow::Accept() {
             }
             sounds.Play(Sound::Select);
             update();
+        } else if (name == QStringLiteral("Translucent overlays")) {
+            overlay_blur = !overlay_blur;
+            settings.setValue(QStringLiteral("shelf/overlay_blur"), overlay_blur);
+            sounds.Play(Sound::Select);
+            update();
         } else if (name == QStringLiteral("Menu sounds")) {
             sound_on = !sound_on;
             settings.setValue(QStringLiteral("sounds"), sound_on);
@@ -2597,6 +2622,25 @@ void HomeWindow::wheelEvent(QWheelEvent* event) {
             return;
         }
         wheel_side += by;
+        if (shelf_stats && stats_breakdown) {
+            const int notches = static_cast<int>(wheel_side / 120);
+            if (notches != 0) {
+                wheel_side -= notches * 120;
+                stats_breakdown_scroll = std::max(0, stats_breakdown_scroll + (notches > 0 ? -1 : 1));
+                update();
+            }
+            return;
+        }
+        if (shelf_stats && ShelfHovered(21, 0)) {
+            const int notches = static_cast<int>(wheel_side / 120);
+            if (notches != 0) {
+                wheel_side -= notches * 120;
+                stats_range = (stats_range + (notches > 0 ? 3 : 1)) % 4;
+                sounds.Play(Sound::Move);
+                update();
+            }
+            return;
+        }
         if (shelf_stats && goal_open != 0) {
             // The open goal soroban: a bead of the rod in hand for each notch.
             const int notches = static_cast<int>(wheel_side / 120);

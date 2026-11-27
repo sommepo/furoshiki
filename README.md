@@ -12,7 +12,7 @@ Point at, tap, or step through exact in-game text with a controller, look up wor
 <a href="../../releases/download/v0.4.0.1/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
-<p align="center"><img src="home/publish/media/popup-lookup.jpg" width="760" alt="Dictionary popup for 常習犯 over CLANNAD (PS2) on the desktop, showing the reading, pitch accent graph, frequency badges, and entries from Jitendex, 明鏡, and 大辞泉 in the Kon theme with blur"></p>
+<p align="center"><img src="home/publish/media/popup-lookup.gif" width="760" alt="Controller reading mode over CLANNAD (PS2) on the desktop: the popup for 常習犯 steps through its dictionary entries and changes height to fit each one, then the cursor moves to なのだ, the Grammar tab opens and a button press unfolds the grammar entry"></p>
 
 <p align="center"><sub>CLANNAD (PS2) on the desktop with the Kon popup at 80% opacity and blur, showing Jitendex, 明鏡, 大辞泉, frequency badges, and a pitch accent graph from Kanjium (all dictionaries are imported by the user).</sub></p>
 
@@ -407,7 +407,7 @@ OCR engine.
 
 ## Library and themes
 
-<p align="center"><img src="home/publish/media/shelf.gif" width="760" alt="Browsing the Furoshiki game shelf on the desktop in the Nocturne theme, opening spines to reveal covers and reading stats"></p>
+<p align="center"><img src="home/publish/media/shelf.gif" width="760" alt="Browsing the Furoshiki game shelf on the desktop in the Nocturne theme: titles open to show covers and reading figures, then the shelf changes console from All down to Dreamcast"></p>
 
 <p align="center"><sub>Browsing the library shelf on the desktop in the Nocturne theme.</sub></p>
 

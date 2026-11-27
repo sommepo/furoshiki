@@ -157,16 +157,23 @@ Library Load(const QString& folder) {
             QString last_day;
         };
         QMap<QString, Read> read;
+        struct RawGameDay {
+            QString day, game;
+            qint64 chars{}, active_ms{};
+        };
+        QList<RawGameDay> app_game_days;
         const QJsonObject stats = root.value(QStringLiteral("stats")).toObject();
+        const QJsonObject stats_games = stats.value(QStringLiteral("games")).toObject();
         for (const QJsonValue& value : stats.value(QStringLiteral("days")).toArray()) {
             const QJsonObject entry = value.toObject();
             const QString day = entry.value(QStringLiteral("day")).toString();
+            const QString gid = entry.value(QStringLiteral("game")).toString();
             const qint64 chars = static_cast<qint64>(entry.value(QStringLiteral("chars")).toDouble());
             const qint64 active = static_cast<qint64>(entry.value(QStringLiteral("active_ms")).toDouble());
             if (day.isEmpty()) {
                 continue;
             }
-            Read& game = read[entry.value(QStringLiteral("game")).toString()];
+            Read& game = read[gid];
             game.chars += chars;
             game.active_ms += active;
             game.last_day = std::max(game.last_day, day);
@@ -174,6 +181,9 @@ Library Load(const QString& folder) {
             total.day = day;
             total.chars += chars;
             total.active_ms += active;
+            if (!gid.isEmpty() && (chars > 0 || active > 0)) {
+                app_game_days.append({day, gid, chars, active});
+            }
             app.chars += chars;
             app.active_ms += active;
         }
@@ -223,6 +233,19 @@ Library Load(const QString& folder) {
                 game.title += match.hasMatch() ? QStringLiteral(" · Disc %1").arg(match.captured(2))
                                                : QStringLiteral(" · %1").arg(file);
             }
+        }
+        QMap<QString, QPair<QString, QString>> game_info;
+        for (const Game& g : app.games) {
+            game_info.insert(g.id, {g.title, g.system});
+        }
+        for (const RawGameDay& gd : app_game_days) {
+            const auto it = game_info.constFind(gd.game);
+            QString title = it != game_info.constEnd() ? it->first : stats_games.value(gd.game).toString();
+            if (title.isEmpty()) {
+                title = gd.game;
+            }
+            const QString sys = (it != game_info.constEnd() && !it->second.isEmpty()) ? it->second : app.system;
+            library.game_days.append(GameDay{gd.day, gd.game, title, sys, gd.chars, gd.active_ms});
         }
         library.chars += app.chars;
         library.active_ms += app.active_ms;

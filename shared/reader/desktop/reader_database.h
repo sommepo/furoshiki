@@ -24,6 +24,7 @@ struct BacklogEntry {
     TextLine line;
     int characters{};
     bool reread{};
+    bool counted{};
 };
 
 /// Totals of one game, for the statistics screen.
@@ -77,6 +78,12 @@ public:
                                                               const QString& text);
     /// A line stored as not counted has been counted after all.
     void SetLineCounted(qint64 id, const LineAccounting& accounting);
+    /// Toggles whether a backlog line is counted for reading stats, updating `lines` and `daily`.
+    /// Returns true if the line's counted state changed.
+    bool ToggleLineCounted(qint64 id, bool counted);
+    /// Removes duplicate lines (same speaker and text) for `game`, keeping one copy (preferring a
+    /// counted copy) and adjusting `daily` totals for any removed counted rows. Returns count removed.
+    int ClearDuplicateLines(const QString& game);
 
     // ---- ActivityStore ----
     std::optional<SessionRecord> OpenSession(const QString& game) override;

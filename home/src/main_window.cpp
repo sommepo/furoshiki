@@ -705,6 +705,14 @@ MainWindow::MainWindow() {
         ShowSettingsPages();
         home->ShowDictionaries();
     };
+    ReaderUi::BacklogPage() = [this] { OpenBacklogOverlay(); };
+#ifndef READER_NO_EXPLAIN
+    ReaderUi::ExplainPage() = [this] {
+        if (const auto current_line = ReaderUi::ReaderSession::Instance().Current()) {
+            OpenExplainOverlay(*current_line);
+        }
+    };
+#endif
     // L2 was the pointer's by default, and the Reader settings window wrote that default down
     // on saving, so a stored L2 says nothing of a choice. Once, it goes back to the games.
     if (QSettings program; !program.contains(QStringLiteral("pointer_button_left_to_games"))) {
@@ -3631,17 +3639,28 @@ void MainWindow::PollPads() {
     const bool guide_combo = false;
 #endif
     static uint32_t popup_swallow = 0; // by SDL's number; bits 30 and 31 the triggers
-    // While the in-game menu overlay or a QMenu is open, the controller drives it and the game gets nothing.
-    const bool menu_open = (game_picker != nullptr && game_picker->isVisible()) || (menu != nullptr && menu->isVisible());
+    // While the in-game menu overlay, Backlog, Explain Line, or a QMenu is open, the controller drives it and the game gets nothing.
+    const bool explain_open =
+#ifndef READER_NO_EXPLAIN
+        (explain_overlay != nullptr && explain_overlay->isVisible());
+#else
+        false;
+#endif
+    const bool backlog_open = (backlog_overlay != nullptr && backlog_overlay->isVisible());
+    const bool menu_open = explain_open || backlog_open || (game_picker != nullptr && game_picker->isVisible()) || (menu != nullptr && menu->isVisible());
     static bool menu_was_open = false;
     static uint32_t menu_held = 0;
     static int menu_stick_x = 0;
     static int menu_stick_y = 0;
+    static int menu_repeat_key = 0;
+    static qint64 menu_repeat_at = 0;
     if (menu_open) {
         const std::pair<int, int> keys[] = {
             {SDL_CONTROLLER_BUTTON_DPAD_UP, Qt::Key_Up},       {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Qt::Key_Down},
             {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Qt::Key_Left},   {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Qt::Key_Right},
             {SDL_CONTROLLER_BUTTON_A, Qt::Key_Return},         {SDL_CONTROLLER_BUTTON_B, Qt::Key_Escape},
+            {SDL_CONTROLLER_BUTTON_X, Qt::Key_X},              {SDL_CONTROLLER_BUTTON_Y, Qt::Key_Y},
+            {SDL_CONTROLLER_BUTTON_BACK, Qt::Key_Delete},
             {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Qt::Key_PageUp}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Qt::Key_PageDown},
         };
         const auto axis_dir = [&](SDL_GameControllerAxis sdl_axis, int steam_axis, int prev) {
@@ -3659,9 +3678,20 @@ void MainWindow::PollPads() {
             }
             menu_stick_x = axis_dir(SDL_CONTROLLER_AXIS_LEFTX, ReaderApp::SteamBridge::LeftX, 0);
             menu_stick_y = axis_dir(SDL_CONTROLLER_AXIS_LEFTY, ReaderApp::SteamBridge::LeftY, 0);
+            menu_repeat_key = 0;
             menu_was_open = true;
         }
         const auto send_menu_key = [&](int key) {
+#ifndef READER_NO_EXPLAIN
+            if (explain_overlay != nullptr && explain_overlay->isVisible()) {
+                explain_overlay->Key(key);
+                return;
+            }
+#endif
+            if (backlog_overlay != nullptr && backlog_overlay->isVisible()) {
+                backlog_overlay->Key(key);
+                return;
+            }
             if (game_picker != nullptr && game_picker->isVisible()) {
                 game_picker->Key(key);
             } else if (QWidget* target = QApplication::activePopupWidget() ? QApplication::activePopupWidget() : menu) {
@@ -3674,6 +3704,15 @@ void MainWindow::PollPads() {
             const uint32_t mask = 1U << sdl;
             if (down && (menu_held & mask) == 0) {
                 send_menu_key(key);
+                if (key == Qt::Key_Up || key == Qt::Key_Down) {
+                    menu_repeat_key = key;
+                    menu_repeat_at = now + 340;
+                }
+            } else if (down && menu_repeat_key == key && now >= menu_repeat_at) {
+                send_menu_key(key);
+                menu_repeat_at = now + 85;
+            } else if (!down && menu_repeat_key == key) {
+                menu_repeat_key = 0;
             }
             menu_held = down ? menu_held | mask : menu_held & ~mask;
             if (down) {
@@ -3687,7 +3726,13 @@ void MainWindow::PollPads() {
         menu_stick_x = next_x;
         const int next_y = axis_dir(SDL_CONTROLLER_AXIS_LEFTY, ReaderApp::SteamBridge::LeftY, menu_stick_y);
         if (next_y != menu_stick_y && next_y != 0) {
-            send_menu_key(next_y > 0 ? Qt::Key_Down : Qt::Key_Up);
+            const int k = next_y > 0 ? Qt::Key_Down : Qt::Key_Up;
+            send_menu_key(k);
+            menu_repeat_key = k;
+            menu_repeat_at = now + 340;
+        } else if (next_y != 0 && menu_repeat_key == (next_y > 0 ? Qt::Key_Down : Qt::Key_Up) && now >= menu_repeat_at) {
+            send_menu_key(menu_repeat_key);
+            menu_repeat_at = now + 85;
         }
         menu_stick_y = next_y;
         std::scoped_lock lock{pads_mutex};
@@ -3699,6 +3744,7 @@ void MainWindow::PollPads() {
         menu_held = 0;
         menu_stick_x = 0;
         menu_stick_y = 0;
+        menu_repeat_key = 0;
     }
     // An open dictionary popup is modal, as on Android (PopupKeys): the d-pad goes from entry to
     // entry, L1 and R1 from tab to tab (words, grammar, kanji, names), north makes a card of the
@@ -3935,10 +3981,12 @@ void MainWindow::PollPads() {
             }
             popup_swallow |= down_now & taken;
         } else if (read_state == ReadState::Popup) {
-            // In the popup west or south go back to the text (south does not close it here).
+            // In the popup west goes back to the text; south expands/collapses "more" on the chosen entry.
             popup_skip = bit(SDL_CONTROLLER_BUTTON_A) | bit(SDL_CONTROLLER_BUTTON_X);
-            if ((seen_pressed & popup_skip) != 0) {
+            if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_X)) != 0) {
                 reader->ReadKeyPressed(ReadKey::Text);
+            } else if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_A)) != 0 && open_popup != nullptr) {
+                open_popup->OnPad(ReaderUi::LookupFlow::PadKey::ToggleMore);
             }
         }
         if (read_state == ReadState::Text || read_state == ReadState::Popup || (read_state == ReadState::Idle && !read_always)) {
@@ -4843,24 +4891,83 @@ void MainWindow::CloseGamePicker() {
     }
 }
 
+Home::ChoicePicker::Colours MainWindow::OverlayColours() const {
+    return home->ShelfThemeColours(width(), height());
+}
+
+void MainWindow::OpenBacklogOverlay() {
+    if (current == nullptr || pages->currentWidget() != screen) {
+        ReaderUi::RunBacklogDialog(this);
+        return;
+    }
+    CloseGamePicker();
+    if (backlog_overlay != nullptr) {
+        backlog_overlay->Key(Qt::Key_Escape);
+        return;
+    }
+    ReaderUi::ProgramPaused(true);
+    auto on_card = [this](const ReaderApp::PresentedLine& line) {
+        if (ReaderUi::ReaderController* rc = ReaderUi::GameController()) {
+            rc->Lookups().MineSentence(line);
+        }
+    };
+    std::function<void(const ReaderApp::PresentedLine&)> on_explain;
+#ifndef READER_NO_EXPLAIN
+    on_explain = [this](const ReaderApp::PresentedLine& line) { OpenExplainOverlay(line); };
+#endif
+    backlog_overlay = Home::GameBacklogOverlay::Open(screen, OverlayColours(), std::move(on_card), std::move(on_explain));
+    connect(backlog_overlay, &QObject::destroyed, this, [this] {
+        const bool other_open = (game_picker != nullptr && game_picker->isVisible())
+#ifndef READER_NO_EXPLAIN
+                                || (explain_overlay != nullptr && explain_overlay->isVisible())
+#endif
+                                || (menu != nullptr && menu->isVisible());
+        if (!other_open && pages->currentWidget() == screen) {
+            ReaderUi::ProgramPaused(false);
+            screen->setFocus();
+        }
+    });
+}
+
+#ifndef READER_NO_EXPLAIN
+void MainWindow::OpenExplainOverlay(const ReaderApp::PresentedLine& presented) {
+    if (current == nullptr || pages->currentWidget() != screen) {
+        ReaderUi::RunExplainDialog(this);
+        return;
+    }
+    CloseGamePicker();
+    if (explain_overlay != nullptr) {
+        explain_overlay->Key(Qt::Key_Escape);
+        return;
+    }
+    ReaderUi::ProgramPaused(true);
+    auto on_card = [this](const ReaderApp::PresentedLine& line) {
+        if (ReaderUi::ReaderController* rc = ReaderUi::GameController()) {
+            rc->Lookups().MineSentence(line);
+        }
+    };
+    explain_overlay = Home::GameExplainOverlay::Open(screen, OverlayColours(), presented, std::move(on_card));
+    connect(explain_overlay, &QObject::destroyed, this, [this] {
+        const bool other_open = (game_picker != nullptr && game_picker->isVisible()) ||
+                                (backlog_overlay != nullptr && backlog_overlay->isVisible()) ||
+                                (menu != nullptr && menu->isVisible());
+        if (!other_open && pages->currentWidget() == screen) {
+            ReaderUi::ProgramPaused(false);
+            screen->setFocus();
+        } else if (backlog_overlay != nullptr && backlog_overlay->isVisible()) {
+            backlog_overlay->setFocus();
+        }
+    });
+}
+#endif
+
 void MainWindow::OpenPickerOverlay(const QString& title, const QStringList& labels, int now, std::function<void(int)> picked) {
     if (labels.isEmpty()) {
         return;
     }
     CloseGamePicker();
     ReaderUi::ProgramPaused(true);
-    Home::ChoicePicker::Colours colours;
-    colours.scale = std::clamp(std::min(width() / 1280.0, height() / 720.0), 0.75, 1.8);
-    colours.card = QColor(QStringLiteral("#101a3a"));
-    colours.txt = QColor(QStringLiteral("#ece5d3"));
-    colours.sel = QColor(QStringLiteral("#ece5d3"));
-    colours.dim = QColor(QStringLiteral("#8a93b5"));
-    colours.accent = QColor(QStringLiteral("#d9472b"));
-    colours.rule = QColor(236, 229, 211, 62);
-    colours.title = QFont(QStringLiteral("Michroma"), static_cast<int>(std::lround(11 * colours.scale)));
-    colours.title.setLetterSpacing(QFont::PercentageSpacing, 114);
-    colours.row = QFont(QStringLiteral("Space Grotesk"), static_cast<int>(std::lround(15 * colours.scale)), QFont::Medium);
-    game_picker = Home::ChoicePicker::Open(screen, title, labels, now, colours, [this, fn = std::move(picked)](int index) {
+    game_picker = Home::ChoicePicker::Open(screen, title, labels, now, OverlayColours(), [this, fn = std::move(picked)](int index) {
         QTimer::singleShot(0, this, [this, fn, index] {
             if (fn) {
                 fn(index);
@@ -4868,7 +4975,12 @@ void MainWindow::OpenPickerOverlay(const QString& title, const QStringList& labe
         });
     });
     connect(game_picker, &QObject::destroyed, this, [this] {
-        if (!game_picker_replacing && (menu == nullptr || !menu->isVisible()) && pages->currentWidget() == screen) {
+        const bool other_open = (backlog_overlay != nullptr && backlog_overlay->isVisible())
+#ifndef READER_NO_EXPLAIN
+                                || (explain_overlay != nullptr && explain_overlay->isVisible())
+#endif
+                                || (menu != nullptr && menu->isVisible());
+        if (!game_picker_replacing && !other_open && pages->currentWidget() == screen) {
             ReaderUi::ProgramPaused(false);
             screen->setFocus();
         }
@@ -4928,11 +5040,10 @@ void MainWindow::OpenReadingMenu() {
     };
     add(QStringLiteral("‹ Back to Game menu"), [this] { OpenMenu(); });
 #ifndef READER_NO_EXPLAIN
-    add(QStringLiteral("Explain this line  ·  Ctrl+E"), [trigger_reader] { trigger_reader("reader_explain"); });
+    add(QStringLiteral("Explain this line"), [trigger_reader] { trigger_reader("reader_explain"); });
 #endif
-    add(QStringLiteral("Backlog  ·  Ctrl+H"), [trigger_reader] { trigger_reader("reader_backlog"); });
-    add(QStringLiteral("Add sentence card  ·  Ctrl+D"), [trigger_reader] { trigger_reader("reader_sentence_card"); });
-    add(QStringLiteral("Undo last card  ·  Ctrl+Z"), [trigger_reader] { trigger_reader("reader_undo_card"); });
+    add(QStringLiteral("Add sentence card"), [trigger_reader] { trigger_reader("reader_sentence_card"); });
+    add(QStringLiteral("Undo last card"), [trigger_reader] { trigger_reader("reader_undo_card"); });
 #ifndef READER_NO_SAVE_SYNC
     if (!Home::Services::Of(QStringLiteral("furochibi")).isEmpty()) {
         add(QStringLiteral("Toggle guide step"), [this] { ToggleGuide(); });
@@ -4948,8 +5059,12 @@ void MainWindow::OpenReadingMenu() {
         OpenReadingMenu();
     });
     if (!playing_id.isEmpty() && !HasScript(playing_id)) {
-        add(QStringLiteral("Read text now (OCR)  ·  Ctrl+Shift+R"), [this] { ReadAskedBoxes(); });
+        add(QStringLiteral("Read text now (OCR)"), [this] { ReadAskedBoxes(); });
     }
+    add(QStringLiteral("Popup"), [this] {
+        ShowSettingsPages();
+        home->ShowSettingsSection(QStringLiteral("Popup"));
+    });
     add(QStringLiteral("Statistics"), [trigger_reader] { trigger_reader("reader_statistics"); });
     add(QStringLiteral("Dictionaries"), [this] {
         ShowSettingsPages();
@@ -4984,7 +5099,8 @@ void MainWindow::OpenMenu() {
     };
     const uint32_t features = current->session->Features();
     add(QStringLiteral("Resume"), [] {});
-    add(QStringLiteral("Reading & Tools  ·  F1"), [this] { OpenReadingMenu(); });
+    add(QStringLiteral("Backlog"), [this] { OpenBacklogOverlay(); });
+    add(QStringLiteral("Reading & Tools"), [this] { OpenReadingMenu(); });
     if ((features & READER_CORE_HAS_STATES) != 0) {
         add(QStringLiteral("Save state"), [this] { OpenStatePicker(false); });
         add(QStringLiteral("Load state"), [this] { OpenStatePicker(true); });
@@ -4992,7 +5108,7 @@ void MainWindow::OpenMenu() {
     add(QStringLiteral("Full screen  ·  %1").arg(isFullScreen() ? QStringLiteral("ON") : QStringLiteral("OFF")), [this] {
         ToggleFullScreen();
     });
-    add(QStringLiteral("Settings  ·  F2"), [this] { ShowSettingsPages(); });
+    add(QStringLiteral("Settings"), [this] { ShowSettingsPages(); });
     add(QStringLiteral("Quit game"), [this] {
         OpenPickerOverlay(QStringLiteral("Quit game?"), {QStringLiteral("Cancel"), QStringLiteral("Quit to Library")}, 0, [this](int idx) {
             if (idx == 1) {

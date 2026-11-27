@@ -385,6 +385,14 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .kanji-rows dt { color: var(--dim); font-size: calc(9.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.25em; }
 .kanji-rows dd { margin: 0; }
 .kanji-side { min-width: 0; }
+/* Subtle controller hint for expanding/collapsing "more" and <details> with A */
+.popup.pad .entry.chosen .more::after,
+.popup.pad .entry.chosen details > summary::after {
+  content: " A";
+  color: var(--accent);
+  font-size: 0.85em;
+  opacity: 0.85;
+}
 
 /* Where color-mix is not known (the Thor's WebView 109): a color-mix with var() in it is only found
    wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given

@@ -6,6 +6,7 @@
 #include <QPointer>
 #include "controller_map.h"
 #include "dictionary_shelf.h"
+#include "game_overlays.h"
 #include "script_shelf.h"
 
 // The one program's one window (docs/one-program.md): Furoshiki's own page, and the game,
@@ -221,9 +222,18 @@ private:
     void OpenMenu();
     void OpenReadingMenu();
     void OpenStatePicker(bool load);
+    [[nodiscard]] Home::ChoicePicker::Colours OverlayColours() const;
+    void OpenBacklogOverlay();
+#ifndef READER_NO_EXPLAIN
+    void OpenExplainOverlay(const ReaderApp::PresentedLine& presented);
+#endif
     void OpenPickerOverlay(const QString& title, const QStringList& labels, int now, std::function<void(int)> picked);
     void CloseGamePicker();
     QPointer<Home::ChoicePicker> game_picker;
+    QPointer<Home::GameBacklogOverlay> backlog_overlay;
+#ifndef READER_NO_EXPLAIN
+    QPointer<Home::GameExplainOverlay> explain_overlay;
+#endif
     bool game_picker_replacing{};
     /// The text panel (the strip of lines) shown or hidden: a shortcut's action.
     void ToggleTextPanel();

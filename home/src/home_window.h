@@ -24,6 +24,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QWidget>
+#include "choice_picker.h"
 #include "line_titles.h"
 #include "library.h"
 #include "dictionary_shelf.h"
@@ -125,6 +126,8 @@ public:
     [[nodiscard]] bool ChosenMotion() const {
         return motion;
     }
+    /// Active shelf theme palette for in-game overlays (Game menu, Backlog, Explain).
+    [[nodiscard]] ChoicePicker::Colours ShelfThemeColours(int win_w, int win_h) const;
     void ChooseMotion(bool on) {
         SetMotion(on, true);
     }
@@ -225,6 +228,8 @@ public:
     void SetDictionaries(DictionaryShelf* shelf);
     /// The settings pages at Dictionaries, its rows in hand (the Quick menu's Dictionaries…).
     void ShowDictionaries();
+    /// The settings pages at a named section (e.g. "Popup"), its rows in hand.
+    void ShowSettingsSection(const QString& section);
     /// The Game scripts page and its work (script_shelf.h); none, and there is no such page.
     void SetScripts(ScriptShelf* shelf);
     /// The settings pages at Game scripts, one console's games (its key) or every console's.
@@ -232,6 +237,12 @@ public:
     /// Characters to read in a day (0: no goal), kept in QSettings (stats/goal).
     [[nodiscard]] int DailyGoal() const;
     void SetDailyGoal(int characters);
+    /// Characters to read in a week (0: no goal), kept in QSettings (stats/weekly_goal).
+    [[nodiscard]] int WeeklyGoal() const;
+    void SetWeeklyGoal(int characters);
+    /// Characters to read in a month (0: no goal), kept in QSettings (stats/monthly_goal).
+    [[nodiscard]] int MonthlyGoal() const;
+    void SetMonthlyGoal(int characters);
     /// Characters to read in a year (0: no goal), kept in QSettings (stats/yearly_goal).
     [[nodiscard]] int YearlyGoal() const;
     void SetYearlyGoal(int characters);
@@ -665,8 +676,14 @@ private:
     double stats_at{};     ///< 0 hidden, 1 shown
     int tab_dir{1};        ///< Horizontal tab slide direction: +1 right, -1 left
     double tab_body_dx{};  ///< Current horizontal slide offset for tab content body (header/footer stay pinned)
-    int stats_range{2};    ///< Arc graph range: 0 week, 1 month, 2 year, 3 all time
-    int stats_focus{0};    ///< Controller focus on Statistics: 0 arc range, 1 daily goal, 2 yearly goal
+    int stats_range{2};    ///< Period selector: 0 week, 1 month, 2 year, 3 all time (drives Characters + Arc graph)
+    double stats_range_at{2.0}; ///< Smooth vertical slide position for the period word drum
+    bool stats_period_open{false}; ///< True when the period word is selected for vertical sliding
+    int stats_focus{0};    ///< Controller focus on Statistics: 0 period word, 1 chars figure, 2 period goal, 3 daily goal, 4 daily dots
+    bool stats_breakdown{false}; ///< Per-game breakdown modal for the chosen period
+    int stats_breakdown_scroll{0};
+    int stats_dot_week{51};
+    int stats_dot_day{0};
     /// The goal soroban (goal_abacus.h): the goal it is open on, what its beads say so far (kept
     /// only on confirm), the rod in hand, and where each bead is drawn on its way.
     int goal_open{0};      ///< 0 closed, 1 the daily goal, 2 the yearly goal
@@ -679,6 +696,7 @@ private:
     QHash<int, double> goal_beads;
     bool dots_on{true};    ///< Animated dot-matrix background (Display › Animated dots)
     bool show_stats_tab{true}; ///< Statistics tab in top bar (Display › Show statistics tab)
+    bool overlay_blur{true};   ///< Translucent 80% + blurred in-game overlays (Display › Translucent overlays)
     int shelf_layout{0};   ///< Library layout: 0 Spine shelf, 1 Case stage, 2 Cover flow
     int dots_mode{0};      ///< Randomly chosen on startup: 0 drift, 1 vortex, 2 pulse
     double dots_time{0};   ///< Elapsed animation phase in seconds

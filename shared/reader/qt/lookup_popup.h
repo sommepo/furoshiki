@@ -171,6 +171,7 @@ public:
     void PadTab(int step);
     /// The kanji before (-1) or the next (1) on the Kanji tab.
     void PadKanji(int step);
+    void PadToggleMore();
     /// How many tabs the popup shows (words, grammar, kanji, names): 0 or 1 is no row of tabs.
     [[nodiscard]] int Tabs() const {
         return web ? web_tabs : 0;

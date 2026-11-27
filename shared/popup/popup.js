@@ -1755,6 +1755,38 @@
     kanjiStep(step) {
       stepKanji(step);
     },
+    /** Expands or collapses "more" and <details> sections inside the chosen entry (A button on a controller). */
+    toggleMore() {
+      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      if (!section) return;
+      const more = Array.from(section.querySelectorAll(".more, .sense-more, .more-tags, .more-frequencies"))
+        .find((el) => el.offsetParent !== null);
+      if (more) {
+        more.click();
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      const closed = section.querySelector("details:not([open])");
+      if (closed) {
+        closed.open = true;
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      const opened = Array.from(section.querySelectorAll("details[open]"));
+      if (opened.length) {
+        opened[opened.length - 1].open = false;
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      if (section.classList.contains("all")) {
+        section.classList.remove("all");
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+      }
+    },
     /**
      * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
      * (model.choose): it is marked and brought into view. At the last entry, down only scrolls
@@ -1861,6 +1893,11 @@
       if (design) mark(id);
     },
   };
+  // Prevent mouse/trackpad clicks inside the popup from stealing Win32 focus into WebView2
+  // (which would drop Steam Input out of Gamepad mode into desktop mouse mode).
+  popup.addEventListener("mousedown", (event) => {
+    if (!design) event.preventDefault();
+  });
   // Scroll-only scrollbar thumb: visible while actively scrolling, hidden at rest.
   let scrollHideTimer = 0;
   popup.addEventListener("scroll", () => {

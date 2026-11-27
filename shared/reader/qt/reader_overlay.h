@@ -90,6 +90,12 @@ public:
     /// `style`: its look (ReaderSettings::StatsStyle).
     void SetSessionLine(const QString& text, const QRectF& picture, bool paused = false,
                         const QString& style = QStringLiteral("paper"));
+    /// Theme colours for the upper-right playing screen stats badge (rounded, 80% opacity, blurred).
+    struct SessionTheme {
+        bool active{};
+        QColor bg, ink, muted, accent, rule;
+    };
+    static void SetSessionTheme(const SessionTheme& theme);
     [[nodiscard]] bool PauseMark() const {
         return session_paused;
     }

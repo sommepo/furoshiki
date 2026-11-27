@@ -251,7 +251,7 @@ QList<BacklogEntry> ReaderDatabase::QueryLines(const char* where, const QList<QS
                                                int limit) {
     const std::string sql =
         std::string("SELECT id, game, ts, channel, speaker, text, ruby, source_id, meta, chars, "
-                    "reread FROM lines WHERE ") +
+                    "reread, session_id FROM lines WHERE ") +
         where + " ORDER BY id DESC LIMIT " + std::to_string(limit);
     SqliteDb::Statement statement(db, sql.c_str());
     BindAll(statement, arguments);
@@ -274,6 +274,7 @@ QList<BacklogEntry> ReaderDatabase::QueryLines(const char* where, const QList<QS
         }
         entry.characters = static_cast<int>(statement.Int(9));
         entry.reread = statement.Int(10) != 0;
+        entry.counted = !statement.IsNull(11) && entry.characters > 0;
         out.append(entry);
     }
     return out;
@@ -692,6 +693,200 @@ void ReaderDatabase::SetLineCounted(qint64 id, const LineAccounting& accounting)
         statement.BindNull(1);
     }
     statement.Bind(2, accounting.characters).Bind(3, accounting.reread ? 1 : 0).Bind(4, id).Run();
+}
+
+bool ReaderDatabase::ToggleLineCounted(qint64 id, bool counted) {
+    QMutexLocker lock(&mutex);
+    QString game;
+    std::optional<qint64> session_id;
+    qint64 ts{};
+    bool choice{};
+    QString text;
+    int chars{};
+    bool reread{};
+    {
+        SqliteDb::Statement st(
+            db, "SELECT game, session_id, ts, channel, text, chars, reread FROM lines WHERE id = ?");
+        if (!st.Bind(1, id).Step()) {
+            return false;
+        }
+        game = st.Text(0);
+        if (!st.IsNull(1)) {
+            session_id = st.Int(1);
+        }
+        ts = st.Int(2);
+        choice = st.Text(3) == QStringLiteral("choice");
+        text = st.Text(4);
+        chars = static_cast<int>(st.Int(5));
+        reread = st.Int(6) != 0;
+    }
+    const bool was_counted = session_id.has_value() && chars > 0;
+    if (was_counted == counted) {
+        return false;
+    }
+    const QString day = ReadingRules::ReadingDay(ts);
+    SqliteDb::Transaction transaction(db);
+    if (!counted) {
+        SqliteDb::Statement(db, "UPDATE lines SET session_id = NULL, chars = 0 WHERE id = ?")
+            .Bind(1, id)
+            .Run();
+        if (choice) {
+            SqliteDb::Statement(
+                db, "UPDATE daily SET choice_chars = MAX(0, choice_chars - ?) "
+                    "WHERE session_id = ? AND day = ?")
+                .Bind(1, static_cast<qint64>(chars))
+                .Bind(2, *session_id)
+                .Bind(3, day)
+                .Run();
+        } else {
+            const std::string sql =
+                std::string("UPDATE daily SET chars = MAX(0, chars - ?), ") +
+                (reread ? "reread_chars = MAX(0, reread_chars - ?)"
+                        : "unique_chars = MAX(0, unique_chars - ?)") +
+                ", lines = MAX(0, lines - 1) WHERE session_id = ? AND day = ?";
+            SqliteDb::Statement(db, sql.c_str())
+                .Bind(1, static_cast<qint64>(chars))
+                .Bind(2, static_cast<qint64>(chars))
+                .Bind(3, *session_id)
+                .Bind(4, day)
+                .Run();
+        }
+    } else {
+        const int n = ReadingRules::CountCharacters(text);
+        if (n <= 0) {
+            return false;
+        }
+        qint64 target_session = 0;
+        if (session_id.has_value()) {
+            target_session = *session_id;
+        } else {
+            SqliteDb::Statement open(
+                db, "SELECT id FROM sessions WHERE game = ? AND ended IS NULL ORDER BY id DESC LIMIT 1");
+            if (open.Bind(1, game).Step()) {
+                target_session = open.Int(0);
+            } else {
+                SqliteDb::Statement latest(
+                    db, "SELECT id FROM sessions WHERE game = ? ORDER BY id DESC LIMIT 1");
+                if (latest.Bind(1, game).Step()) {
+                    target_session = latest.Int(0);
+                } else {
+                    SqliteDb::Statement ins(
+                        db, "INSERT INTO sessions(game, started, last_activity) VALUES(?, ?, ?)");
+                    ins.Bind(1, game).Bind(2, ts).Bind(3, ts).Run();
+                    target_session = db.LastInsertId();
+                }
+            }
+        }
+        SqliteDb::Statement(db, "UPDATE lines SET session_id = ?, chars = ? WHERE id = ?")
+            .Bind(1, target_session)
+            .Bind(2, static_cast<qint64>(n))
+            .Bind(3, id)
+            .Run();
+        const qint64 d_chars = choice ? 0 : n;
+        const qint64 d_unique = (!choice && !reread) ? n : 0;
+        const qint64 d_reread = (!choice && reread) ? n : 0;
+        const qint64 d_lines = choice ? 0 : 1;
+        const qint64 d_choice = choice ? n : 0;
+        SqliteDb::Statement(
+            db, "INSERT INTO daily(session_id, day, game, active_ms, chars, unique_chars, "
+                "reread_chars, lines, choice_chars) VALUES(?, ?, ?, 0, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(session_id, day) DO UPDATE SET "
+                "chars = chars + excluded.chars, "
+                "unique_chars = unique_chars + excluded.unique_chars, "
+                "reread_chars = reread_chars + excluded.reread_chars, "
+                "lines = lines + excluded.lines, "
+                "choice_chars = choice_chars + excluded.choice_chars")
+            .Bind(1, target_session)
+            .Bind(2, day)
+            .Bind(3, game)
+            .Bind(4, d_chars)
+            .Bind(5, d_unique)
+            .Bind(6, d_reread)
+            .Bind(7, d_lines)
+            .Bind(8, d_choice)
+            .Run();
+    }
+    transaction.Commit();
+    return true;
+}
+
+int ReaderDatabase::ClearDuplicateLines(const QString& game) {
+    QMutexLocker lock(&mutex);
+    struct Row {
+        qint64 id{};
+        std::optional<qint64> session_id;
+        qint64 ts{};
+        bool choice{};
+        QString key;
+        int chars{};
+        bool reread{};
+    };
+    QList<Row> rows;
+    QHash<QString, qint64> keeper;
+    QHash<QString, bool> keeper_counted;
+    {
+        SqliteDb::Statement st(
+            db, "SELECT id, session_id, ts, channel, speaker, text, chars, reread "
+                "FROM lines WHERE game = ? ORDER BY id ASC");
+        st.Bind(1, game);
+        while (st.Step()) {
+            Row r;
+            r.id = st.Int(0);
+            if (!st.IsNull(1)) {
+                r.session_id = st.Int(1);
+            }
+            r.ts = st.Int(2);
+            r.choice = st.Text(3) == QStringLiteral("choice");
+            r.key = st.Text(4) + QChar(0x1f) + st.Text(5);
+            r.chars = static_cast<int>(st.Int(6));
+            r.reread = st.Int(7) != 0;
+            const bool counted = r.session_id.has_value() && r.chars > 0;
+            if (!keeper.contains(r.key) || (!keeper_counted.value(r.key) && counted)) {
+                keeper.insert(r.key, r.id);
+                keeper_counted.insert(r.key, counted);
+            }
+            rows.append(std::move(r));
+        }
+    }
+    QList<Row> to_delete;
+    for (const Row& r : rows) {
+        if (keeper.value(r.key) != r.id) {
+            to_delete.append(r);
+        }
+    }
+    if (to_delete.isEmpty()) {
+        return 0;
+    }
+    SqliteDb::Transaction transaction(db);
+    for (const Row& r : to_delete) {
+        SqliteDb::Statement(db, "DELETE FROM lines WHERE id = ?").Bind(1, r.id).Run();
+        if (r.session_id.has_value() && r.chars > 0) {
+            const QString day = ReadingRules::ReadingDay(r.ts);
+            if (r.choice) {
+                SqliteDb::Statement(
+                    db, "UPDATE daily SET choice_chars = MAX(0, choice_chars - ?) "
+                        "WHERE session_id = ? AND day = ?")
+                    .Bind(1, static_cast<qint64>(r.chars))
+                    .Bind(2, *r.session_id)
+                    .Bind(3, day)
+                    .Run();
+            } else {
+                const std::string sql =
+                    std::string("UPDATE daily SET chars = MAX(0, chars - ?), ") +
+                    (r.reread ? "reread_chars = MAX(0, reread_chars - ?)"
+                              : "unique_chars = MAX(0, unique_chars - ?)") +
+                    ", lines = MAX(0, lines - 1) WHERE session_id = ? AND day = ?";
+                SqliteDb::Statement(db, sql.c_str())
+                    .Bind(1, static_cast<qint64>(r.chars))
+                    .Bind(2, static_cast<qint64>(r.chars))
+                    .Bind(3, *r.session_id)
+                    .Bind(4, day)
+                    .Run();
+            }
+        }
+    }
+    transaction.Commit();
+    return static_cast<int>(to_delete.size());
 }
 
 bool ReaderDatabase::HasSeen(const QString& game, const QString& source_id) {

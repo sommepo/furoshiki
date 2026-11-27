@@ -38,6 +38,15 @@ struct Day {
     qint64 active_ms{};
 };
 
+struct GameDay {
+    QString day;
+    QString game;
+    QString title;
+    QString system;
+    qint64 chars{};
+    qint64 active_ms{};
+};
+
 struct App {
     QString app;
     QString name;        ///< "Flycast Reader"
@@ -65,6 +74,7 @@ struct Library {
     QList<App> apps;       ///< In a fixed order of consoles, then by name
     QList<Game> games;     ///< Every app's games: the last read first, then by title
     QList<Day> days;       ///< Every app's reading by day, oldest first
+    QList<GameDay> game_days; ///< Per-game reading by day across all apps
     qint64 chars{};
     qint64 active_ms{};
     QStringList problems;  ///< Files that could not be read, for the Readers page

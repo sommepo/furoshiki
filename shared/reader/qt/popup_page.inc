@@ -397,6 +397,14 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .kanji-rows dt { color: var(--dim); font-size: calc(9.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.25em; }
 .kanji-rows dd { margin: 0; }
 .kanji-side { min-width: 0; }
+/* Subtle controller hint for expanding/collapsing "more" and <details> with A */
+.popup.pad .entry.chosen .more::after,
+.popup.pad .entry.chosen details > summary::after {
+  content: " A";
+  color: var(--accent);
+  font-size: 0.85em;
+  opacity: 0.85;
+}
 
 /* Where color-mix is not known (the Thor's WebView 109): a color-mix with var() in it is only found
    wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
@@ -2178,6 +2186,38 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     kanjiStep(step) {
       stepKanji(step);
     },
+    /** Expands or collapses "more" and <details> sections inside the chosen entry (A button on a controller). */
+    toggleMore() {
+      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      if (!section) return;
+      const more = Array.from(section.querySelectorAll(".more, .sense-more, .more-tags, .more-frequencies"))
+        .find((el) => el.offsetParent !== null);
+      if (more) {
+        more.click();
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      const closed = section.querySelector("details:not([open])");
+      if (closed) {
+        closed.open = true;
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      const opened = Array.from(section.querySelectorAll("details[open]"));
+      if (opened.length) {
+        opened[opened.length - 1].open = false;
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+        return;
+      }
+      if (section.classList.contains("all")) {
+        section.classList.remove("all");
+        post({ type: "feedback", kind: "step" });
+        reportSoon();
+      }
+    },
     /**
      * The next entry (1) or the one before (-1) of the tab, for the controller's d-pad
      * (model.choose): it is marked and brought into view. At the last entry, down only scrolls
@@ -2284,6 +2324,11 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
       if (design) mark(id);
     },
   };
+  // Prevent mouse/trackpad clicks inside the popup from stealing Win32 focus into WebView2
+  // (which would drop Steam Input out of Gamepad mode into desktop mouse mode).
+  popup.addEventListener("mousedown", (event) => {
+    if (!design) event.preventDefault();
+  });
   // Scroll-only scrollbar thumb: visible while actively scrolling, hidden at rest.
   let scrollHideTimer = 0;
   popup.addEventListener("scroll", () => {

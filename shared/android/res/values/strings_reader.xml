@@ -119,6 +119,14 @@
     <string name="reader_backlog_empty">No lines yet</string>
     <string name="reader_backlog_search">Search backlog</string>
     <string name="reader_backlog_more">Load older lines</string>
+    <string name="reader_backlog_counted">Counted</string>
+    <string name="reader_backlog_uncounted">Uncounted</string>
+    <string name="reader_backlog_marked_counted">Line marked as counted for stats</string>
+    <string name="reader_backlog_marked_uncounted">Line marked as uncounted for stats</string>
+    <string name="reader_backlog_clear_duplicates">Clear duplicates</string>
+    <string name="reader_backlog_duplicates_removed">Removed %1$d duplicate lines</string>
+    <string name="reader_backlog_duplicates_removed_one">Removed 1 duplicate line</string>
+    <string name="reader_backlog_duplicates_none">No duplicate lines found</string>
 
     <!-- Statistics -->
     <string name="reader_stats_today">Today</string>

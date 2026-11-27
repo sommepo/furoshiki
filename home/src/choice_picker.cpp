@@ -298,10 +298,10 @@ void ChoicePicker::paintEvent(QPaintEvent*) {
 
     // The window behind, blurred and dimmed as the card comes.
     p.setOpacity(shown);
-    if (!behind.isNull()) {
+    if (colours.blur && !behind.isNull()) {
         p.drawPixmap(rect(), behind);
     }
-    p.fillRect(rect(), QColor(0, 0, 0, 110));
+    p.fillRect(rect(), QColor(0, 0, 0, colours.blur ? 110 : 145));
 
     // The card rises a little into place.
     const QRectF card = Card();

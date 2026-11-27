@@ -38,6 +38,11 @@ class ReaderHost(
 
     override fun openSettings() = open(ReaderSettingsActivity::class.java)
 
+    fun openPopupSettings() {
+        onLeaving()
+        activity.startActivity(ReaderSettingsActivity.intent(activity, ReaderSettingsActivity.Section.POPUP))
+    }
+
     override fun openDictionaries() = open(DictionaryManagerActivity::class.java)
 
     override fun openAnkiSetup() = open(AnkiSetupActivity::class.java)

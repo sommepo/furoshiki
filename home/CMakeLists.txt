@@ -425,7 +425,7 @@ if(HOME_CORES)
 		src/settings_window.cpp src/settings_window.h src/settings_pages.cpp src/settings_crt.cpp
 		src/reader_rows.cpp src/reader_rows.h
 		src/line_source.cpp src/line_source.h src/text_strip.cpp src/text_strip.h
-		src/ocr_source.cpp src/ocr_source.h src/core_ocr.cpp src/core_ocr.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h src/choice_picker.cpp src/choice_picker.h src/controller_map.cpp src/controller_map.h src/controller_screen.cpp src/controller_screen.h
+		src/ocr_source.cpp src/ocr_source.h src/core_ocr.cpp src/core_ocr.h src/ocr_overlay.cpp src/ocr_overlay.h src/global_key.cpp src/global_key.h src/choice_picker.cpp src/choice_picker.h src/game_overlays.cpp src/game_overlays.h src/controller_map.cpp src/controller_map.h src/controller_screen.cpp src/controller_screen.h
 		src/pad_setup.cpp src/pad_setup.h
 		src/pad_shortcuts.cpp src/pad_shortcuts.h
 		src/hook_source.cpp src/hook_source.h

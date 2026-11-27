@@ -282,6 +282,10 @@ void ReaderController::BuildMenu() {
     action_sentence_card = add(tr("Add sentence &card"),
                                QStringLiteral("reader_sentence_card"), [this] { MineSentence(); });
     action_backlog = add(tr("&Backlog…"), QStringLiteral("reader_backlog"), [this] {
+        if (BacklogPage()) {
+            BacklogPage()();
+            return;
+        }
         RunDialog([](QWidget* parent) { RunBacklogDialog(parent); });
     });
     action_word_card = add(tr("Add &word card"), QStringLiteral("reader_word_card"), [this] {
@@ -295,6 +299,10 @@ void ReaderController::BuildMenu() {
     action_explain = add(tr("&Explain line…"), QStringLiteral("reader_explain"), [this] {
         if (!ReaderSession::Instance().Current()) {
             Notify(tr("No lines read yet"));
+            return;
+        }
+        if (ExplainPage()) {
+            ExplainPage()();
             return;
         }
         RunDialog([](QWidget* parent) { RunExplainDialog(parent); });

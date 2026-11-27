@@ -678,6 +678,13 @@ void LookupPopup::PadKanji(int step) {
     }
 }
 
+void LookupPopup::PadToggleMore() {
+    if (web) {
+        ShowPad();
+        web->Call(QStringLiteral("Reader.toggleMore()"));
+    }
+}
+
 void LookupPopup::PadEntry(int step) {
     if (web) {
         ShowPad();

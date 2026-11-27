@@ -28,6 +28,8 @@ struct Kind {
 };
 
 inline constexpr Kind Daily{50000, 500, 1000, {{{4, true, 5}, {4, true, 9}, {0, true, 5}}}};
+inline constexpr Kind Weekly{500000, 5000, 10000, {{{4, true, 5}, {4, true, 9}, {0, true, 5}}}};
+inline constexpr Kind Monthly{3000000, 10000, 100000, {{{3, false, 3}, {4, true, 9}, {4, true, 9}}}};
 inline constexpr Kind Yearly{30000000, 100000, 1000000, {{{3, false, 3}, {4, true, 9}, {4, true, 9}}}};
 
 /// The goal on the kind's own steps, within what it can show.
@@ -69,9 +71,21 @@ inline int WithDigit(const Kind& kind, int goal, int rod, int digit) {
 /// The next round figure above the goal (by > 0) or below it; the goal itself at either end.
 inline int Round(const Kind& kind, int goal, int by) {
     static constexpr int DailyRound[] = {0, 5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000};
+    static constexpr int WeeklyRound[] = {0, 25000, 50000, 70000, 100000, 150000, 200000, 300000, 500000};
+    static constexpr int MonthlyRound[] = {0, 100000, 200000, 300000, 500000, 750000, 1000000, 1500000, 2000000, 3000000};
     static constexpr int YearlyRound[] = {0, 500000, 1000000, 2000000, 3000000, 5000000, 8000000, 10000000, 15000000, 20000000, 30000000};
-    const int* list = kind.unit == Daily.unit ? DailyRound : YearlyRound;
-    const int count = static_cast<int>(kind.unit == Daily.unit ? std::size(DailyRound) : std::size(YearlyRound));
+    const int* list = YearlyRound;
+    int count = static_cast<int>(std::size(YearlyRound));
+    if (kind.unit == Daily.unit) {
+        list = DailyRound;
+        count = static_cast<int>(std::size(DailyRound));
+    } else if (kind.unit == Weekly.unit) {
+        list = WeeklyRound;
+        count = static_cast<int>(std::size(WeeklyRound));
+    } else if (kind.unit == Monthly.unit) {
+        list = MonthlyRound;
+        count = static_cast<int>(std::size(MonthlyRound));
+    }
     if (by > 0) {
         for (int i = 0; i < count; ++i) {
             if (list[i] > goal) {
