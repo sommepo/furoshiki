@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="front.css">
 </head>
 <body>
+<!-- The places down the left edge (front.js, drawRail): Library, Statistics, Settings. -->
+<nav id="rail" aria-label="Pages"></nav>
 <div id="sheet">
   <header id="head">
     <div id="tab"><span id="tab-text"></span></div>
@@ -33,6 +35,8 @@
     </section>
     <section id="list" class="panel">
       <i class="ac"></i>
+      <!-- The console in hand on a two-display shelf (front.js, drawConsoleHead): its neighbours beside it. -->
+      <div id="conhead" hidden></div>
       <ol id="rows"></ol>
     </section>
   </main>
@@ -58,10 +62,10 @@
     </div>
     <div id="stage-art"><img id="stage-cover" alt=""></div>
   </section>
+  <!-- The Statistics page (front.js, drawStats): the desktop's, drawn by itself, not as rows. -->
+  <section id="stats"></section>
   <footer id="foot">
-    <span class="lr">L</span>
     <nav id="tabs"></nav>
-    <span class="lr">R</span>
     <button id="add-game" type="button" hidden>+ Add game</button>
   </footer>
   <div id="pick" hidden><div id="pick-box" class="panel" role="dialog" aria-labelledby="pick-title"><h2 id="pick-title"></h2><p id="pick-note"></p><ol id="pick-rows"></ol></div></div>
@@ -107,6 +111,9 @@
     </div>
     <footer id="map-foot"></footer>
   </section>
+  <!-- The second display's own pages (front.js, Lower.page): the game in hand, the Statistics page's
+       controls, the sections of Settings. -->
+  <section id="lowpage" hidden></section>
   <div id="say"></div>
   <div id="scan"></div>
 </div>

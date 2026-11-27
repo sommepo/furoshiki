@@ -38,6 +38,7 @@
 #include <QClipboard>
 #include "discs.h"
 #include "home_window.h"
+#include "shared_stats.h"
 #include "hook_processes.h"
 #include "hook_source.h"
 #include "loopback_audio.h"
@@ -924,6 +925,16 @@ MainWindow::MainWindow() {
 #endif
         } else if (row == QStringLiteral("Home server's services")) {
             AskHomeServer(true);
+        } else if (row == QStringLiteral("Statistics folder")) {
+            // A folder kept in sync between devices (Syncthing, a network share): each device
+            // writes its own reading there and adds up everyone's.
+            const QString chosen = QFileDialog::getExistingDirectory(this, QStringLiteral("Choose a folder to share statistics through"),
+                                                                     Home::SharedStats::Folder());
+            if (!chosen.isEmpty()) {
+                Home::SharedStats::SetFolder(chosen);
+                home->ShareGoals();
+                home->Refresh();
+            }
         } else if (row == QStringLiteral("Study tracker")) {
             bool ok = false;
             const QString url = QInputDialog::getText(this, row, QStringLiteral("Study tracker address"), QLineEdit::Normal,
@@ -1149,6 +1160,11 @@ MainWindow::MainWindow() {
         }
         if (row == QStringLiteral("Study tracker")) {
             return home->TrackerUrl().isEmpty() ? QStringLiteral("NOT SET") : home->TrackerUrl();
+        }
+        if (row == QStringLiteral("Statistics folder")) {
+            const int others = home->SharedDevices();
+            return QDir::toNativeSeparators(Home::SharedStats::Folder()) +
+                   (others > 0 ? QStringLiteral(" · %1 OTHER DEVICE%2").arg(others).arg(others == 1 ? QString() : QStringLiteral("S")) : QString());
         }
         if (row == QStringLiteral("Discord application ID")) {
             return settings.DiscordApplicationId().isEmpty() ? QStringLiteral("NOT SET") : settings.DiscordApplicationId();

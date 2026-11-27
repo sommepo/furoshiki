@@ -1,0 +1,251 @@
+{
+ "source": {
+  "vndb": "v7809",
+  "fetched": "2026-11-27"
+ },
+ "checked": true,
+ "entries": [
+  {
+   "id": "c14003",
+   "kind": "person",
+   "name": "シグマ・クライム",
+   "reading": "シグマ・クライム",
+   "romaji": "Sigma Klim",
+   "aliases": [],
+   "role": "main",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17612",
+   "kind": "person",
+   "name": "?",
+   "romaji": "?",
+   "aliases": [],
+   "role": "main",
+   "sex": null,
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c14000",
+   "kind": "person",
+   "name": "ファイ",
+   "reading": "ファイ",
+   "romaji": "Phi",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c14006",
+   "kind": "person",
+   "name": "ルナ",
+   "reading": "ルナ",
+   "romaji": "Luna",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17603",
+   "kind": "person",
+   "name": "天明寺",
+   "reading": "てんみょうじ",
+   "romaji": "Tenmyouji",
+   "aliases": [
+    {
+     "text": "天明寺 淳平"
+    }
+   ],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17605",
+   "kind": "person",
+   "name": "四葉",
+   "reading": "よつば",
+   "romaji": "Yotsuba",
+   "aliases": [
+    {
+     "text": "四葉・フィールド"
+    }
+   ],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17611",
+   "kind": "person",
+   "name": "カイル・クライム",
+   "reading": "カイル・クライム",
+   "romaji": "Kyle Klim",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17613",
+   "kind": "person",
+   "name": "アリス",
+   "reading": "アリス",
+   "romaji": "Alice",
+   "aliases": [],
+   "role": "primary",
+   "sex": "f",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17617",
+   "kind": "person",
+   "name": "K",
+   "romaji": "K",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": [],
+   "reading": "ケー"
+  },
+  {
+   "id": "c17618",
+   "kind": "person",
+   "name": "ディオ",
+   "reading": "ディオ",
+   "romaji": "Dio",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17619",
+   "kind": "person",
+   "name": "クォーク",
+   "reading": "クォーク",
+   "romaji": "Quark",
+   "aliases": [],
+   "role": "primary",
+   "sex": "m",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17599",
+   "kind": "person",
+   "name": "倉式 茜",
+   "family": "倉式",
+   "given": "茜",
+   "reading": "くらしき あかね",
+   "family_reading": "くらしき",
+   "given_reading": "あかね",
+   "romaji": "Kurashiki Akane",
+   "aliases": [
+    {
+     "text": "紫",
+     "reading": "むらさき"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17614",
+   "kind": "person",
+   "name": "ゼロ3世",
+   "reading": "ぜろさんせい",
+   "romaji": "Zero San-Sei",
+   "aliases": [],
+   "role": "side",
+   "sex": "n",
+   "spoiler": 0,
+   "needs_check": []
+  },
+  {
+   "id": "c17615",
+   "kind": "person",
+   "name": "GAULEM Type Male - Kansai Model no. 506",
+   "romaji": "GAULEM Type Male - Kansai Model no. 506",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 1,
+   "needs_check": [],
+   "reading": "ゴーレム"
+  },
+  {
+   "id": "c17623",
+   "kind": "person",
+   "name": "老婆",
+   "reading": "ろおば",
+   "romaji": "Rooba",
+   "aliases": [],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 1,
+   "needs_check": []
+  },
+  {
+   "id": "c17624",
+   "kind": "person",
+   "name": "倉式 茜",
+   "family": "倉式",
+   "given": "茜",
+   "reading": "くらしき あかね",
+   "family_reading": "くらしき",
+   "given_reading": "あかね",
+   "romaji": "Kurashiki Akane",
+   "aliases": [
+    {
+     "text": "Murasaki (紫)"
+    }
+   ],
+   "role": "side",
+   "sex": "f",
+   "spoiler": 2,
+   "needs_check": []
+  },
+  {
+   "id": "c17625",
+   "kind": "person",
+   "name": "K",
+   "romaji": "K",
+   "aliases": [],
+   "role": "side",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [],
+   "reading": "ケー"
+  },
+  {
+   "id": "c77109",
+   "kind": "person",
+   "name": "Zero Sr.",
+   "family": "Zero",
+   "given": "Sr.",
+   "romaji": "Zero Sr.",
+   "aliases": [],
+   "role": "appears",
+   "sex": "m",
+   "spoiler": 2,
+   "needs_check": [],
+   "reading": "ゼロ シニア"
+  }
+ ]
+}

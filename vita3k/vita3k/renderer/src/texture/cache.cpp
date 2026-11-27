@@ -579,6 +579,35 @@ void TextureCache::upload_texture(const SceGxmTexture &gxm_texture, MemState &me
             upload_pixels = texture_data_decompressed.data();
         }
 
+        // Reader fork: some games (e.g. PCSG00299) submit a texture whose upload range
+        // overshoots the end of its mapped Vita memory block into an unmapped page.
+        // Copy only mapped pages into a zero-padded buffer so Vulkan/GL upload cannot fault.
+        if (upload_pixels == texture_data) {
+            const uint32_t eff_stride = pixels_per_stride ? pixels_per_stride : width;
+            size_t upload_bytes = 0;
+            if (gxm::is_bcn_format(upload_format) || renderer::texture::is_astc_format(upload_format)) {
+                upload_bytes = renderer::texture::get_compressed_size(upload_format, eff_stride, height);
+            } else {
+                const size_t ubpp = gxm::bits_per_pixel(upload_format);
+                upload_bytes = static_cast<size_t>(eff_stride) * height * ((ubpp + 7) >> 3);
+            }
+            const Address guest_addr = static_cast<Address>(texture_data - mem.memory.get());
+            if (upload_bytes > 0 && !is_valid_addr_range(mem, guest_addr, guest_addr + static_cast<Address>(upload_bytes))) {
+                texture_data_decompressed.assign(upload_bytes, 0);
+                size_t copied = 0;
+                while (copied < upload_bytes) {
+                    const Address cur = guest_addr + static_cast<Address>(copied);
+                    const size_t page_rem = 4096 - (cur & 4095);
+                    const size_t chunk = std::min(page_rem, upload_bytes - copied);
+                    if (is_valid_addr(mem, cur)) {
+                        std::memcpy(texture_data_decompressed.data() + copied, mem.memory.get() + cur, chunk);
+                    }
+                    copied += chunk;
+                }
+                upload_pixels = texture_data_decompressed.data();
+            }
+        }
+
         upload_texture_impl(upload_format, width, height, mip_index, upload_pixels, upload_type, pixels_per_stride);
         if (export_textures)
             export_texture_impl(upload_format, width, height, mip_index, pixels, upload_type, pixels_per_stride);

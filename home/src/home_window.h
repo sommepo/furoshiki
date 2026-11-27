@@ -246,6 +246,10 @@ public:
     /// Characters to read in a year (0: no goal), kept in QSettings (stats/yearly_goal).
     [[nodiscard]] int YearlyGoal() const;
     void SetYearlyGoal(int characters);
+    /// Every goal written to the shared statistics folder (shared_stats.h).
+    void ShareGoals() const;
+    /// How many other devices' reading the Statistics page adds (the shared statistics folder).
+    [[nodiscard]] int SharedDevices() const { return shared_devices; }
     [[nodiscard]] QString TrackerUrl() const;
     void SetTrackerUrl(const QString& url);
     /// The shelf's theme as the text strip over the desktop is drawn with it (text_strip.h).
@@ -780,6 +784,7 @@ private:
     QHash<qint64, TrackerTitle> tracker_by_jiten;
     QHash<QString, TrackerTitle> tracker_by_title;
     qint64 tracker_asked{}; ///< When (the page's clock, ms); 0: never
+    int shared_devices{}; ///< Other devices found in the shared statistics folder at the last reload
     bool tracker_waiting{};
     double stage_at{};     ///< 0 the shelf, 1 the stage, between them on the way
     QElapsedTimer shelf_clock;

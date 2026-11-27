@@ -1064,6 +1064,25 @@ class HomeActivity : AppCompatActivity() {
         }
 
         /** Today, the whole, and the last thirty days. */
+        /** A reading goal in characters ("daily", "weekly", "monthly", "yearly"), 0 while not set. */
+        @JavascriptInterface
+        fun goal(kind: String): Int = getSharedPreferences("home", MODE_PRIVATE).getInt("goal_$kind", 0)
+
+        @JavascriptInterface
+        fun setGoal(kind: String, characters: Int) {
+            if (kind !in setOf("daily", "weekly", "monthly", "yearly")) return
+            getSharedPreferences("home", MODE_PRIVATE).edit().putInt("goal_$kind", characters.coerceIn(0, 100_000_000)).apply()
+            SharedStats.shareGoals(this@HomeActivity)
+        }
+
+        /** The shared statistics folder (SharedStats), and how many other devices it held at the last look. */
+        @JavascriptInterface
+        fun statsFolder(): String = JSONObject().put("path", SharedStats.folder(this@HomeActivity).path)
+            .put("devices", sharedDevices).put("access", hasAccess()).toString()
+
+        @JavascriptInterface
+        fun askStatsFolder() = runOnUiThread { typeStatsFolder() }
+
         @JavascriptInterface
         fun stats(): String {
             val today = ReadingRules.readingDay(System.currentTimeMillis())
@@ -1079,9 +1098,46 @@ class HomeActivity : AppCompatActivity() {
             for (game in database.gameTotals()) {
                 games.put(counters(game.counters).put("title", game.title).put("id", game.game))
             }
-            return JSONObject().put("today", counters(database.dayTotals(today)))
-                .put("total", counters(database.totals())).put("days", days).put("games", games)
-                .put("daysRead", database.dailyHistory(null, 100_000).count { it.second.characters > 0 }).toString()
+            // A year of days and a little more for the Statistics page: its weeks, streak and peak days.
+            // This device's reading into the shared statistics folder, every other device's out of
+            // it (SharedStats), added to the figures below. Only with access to shared storage.
+            val others = if (hasAccess()) {
+                SharedStats.writeOwn(this@HomeActivity, SharedStats.record(this@HomeActivity, database.statsRecord()))
+                SharedStats.takeGoals(this@HomeActivity)
+                SharedStats.others(this@HomeActivity)
+            } else emptyList<SharedStats.Day>() to 0
+            sharedDevices = others.second
+            val byDay = java.util.TreeMap<String, LongArray>()
+            for ((day, c) in database.dailyHistory(null, 100_000)) byDay.getOrPut(day) { LongArray(2) }.let { it[0] += c.characters; it[1] += c.activeMs }
+            for (one in others.first) byDay.getOrPut(one.day) { LongArray(2) }.let { it[0] += one.chars; it[1] += one.activeMs }
+            if (others.second > 0) {
+                // The other devices' games beside this one's, added up by ID.
+                val seen = HashMap<String, JSONObject>()
+                for (i in 0 until games.length()) games.getJSONObject(i).let { seen[it.optString("id")] = it }
+                for (one in others.first) {
+                    val game = seen.getOrPut(one.game) {
+                        JSONObject().put("id", one.game).put("title", one.title).put("chars", 0L).put("activeMs", 0L).put("text", "").also { games.put(it) }
+                    }
+                    game.put("chars", game.optLong("chars") + one.chars).put("activeMs", game.optLong("activeMs") + one.activeMs)
+                }
+                days.let { while (it.length() > 0) it.remove(0) }
+                for ((day, sums) in byDay.descendingMap().entries.take(30)) days.put(JSONObject().put("day", day).put("chars", sums[0]))
+            }
+            val year = JSONArray()
+            for ((day, sums) in byDay.descendingMap().entries.take(400)) {
+                year.put(JSONObject().put("day", day).put("chars", sums[0]).put("ms", sums[1]))
+            }
+            val own = database.totals()
+            val todayOwn = database.dayTotals(today)
+            val otherAll = others.first.fold(longArrayOf(0, 0)) { sum, one -> sum[0] += one.chars; sum[1] += one.activeMs; sum }
+            val otherToday = others.first.filter { it.day == today.toString() }.fold(longArrayOf(0, 0)) { sum, one -> sum[0] += one.chars; sum[1] += one.activeMs; sum }
+            val withOthers = { c: io.github.sommepo.furoshiki.reader.stats.ReadingCounters, add: LongArray ->
+                counters(c).put("chars", c.characters + add[0]).put("activeMs", c.activeMs + add[1])
+            }
+            return JSONObject().put("today", withOthers(todayOwn, otherToday))
+                .put("total", withOthers(own, otherAll)).put("days", days).put("games", games)
+                .put("year", year).put("day", today.toString()).put("devices", others.second)
+                .put("daysRead", byDay.values.count { it[0] > 0 }).toString()
         }
 
         @JavascriptInterface
@@ -1209,7 +1265,9 @@ class HomeActivity : AppCompatActivity() {
         fun reading(game: String): String {
             val days = JSONArray()
             for ((day, c) in database.dailyHistory(game, 30)) days.put(JSONObject().put("day", day).put("chars", c.characters))
-            return JSONObject().put("days", days).put("lines", database.lineCount(game)).toString()
+            // The last line read of it, for the second display's page of the game in hand.
+            val last = runCatching { database.recentLines(game, 1).firstOrNull()?.line?.text }.getOrNull().orEmpty()
+            return JSONObject().put("days", days).put("lines", database.lineCount(game)).put("last", last).toString()
         }
 
         /** The Log: the lines read of a game, as the reader kept them. */

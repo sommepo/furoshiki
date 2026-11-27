@@ -410,7 +410,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
    wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
    here instead of before it. */
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
-  .popup { background: var(--ground); }
+  .popup { background: var(--ground-see, var(--ground)); }
   .popup.scrolling::-webkit-scrollbar-thumb { background-color: rgba(236, 229, 211, 0.34); }
   .popup::-webkit-scrollbar-thumb:active { background-color: rgba(236, 229, 211, 0.52); }
   .kanji-chip { border-color: var(--edge); background: var(--box); }
@@ -1602,6 +1602,28 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     return out;
   }
 
+  /**
+   * The ground at the look's opacity as a plain rgba colour (--ground-see), for a WebView without
+   * color-mix (the AYN Thor's is 109), where base.css falls back on it: the opacity was not kept
+   * there before, and the popup was solid whatever was set (the maintainer, 2026-11-27).
+   */
+  function seeThroughGround(root) {
+    const opacity = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity")) || 1;
+    const ground = getComputedStyle(popup).getPropertyValue("--ground").trim() || getComputedStyle(document.documentElement).getPropertyValue("--ground").trim();
+    let rgb = null;
+    let hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(ground);
+    if (hex) {
+      let digits = hex[1];
+      if (digits.length === 3) digits = digits.split("").map((one) => one + one).join("");
+      rgb = [0, 2, 4].map((at) => parseInt(digits.substr(at, 2), 16));
+    } else {
+      const found = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i.exec(ground);
+      if (found) rgb = [found[1], found[2], found[3]].map(Number);
+    }
+    if (rgb) root.setProperty("--ground-see", `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, Math.max(0, opacity))})`);
+    else root.removeProperty("--ground-see");
+  }
+
   /** Draws the model; [fresh] for a new one (Reader.show), else another tab of the same. */
   /** Entries drawn at once, and of them the laid-out senses; the rest are filled in after (draw). */
   const EAGER = 1;
@@ -1624,6 +1646,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
     if (look.opacity > 0) root.setProperty("--opacity", String(share(look.opacity, 20, 100) / 100));
     else root.removeProperty("--opacity");
     popup.classList.toggle("translucent", look.opacity > 0 && look.opacity < 100);
+    seeThroughGround(root);
     if (look.radius >= 0 && look.radius !== null && look.radius !== undefined && look.radius !== "") root.setProperty("--radius", share(look.radius, 0, 28) + "px");
     else root.removeProperty("--radius");
     if (look.accent && /^#[0-9a-fA-F]{6}$/.test(look.accent)) root.setProperty("--accent", look.accent);

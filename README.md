@@ -501,14 +501,16 @@ no physical pad is present and home-screen game shortcuts.
 
 The in-game menu provides save states, fast forward, and skip to next choice:
 
-<p align="center"><img src="home/publish/media/thor-menu.jpg" width="620" alt="In-game overlay menu over Grisaia no Kajitsu on Android"></p>
+<p align="center"><img src="home/publish/media/thor-menu.jpg" width="620" alt="The game menu over STEINS;GATE (PSP) on the AYN Thor, with the lower display's Pause, Backlog, Text panel, Explain, Guide and Menu keys"></p>
 
 ### Dual-screen handhelds
 
-The screenshots below are from an AYN Thor. The library shelf runs on the top display (one page
-per console), while the lower display shows the selected game's stats and launch button:
+The screenshots below are from an AYN Thor. The library runs on the top display, with Library,
+Statistics and Settings down its left edge and the console in hand as a heading that left and
+right change. The lower display shows the selected game: its cover, figures, the last line you
+read, and keys to continue, open the backlog or change the game's settings:
 
-<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="Furoshiki library across both displays on the AYN Thor"></p>
+<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="Furoshiki's library on the AYN Thor: all games on the top display, STEINS;GATE's cover, figures and last line on the lower display"></p>
 
 <p align="center"><sub>A checkmark on a spine indicates a game script is available.</sub></p>
 
@@ -517,12 +519,24 @@ DS games), with two lookup modes:
 
 - **Trackpad mode:** Move a pointer over the upper screen to look up words directly on the game.
 
-<p align="center"><img src="home/publish/media/thor-trackpad.jpg" width="620" alt="STEINS;GATE on the AYN Thor using the lower display as a trackpad"></p>
+<p align="center"><img src="home/publish/media/thor-popup.jpg" width="620" alt="撮影 looked up in STEINS;GATE (PSP) on the AYN Thor: the popup at 80% opacity over the blurred game, the lower display as the trackpad"></p>
+
+  L1 and R1 change the popup's tab, here to the Kanji tab:
+
+<p align="center"><img src="home/publish/media/thor-popup-kanji.jpg" width="620" alt="The Kanji tab for 撮 in STEINS;GATE (PSP) on the AYN Thor, from 旺文社漢字典"></p>
 
 - **Text panel mode:** Displays the current sentence below the trackpad so you can tap words and
   read definitions on the lower screen without covering the game.
 
 <p align="center"><img src="home/publish/media/thor-lookup.jpg" width="620" alt="STEINS;GATE on the AYN Thor with Text panel showing the line and popup on the lower display"></p>
+
+Statistics and Settings use the lower display the same way: the top shows the page, and the
+lower display holds what you change with your thumbs (the period and the goals, or the sections
+of Settings):
+
+<p align="center"><img src="home/publish/media/thor-statistics.jpg" width="620" alt="Furoshiki's Statistics on the AYN Thor: figures and the year of days on the top display, the period and goal keys on the lower display"></p>
+
+<p align="center"><img src="home/publish/media/thor-settings.jpg" width="620" alt="Furoshiki's Settings on the AYN Thor: the list on the top display, the sections as keys on the lower display"></p>
 
 Quick buttons along the bottom provide **Pause**, **Pause timer**, **Backlog**, and **Menu**. In
 the popup, `+` adds a card and the speaker icon adds a card with line audio.

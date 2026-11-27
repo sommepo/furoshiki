@@ -106,3 +106,17 @@ move.
 - **Tests**: none. **Device**: the profile as it was before these changes loaded on the Thor
   and a tap on a word of the first line opened the popup; the profile as it is now has not
   been on a device.
+
+## The places waited for as long as the line is up (2026-11-27)
+
+The maintainer saw taps on the Thor land on the wrong character: on the line
+「撮影……だと……？　それをネタに脅し、ついには性的な玩具に……」 (Chapter 3, loaded from the game's save),
+a tap on だ looked up 「…だと……？ そ」 and one on に 「、ついには性的な」. The script had gone out on the grid
+of 16 pixels, while the game's characters there are about 14 apart. The game gives a character its
+place in the drawn list as it comes up on screen, and counts the line as done before the last ones
+have; the script looked for the places for two seconds (40 looks, three frames apart) and then kept
+the grid. A line of 33 characters at the saved game's text speed was not all placed by then: the list
+held places for its first 11 characters only. It now looks for as long as the line is up, to a
+minute, and stops after 40 looks only once the places have come and stopped changing. Seen in
+Furoshiki on Linux with the maintainer's save: the line's cells are the game's (8, 17, 34, 51 ... in
+the PSP's pixels), the second row's 「……」」 on its own row.

@@ -302,9 +302,17 @@ reader.on_frame(function(frame)
             settling.same = 0
             cells = drawn
             withdraw()
-        else
+        elseif drawn then
             settling.same = settling.same + 1
             if settling.same > 40 then settling = nil end
+        else
+            -- The places are not all there yet: the game gives a character its place as it
+            -- comes up on screen, and the line counts as done before the last ones have. A
+            -- long line at a slow text speed took longer than the two seconds this waited,
+            -- and stayed on the grid, its words up to two characters off (STEINS;GATE on
+            -- the Thor, 2026-11-27). Looked for as long as the line is up, to a minute.
+            settling.waiting = (settling.waiting or 0) + 1
+            if settling.waiting > 1200 then settling = nil end
         end
     end
     if cells then

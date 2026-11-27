@@ -33,6 +33,8 @@ set(FUROSHIKI_VERSION "dev" CACHE STRING "The version shown in Settings and in t
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia Network)
 
 add_library(home_core STATIC src/library.cpp src/library.h src/play_settings.cpp src/play_settings.h
+	# Reading statistics shared between devices through a synced folder.
+	src/shared_stats.cpp src/shared_stats.h
 	src/popup_style.cpp src/popup_style.h
 	src/popup_controls.cpp src/popup_controls.h
 	# The popup made by hand in its customiser, without CSS (docs/furoshiki-3.md, 15).

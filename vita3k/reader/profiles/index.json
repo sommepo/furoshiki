@@ -3,6 +3,36 @@
   "system": "vita",
   "scripts": [
     {
+      "id": "PCSG00020",
+      "title": "極限脱出ADV 善人シボウデス (Zero Escape: Virtue's Last Reward)",
+      "reads": "Dialogue and speakers",
+      "version": "PCSG00020, 1.00",
+      "api": 2,
+      "file": "PCSG00020.lua",
+      "size": 4218,
+      "sha256": "7b269f547c1716640cf4a98f0a01a326caf689913bf0bd9cfdbeebfd0223e589",
+      "names": {
+        "file": "names-virtues-last-reward.zip",
+        "size": 3833,
+        "sha256": "3963083ad724c219b9f6966041a027d2d4715a3665dd6898b246ca290810b9df"
+      }
+    },
+    {
+      "id": "PCSG00299",
+      "title": "俺たちに翼はない (Oretachi ni Tsubasa wa Nai)",
+      "reads": "Dialogue and speakers",
+      "version": "PCSG00299, 1.00",
+      "api": 2,
+      "file": "PCSG00299.lua",
+      "size": 7077,
+      "sha256": "60532646db8f01cd630aa1951ada01ad8e1bfabee76b0d5554648f262ba79865",
+      "names": {
+        "file": "names-oretachi-ni-tsubasa-wa-nai.zip",
+        "size": 10154,
+        "sha256": "041387cc88669b54e4bd63f6c360ae7da83bfbf958dbbac3e6931d6ded155547"
+      }
+    },
+    {
       "id": "PCSG00488",
       "title": "英雄伝説 空の軌跡 FC Evolution (The Legend of Heroes: Trails in the Sky, Vita)",
       "reads": "Story and field dialogue, speakers, and furigana",

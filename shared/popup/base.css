@@ -398,7 +398,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
    wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
    here instead of before it. */
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
-  .popup { background: var(--ground); }
+  .popup { background: var(--ground-see, var(--ground)); }
   .popup.scrolling::-webkit-scrollbar-thumb { background-color: rgba(236, 229, 211, 0.34); }
   .popup::-webkit-scrollbar-thumb:active { background-color: rgba(236, 229, 211, 0.52); }
   .kanji-chip { border-color: var(--edge); background: var(--box); }

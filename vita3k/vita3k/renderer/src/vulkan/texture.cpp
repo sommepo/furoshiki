@@ -511,7 +511,11 @@ void VKTextureCache::upload_texture_impl(SceGxmTextureBaseFormat base_format, ui
     } else {
         size_t bpp = gxm::bits_per_pixel(base_format);
         size_t bytes_per_pixel = (bpp + 7) >> 3;
-        upload_size = pixels_per_stride * height * bytes_per_pixel;
+        // Reader fork: linear strided textures may end right after the last row's width
+        // (before the stride padding), so do not read past the last row into an unmapped page.
+        upload_size = (height > 0 && pixels_per_stride > width)
+            ? (static_cast<vk::DeviceSize>(height - 1) * pixels_per_stride + width) * bytes_per_pixel
+            : static_cast<vk::DeviceSize>(pixels_per_stride) * height * bytes_per_pixel;
     }
 
     if (staging_buffer.used_so_far + upload_size > staging_buffer.buffer.size) {

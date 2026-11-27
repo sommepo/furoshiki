@@ -24,6 +24,7 @@
 #include <QLineEdit>
 #include <QUrl>
 #include "core_hooks.h"
+#include "shared_stats.h"
 #include "pad_names.h"
 #include "hook_fetch.h"
 #include "hook_processes.h"
@@ -321,6 +322,7 @@ constexpr SettingRow SettingRows[] = {
 #ifndef HOME_PUBLIC
     {"Home server's services", "", nullptr, 0, 0, 0, 0, "Sync & About", 2, false},
 #endif
+    {"Statistics folder", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
     {"RetroAchievements", "", nullptr, 0, 0, 0, 0, "Sync & About", 0, false},
     {"Discord status", "", nullptr, 0, 0, 0, 0, "Sync & About", 1, false},
 #ifndef HOME_PUBLIC
@@ -933,6 +935,23 @@ void HomeWindow::ReloadKeepingChoice() {
 
 void HomeWindow::Reload() {
     library = Load(SharedFolder());
+    // This computer's reading into the shared statistics folder, then every other device's
+    // reading out of it (shared_stats.h).
+    {
+        const QString folder = SharedStats::Folder();
+        SharedStats::WriteOwn(folder, SharedStats::Record(library));
+        shared_devices = SharedStats::AddOthers(library, folder);
+        // A goal set on another device since this one last set its own.
+        const SharedStats::Goals goals = SharedStats::ReadGoals(folder);
+        QSettings settings;
+        if (goals.written > settings.value(QStringLiteral("stats/goals_written"), 0).toLongLong()) {
+            settings.setValue(QStringLiteral("stats/goal"), goals.daily);
+            settings.setValue(QStringLiteral("stats/weekly_goal"), goals.weekly);
+            settings.setValue(QStringLiteral("stats/monthly_goal"), goals.monthly);
+            settings.setValue(QStringLiteral("stats/yearly_goal"), goals.yearly);
+            settings.setValue(QStringLiteral("stats/goals_written"), goals.written);
+        }
+    }
     shelf_stale = true;
     tracker_asked = 0; // asked again, as the files are read again
     title_readings.clear();
@@ -1336,6 +1355,14 @@ int HomeWindow::DailyGoal() const {
 
 void HomeWindow::SetDailyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/goal"), std::clamp(characters / GoalStep * GoalStep, 0, GoalMost));
+    ShareGoals();
+}
+
+void HomeWindow::ShareGoals() const {
+    // Every goal into the shared statistics folder, so the other devices take them too.
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    QSettings().setValue(QStringLiteral("stats/goals_written"), now);
+    SharedStats::WriteGoals(SharedStats::Folder(), {DailyGoal(), WeeklyGoal(), MonthlyGoal(), YearlyGoal(), now});
 }
 
 int HomeWindow::WeeklyGoal() const {
@@ -1344,6 +1371,7 @@ int HomeWindow::WeeklyGoal() const {
 
 void HomeWindow::SetWeeklyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/weekly_goal"), std::clamp(characters, 0, 500000));
+    ShareGoals();
 }
 
 int HomeWindow::MonthlyGoal() const {
@@ -1352,6 +1380,7 @@ int HomeWindow::MonthlyGoal() const {
 
 void HomeWindow::SetMonthlyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/monthly_goal"), std::clamp(characters, 0, 3000000));
+    ShareGoals();
 }
 
 int HomeWindow::YearlyGoal() const {
@@ -1360,6 +1389,7 @@ int HomeWindow::YearlyGoal() const {
 
 void HomeWindow::SetYearlyGoal(int characters) {
     QSettings().setValue(QStringLiteral("stats/yearly_goal"), std::clamp(characters, 0, 50000000));
+    ShareGoals();
 }
 
 double HomeWindow::Slide(int row, int steps) {

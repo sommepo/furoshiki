@@ -59,21 +59,25 @@ object ReaderInput {
                 if (KeyEvent.isGamepadButton(code) || event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) {
                     PopupKeys.inputFrom(pad = true)
                 }
-                if (!ReaderSession.isActive || !inGame()) return false
-                if (code == HoverCursor.button) {
-                    if (HoverCursor.onButton(code, true, HoverCursor.SOURCE_KEY)) {
-                        taken.add(code)
-                        return true
-                    }
-                    return false
-                }
-                // An open popup is modal: the controller's buttons are its own (PopupKeys).
+                if (!ReaderSession.isActive) return false
+                // An open popup is modal: the controller's buttons are its own (PopupKeys). Before
+                // the game's test below, as a game paused for the lookup is not "in game": the
+                // shoulders then only marked the popup's tabs and never changed them (the Thor,
+                // 2026-11-27).
                 if (PopupKeys.isOpen && (KeyEvent.isGamepadButton(code) || code == KeyEvent.KEYCODE_BACK ||
                         code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN ||
                         code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT)) {
                     PopupKeys.onKey(code, true)
                     taken.add(code)
                     return true
+                }
+                if (!inGame()) return false
+                if (code == HoverCursor.button) {
+                    if (HoverCursor.onButton(code, true, HoverCursor.SOURCE_KEY)) {
+                        taken.add(code)
+                        return true
+                    }
+                    return false
                 }
                 if (code == statsButton && statsButton >= 0) {
                     ReaderSession.toggleStatsPaused()
