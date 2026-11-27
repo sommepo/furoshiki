@@ -614,5 +614,8 @@ Furoshiki and its cores are free software under the
 [NOTICES.md](NOTICES.md) lists all package attributions and explains why Flycast (whose upstream
 `LICENSE` is GPLv2) is distributed here under GPLv3.
 Character name data comes from [VNDB](https://vndb.org) under the Open Database License
-([titles/LICENSE](titles/LICENSE)). On Android, third-party notices and full licence texts are
-available under Settings › About › Open-source licences.
+([titles/LICENSE](titles/LICENSE)). Optional emulator hook imports and adapted game scripts credit
+[0xDC00's Agent scripts](https://github.com/0xDC00/scripts),
+[LunaTranslator / LunaHook](https://github.com/HIllya51/LunaTranslator), and the individual script
+authors attributed in each script's header. On Android, third-party notices and full licence texts
+are available under Settings › About › Open-source licences.
