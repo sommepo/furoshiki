@@ -264,6 +264,36 @@ class HomeActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Other devices in the shared statistics folder at the last look (SharedStats). */
+    @Volatile
+    private var sharedDevices = 0
+
+    private fun typeStatsFolder() {
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_Reader)
+        val field = android.widget.EditText(themed).apply {
+            hint = SharedStats.folder(this@HomeActivity).path
+            setText(SharedStats.folder(this@HomeActivity).path)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            isSingleLine = true
+        }
+        val box = android.widget.FrameLayout(themed).apply {
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(field)
+        }
+        androidx.appcompat.app.AlertDialog.Builder(themed)
+            .setTitle("Statistics folder")
+            .setMessage("A folder you keep in sync between devices, such as a Syncthing folder.")
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                SharedStats.setFolder(this, field.text.toString())
+                SharedStats.shareGoals(this)
+                callPage("Front.reload()")
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
 
     /**
      * The Settings row's switch from outside (tools/thor.sh home on: adb may not enable an app's
