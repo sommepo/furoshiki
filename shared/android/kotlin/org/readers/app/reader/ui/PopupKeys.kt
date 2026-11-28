@@ -90,6 +90,7 @@ object PopupKeys {
     }
 
     private var stick = 0f
+    private val hatDown = BooleanArray(4)
 
     private val tick = object : Runnable {
         override fun run() {
@@ -104,9 +105,25 @@ object PopupKeys {
         }
     }
 
-    /** The left stick's up and down while a popup is open: true when it was the popup's. */
-    fun onStick(y: Float): Boolean {
-        if (open() == null) return false
+    /** The left stick and hat d-pad while a popup is open: true when the popup took them. */
+    fun onStick(y: Float, hatX: Float = 0f, hatY: Float = 0f): Boolean {
+        if (open() == null) {
+            hatDown.fill(false)
+            return false
+        }
+        val hat = arrayOf(
+            KeyEvent.KEYCODE_DPAD_LEFT to (hatX < -0.5f),
+            KeyEvent.KEYCODE_DPAD_RIGHT to (hatX > 0.5f),
+            KeyEvent.KEYCODE_DPAD_UP to (hatY < -0.5f),
+            KeyEvent.KEYCODE_DPAD_DOWN to (hatY > 0.5f),
+        )
+        for (i in hat.indices) {
+            val (code, down) = hat[i]
+            if (down != hatDown[i]) {
+                hatDown[i] = down
+                if (down) onKey(code, true)
+            }
+        }
         val was = abs(stick) >= DEAD
         stick = y
         if (!was && abs(y) >= DEAD) main.post(tick)

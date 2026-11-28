@@ -256,17 +256,12 @@ html.android .popup, html.android .popup.translucent { -webkit-backdrop-filter: 
 /* East opens "more": its mark after the word, on the chosen entry's "more" only. */
 .popup.pad .more .key-mark { display: inline-grid; vertical-align: middle; margin-left: 0.45em; }
 .popup.pad.choosing .entry:not(.chosen) .more .key-mark { display: none; }
-/* Its raised panel (popup.js, aimEntry): one fill under the chosen entry that slides and stretches
-   to the next, with no edge line, and the other entries stepped back. */
+/* The chosen entry stays at full opacity and keeps its controller marks; the others step back.
+   --fold is still used by the kanji folder tab and deck. */
 .popup { position: relative; --fold: color-mix(in srgb, var(--raised, color-mix(in srgb, var(--text) 8%, transparent)) calc(var(--opacity) * 100%), transparent); }
 .entry-lift { display: none; }
 .tab-pane { position: relative; }
 .tab-pane.hidden { display: none; }
-.popup.pad.choosing > .entry-lift, .popup.pad.choosing .tab-pane > .entry-lift {
-  display: block; position: absolute; top: 0; height: 0; z-index: 0; pointer-events: none;
-  background: var(--fold); border-radius: min(var(--radius, 4px), 8px);
-  transform-origin: 0 0; will-change: transform;
-}
 .popup.pad.choosing > .entry, .popup.pad.choosing .tab-pane > .entry { z-index: 1; transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .popup.pad.choosing > .entry:not(.chosen), .popup.pad.choosing .tab-pane > .entry:not(.chosen) { opacity: 0.5; }
 /* ---- A dictionary's own layout (every dictionary's with the full layout; grammar and characters
@@ -465,7 +460,6 @@ html.android .popup, html.android .popup.translucent { -webkit-backdrop-filter: 
   .popup::-webkit-scrollbar-thumb:active { background-color: rgba(236, 229, 211, 0.52); }
   .kanji-chip { border-color: var(--edge); background: var(--box); }
   .kanji-chip.active { border-color: var(--accent); background: rgba(217, 71, 43, 0.24); }
-  .popup { --fold: var(--raised, rgba(128, 128, 128, 0.16)); }
   .popup.folder .kanji-chip, .popup.folder .kanji-chip.active { border-color: transparent; background: none; }
   .entry.unknown .headword { background: rgba(127, 127, 127, 0.25); box-shadow: none; }
   .tag.name { border-color: var(--accent); }

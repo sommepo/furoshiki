@@ -16,7 +16,7 @@
 
 Emulators are built in as cores (similar to RetroArch), so there's nothing extra to install. Core and video settings can be configured globally, per console, or per game.
 
-## Supported games
+## Supported games (60 games)
 
 Each game script is a small Lua file targeting a specific Japanese release (check the ID below). All scripts live in [sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts), organized by console and game. Furoshiki downloads and verifies them automatically under **Settings › Game scripts**, and new games can be added by pull request using a coding agent (see [Adding a game](adding-a-game.md)).
 
@@ -38,7 +38,7 @@ Each game script is a small Lua file targeting a specific Japanese release (chec
 
 </details>
 
-<details><summary><b>PlayStation 2</b> (19 games)</summary>
+<details><summary><b>PlayStation 2</b> (21 games)</summary>
 
 | Game | Japanese title | ID | What is read |
 | --- | --- | --- | --- |
@@ -46,6 +46,8 @@ Each game script is a small Lua file targeting a specific Japanese release (chec
 | Never7 | Never7 -the end of infinity- | SLPS-25256 | Story text with speakers, choices |
 | Remember11 | Remember11 -the age of infinity- | SLPM-65550 | Story text with speakers, choices |
 | CLANNAD | CLANNAD | SLPM-66302 | Story text with speakers, choices |
+| CLOCK ZERO | CLOCK ZERO 〜終焉の一秒〜 | SLPM-55281 | Dialogue, narration, speakers, choices |
+| Fate/stay night [Realta Nua] | Fate/stay night [Realta Nua] | SLPM-66512 | Dialogue, narration, furigana |
 | Higurashi no Naku Koro ni Matsuri | ひぐらしのなく頃に祭 カケラ遊び | SLPM-66913 | Story text with speakers and furigana |
 | Amagami | アマガミ | SLPS-25918 | Message window with furigana, choices |
 | EVE burst error PLUS | EVE burst error PLUS | SLPM-65320 | Message window |
@@ -64,7 +66,7 @@ Each game script is a small Lua file targeting a specific Japanese release (chec
 
 </details>
 
-<details><summary><b>PSP</b> (10 games)</summary>
+<details><summary><b>PSP</b> (11 games)</summary>
 
 | Game | Japanese title | ID | What is read |
 | --- | --- | --- | --- |
@@ -78,6 +80,7 @@ Each game script is a small Lua file targeting a specific Japanese release (chec
 | Da Capo I&II Plus Situation Portable | D.C.I&II P.S.P. | ULJM05718, ULJM05719 | Message window with speakers and furigana, choices |
 | My Merry May with be | My Merry May with be | ULJM05603 | Story text with speakers, choices |
 | Dunamis 15 | DUNAMIS15 | ULJM06119 | Message window with speakers and furigana |
+| FLOWERS | FLOWERS | ULJM06390 | Dialogue, speakers, choices |
 
 </details>
 
@@ -96,12 +99,13 @@ Each game script is a small Lua file targeting a specific Japanese release (chec
 
 </details>
 
-<details><summary><b>Nintendo 3DS</b> (2 games)</summary>
+<details><summary><b>Nintendo 3DS</b> (3 games)</summary>
 
 | Game | Japanese title | ID | What is read |
 | --- | --- | --- | --- |
 | Shin Megami Tensei IV | 真・女神転生IV | 0004000000088A00 | Dialogue, narration and choices |
 | Professor Layton vs. Phoenix Wright: Ace Attorney | レイトン教授VS逆転裁判 | 0004000000078B00 | Dialogue with speakers, narration, subtitles, puzzle texts |
+| Phoenix Wright: Ace Attorney Trilogy | 逆転裁判123 成歩堂セレクション | 0004000000108800 | Dialogue |
 
 </details>
 

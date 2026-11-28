@@ -125,8 +125,14 @@ object ReaderInput {
         // A trigger that reports itself as an axis only.
         trigger(0, KeyEvent.KEYCODE_BUTTON_L2, maxOf(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_BRAKE)))
         trigger(1, KeyEvent.KEYCODE_BUTTON_R2, maxOf(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS)))
-        // An open popup takes the left stick to scroll, and the game gets none of it meanwhile.
-        if (PopupKeys.onStick(event.getAxisValue(MotionEvent.AXIS_Y))) return true
+        // An open popup takes the left stick to scroll and the hat d-pad to step entries and kanji,
+        // and the game gets none of it meanwhile.
+        if (PopupKeys.onStick(
+                event.getAxisValue(MotionEvent.AXIS_Y),
+                event.getAxisValue(MotionEvent.AXIS_HAT_X),
+                event.getAxisValue(MotionEvent.AXIS_HAT_Y),
+            )
+        ) return true
         // Only while the sticks steer the cursor: with a second display as the trackpad they,
         // and the d-pad that comes in the same reports, are the game's.
         if (!HoverCursor.takesSticks) return false
