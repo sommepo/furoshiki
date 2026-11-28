@@ -4,14 +4,14 @@
 
 ## Download
 
-Release **0.4.1** includes Windows, Android, Linux, and the optional Windows OCR helper:
+Release **0.5.0** includes Windows, Android, Linux, and the optional Windows OCR helper:
 
 | File | Platform | Notes |
 | --- | --- | --- |
-| [Furoshiki-0.4.1-windows.zip](../../../releases/download/v0.4.1/Furoshiki-0.4.1-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
-| [Furoshiki-0.4.1-linux.tar.gz](../../../releases/download/v0.4.1/Furoshiki-0.4.1-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Extract anywhere and run `Furoshiki/reader-home`. Requires X11 or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
-| [Furoshiki-0.4.1-android.apk](../../../releases/download/v0.4.1/Furoshiki-0.4.1-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
-| [Furoshiki-ocr-helper.zip](../../../releases/download/v0.4.1/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [Desktop, OCR, and settings](desktop.md#ocr-on-windows). |
+| [Furoshiki-0.5.0-windows.zip](../../../releases/download/v0.5.0/Furoshiki-0.5.0-windows.zip) | Windows 10/11 (64-bit) | Extract anywhere and run `Furoshiki.exe`. |
+| [Furoshiki-0.5.0-linux.tar.gz](../../../releases/download/v0.5.0/Furoshiki-0.5.0-linux.tar.gz) | Linux (64-bit, glibc 2.38+) | Extract anywhere and run `Furoshiki/reader-home`. Requires X11 or Xwayland, OpenGL and Vulkan drivers, and a Japanese font. |
+| [Furoshiki-0.5.0-android.apk](../../../releases/download/v0.5.0/Furoshiki-0.5.0-android.apk) | Android 10+ (arm64) | Sideload the APK and allow installs from your browser or file manager when prompted. |
+| [Furoshiki-ocr-helper.zip](../../../releases/download/v0.5.0/Furoshiki-ocr-helper.zip) | Windows (optional) | Only needed for OCR on Windows. See [Desktop, OCR, and settings](desktop.md#ocr-on-windows). |
 
 - **Windows dependencies:** The PS2 and Vita cores require the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe). The dictionary popup uses Microsoft WebView2 (preinstalled on Windows 11 and updated Windows 10; falls back to a simpler popup if absent).
 - **Linux:** Settings, dictionaries, saves, and BIOS files live in `~/.local/share/Furoshiki` (place console BIOS files under `program/consoles/<console>/system`).

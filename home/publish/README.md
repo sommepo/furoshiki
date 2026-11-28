@@ -5,11 +5,11 @@
 <p align="center"><b>A Japanese game launcher for Windows, Linux, and Android with built-in emulators, direct text extraction, dictionary popups, and Anki sentence mining.</b><br>
 Point at, tap, or step through exact in-game text with a controller, look up words on screen, and send cards straight to Anki.</p>
 
-<p align="center"><b>Latest release (0.4.1):</b>
-<a href="../../releases/download/v0.4.1/Furoshiki-0.4.1-android.apk">Android 0.4.1</a> ·
-<a href="../../releases/download/v0.4.1/Furoshiki-0.4.1-windows.zip">Windows 0.4.1</a> ·
-<a href="../../releases/download/v0.4.1/Furoshiki-0.4.1-linux.tar.gz">Linux 0.4.1</a> ·
-<a href="../../releases/download/v0.4.1/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
+<p align="center"><b>Latest release (0.5.0):</b>
+<a href="../../releases/download/v0.5.0/Furoshiki-0.5.0-android.apk">Android 0.5.0</a> ·
+<a href="../../releases/download/v0.5.0/Furoshiki-0.5.0-windows.zip">Windows 0.5.0</a> ·
+<a href="../../releases/download/v0.5.0/Furoshiki-0.5.0-linux.tar.gz">Linux 0.5.0</a> ·
+<a href="../../releases/download/v0.5.0/Furoshiki-ocr-helper.zip">OCR helper (Windows)</a> ·
 <a href="../../releases">all releases</a></p>
 
 <p align="center">
