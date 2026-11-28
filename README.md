@@ -23,7 +23,6 @@ Point at, tap, or step through exact in-game text with a controller, look up wor
 
 <p align="center"><img src="home/publish/media/popup-lookup.gif" width="760" alt="Controller reading mode over CLANNAD (PS2) on the desktop: the popup for 常習犯 steps through its dictionary entries and changes height to fit each one, then the cursor moves to なのだ, the Grammar tab opens and a button press unfolds the grammar entry"></p>
 
-<p align="center"><sub>CLANNAD (PS2) on the desktop with the Kon popup at 80% opacity and blur, showing Jitendex, 明鏡, 大辞泉, frequency badges, and a pitch accent graph from Kanjium (all dictionaries are imported by the user).</sub></p>
 
 ## Game scripts
 
@@ -35,8 +34,6 @@ Furoshiki reads exact Japanese text and character positions straight from emulat
 - **Contribute new games:** Furoshiki is community-extensible. Game scripts live in [sommepo/furoshiki-scripts](https://github.com/sommepo/furoshiki-scripts) and are designed to be written and verified against a running game with a coding agent (Claude Code, Codex, Gemini CLI, etc.) via pull request. See [Adding a game](docs/adding-a-game.md) to get started, or open a pull request or issue here for app improvements.
 
 <p align="center"><img src="home/publish/media/popup-names.jpg" width="760" alt="Names tab popup for 美佐枝さん in CLANNAD (PS2) on the desktop, showing her portrait, full name 相楽美佐枝, romaji, role, and character description"></p>
-
-<p align="center"><sub>A character name card on the <i>Names</i> tab in CLANNAD (PS2) on the desktop.</sub></p>
 
 <p align="center"><img src="home/publish/media/game-scripts.png" width="760" alt="Settings › Game scripts on the desktop in the Kon theme listing supported games by console with script, names, library, cover, and spine status"></p>
 
@@ -128,7 +125,7 @@ On the desktop, tap `Select` in-game to drop a cursor onto the first word in the
 
 <p align="center"><img src="home/publish/media/controller-kanji.gif" width="760" alt="Controller reading mode on the desktop in CLANNAD (PS2), opening the Kanji tab for 常習犯 with RT, focusing the popup with X, and stepping through 常, 習, and 犯 with the D-pad"></p>
 
-<p align="center"><sub>Stepping through 常, 習, and 犯 on the <i>Kanji</i> tab with the D-pad (using imported kanji dictionaries including KANJIDIC).</sub></p>
+<p align="center"><sub>Stepping through 常, 習, and 犯 on the <i>Kanji</i> tab with the D-pad.</sub></p>
 
 See [Reading, popups, and controller controls](docs/reading.md) for the full button map, keyboard shortcuts, and customization options.
 
@@ -137,8 +134,6 @@ See [Reading, popups, and controller controls](docs/reading.md) for the full but
 On Android, Furoshiki supports touch, controllers, and dual-screen handhelds such as the AYN Thor. The top display runs your library and game while the lower display shows game details, acts as a trackpad or lower-screen text panel in-game, and holds thumb controls for menus, statistics, and settings.
 
 <p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="Furoshiki's library on the AYN Thor: the PS1 games on the top display, Moonlight Syndrome's cover, figures and last line on the lower display"></p>
-
-<p align="center"><sub>Library on the AYN Thor: games on the top display, cover, stats, and last line on the lower display (a checkmark marks games with a script).</sub></p>
 
 <p align="center"><img src="home/publish/media/thor-popup.jpg" width="620" alt="撮影 looked up in STEINS;GATE (PSP) on the AYN Thor: the popup at 80% opacity over the blurred game, the lower display as the trackpad"></p>
 
@@ -166,15 +161,10 @@ Statistics are stored as per-device JSON files (`<device-id>.json`, plus `goals.
 
 <p align="center"><img src="home/publish/media/statistics.png" width="760" alt="Furoshiki Statistics tab on the desktop in the Nocturne theme showing yearly and daily character goals, streak, reading pace, milestone ruler, 52-week dot heatmap, characters arc, and peak days"></p>
 
-<p align="center"><sub>The Statistics tab on the desktop in the Nocturne theme (sample reading history).</sub></p>
-
 <p align="center"><img src="home/publish/media/statistics-soroban.gif" width="760" alt="Setting the daily character goal on the inline soroban abacus in the Statistics tab on the desktop in the Kon theme, sliding beads from 10.5K down to 9K"></p>
 
-<p align="center"><sub>Setting a character goal on the inline soroban abacus on the desktop.</sub></p>
 
 <p align="center"><img src="home/publish/media/thor-statistics.jpg" width="620" alt="Furoshiki's Statistics on the AYN Thor: figures and the year of days on the top display, the period and goal keys on the lower display"></p>
-
-<p align="center"><sub>Statistics on the AYN Thor with period and goal controls on the lower display.</sub></p>
 
 ## Documentation
 
