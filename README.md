@@ -136,7 +136,7 @@ See [Reading, popups, and controller controls](docs/reading.md) for the full but
 
 On Android, Furoshiki supports touch, controllers, and dual-screen handhelds such as the AYN Thor. The top display runs your library and game while the lower display shows game details, acts as a trackpad or lower-screen text panel in-game, and holds thumb controls for menus, statistics, and settings.
 
-<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="Furoshiki's library on the AYN Thor: all games on the top display, STEINS;GATE's cover, figures and last line on the lower display"></p>
+<p align="center"><img src="home/publish/media/thor-shelf.jpg" width="620" alt="Furoshiki's library on the AYN Thor: the PS1 games on the top display, Moonlight Syndrome's cover, figures and last line on the lower display"></p>
 
 <p align="center"><sub>Library on the AYN Thor: games on the top display, cover, stats, and last line on the lower display (a checkmark marks games with a script).</sub></p>
 
