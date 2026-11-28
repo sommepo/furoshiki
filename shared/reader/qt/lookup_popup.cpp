@@ -362,11 +362,41 @@ void LookupPopup::ShowResults(const QList<LookupResult>& results,
             }
             if (!chars.isEmpty()) {
                 auto& dictionaries = ReaderSession::Instance().Dictionaries();
+                QSet<QString> covered_term_kanji;
+                for (const auto& r : results) {
+                    for (const auto& e : r.entries) {
+                        if (ReaderApp::PopupModel::KindOf(e, kinds) == QStringLiteral("kanji")) {
+                            covered_term_kanji.insert(r.expression);
+                            break;
+                        }
+                    }
+                }
                 for (const QString& character : chars) {
                     const QByteArray kanji = ReaderApp::PopupModel::KanjiText(dictionaries.FindKanji(character),
                                                                               dictionaries.FindKanjiMeta(character));
                     if (!kanji.isEmpty()) {
                         model += (model.size() > 1 ? "," : "") + kanji;
+                    }
+                    if (!covered_term_kanji.contains(character)) {
+                        QList<ReaderApp::TermEntry> term_kanji;
+                        for (const auto& e : dictionaries.FindTerms(QStringList{character})) {
+                            if (e.expression == character &&
+                                ReaderApp::PopupModel::KindOf(e, kinds) == QStringLiteral("kanji")) {
+                                term_kanji.append(e);
+                            }
+                        }
+                        if (!term_kanji.isEmpty()) {
+                            ReaderApp::LookupResult extra;
+                            extra.expression = character;
+                            extra.reading = term_kanji.first().reading;
+                            extra.matched_text = character;
+                            extra.entries = std::move(term_kanji);
+                            const QByteArray entry_json = ReaderApp::PopupModel::EntryText(
+                                extra, {}, kinds, web_pictures, pictures);
+                            if (!entry_json.isEmpty()) {
+                                model += (model.size() > 1 ? "," : "") + entry_json;
+                            }
+                        }
                     }
                 }
             }
@@ -865,6 +895,7 @@ void LookupPopup::OnPageMessage(const QJsonObject& message) {
         web_need = static_cast<int>(std::ceil(message.value(QStringLiteral("need")).toDouble(0)));
         web_scrolled = message.value(QStringLiteral("scrolled")).toInt();
         web_tabs = message.value(QStringLiteral("tabs")).toInt();
+        web_rail = message.value(QStringLiteral("rail")).toBool();
         web_text = message.value(QStringLiteral("text")).toString();
         web_add.clear();
         web_book.clear();

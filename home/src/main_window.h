@@ -336,6 +336,9 @@ private:
     QString popup_preview_shown;
     QString popup_preview_override_theme;
     void ShowPopupPreview();
+    /// The preview drawn a moment later, once the steps of a held key have stopped coming.
+    void ShowPopupPreviewSoon();
+    QTimer* popup_preview_soon{};
     GameScreen* screen{};
     QStackedWidget* pages{};
     QStringList core_files;

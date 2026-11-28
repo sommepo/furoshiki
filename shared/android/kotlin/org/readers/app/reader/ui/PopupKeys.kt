@@ -11,9 +11,11 @@ import kotlin.math.abs
 
 /**
  * The controller while a popup is open (the maintainer, 2026-11-17): the popup is modal, so the
- * game gets no buttons meanwhile; the left stick scrolls it; north (△) makes a card of the word
- * without audio, east (○) one with the line's audio; L1 and R1 go to the tab before and the
- * next (words, grammar, kanji, names); south (✕) and Back close it. The cursor's own button
+ * game gets no buttons meanwhile; the left stick scrolls it; west (□) makes a card of the word
+ * with the line's audio and north (△) one without, as the popup's left and right pluses stand
+ * (the maintainer, 2026-11-27: "the left one corresponds to the button to the left"); east (○)
+ * opens or closes the chosen entry's "more"; L1 and R1 go to the tab before and the next (words,
+ * grammar, kanji, names); south (✕) and Back close it. The cursor's own button
  * stays the cursor's ([ReaderInput] asks before it gets here).
  *
  * Whether a controller is the input ([padInUse]: a controller's button or stick was the last
@@ -69,9 +71,11 @@ object PopupKeys {
             layer.close()
             return true
         }
+        inputFrom(pad = true)
         when (buttonOf(code)) {
             "north" -> layer.mineWord(audio = false)
-            "east" -> layer.mineWord(audio = true)
+            "west" -> layer.mineWord(audio = true)
+            "east" -> layer.toggleMore()
             "south" -> layer.close()
         }
         when (code) {

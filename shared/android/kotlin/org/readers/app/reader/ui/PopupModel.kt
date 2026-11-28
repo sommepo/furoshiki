@@ -27,6 +27,9 @@ object PopupModel {
     /** [kinds]: the kinds the user gave dictionaries, by title (ReaderSettings.dictionaryKinds). */
     fun entry(result: LookupResult, history: String?, kinds: Map<String, String> = emptyMap(), withoutSenses: Boolean = false): JSONObject = JSONObject().apply {
         put("expression", result.expression)
+        // What of the text it was found for: a character of a kanji dictionary that is not in it
+        // (one with the reading それ, for それを) is left off the Kanji tab (popup.js, `wanted`).
+        put("matched", result.matchedText)
         put("reading", result.displayReading)
         put("reasons", JSONArray(result.reasons))
         put("pitches", JSONArray(result.pitches.map { it.positions.joinToString(",", "[", "]") }))

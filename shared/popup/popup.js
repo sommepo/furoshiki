@@ -15,6 +15,12 @@
   let model = { entries: [] };
 
   /** A message to the app, by whichever way this engine has. */
+  // On Android the app draws the blurred game under the page itself (PopupBlur.kt): the page's own
+  // backdrop blur has nothing to blur there and only costs the WebView work on every frame.
+  const isAndroid = !!window.readerAndroid;
+  const supportsColorMix = typeof CSS !== "undefined" && CSS.supports && CSS.supports("color", "color-mix(in srgb, red 50%, blue)");
+  if (isAndroid) document.documentElement.classList.add("android");
+
   function post(message) {
     const text = JSON.stringify(message);
     if (window.readerPreview) {
@@ -102,11 +108,13 @@
   }
 
   /**
-   * The controller's button for each card button (PopupKeys on Android): north, east. An app
-   * names them as its controller prints them (model.keys: Furoshiki on a computer says Y and B,
-   * the Steam Controller's letters); the tab row's L and R likewise (keys.left, keys.right).
+   * The controller's button for each card button (PopupKeys on Android): north for the card
+   * without audio, west for the one with it, so that the left plus is the left button (the
+   * maintainer, 2026-11-27); east opens "more". An app names them as its controller prints them
+   * (model.keys: Furoshiki on a computer says Y and X, the Steam Controller's letters); the tab
+   * row's L and R likewise (keys.left, keys.right).
    */
-  const KEYS = { add: "△", addAudio: "○" };
+  const KEYS = { add: "△", addAudio: "□", more: "○" };
   function keyOf(kind) {
     const own = model.keys || {};
     return own[kind] || KEYS[kind] || "";
@@ -118,8 +126,10 @@
   /** Plays an animation class on a node once, from its start even when it was just played. */
   function play(node, name) {
     if (!node) return;
-    node.classList.remove(name);
-    void node.offsetWidth;
+    if (node.classList.contains(name)) {
+      node.classList.remove(name);
+      void node.offsetWidth;
+    }
     node.classList.add(name);
     node.addEventListener("animationend", () => node.classList.remove(name), { once: true });
   }
@@ -191,25 +201,29 @@
     const box = element("div", "card-buttons");
     const labels = model.labels || {};
     const inDeck = entry.state === "inDeck";
-    // The pluses are the ones nearer the corner, the book beside them.
+    // The pluses are the ones nearer the corner, the book beside them. Whatever the corner, the
+    // plus with the line's audio is the left one and the one without the right one, as their
+    // buttons stand on a controller (west, north).
     const left = /left$/.test(model.corner || "top_right");
-    const parts = [];
+    const pluses = [];
+    let book = null;
     if (inDeck && !model.duplicates && entry.addedKind) {
-      parts.push(entry.addedKind === "add"
-        ? button("book", index, "inDeck", labels.book)
-        : button("add", index, "done", labels.add));
-      parts.push(entry.addedKind === "addAudio"
+      pluses.push(entry.addedKind === "addAudio"
         ? button("book", index, "inDeck", labels.book)
         : button("addAudio", index, "done", labels.addAudio || labels.add));
+      pluses.push(entry.addedKind === "add"
+        ? button("book", index, "inDeck", labels.book)
+        : button("add", index, "done", labels.add));
     } else {
       if (!inDeck || model.duplicates) {
         const state = inDeck ? "add" : entry.state;
-        parts.push(button("add", index, state, labels.add));
-        parts.push(button("addAudio", index, state, labels.addAudio || labels.add));
+        pluses.push(button("addAudio", index, state, labels.addAudio || labels.add));
+        pluses.push(button("add", index, state, labels.add));
       }
-      if (inDeck) parts.push(button("book", index, "inDeck", labels.book));
+      if (inDeck) book = button("book", index, "inDeck", labels.book);
     }
-    (left ? parts : parts.reverse()).forEach((part) => box.appendChild(part));
+    const parts = book ? (left ? pluses.concat([book]) : [book].concat(pluses)) : pluses;
+    parts.forEach((part) => box.appendChild(part));
     return box;
   }
 
@@ -223,13 +237,42 @@
     return KINDS.indexOf(sense.kind) >= 0 ? sense.kind : "word";
   }
 
+  /**
+   * Whether an entry is shown at all: a character of a kanji dictionary found by its reading
+   * (其, 夫 and a dozen more for それを) is not, unless it is in the text that was looked up
+   * (the maintainer, 2026-11-28: "showing 14 kanji on this 3 hiragana lookup"). The characters of
+   * the word itself come from the kanji banks (entry.kanji), which are always shown.
+   */
+  function wanted(entry) {
+    if (kanjiAllowed(entry)) return true;
+    const senses = entry.senses || [];
+    return !senses.length || !senses.every((sense) => senseKind(sense) === "kanji");
+  }
+  /** Whether an entry's kanji dictionaries' senses belong on the Kanji tab: its character was looked up. */
+  let lookedEntries = null, lookedText = "";
+  function kanjiAllowed(entry) {
+    if (entry.kanji || !entry.matched) return true;
+    const entries = model.entries || [];
+    if (entries !== lookedEntries) {
+      lookedEntries = entries;
+      lookedText = entries.map((one) => one.matched || "").join("");
+    }
+    return lookedText.indexOf(entry.expression) >= 0;
+  }
+
   /** The kinds an entry has senses of, in the order of its senses. */
   function kindsOf(entry) {
     const out = [];
     const add = (kind) => { if (out.indexOf(kind) < 0) out.push(kind); };
     if (entry.kanji) add("kanji");
     if (entry.card) add("name");
-    (entry.senses || []).forEach((sense) => add(senseKind(sense)));
+    // A kanji dictionary's sense of a character that was not looked up (其 for それを, beside its
+    // JMdict word) does not put the entry on the Kanji tab.
+    const kanjiOk = kanjiAllowed(entry);
+    (entry.senses || []).forEach((sense) => {
+      const kind = senseKind(sense);
+      if (kind !== "kanji" || kanjiOk) add(kind);
+    });
     if (!out.length) add(entry.name ? "name" : "word"); // a word with only its forms
     return out;
   }
@@ -240,9 +283,25 @@
    */
   function tabsOf(entries) {
     const counts = {};
-    (entries || []).forEach((entry) => kindsOf(entry).forEach((kind) => { counts[kind] = (counts[kind] || 0) + 1; }));
+    const shown = (entries || []).filter(wanted);
+    shown.forEach((entry) => kindsOf(entry).forEach((kind) => { counts[kind] = (counts[kind] || 0) + 1; }));
     const tabs = KINDS.filter((kind) => counts[kind]).map((kind) => ({ kind: kind, count: counts[kind] }));
-    const first = entries && entries.length ? kindsOf(entries[0])[0] : (tabs[0] ? tabs[0].kind : "word");
+    // The Kanji tab says its kanji dictionaries, then its characters: "10 (1)" for one character
+    // in ten dictionaries, "1 (2)" for two characters in one (the maintainer, 2026-11-28; it said
+    // its entries, one a character a dictionary, which read as ten kanji for one).
+    const kanjiTab = tabs.find((one) => one.kind === "kanji");
+    if (kanjiTab) {
+      const dictionaries = new Set();
+      shown.forEach((entry) => {
+        if (entry.kanji) dictionaries.add(entry.kanji.dictionary || "");
+        else if (kindsOf(entry).indexOf("kanji") >= 0) {
+          (entry.senses || []).forEach((sense) => { if (senseKind(sense) === "kanji") dictionaries.add(sense.dictionary || ""); });
+        }
+      });
+      kanjiTab.dictionaries = dictionaries.size || kanjiTab.count;
+      kanjiTab.characters = kanjiCharsOf(shown).length;
+    }
+    const first = shown.length ? kindsOf(shown[0])[0] : (tabs[0] ? tabs[0].kind : "word");
     return { tabs: tabs, first: first };
   }
 
@@ -261,7 +320,7 @@
   function kanjiCharsOf(entries) {
     const out = [];
     (entries || []).forEach((entry) => {
-      const ch = kanjiCharOf(entry);
+      const ch = wanted(entry) ? kanjiCharOf(entry) : "";
       if (ch && out.indexOf(ch) < 0) out.push(ch);
     });
     return out;
@@ -270,16 +329,16 @@
   /** Compact character rail at the top of the Kanji tab when a word has 2+ kanji. */
   function kanjiRail(chars) {
     const rail = element("div", "kanji-rail");
+    rail.appendChild(element("i", "kanji-tab"));
     chars.forEach((ch, i) => {
-      const chip = element("button", "kanji-chip" + (i === kanjiIndex ? " active" : ""), ch);
+      const chip = element("button", "kanji-chip" + (i === kanjiIndex ? " active" : "") + (foldedChips.has(i) ? " folded" : ""), ch);
       chip.type = "button";
       chip.lang = "ja";
       chip.setAttribute("aria-pressed", i === kanjiIndex ? "true" : "false");
       chip.addEventListener("click", (event) => {
         event.stopPropagation();
         if (kanjiIndex === i) return;
-        kanjiIndex = i;
-        draw(false);
+        showKanji(i);
         reportSoon();
       });
       rail.appendChild(chip);
@@ -298,8 +357,7 @@
     if (tab !== "kanji") return false;
     const chars = kanjiCharsOf(model.entries || []);
     if (chars.length < 2) return false;
-    kanjiIndex = (kanjiIndex + (step < 0 ? -1 : 1) + chars.length) % chars.length;
-    draw(false);
+    showKanji((kanjiIndex + (step < 0 ? -1 : 1) + chars.length) % chars.length);
     post({ type: "feedback", kind: "step" });
     reportSoon();
     return true;
@@ -318,25 +376,22 @@
   /** Marks entry [index] as the chosen one and brings it into view ([scroll]). */
   function chooseEntry(index, scroll, step) {
     chosen = index;
+    const root = activeRoot();
     let section = null;
-    popup.querySelectorAll(".entry").forEach((node) => {
+    root.querySelectorAll(".entry").forEach((node) => {
       const on = Number(node.dataset.index) === index;
       node.classList.toggle("chosen", on);
       if (on) section = node;
     });
+    aimEntry(!step);
     if (!section || !scroll) return;
     const top = section.getBoundingClientRect().top - popup.getBoundingClientRect().top + popup.scrollTop;
     const row = popup.querySelector(".tabs");
     // Under the tab row where it stays at the top; the first entry from the very top.
     const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
-    const first = popup.querySelector(".entry") === section;
+    const first = root.querySelector(".entry") === section;
     easeUntil = performance.now() + 600; // the host brings the height to the entry smoothly
     glide(first ? 0 : Math.max(0, top - above - 2));
-    // A very short move from the side it came from, so the eye sees which way it went.
-    if (step) {
-      section.style.setProperty("--from", (step < 0 ? -1 : 1) * 7 + "px");
-      play(section, "arriving");
-    }
   }
 
   /** The popup's scroll taken to [to] in about a tenth of a second (at once where motion is unwanted). */
@@ -358,18 +413,286 @@
   /** A controller is the input (Reader.setPad, model.pad). */
   let pad = false;
 
+  // ---- The marks that move: the tab's ink and the kanji rail's folder tab ----
+  // As Furochibi's rail (the maintainer, 2026-11-27: tabs "B", the kanji rail "B"): a mark goes
+  // from one place to the next on springs, the edge in front quickly and the other slowly, so it
+  // stretches and then gathers. Springs as Compose's (damping ratio, stiffness), stepped once a
+  // frame only while one moves; what they move is written as a transform or as the left and
+  // width of an absolutely placed mark, so nothing else on the page is laid out again.
+  const QUICK = [0.78, 620], SLOW = [0.86, 260];
+  function spring() { return { x: NaN, v: 0, to: NaN, z: 0.9, k: 420 }; }
+  const marks = { tab: [spring(), spring()], kanji: [spring(), spring()], entry: [spring(), spring()] };
+  let marking = 0, markLast = 0;
+  /** A mark's two edges to [from, to]: at once when [snap] (or where motion is unwanted). */
+  function aim(edges, from, to, snap) {
+    const [a, b] = edges;
+    if (snap || still || isNaN(a.x)) {
+      a.x = a.to = from; b.x = b.to = to; a.v = b.v = 0;
+      return;
+    }
+    if (from === a.to && to === b.to) return;
+    const forward = from > a.to;
+    [a.z, a.k] = forward ? SLOW : QUICK;
+    [b.z, b.k] = forward ? QUICK : SLOW;
+    a.to = from; b.to = to;
+    if (!marking) { markLast = 0; marking = requestAnimationFrame(markFrame); }
+  }
+  function stepSpring(s, dt) {
+    for (let i = 0; i < 2; i++) {
+      s.v += (-s.k * (s.x - s.to) - 2 * s.z * Math.sqrt(s.k) * s.v) * dt / 2;
+      s.x += s.v * dt / 2;
+    }
+    if (Math.abs(s.x - s.to) < 0.05 && Math.abs(s.v) < 0.5) { s.x = s.to; s.v = 0; return false; }
+    return true;
+  }
+  function markFrame(time) {
+    const dt = markLast ? Math.min(0.034, (time - markLast) / 1000) : 0.016;
+    markLast = time;
+    let moving = false;
+    for (const edges of [marks.tab, marks.kanji, marks.entry]) for (const s of edges) if (!isNaN(s.x) && stepSpring(s, dt)) moving = true;
+    paintMarks();
+    if (moving) {
+      marking = requestAnimationFrame(markFrame);
+    } else {
+      marking = 0;
+      scheduleLater(); // resume background entry filling once the spring settles
+    }
+  }
+  // Where each tab and character is, read once a draw (offsets in their row).
+  let tabSpans = [], chipSpans = [];
+  // Cached mark nodes and resting target boxes so springs animate purely via GPU transform.
+  let inkNode = null, foldNode = null, liftNode = null;
+  let foldBox = [0, 0], liftBox = [0, 0];
+  // Persistent tab panes (kind -> { pane, later, firstJobsLeft, kanjiChars, kanjiIndex, chosen, scrollTop }).
+  let tabPanes = new Map();
+  let currentPane = null;
+  let laterTimer = 0;
+  function activeRoot() { return currentPane ? currentPane.pane : popup; }
+  // What the marks covered when last painted (a tab's kind, a character's place), for a redraw.
+  const inkedKinds = new Set(), foldedChips = new Set();
+  function setFoldTarget(from, to) {
+    if (!foldNode) return;
+    const width = Math.max(1, to - from);
+    foldBox = [from, width];
+    foldNode.style.left = from + "px";
+    foldNode.style.width = width + "px";
+  }
+  /** Measures the active pane's kanji rail and entry panel without touching the tab bar. */
+  function placePaneMarks(snap) {
+    const root = activeRoot();
+    const rail = root.querySelector(":scope > .kanji-rail");
+    foldNode = rail ? rail.querySelector(":scope > .kanji-tab") : null;
+    chipSpans = rail ? Array.from(rail.querySelectorAll(".kanji-chip")).map((c) => [c.offsetLeft, c.offsetLeft + c.offsetWidth, c]) : [];
+    const active = chipSpans.find((span) => span[2].classList.contains("active"));
+    if (active) {
+      setFoldTarget(active[0], active[1]);
+      aim(marks.kanji, active[0], active[1], snap);
+    }
+    popup.classList.toggle("first-char", !!active && active === chipSpans[0]);
+    aimEntry(snap);
+    paintMarks();
+  }
+  /** After a draw: the marks to the tab and the character shown, at once for a new lookup. */
+  function placeMarks(fresh) {
+    const row = popup.querySelector(":scope > .tabs");
+    inkNode = row ? row.querySelector(":scope > .tab-ink") : null;
+    tabSpans = row ? Array.from(row.querySelectorAll(".tab")).map((t) => [t.offsetLeft, t.offsetLeft + t.offsetWidth, t]) : [];
+    const on = tabSpans.find((span) => span[2].classList.contains("on"));
+    if (on) aim(marks.tab, on[0], on[1], fresh);
+    placePaneMarks(true);
+  }
+  /**
+   * The entry the d-pad is on lies on a raised panel (the maintainer, 2026-11-27: entries "B and C
+   * at the same time", "no edge line"): the panel slides and stretches to the next entry as the
+   * marks do, and the others step back. Its target box is set once per aim, and each frame animates
+   * transform only (GPU-composited; cleared when settled so corners stay crisp).
+   */
+  function aimEntry(snap) {
+    const root = activeRoot();
+    liftNode = root.querySelector(":scope > .entry-lift");
+    const section = chosen >= 0 ? root.querySelector(':scope > .entry[data-index="' + chosen + '"]') : null;
+    if (!liftNode || !section) return;
+    const first = root.querySelector(":scope > .entry") === section;
+    const top = section.offsetTop + (first ? -3 : 1);
+    const bottom = section.offsetTop + section.offsetHeight + 2;
+    const height = Math.max(1, bottom - top);
+    // Across: past the entry into the popup's padding by as much as it has, up to 10 px.
+    const style = getComputedStyle(popup);
+    const left = Math.min(10, (parseFloat(style.paddingLeft) || 0) - 1);
+    const right = Math.min(10, (parseFloat(style.paddingRight) || 0) - 1);
+    liftBox = [top, height];
+    liftNode.style.top = top + "px";
+    liftNode.style.height = height + "px";
+    liftNode.style.left = (section.offsetLeft - left) + "px";
+    liftNode.style.width = (section.offsetWidth + left + right) + "px";
+    aim(marks.entry, top, bottom, snap || isNaN(marks.entry[0].x));
+    paintEntry();
+  }
+  /** The tabs or characters moved under the marks (a font in, the L and R marks, a new width). */
+  function remeasureMarks() {
+    placeMarks(!marking);
+  }
+  /** The marks where their springs are; a word turns over once the mark covers most of it. */
+  function paintMarks() {
+    paintEntry();
+    if (inkNode && !isNaN(marks.tab[0].x)) {
+      const [a, b] = marks.tab;
+      inkNode.style.transform = "translate3d(" + a.x + "px,0,0) scaleX(" + Math.max(0, b.x - a.x) / 100 + ")";
+      inkedKinds.clear();
+      tabSpans.forEach(([left, right, node]) => {
+        const covered = (Math.min(b.x, right) - Math.max(a.x, left)) / (right - left) > 0.5;
+        if (node.classList.contains("inked") !== covered) node.classList.toggle("inked", covered);
+        if (covered) inkedKinds.add(node.dataset.kind);
+      });
+    }
+    if (foldNode && !isNaN(marks.kanji[0].x)) {
+      const [a, b] = marks.kanji;
+      if (a.x === a.to && b.x === b.to) {
+        if (foldNode.style.transform) foldNode.style.transform = "";
+      } else {
+        const scaleX = Math.max(0.01, b.x - a.x) / Math.max(1, foldBox[1]);
+        foldNode.style.transform = "translate3d(" + (a.x - foldBox[0]) + "px,0,0) scaleX(" + scaleX + ")";
+      }
+      foldedChips.clear();
+      chipSpans.forEach(([left, right, node], i) => {
+        const covered = (Math.min(b.x, right) - Math.max(a.x, left)) / (right - left) > 0.5;
+        if (node.classList.contains("folded") !== covered) node.classList.toggle("folded", covered);
+        if (covered) foldedChips.add(i);
+      });
+    }
+  }
+  function paintEntry() {
+    if (!liftNode || isNaN(marks.entry[0].x)) return;
+    const [a, b] = marks.entry;
+    if (a.x === a.to && b.x === b.to) {
+      if (liftNode.style.transform) liftNode.style.transform = "";
+      return;
+    }
+    const scaleY = Math.max(0.01, b.x - a.x) / Math.max(1, liftBox[1]);
+    liftNode.style.transform = "translate3d(0," + (a.x - liftBox[0]) + "px,0) scaleY(" + scaleY + ")";
+  }
+  /**
+   * An entry made longer or shorter ("more" opened or closed, a part of it unfolded): it grows to
+   * its new height on the same curve as the marks settle, the panel under it with it, and the host
+   * eases the popup's height (the maintainer, 2026-11-27: "as smooth as moving through entries").
+   * [change] makes the change; the entry's height is animated from what it was ([from], where the
+   * change was made already).
+   */
+  function grow(section, change, from) {
+    if (!section || still) { change(); reportSoon(); return; }
+    if (isAndroid) {
+      // On Android, skip the per-frame CSS height transition (which triggers full Blink relayout
+      // every frame on WebView); the GPU-composited entry panel and host clip-eased height still
+      // animate smoothly.
+      change();
+      easeUntil = performance.now() + 600;
+      aimEntry(false);
+      reportSoon();
+      return;
+    }
+    const before = from === undefined ? section.offsetHeight : from;
+    change();
+    const after = section.offsetHeight;
+    easeUntil = performance.now() + 600;
+    if (Math.abs(after - before) < 2) { reportSoon(); return; }
+    aimEntry(false); // the panel to where the entry will end
+    section.style.transition = "none";
+    section.style.height = before + "px";
+    section.style.overflow = "hidden";
+    void section.offsetHeight;
+    section.style.transition = "height 0.34s cubic-bezier(0.2, 0.9, 0.25, 1)";
+    section.style.height = after + "px";
+    const done = () => {
+      section.style.transition = section.style.height = section.style.overflow = "";
+      reportSoon();
+    };
+    section.addEventListener("transitionend", done, { once: true });
+    setTimeout(done, 450); // a page given no frames is not left at a fixed height
+    reportSoon();
+  }
+  // A "more" clicked or tapped grows its entry the same way: its height is noted before the
+  // link's own handler runs, and the growth begins before the frame that would show the change.
+  popup.addEventListener("click", (event) => {
+    const link = event.target.closest && event.target.closest(".more, .sense-more, .more-tags, .more-frequencies");
+    const section = link && link.closest(".entry");
+    if (!section || still) return;
+    if (isAndroid) {
+      easeUntil = performance.now() + 600;
+      requestAnimationFrame(() => { aimEntry(false); reportSoon(); });
+      return;
+    }
+    const before = section.offsetHeight;
+    // Before the next frame is painted, by when the link's handler (which stops the click there) has run.
+    requestAnimationFrame(() => {
+      const after = section.offsetHeight;
+      if (Math.abs(after - before) < 2) return;
+      grow(section, () => {}, before); // the link's handler made the change already
+    });
+  }, true);
+
+  /** Another tab's page rises a little into view (Furochibi's Turns.rise). */
+  function rise(nodes) {
+    if (still) return;
+    // Only animate the first few visible nodes so switching tabs never promotes dozens of
+    // offscreen entries to compositor layers.
+    let count = 0;
+    for (let i = 0; i < nodes.length && count < 3; i++) {
+      play(nodes[i], "rising");
+      count++;
+    }
+  }
+  /**
+   * Another character of the rail: its card shown over the one before (a crossfade with it
+   * settling from a touch further away, Furochibi's Turns.place), the rail's tab on its way to it.
+   * Nothing is drawn again, so the popup keeps its height and the text never goes blank.
+   */
+  function showKanji(index) {
+    kanjiIndex = index;
+    if (currentPane) currentPane.kanjiIndex = index;
+    const root = activeRoot();
+    root.querySelectorAll(":scope > .kanji-deck > .kanji-card").forEach((card) => {
+      const on = Number(card.dataset.char) === index;
+      if (on && !card.classList.contains("on") && !still) play(card, "settling");
+      card.classList.toggle("on", on);
+    });
+    chipSpans.forEach(([, , chip], i) => {
+      chip.classList.toggle("active", i === index);
+      chip.setAttribute("aria-pressed", i === index ? "true" : "false");
+    });
+    const count = root.querySelector(":scope > .kanji-rail .kanji-rail-count");
+    if (count) count.textContent = (index + 1) + " / " + chipSpans.length;
+    const chip = chipSpans[index];
+    if (chip) {
+      setFoldTarget(chip[0], chip[1]);
+      aim(marks.kanji, chip[0], chip[1], false);
+    }
+    popup.classList.toggle("first-char", index === 0);
+    if (model.choose) {
+      const first = shownEntries()[0];
+      if (first) chooseEntry(Number(first.dataset.index), false);
+    }
+  }
+  /** The entries that can be seen: not those of a hidden tab or a kanji card that is not shown. */
+  function shownEntries() {
+    return Array.from(activeRoot().querySelectorAll(".entry")).filter((node) => !node.closest(".kanji-card:not(.on)"));
+  }
+
   /** The row of tabs, with the controller's L and R at its ends (shown only with a controller). */
   function tabRow() {
-    const row = element("div", "tabs");
+    const row = element("div", "tabs inked");
     row.setAttribute("role", "tablist");
+    row.appendChild(element("i", "tab-ink"));
     row.appendChild(keyMark(keyOf("left") || "L", "left"));
     const labels = model.labels || {};
     tabs.forEach((one) => {
-      const node = element("span", "tab" + (one.kind === tab ? " on" : ""));
+      // Turned over as before a redraw, so that a word does not fade in again each time.
+      const node = element("span", "tab" + (one.kind === tab ? " on" : "") + (inkedKinds.has(one.kind) ? " inked" : ""));
+      node.dataset.kind = one.kind;
       node.dataset.kind = one.kind;
       node.setAttribute("role", "tab");
       node.appendChild(element("span", "tab-name", labels[one.kind + "s"] || (one.kind === "name" ? null : labels[one.kind]) || KIND_LABELS[one.kind]));
-      node.appendChild(element("span", "tab-count", String(one.count)));
+      node.appendChild(element("span", "tab-count", one.kind === "kanji" && one.characters
+        ? one.dictionaries + " (" + one.characters + ")" : String(one.count)));
       node.addEventListener("click", (event) => {
         event.stopPropagation();
         choose(one.kind);
@@ -380,11 +703,50 @@
     return row;
   }
 
-  /** Shows another kind's tab: [kind], or a step along the row (Reader.tab). */
+  /** Shows another kind's tab: [kind], or a step along the row (Reader.tab). Keeps built panes cached. */
   function choose(kind) {
     if (asking >= 0 || design || kind === tab || !tabs.some((one) => one.kind === kind)) return;
+    if (currentPane) {
+      currentPane.scrollTop = popup.scrollTop;
+      currentPane.chosen = chosen;
+      currentPane.kanjiIndex = kanjiIndex;
+      currentPane.pane.classList.add("hidden");
+    }
+    clippedParts.forEach((part) => { if (part.style.clipPath) part.style.clipPath = ""; });
+    clippedParts.clear();
     tab = kind;
-    draw(false);
+    popup.dataset.tab = kind;
+    // Update the persistent tab row and immediately start the tab-ink spring.
+    tabSpans.forEach(([left, right, node]) => {
+      const on = node.dataset.kind === kind;
+      node.classList.toggle("on", on);
+      if (on) aim(marks.tab, left, right, false);
+    });
+    let state = tabPanes.get(kind);
+    const cached = !!state;
+    if (state) {
+      state.pane.classList.remove("hidden");
+      kanjiIndex = state.kanjiIndex;
+      chosen = state.chosen;
+      popup.scrollTop = state.scrollTop;
+    } else {
+      state = buildPane(kind, true);
+      kanjiIndex = state.kanjiIndex;
+      chosen = state.chosen;
+      popup.scrollTop = 0;
+    }
+    currentPane = state;
+    follow = -1;
+    restTop = popup.scrollTop;
+    stepping = false;
+    popup.classList.toggle("folder", state.kanjiChars.length > 1 && !model.message);
+    easeUntil = performance.now() + 600; // set BEFORE report() so the host eases height smoothly
+    clampSenses();
+    pin();
+    placePaneMarks(true);
+    rise([state.pane]);
+    report(true);
+    scheduleLater();
     post({ type: "tab", kind: kind });
   }
 
@@ -1104,6 +1466,7 @@
     });
     if (most && count > most) {
       const more = element("div", "link more", "+" + (count - most) + " " + ((model.labels && model.labels.more) || "more"));
+      if (keyOf("more")) more.appendChild(keyMark(keyOf("more")));
       more.addEventListener("click", (event) => {
         event.stopPropagation();
         more.closest(".entry").classList.add("all");
@@ -1176,31 +1539,166 @@
    * color-mix (the AYN Thor's is 109), where base.css falls back on it: the opacity was not kept
    * there before, and the popup was solid whatever was set (the maintainer, 2026-11-27).
    */
-  function seeThroughGround(root) {
-    const opacity = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity")) || 1;
-    const ground = getComputedStyle(popup).getPropertyValue("--ground").trim() || getComputedStyle(document.documentElement).getPropertyValue("--ground").trim();
-    let rgb = null;
-    let hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(ground);
+  let styleEpoch = 0, groundCacheKey = "";
+  function parseRgb(color) {
+    if (!color) return null;
+    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(color);
     if (hex) {
       let digits = hex[1];
       if (digits.length === 3) digits = digits.split("").map((one) => one + one).join("");
-      rgb = [0, 2, 4].map((at) => parseInt(digits.substr(at, 2), 16));
-    } else {
-      const found = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i.exec(ground);
-      if (found) rgb = [found[1], found[2], found[3]].map(Number);
+      return [0, 2, 4].map((at) => parseInt(digits.substr(at, 2), 16));
     }
-    if (rgb) root.setProperty("--ground-see", `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, Math.max(0, opacity))})`);
+    const found = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i.exec(color);
+    return found ? [found[1], found[2], found[3]].map(Number) : null;
+  }
+  function seeThroughGround(root, opacityVal) {
+    if (supportsColorMix) return;
+    const key = styleEpoch + ":" + (opacityVal || "");
+    if (key === groundCacheKey) return;
+    groundCacheKey = key;
+    const opacity = opacityVal ? Number(opacityVal) : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity")) || 1);
+    const alpha = Math.min(1, Math.max(0, opacity));
+    const popStyle = getComputedStyle(popup);
+    const rootStyle = getComputedStyle(document.documentElement);
+    const ground = popStyle.getPropertyValue("--ground").trim() || rootStyle.getPropertyValue("--ground").trim();
+    const rgb = parseRgb(ground);
+    if (rgb) root.setProperty("--ground-see", `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`);
     else root.removeProperty("--ground-see");
+    const raised = popStyle.getPropertyValue("--raised").trim() || rootStyle.getPropertyValue("--raised").trim();
+    const foldRgb = parseRgb(raised);
+    if (foldRgb) root.setProperty("--fold-see", `rgba(${foldRgb[0]}, ${foldRgb[1]}, ${foldRgb[2]}, ${alpha})`);
+    else root.removeProperty("--fold-see");
   }
 
   /** Draws the model; [fresh] for a new one (Reader.show), else another tab of the same. */
   /** Entries drawn at once, and of them the laid-out senses; the rest are filled in after (draw). */
   const EAGER = 1;
+  const EAGER_HEADS = 3;
   const EAGER_SENSES = 4;
   let drawn = 0;
 
+  function scheduleLater() {
+    if (!currentPane || !currentPane.later.length || laterTimer) return;
+    // Let active spring animations (tab ink, kanji tab, entry lift) finish at 60fps before
+    // running background DOM construction for offscreen entries.
+    if (marking && !still) return;
+    const drawing = drawn;
+    const paneState = currentPane;
+    laterTimer = setTimeout(() => {
+      laterTimer = 0;
+      if (drawing !== drawn || paneState !== currentPane || !paneState.later.length) return;
+      if (marking && !still) return;
+      const until = performance.now() + 6;
+      let ranFirst = false;
+      do {
+        paneState.later.shift()();
+        if (paneState.firstJobsLeft > 0) {
+          paneState.firstJobsLeft--;
+          if (paneState.firstJobsLeft === 0) ranFirst = true;
+        }
+      } while (paneState.later.length && performance.now() < until);
+      if (!paneState.later.length || ranFirst) reportSoon();
+      if (paneState.later.length) scheduleLater();
+    }, 0);
+  }
+
+  /** Builds and caches one tab's pane (<div class="tab-pane">) with only the first entry eager. */
+  function buildPane(paneKind, tabbed) {
+    const pane = element("div", "tab-pane");
+    pane.dataset.kind = paneKind || "";
+    if (model.choose) pane.appendChild(element("i", "entry-lift"));
+    const kanjiChars = (paneKind === "kanji" || (!tabbed && tabs.length === 1 && tabs[0].kind === "kanji"))
+      ? kanjiCharsOf(model.entries || [])
+      : [];
+    const activeCharIndex = 0;
+    const activeKanji = kanjiChars.length > 1 ? kanjiChars[activeCharIndex] : "";
+    if (kanjiChars.length > 1 && !model.message) {
+      const savedIndex = kanjiIndex;
+      kanjiIndex = activeCharIndex;
+      pane.appendChild(kanjiRail(kanjiChars));
+      kanjiIndex = savedIndex;
+    }
+    const deck = activeKanji ? pane.appendChild(element("div", "kanji-deck")) : null;
+    const cards = {};
+    if (deck) kanjiChars.forEach((ch, i) => {
+      cards[ch] = deck.appendChild(element("div", "kanji-card" + (i === activeCharIndex ? " on" : "")));
+      cards[ch].dataset.char = String(i);
+    });
+    let eager = 0, heads = 0, firstJobsLeft = 0;
+    const later = [];
+    (model.entries || []).forEach((entry, index) => {
+      if (!wanted(entry)) return;
+      const kinds = kindsOf(entry);
+      if (tabbed && kinds.indexOf(paneKind) < 0) return;
+      const entryKanji = deck ? kanjiCharOf(entry) : "";
+      if (deck && !cards[entryKanji]) return;
+      const kind = tabbed ? paneKind : "";
+      const section = element("section", "entry");
+      section.dataset.index = String(index);
+      section.dataset.state = entry.state || "add";
+      section.dataset.kind = kind || kinds[0];
+      section.classList.toggle("unknown", !!entry.unknown);
+      const asCharacter = (kind || kinds[0]) === "kanji";
+      // Read the latest entry object (so Reader.fill updates are seen by deferred jobs).
+      const current = () => (model.entries || [])[index] || entry;
+      const head = () => {
+        const cur = current();
+        if (!asCharacter) section.insertBefore(headline(cur), section.firstChild);
+        if (!cur.kanji) placeButtons(section, buttons(cur, index));
+      };
+      const isVisibleCard = !deck || entryKanji === activeKanji;
+      const headNow = isVisibleCard && heads < EAGER_HEADS;
+      if (headNow) { head(); ++heads; }
+      const fill = () => {
+        const cur = current();
+        const before = section.querySelector(":scope > .card-buttons");
+        const put = (node) => section.insertBefore(node, before);
+        if (cur.card && (model.look || {}).cards !== false && (!kind || kind === "name")) {
+          [cur.card].concat(cur.card.others || []).forEach((card) => put(nameCard(card)));
+        }
+        if (asCharacter) put(character(cur, kind));
+        else put(senses(cur, kind, (job) => later.push(job)));
+        if (cur.forms && cur.forms.length && (!kind || kind === "word")) put(forms(cur));
+        if (cur.history) {
+          const lookups = element("div", "lookups", cur.history);
+          lookups.title = cur.history;
+          put(lookups);
+        }
+      };
+      if (!headNow) {
+        section.classList.add("filling");
+        later.push(head);
+      }
+      if (isVisibleCard && eager < EAGER) {
+        fill();
+        ++eager;
+        if (eager === 1) firstJobsLeft = later.length;
+      } else {
+        section.classList.add("filling");
+        later.push(() => { fill(); section.classList.remove("filling"); });
+      }
+      (deck ? cards[entryKanji] : pane).appendChild(section);
+    });
+    popup.appendChild(pane);
+    let paneChosen = -1;
+    if (model.choose) {
+      const first = Array.from(pane.querySelectorAll(".entry")).find((node) => !node.closest(".kanji-card:not(.on)"));
+      if (first) {
+        paneChosen = Number(first.dataset.index);
+        first.classList.add("chosen");
+      }
+    }
+    const state = { pane, later, firstJobsLeft, kanjiChars, kanjiIndex: activeCharIndex, chosen: paneChosen, scrollTop: 0 };
+    tabPanes.set(tabbed ? paneKind : "", state);
+    return state;
+  }
+
   function draw(fresh) {
     if (fresh) allFrequencies = false;
+    if (laterTimer) { clearTimeout(laterTimer); laterTimer = 0; }
+    clippedParts.clear();
+    tabPanes.clear();
+    currentPane = null;
     popup.textContent = "";
     popup.dataset.corner = model.corner || "top_right";
     popup.dataset.console = model.console || "";
@@ -1212,10 +1710,11 @@
     // ground is, how round the corners, and what is left out.
     const look = model.look || {};
     const share = (value, low, high) => Math.min(high, Math.max(low, Number(value)));
-    if (look.opacity > 0) root.setProperty("--opacity", String(share(look.opacity, 20, 100) / 100));
+    const opacityStr = look.opacity > 0 ? String(share(look.opacity, 20, 100) / 100) : "";
+    if (opacityStr) root.setProperty("--opacity", opacityStr);
     else root.removeProperty("--opacity");
     popup.classList.toggle("translucent", look.opacity > 0 && look.opacity < 100);
-    seeThroughGround(root);
+    seeThroughGround(root, opacityStr);
     if (look.radius >= 0 && look.radius !== null && look.radius !== undefined && look.radius !== "") root.setProperty("--radius", share(look.radius, 0, 28) + "px");
     else root.removeProperty("--radius");
     if (look.accent && /^#[0-9a-fA-F]{6}$/.test(look.accent)) root.setProperty("--accent", look.accent);
@@ -1244,89 +1743,38 @@
     popup.classList.toggle("tabbed", tabbed);
     popup.dataset.tab = tab;
     if (tabbed && !model.message) popup.appendChild(tabRow());
-    const kanjiChars = (tab === "kanji" || (!tabbed && tabs.length === 1 && tabs[0].kind === "kanji"))
-      ? kanjiCharsOf(model.entries || [])
-      : [];
-    if (kanjiChars.length > 0 && kanjiIndex >= kanjiChars.length) kanjiIndex = 0;
-    const activeKanji = kanjiChars.length > 1 ? kanjiChars[kanjiIndex] : "";
-    if (kanjiChars.length > 1 && !model.message) popup.appendChild(kanjiRail(kanjiChars));
-    // The first entries are drawn at once; the others' definitions a moment later, one entry at
-    // a time, so that a hover with many dictionaries shows its best match without waiting for
-    // the rest (a long headword list of big dictionaries took tens of milliseconds).
-    const drawing = ++drawn;
-    let eager = 0;
-    const later = [];
-    (model.entries || []).forEach((entry, index) => {
-      const kinds = kindsOf(entry);
-      if (tabbed && kinds.indexOf(tab) < 0) return;
-      if (activeKanji && kanjiCharOf(entry) !== activeKanji) return;
-      const kind = tabbed ? tab : "";
-      const section = element("section", "entry");
-      section.dataset.index = String(index);
-      section.dataset.state = entry.state || "add";
-      section.dataset.kind = kind || kinds[0];
-      section.classList.toggle("unknown", !!entry.unknown);
-      const asCharacter = (kind || kinds[0]) === "kanji";
-      if (!asCharacter) section.appendChild(headline(entry));
-      const fill = () => {
-        const before = section.querySelector(":scope > .card-buttons");
-        const put = (node) => section.insertBefore(node, before);
-        // look.cards false: an app that shows who a name is in a place of its own (Furochibi's pane).
-        if (entry.card && (model.look || {}).cards !== false && (!kind || kind === "name")) {
-          // Two people who share the name (a family name): a card each, the dictionary's first first.
-          [entry.card].concat(entry.card.others || []).forEach((card) => put(nameCard(card)));
-        }
-        if (asCharacter) put(character(entry, kind));
-        else put(senses(entry, kind, (job) => later.push(job)));
-        if (entry.forms && entry.forms.length && (!kind || kind === "word")) put(forms(entry));
-        // How often it was looked up: one line under the definition, never above it.
-        if (entry.history) {
-          const lookups = element("div", "lookups", entry.history);
-          lookups.title = entry.history;
-          put(lookups);
-        }
-      };
-      // A kanji bank's character is not a word of the line: no card of it.
-      if (!entry.kanji) placeButtons(section, buttons(entry, index));
-      if (eager < EAGER) {
-        fill();
-        ++eager;
-      } else {
-        section.classList.add("filling");
-        later.push(() => { fill(); section.classList.remove("filling"); });
-      }
-      popup.appendChild(section);
-    });
-    // A few milliseconds of it at a time, so that a pointer moving on is never kept waiting.
-    const next = () => {
-      if (drawing !== drawn || !later.length) return;
-      const until = performance.now() + 8;
-      do later.shift()(); while (later.length && performance.now() < until);
-      reportSoon();
-      if (later.length) setTimeout(next, 0);
-    };
-    if (later.length) setTimeout(next, 0);
-    popup.scrollTop = 0;
-    // A controller's d-pad starts on the first entry of the tab.
+    ++drawn;
     popup.classList.toggle("choosing", !!model.choose);
-    chosen = -1;
+    const state = buildPane(tab, tabbed);
+    currentPane = state;
+    kanjiIndex = state.kanjiIndex;
+    chosen = state.chosen;
+    popup.classList.toggle("folder", state.kanjiChars.length > 1 && !model.message);
+    popup.scrollTop = 0;
     follow = -1;
     restTop = 0;
     stepping = false;
-    if (model.choose) {
-      const first = popup.querySelector(".entry");
-      if (first) chooseEntry(Number(first.dataset.index), false);
-    }
-    report();
+    clampSenses();
+    pin();
+    const marksFrom = performance.now();
+    placeMarks(fresh);
+    spent.marks = performance.now() - marksFrom;
+    report(true);
+    scheduleLater();
     if (design) mark(picked);
   }
 
   /** How tall the popup is, where its buttons are and what it says, for the app. */
-  function report() {
-    clampSenses();
-    pin();
+  const spent = { marks: 0, report: 0 };
+  function report(alreadyPrepared) {
+    const reportFrom = performance.now();
+    if (!alreadyPrepared) {
+      clampSenses();
+      pin();
+      if (chosen >= 0) aimEntry(!marking); // an entry filled in later, or a sense opened, moved it
+    }
     const boxes = [];
-    popup.querySelectorAll(".card").forEach((node) => {
+    activeRoot().querySelectorAll(".card").forEach((node) => {
       const r = node.getBoundingClientRect();
       boxes.push({ index: Number(node.dataset.index), kind: node.dataset.kind, x: r.left, y: r.top, w: r.width, h: r.height });
     });
@@ -1337,19 +1785,30 @@
     const frame = popup.offsetHeight - popup.clientHeight;
     const style = getComputedStyle(popup);
     const under = parseFloat(style.paddingBottom) || 0;
-    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const entries = shownEntries();
     const hand = chosen >= 0 ? chosen : follow;
     const section = entries.find((node) => Number(node.dataset.index) === hand) || entries[0];
     let fit = content, need = 0;
     if (section) {
       const box = popup.getBoundingClientRect();
       const place = section.getBoundingClientRect();
-      const top = section === entries[0] ? 0 : place.top - box.top + popup.scrollTop - (parseFloat(style.paddingTop) || 0);
-      fit = Math.ceil(place.bottom - box.top + popup.scrollTop - top + under + frame);
+      const card = section.closest(".kanji-card.on");
+      const deck = card ? card.closest(".kanji-deck") : null;
+      if (card && deck) {
+        const cardPlace = card.getBoundingClientRect();
+        const deckPad = parseFloat(getComputedStyle(deck).paddingBottom) || 0;
+        fit = Math.ceil(cardPlace.bottom - box.top + popup.scrollTop + deckPad + under + frame);
+      } else {
+        const row = popup.querySelector(".tabs");
+        const stickyTab = (row && getComputedStyle(row).position === "sticky") ? row.offsetHeight : 0;
+        const top = section === entries[0] ? 0 : place.top - box.top + popup.scrollTop - stickyTab - (parseFloat(style.paddingTop) || 0);
+        fit = Math.ceil(place.bottom - box.top + popup.scrollTop - top + under + frame);
+      }
       const first = section.querySelector(".sense, .name-card, .kanji, .forms");
       if (first) {
         const line = parseFloat(getComputedStyle(first).lineHeight) || 20;
-        const start = first.getBoundingClientRect().top - box.top + popup.scrollTop - top;
+        const startTop = section === entries[0] ? 0 : place.top - box.top + popup.scrollTop - (parseFloat(style.paddingTop) || 0);
+        const start = first.getBoundingClientRect().top - box.top + popup.scrollTop - startTop;
         need = Math.ceil(Math.min(fit, start + Math.min(first.getBoundingClientRect().height, line * 2) + under + frame));
       }
     } else if (popup.firstElementChild) {
@@ -1357,9 +1816,11 @@
     }
     // The corners and the height as drawn, for what an app draws behind the page (Android's blurred game).
     post({ type: "size", width: popup.offsetWidth, height: content, fit: fit, need: need, entries: entries.length, tabs: tabs.length,
+           rail: !!activeRoot().querySelector(":scope > .kanji-rail"),
            scrolled: popup.scrollTop, boxes: boxes, ease: performance.now() < easeUntil,
            radius: parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 0,
            box: popup.getBoundingClientRect().height });
+    spent.report = performance.now() - reportFrom;
   }
 
   let pending = false;
@@ -1371,7 +1832,7 @@
    */
   function clampSenses() {
     if (popup.dataset.glossary !== "compact") return;
-    popup.querySelectorAll(".sense.laid-out:not(.open):not(.clipped):not(.uncut)").forEach((item) => {
+    activeRoot().querySelectorAll(".sense.laid-out:not(.open):not(.clipped):not(.uncut)").forEach((item) => {
       // Yomitan-style gloss lists (JMdict, Jitendex) are already a line a sense in compact: such a
       // dictionary's several senses in one block are not cut.
       if (item.querySelector('[data-sc-content="glossary"]')) {
@@ -1381,6 +1842,7 @@
       if (item.scrollHeight <= item.clientHeight + 4) return;
       item.classList.add("clipped");
       const more = element("div", "link more sense-more", (model.labels && model.labels.more) || "more");
+      if (keyOf("more")) more.appendChild(keyMark(keyOf("more")));
       more.addEventListener("click", (event) => {
         event.stopPropagation();
         item.classList.remove("clipped");
@@ -1398,7 +1860,16 @@
     requestAnimationFrame(() => { pending = false; report(); });
   }
 
-  popup.addEventListener("scroll", reportSoon);
+  let scrollReportTimer = 0;
+  if (isAndroid) {
+    // On Android, don't flood the JS bridge with size reports on every scroll frame.
+    popup.addEventListener("scroll", () => {
+      clearTimeout(scrollReportTimer);
+      scrollReportTimer = setTimeout(reportSoon, 120);
+    }, { passive: true });
+  } else {
+    popup.addEventListener("scroll", reportSoon);
+  }
 
   /**
    * The height follows the entry as the popup is scrolled (look.fit, the "fit height to entry"
@@ -1415,14 +1886,16 @@
     settling = setTimeout(settled, 180);
   }
   function settled() {
-    if (touching || stepping || chosen >= 0 || asking >= 0 || !(model.look || {}).fit) return;
-    const entries = Array.from(popup.querySelectorAll(".entry"));
+    if (touching || stepping || asking >= 0 || !(model.look || {}).fit) return;
+    if (!isAndroid && chosen >= 0) return;
+    const entries = Array.from(activeRoot().querySelectorAll(".entry"));
     const moved = popup.scrollTop - restTop;
     if (entries.length < 2 || Math.abs(moved) < 12) return;
     const box = popup.getBoundingClientRect();
     const padTop = parseFloat(getComputedStyle(popup).paddingTop) || 0;
     const viewTop = box.top + padTop, viewBottom = box.bottom;
-    const at = Math.max(0, entries.findIndex((node) => Number(node.dataset.index) === follow));
+    const hand = chosen >= 0 ? chosen : follow;
+    const at = Math.max(0, entries.findIndex((node) => Number(node.dataset.index) === hand));
     const current = entries[at].getBoundingClientRect();
     let target = at;
     // In a tall entry this scroll began in, the gesture that brings its end (or start) into view
@@ -1457,12 +1930,13 @@
   }
   /** The scroll glides to entry [target]'s top (of the tab's entries), and the height follows it. */
   function glideTo(target) {
-    const entries = Array.from(popup.querySelectorAll(".entry"));
+    const entries = Array.from(activeRoot().querySelectorAll(".entry"));
     const section = entries[target];
     if (!section) return;
     const box = popup.getBoundingClientRect();
     const padTop = parseFloat(getComputedStyle(popup).paddingTop) || 0;
     follow = Number(section.dataset.index);
+    if (isAndroid && chosen >= 0) chooseEntry(follow, false);
     const top = target === 0 ? 0 : section.getBoundingClientRect().top - box.top + popup.scrollTop - padTop;
     easeUntil = performance.now() + 600;
     stepping = true;
@@ -1487,32 +1961,65 @@
    * of the entry has gone under it is cut away here, part by part, so that it is not seen
    * through the headline on a popup that is not solid.
    */
+  // Track currently clipped parts so pin() only visits entries near the top of the viewport.
+  const clippedParts = new Set();
+  let pinFrame = 0;
   function pin() {
     const row = popup.querySelector(".tabs");
     const above = row && getComputedStyle(row).position === "sticky" ? row.offsetHeight : 0;
-    popup.style.setProperty("--pin", above + "px");
-    popup.querySelectorAll(".entry").forEach((section) => {
+    if (popup.style.getPropertyValue("--pin") !== above + "px") popup.style.setProperty("--pin", above + "px");
+    if (popup.scrollTop < 1 && clippedParts.size === 0) return;
+    // Every place read first, then every cut written: a write between reads made the page lay
+    // itself out again for each part of each entry (the Thor took tens of ms a lookup).
+    const cuts = [];
+    const nextClipped = new Set();
+    const viewTop = popup.getBoundingClientRect().top;
+    const entries = activeRoot().querySelectorAll(".entry");
+    for (let i = 0; i < entries.length; i++) {
+      const section = entries[i];
+      const sectionRect = section.getBoundingClientRect();
+      if (sectionRect.top >= viewTop + above + 1) break;
+      if (sectionRect.bottom <= viewTop) continue;
       const head = section.querySelector(":scope > .head");
-      if (!head) return;
+      if (!head) continue;
       const edge = head.getBoundingClientRect().bottom;
-      Array.from(section.children).forEach((part) => {
-        if (part === head) return;
+      const children = section.children;
+      for (let j = 0; j < children.length; j++) {
+        const part = children[j];
+        if (part === head) continue;
         // The card buttons set above the headline (a top corner) never pass under it.
-        if (part.classList.contains("card-buttons") && getComputedStyle(part).order === "-1") return;
+        if (part.classList.contains("card-buttons") && getComputedStyle(part).order === "-1") continue;
         const place = part.getBoundingClientRect();
         const under = Math.min(place.height, edge - place.top);
-        const cut = under > 0.5 ? "inset(" + under.toFixed(1) + "px -999px -999px -999px)" : "";
-        if (part.style.clipPath !== cut) part.style.clipPath = cut;
-      });
+        if (under > 0.5) {
+          cuts.push([part, "inset(" + under.toFixed(1) + "px -999px -999px -999px)"]);
+          nextClipped.add(part);
+        }
+      }
+    }
+    clippedParts.forEach((part) => {
+      if (!nextClipped.has(part)) {
+        if (part.style.clipPath) part.style.clipPath = "";
+        clippedParts.delete(part);
+      }
+    });
+    cuts.forEach(([part, cut]) => {
+      if (part.style.clipPath !== cut) part.style.clipPath = cut;
+      clippedParts.add(part);
     });
   }
-  popup.addEventListener("scroll", pin);
+  function pinSoon() {
+    if (pinFrame) return;
+    pinFrame = requestAnimationFrame(() => { pinFrame = 0; pin(); });
+  }
+  popup.addEventListener("scroll", pinSoon, { passive: true });
   /** How much of the popup's height the pinned headline of entry [section] takes. */
   function pinned(section) {
     const head = section && section.querySelector(":scope > .head");
     return head ? head.offsetHeight + (parseFloat(popup.style.getPropertyValue("--pin")) || 0) : 0;
   }
-  window.addEventListener("resize", reportSoon);
+  window.addEventListener("resize", () => { remeasureMarks(); reportSoon(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureMarks);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(reportSoon);
   // Clicks between the buttons answer nothing, and never reach the game.
   document.addEventListener("mousedown", (event) => { if (!event.target.closest(".card, .link, .tab")) event.preventDefault(); });
@@ -1535,7 +2042,7 @@
     return node;
   }
   function drawAsk(playing) {
-    const section = popup.querySelector('.entry[data-index="' + asking + '"]');
+    const section = activeRoot().querySelector('.entry[data-index="' + asking + '"]');
     if (!section) return;
     const labels = model.labels || {};
     const box = element("div", "card-buttons ask");
@@ -1716,7 +2223,7 @@
       const index = asking;
       asking = -1;
       const entry = (model.entries || [])[index];
-      const section = popup.querySelector('.entry[data-index="' + index + '"]');
+      const section = activeRoot().querySelector('.entry[data-index="' + index + '"]');
       if (entry && section) swapButtons(section, buttons(entry, index));
       reportSoon();
     },
@@ -1729,7 +2236,14 @@
       if (model.pictures && typeof model.pictures === "object") {
         Object.keys(model.pictures).forEach((key) => pictureStore.set(key, model.pictures[key]));
       }
+      const began = performance.now();
       draw(true);
+      // How long the page took, for the app's log (the maintainer, 2026-11-28: the popup slow on
+      // the Thor); the first frame after it says when it was on the screen.
+      const drawn = performance.now();
+      requestAnimationFrame(() => post({ type: "timing", draw: Math.round(drawn - began),
+        marks: Math.round(spent.marks), report: Math.round(spent.report),
+        shown: Math.round(performance.now() - began), entries: (model.entries || []).length }));
     },
     /**
      * The same words with more of their definitions (Android reads the first headwords' before
@@ -1756,10 +2270,31 @@
       const wasFollowed = follow, wasRest = restTop;
       model.entries = merged;
       const found = tabsOf(model.entries);
+      const sameTabs = tabs.length === found.tabs.length && tabs.every((t, i) =>
+        t.kind === found.tabs[i].kind && t.count === found.tabs[i].count &&
+        t.dictionaries === found.tabs[i].dictionaries && t.characters === found.tabs[i].characters);
+      // If the tab bar is unchanged and every already-rendered (non-filling) entry in the active
+      // pane already had its senses, keep the DOM in place: deferred jobs read model.entries live.
+      if (sameTabs && currentPane) {
+        const alreadyDrawnChanged = Array.from(currentPane.pane.querySelectorAll(".entry:not(.filling)")).some((node) => {
+          const idx = Number(node.dataset.index);
+          const oldSenses = (previous[idx] && previous[idx].senses) || [];
+          const newSenses = (merged[idx] && merged[idx].senses) || [];
+          return oldSenses.length !== newSenses.length;
+        });
+        if (!alreadyDrawnChanged) {
+          // Drop other cached panes so they build with the filled-in definitions on next visit.
+          Array.from(tabPanes.entries()).forEach(([k, st]) => {
+            if (st !== currentPane) { st.pane.remove(); tabPanes.delete(k); }
+          });
+          scheduleLater();
+          return;
+        }
+      }
       tabs = found.tabs;
       if (!tabs.some((one) => one.kind === tab)) tab = found.first;
       draw(false);
-      if (model.choose && wasChosen >= 0 && popup.querySelector('.entry[data-index="' + wasChosen + '"]')) {
+      if (model.choose && wasChosen >= 0 && activeRoot().querySelector('.entry[data-index="' + wasChosen + '"]')) {
         chooseEntry(wasChosen, false);
       }
       if (asking >= 0) drawAsk(false);
@@ -1778,9 +2313,10 @@
     kanjiStep(step) {
       stepKanji(step);
     },
-    /** Expands or collapses "more" and <details> sections inside the chosen entry (A button on a controller). */
+    /** Expands or collapses "more" and <details> sections inside the chosen entry (east on a controller). */
     toggleMore() {
-      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      // The chosen entry, else the first one this tab shows (the others' entries are hidden).
+      const section = activeRoot().querySelector('.entry[data-index="' + chosen + '"]') || shownEntries()[0];
       if (!section) return;
       const more = Array.from(section.querySelectorAll(".more, .sense-more, .more-tags, .more-frequencies"))
         .find((el) => el.offsetParent !== null);
@@ -1792,22 +2328,19 @@
       }
       const closed = section.querySelector("details:not([open])");
       if (closed) {
-        closed.open = true;
+        grow(section, () => { closed.open = true; });
         post({ type: "feedback", kind: "step" });
-        reportSoon();
         return;
       }
       const opened = Array.from(section.querySelectorAll("details[open]"));
       if (opened.length) {
-        opened[opened.length - 1].open = false;
+        grow(section, () => { opened[opened.length - 1].open = false; });
         post({ type: "feedback", kind: "step" });
-        reportSoon();
         return;
       }
       if (section.classList.contains("all")) {
-        section.classList.remove("all");
+        grow(section, () => section.classList.remove("all"));
         post({ type: "feedback", kind: "step" });
-        reportSoon();
       }
     },
     /**
@@ -1816,13 +2349,20 @@
      * on to what is left of it.
      */
     entry(step) {
-      const all = Array.from(popup.querySelectorAll(".entry")).map((node) => Number(node.dataset.index));
+      if (isAndroid && !model.choose) {
+        model.choose = true;
+        popup.classList.add("choosing");
+        tabPanes.forEach((st) => {
+          if (!st.pane.querySelector(":scope > .entry-lift")) st.pane.insertBefore(element("i", "entry-lift"), st.pane.firstChild);
+        });
+      }
+      const all = shownEntries().map((node) => Number(node.dataset.index));
       if (!all.length) return;
       const at = all.indexOf(chosen);
       const next = at < 0 ? 0 : at + (step < 0 ? -1 : 1);
       if (next < 0 || next >= all.length) {
         // A page on, less what the pinned headline covers and a line that was already read.
-        const section = popup.querySelector('.entry[data-index="' + chosen + '"]');
+        const section = activeRoot().querySelector('.entry[data-index="' + chosen + '"]');
         const page = Math.max(40, popup.clientHeight - pinned(section) - 20);
         popup.scrollTop += step < 0 ? -page : page;
         if (next < 0) popup.scrollTop = 0;
@@ -1836,7 +2376,8 @@
     /** The chosen entry's card ([audio]: with the line's audio), as its own button makes it. */
     addChosen(audio) {
       if (asking >= 0) return;
-      const section = popup.querySelector('.entry[data-index="' + chosen + '"]') || popup.querySelector(".entry");
+      const root = activeRoot();
+      const section = root.querySelector('.entry[data-index="' + chosen + '"]') || root.querySelector(".entry");
       const button = section && section.querySelector(".card." + (audio ? "addAudio" : "add"));
       if (button) button.click();
     },
@@ -1844,6 +2385,20 @@
     setPad(on, keys) {
       pad = !!on;
       popup.classList.toggle("pad", pad);
+      if (isAndroid && pad && !model.choose) {
+        model.choose = true;
+        popup.classList.add("choosing");
+        tabPanes.forEach((st) => {
+          if (!st.pane.querySelector(":scope > .entry-lift")) st.pane.insertBefore(element("i", "entry-lift"), st.pane.firstChild);
+        });
+        if (chosen < 0) {
+          const first = shownEntries()[0];
+          if (first) {
+            chosen = Number(first.dataset.index);
+            first.classList.add("chosen");
+          }
+        }
+      }
       // The controller's own letters for the marks (model.keys), known once it was used.
       if (keys) {
         model.keys = keys;
@@ -1853,6 +2408,7 @@
         if (left) left.textContent = keyOf("left") || "L";
         if (right) right.textContent = keyOf("right") || "R";
       }
+      remeasureMarks(); // the L and R marks came or went, and the tabs moved with them
     },
     /** A dictionary's stylesheet as the page applies it under [scope] (for the tests). */
     scopedCss(css, scope) {
@@ -1872,26 +2428,71 @@
       } else if (state !== "inDeck" && state !== "working") {
         entry.addedKind = "";
       }
-      const section = popup.querySelector('.entry[data-index="' + index + '"]');
-      if (!section) return;
-      section.dataset.state = state;
-      swapButtons(section, buttons(entry, index));
-      // The card was just made: the book lands where the plus was.
-      if (state === "inDeck" && was === "working") {
-        play(section.querySelector(".card.book"), "landing");
-        post({ type: "feedback", kind: "land" });
-      }
+      const sections = popup.querySelectorAll('.entry[data-index="' + index + '"]');
+      if (!sections.length) return;
+      sections.forEach((section) => {
+        section.dataset.state = state;
+        swapButtons(section, buttons(entry, index));
+        // The card was just made: the book lands where the plus was.
+        if (state === "inDeck" && was === "working") {
+          play(section.querySelector(".card.book"), "landing");
+          post({ type: "feedback", kind: "land" });
+        }
+      });
       reportSoon();
     },
     setUnknown(index, unknown) {
       const entry = (model.entries || [])[index];
       if (entry) entry.unknown = unknown;
-      const section = popup.querySelector('.entry[data-index="' + index + '"]');
-      if (section) section.classList.toggle("unknown", !!unknown);
+      popup.querySelectorAll('.entry[data-index="' + index + '"]').forEach((section) => {
+        section.classList.toggle("unknown", !!unknown);
+      });
+    },
+    /** Batched Anki state update (Android askAnki): applies all entries in one pass across all built panes. */
+    setStates(list) {
+      if (!Array.isArray(list) || !list.length) return;
+      let buttonsChanged = false;
+      const sections = new Map();
+      popup.querySelectorAll(".entry").forEach((node) => {
+        const idx = Number(node.dataset.index);
+        let arr = sections.get(idx);
+        if (!arr) { arr = []; sections.set(idx, arr); }
+        arr.push(node);
+      });
+      list.forEach((item) => {
+        const index = item.index;
+        const entry = (model.entries || [])[index];
+        if (!entry) return;
+        const nodes = sections.get(index) || [];
+        if (item.unknown !== undefined) {
+          entry.unknown = !!item.unknown;
+          nodes.forEach((section) => section.classList.toggle("unknown", !!item.unknown));
+        }
+        if (item.state !== undefined && entry.state !== item.state) {
+          const was = entry.state;
+          entry.state = item.state;
+          if (item.state === "inDeck" && pressed.index === index && (pressed.kind === "add" || pressed.kind === "addAudio")) {
+            entry.addedKind = pressed.kind;
+          } else if (item.state !== "inDeck" && item.state !== "working") {
+            entry.addedKind = "";
+          }
+          nodes.forEach((section) => {
+            section.dataset.state = item.state;
+            swapButtons(section, buttons(entry, index));
+            buttonsChanged = true;
+            if (item.state === "inDeck" && was === "working") {
+              play(section.querySelector(".card.book"), "landing");
+              post({ type: "feedback", kind: "land" });
+            }
+          });
+        }
+      });
+      if (buttonsChanged) reportSoon();
     },
     setStyle(id, css) {
       const node = document.getElementById(id);
       if (node) node.textContent = css || "";
+      if (id === "theme" || id === "console") styleEpoch++;
       reportSoon();
       if (design) requestAnimationFrame(placeHandle);
     },

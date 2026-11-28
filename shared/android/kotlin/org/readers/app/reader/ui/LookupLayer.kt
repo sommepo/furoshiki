@@ -335,23 +335,32 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         val share = if (toEntry) ReaderSettings.POPUP_FIT_LIMIT_PERCENT else settings.popupHeightPercent
         measure(if (fillRoom) maxOf(above, below) else minOf(maxOf(height * share / 100, popup.needHeight), maxOf(above, below)))
         val goesAbove = popup.measuredHeight <= above || above >= below
+        popup.anchorAbove = goesAbove
         val room = if (goesAbove) above else below
         if (popup.measuredHeight > room) measure(room)
 
         val params = popup.layoutParams as LayoutParams
-        params.gravity = Gravity.TOP or Gravity.START
-        params.width = LayoutParams.WRAP_CONTENT
-        params.height = LayoutParams.WRAP_CONTENT
-        params.leftMargin = (anchor.nearX.toInt() - dp(10f))
+        val newGravity = Gravity.TOP or Gravity.START
+        val newLeft = (anchor.nearX.toInt() - dp(10f))
             .coerceIn(margin, maxOf(margin, width - margin - popup.measuredWidth))
-        params.topMargin = if (goesAbove) {
+        val newTop = if (goesAbove) {
             (anchor.keepClear.top.toInt() - margin - popup.measuredHeight).coerceAtLeast(margin)
         } else {
             (anchor.keepClear.bottom.toInt() + margin).coerceAtMost(maxOf(margin, height - margin - popup.measuredHeight))
         }
-        params.rightMargin = 0
-        params.bottomMargin = 0
-        popup.layoutParams = params
+        if (params.gravity != newGravity || params.width != LayoutParams.WRAP_CONTENT ||
+            params.height != LayoutParams.WRAP_CONTENT || params.leftMargin != newLeft ||
+            params.topMargin != newTop || params.rightMargin != 0 || params.bottomMargin != 0
+        ) {
+            params.gravity = newGravity
+            params.width = LayoutParams.WRAP_CONTENT
+            params.height = LayoutParams.WRAP_CONTENT
+            params.leftMargin = newLeft
+            params.topMargin = newTop
+            params.rightMargin = 0
+            params.bottomMargin = 0
+            popup.layoutParams = params
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -469,6 +478,8 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
         val database = ReaderSession.database(context)
         // The running game's names dictionaries are used, and first (DictionaryLookup.lookup).
         val game = this.game?.invoke() ?: ReaderSession.gameKey
+        val kinds = settings.dictionaryKinds
+        val asked_at = android.os.SystemClock.elapsedRealtime()
         worker.execute {
             // The cursor has gone on to another word since.
             if (request != asked) return@execute
@@ -476,7 +487,16 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
             // The first headwords' definitions before the popup shows, the rest just after.
             val results = if (hasDictionaries) store.lookup.lookup(rest, game = game, readFirst = READ_FIRST) else emptyList()
             val history = if (lookups == "off") emptyList() else results.map { database.lookups(it.expression, it.reading) }
+            val found_at = android.os.SystemClock.elapsedRealtime()
+            // The page's model made here too, not on the main thread.
+            val prepared = if (results.isNotEmpty() && request == asked) runCatching {
+                popup.prepare(results, history, lookups == "where", kinds)
+            }.getOrNull() else null
             post {
+                val handed_at = android.os.SystemClock.elapsedRealtime()
+                // Where a lookup's time goes (the maintainer, 2026-11-28: the popup slow on the Thor).
+                ReaderLog.info("[Reader] lookup: ${results.size} results in ${found_at - asked_at} ms, " +
+                    "model ready and on the main thread after ${handed_at - asked_at} ms")
                 if (request != asked) return@post
                 if (quiet && hasDictionaries && results.isEmpty()) {
                     // No word here: the popup about the word the cursor came from goes.
@@ -517,14 +537,24 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
                         pinned = Pinned(presented, offset, target, results[0])
                         popup.allowDuplicates = settings.ankiAllowDuplicates
                         popup.markUnknown = settings.popupMarkUnknown
-                        popup.showResults(results, history, lookups == "where")
+                        val model_from = android.os.SystemClock.elapsedRealtime()
+                        popup.showResults(results, history, lookups == "where", prepared)
+                        ReaderLog.info("[Reader] lookup: the popup's model made in ${android.os.SystemClock.elapsedRealtime() - model_from} ms")
                         askAnki(shown, presented, offset, results)
                         if (results.any { store.lookup.unread(it) }) worker.execute {
                             if (request != asked) return@execute
                             val read = store.lookup.readRest(results)
+                            val filled = results.map { r ->
+                                if (r.entries.any { it.glossaryJson.isEmpty() }) {
+                                    r.copy(entries = r.entries.map { read[it.id] ?: it })
+                                } else r
+                            }
+                            val preparedRest = if (request == asked) runCatching {
+                                popup.prepare(filled, history, lookups == "where", kinds)
+                            }.getOrNull() else null
                             post {
                                 store.lookup.fillIn(results, read)
-                                if (shown == token && request == asked) popup.fillIn()
+                                if (shown == token && request == asked) popup.fillIn(preparedRest)
                             }
                         }
                         removeCallbacks(countLater)
@@ -571,51 +601,58 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
      * plus shows that it is away.
      */
     private fun askAnki(request: Int, presented: PresentedLine, offset: Int, results: List<LookupResult>) {
+        val initial = ArrayList<LookupPopupView.StateUpdate>(results.size)
         for (result in results) {
             val range = offset until offset + result.matchedText.length
             val known = miner.knownNow(presented, result, range)
             // No card can be made: the plus says why when it is pressed.
-            if (!known.setUp) return
+            if (!known.setUp) {
+                popup.setAnkiStates(initial)
+                return
+            }
             if (known.answer == AnkiIndex.Answer.PRESENT) notes[result] = known.notes
-            popup.setUnknown(result, known.answer == AnkiIndex.Answer.ABSENT)
-            popup.setCardState(
-                result,
-                when (known.answer) {
-                    AnkiIndex.Answer.PRESENT -> LookupPopupView.CardState.IN_DECK
-                    AnkiIndex.Answer.ABSENT -> LookupPopupView.CardState.ADD
-                    AnkiIndex.Answer.NOT_READY -> LookupPopupView.CardState.CHECKING
-                }
+            initial.add(
+                LookupPopupView.StateUpdate(
+                    result,
+                    state = when (known.answer) {
+                        AnkiIndex.Answer.PRESENT -> LookupPopupView.CardState.IN_DECK
+                        AnkiIndex.Answer.ABSENT -> LookupPopupView.CardState.ADD
+                        AnkiIndex.Answer.NOT_READY -> LookupPopupView.CardState.CHECKING
+                    },
+                    unknown = known.answer == AnkiIndex.Answer.ABSENT
+                )
             )
         }
+        popup.setAnkiStates(initial)
         miner.confirm(presented, results, offset) { confirmed ->
             // The popup may show other words by now; those were asked about separately.
             if (request != token) return@confirm
+            val updates = ArrayList<LookupPopupView.StateUpdate>(results.size)
             results.forEachIndexed { index, result ->
                 val now = popup.cardState(result) ?: return@forEachIndexed
                 if (now == LookupPopupView.CardState.WORKING) return@forEachIndexed
                 val found = confirmed.notes.getOrNull(index)
                 when {
                     !confirmed.reached -> if (now != LookupPopupView.CardState.IN_DECK) {
-                        popup.setCardState(result, LookupPopupView.CardState.AWAY)
+                        updates.add(LookupPopupView.StateUpdate(result, state = LookupPopupView.CardState.AWAY))
                     }
 
                     found == null -> if (now == LookupPopupView.CardState.CHECKING) {
-                        popup.setCardState(result, LookupPopupView.CardState.ADD)
+                        updates.add(LookupPopupView.StateUpdate(result, state = LookupPopupView.CardState.ADD))
                     }
 
                     found.isEmpty() -> {
                         notes.remove(result)
-                        popup.setCardState(result, LookupPopupView.CardState.ADD)
-                        popup.setUnknown(result, true)
+                        updates.add(LookupPopupView.StateUpdate(result, state = LookupPopupView.CardState.ADD, unknown = true))
                     }
 
                     else -> {
                         notes[result] = found
-                        popup.setCardState(result, LookupPopupView.CardState.IN_DECK)
-                        popup.setUnknown(result, false)
+                        updates.add(LookupPopupView.StateUpdate(result, state = LookupPopupView.CardState.IN_DECK, unknown = false))
                     }
                 }
             }
+            popup.setAnkiStates(updates)
         }
     }
 
@@ -631,6 +668,11 @@ class LookupLayer(context: Context, private val onOpenDictionaries: () -> Unit) 
     /** Another tab of the open popup (PopupKeys: R1 and L1). */
     fun tab(step: Int) {
         if (isOpen) popup.tab(step)
+    }
+
+    /** The chosen entry's "more" opened or closed (PopupKeys: east). */
+    fun toggleMore() {
+        if (isOpen) popup.toggleMore()
     }
 
     /** Cycles characters on the Kanji tab (PopupKeys: d-pad Left and Right). */

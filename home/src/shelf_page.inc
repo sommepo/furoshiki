@@ -835,7 +835,9 @@ void HomeWindow::SetShelfTheme(const QString& key, bool keep) {
     // The popup takes the shelf's look unless one was chosen (its theme "auto", the default).
     ReaderApp::ReaderSettings::SetPopupThemeDefault(ReaderApp::ReaderSettings::PopupThemeOfShelf(chosen));
     // Upper-right playing screen stats badge follows the active shelf theme (rounded, 80% opacity, blurred).
-    ReaderUi::ReaderOverlay::SetSessionTheme({true, look->raised, look->ink, look->muted, look->accent, look->rule});
+    // Its figures in Michroma, as the shelf's and Android's figures (the maintainer, 2026-11-27).
+    ReaderUi::ReaderOverlay::SetSessionTheme({true, look->raised, look->ink, look->muted, look->accent, look->rule,
+                                              ShelfFaceOf(QStringLiteral("Michroma-Regular.ttf")).family});
     if (keep) {
         QSettings().setValue(QStringLiteral("shelf/theme"), chosen);
     }
@@ -2467,6 +2469,9 @@ void HomeWindow::ShelfStep() {
         TrackerAsk();
     }
     WizardStep();
+    if (StepRail()) {
+        update();
+    }
     if (std::fabs(pages_at - (shelf_pages ? 1 : 0)) > 0.001 || std::fabs(stats_at - (shelf_stats ? 1 : 0)) > 0.001 ||
         std::fabs(log_at - (shelf_log ? 1 : 0)) > 0.001 || std::fabs(wizard_at - (wizard_on ? 1 : 0)) > 0.001 ||
         std::fabs(stats_range_at - stats_range) > 0.001) {
@@ -2672,61 +2677,100 @@ void HomeWindow::PaintShelf() {
 }
 
 void HomeWindow::PaintDotMatrix(QPainter& p, bool clear_stats_band) {
+    // The field moves slowly: drawn into a picture at the screen's own pixels at most thirty times
+    // a second, each dot a copy of one drawn once for its size, and the picture copied onto every
+    // frame. Drawing its 1,900 dots as shapes took 16 of a frame's 27 ms at 2560x1440 (the
+    // maintainer, 2026-11-27: the shelf's frame rate a little slow on the Z13).
     const ShelfLook& l = *shelf_look;
     const bool white_dots = l.key == QStringLiteral("mono") || l.key == QStringLiteral("nocturne");
     const QColor dot_rgb = white_dots ? l.ink : l.accent;
     const double base_bright = l.key == QStringLiteral("nocturne") ? 0.84 : (l.ground.lightness() > 140 ? 0.36 : 0.48);
-    const double t = dots_time;
-    const double step = 22.0;
-    const double v1x = SheetW * (0.30 + 0.18 * std::sin(t * 0.36));
-    const double v1y = SheetH * (0.48 + 0.18 * std::cos(t * 0.29));
-    const double v2x = SheetW * (0.72 + 0.15 * std::cos(t * 0.41));
-    const double v2y = SheetH * (0.52 + 0.20 * std::sin(t * 0.33));
-    const double clear_top = 274.0, clear_bot = 496.0, feather = 36.0;
-
-    p.save();
-    p.setPen(Qt::NoPen);
-    for (double y = step * 0.5; y < SheetH; y += step) {
-        double mask = 1.0;
-        if (clear_stats_band) {
-            if (y >= clear_top && y <= clear_bot) {
-                continue;
-            }
-            if (y > clear_top - feather && y < clear_top) {
-                mask = (clear_top - y) / feather;
-            } else if (y > clear_bot && y < clear_bot + feather) {
-                mask = (y - clear_bot) / feather;
+    const QTransform& world = p.worldTransform();
+    const double scale = world.m11() * devicePixelRatioF();
+    const QSize pixels(static_cast<int>(std::ceil(SheetW * scale)), static_cast<int>(std::ceil(SheetH * scale)));
+    const QString key = QStringLiteral("%1 %2 %3 %4x%5 %6").arg(l.key).arg(dots_mode).arg(clear_stats_band).arg(pixels.width()).arg(pixels.height()).arg(dot_rgb.rgba());
+    // dots_time goes on at 0.8 of the clock: a thirtieth of a second is 0.8 / 30 of it.
+    const bool stale = dots_layer.isNull() || key != dots_layer_key || std::fabs(dots_time - dots_layer_time) >= 0.8 / 30 - 1e-6;
+    if (stale && pixels.width() > 0 && pixels.height() > 0) {
+        dots_layer_key = key;
+        dots_layer_time = dots_time;
+        // A dot of each size, in the dots' colour, drawn once for this scale.
+        constexpr int Sizes = 32;
+        constexpr double Smallest = 0.8, Largest = 3.1;
+        const QString sprites_key = QStringLiteral("%1 %2").arg(scale).arg(dot_rgb.rgba());
+        if (sprites_key != dot_sprites_key) {
+            dot_sprites_key = sprites_key;
+            dot_sprites.clear();
+            for (int i = 0; i < Sizes; ++i) {
+                const double radius = (Smallest + (Largest - Smallest) * i / (Sizes - 1)) * scale;
+                const int side = static_cast<int>(std::ceil(radius * 2 + 2));
+                QImage sprite(side, side, QImage::Format_ARGB32_Premultiplied);
+                sprite.fill(Qt::transparent);
+                QPainter s(&sprite);
+                s.setRenderHint(QPainter::Antialiasing);
+                s.setPen(Qt::NoPen);
+                s.setBrush(QColor(dot_rgb.red(), dot_rgb.green(), dot_rgb.blue()));
+                s.drawEllipse(QPointF(side / 2.0, side / 2.0), radius, radius);
+                dot_sprites.append(sprite);
             }
         }
-        for (double x = step * 0.5; x < SheetW; x += step) {
-            double val = 0.0;
-            if (dots_mode == 1) { // Vortex Currents
-                const double a1 = std::atan2(y - v1y, x - v1x), r1 = std::hypot(x - v1x, y - v1y);
-                const double a2 = std::atan2(y - v2y, x - v2x), r2 = std::hypot(x - v2x, y - v2y);
-                const double swirl = std::sin(a1 * 3.0 + r1 * 0.022 - t * 1.7) * 0.5 +
-                                     std::cos(a2 * 2.0 - r2 * 0.018 - t * 1.3) * 0.5;
-                const double turb = DotFbm(x / (SheetW * 0.24) + t * 0.25, y / (SheetH * 0.24) - t * 0.20);
-                val = std::clamp(((swirl + 1.0) * 0.5) * 0.62 + turb * 0.52 - 0.18, 0.0, 1.0);
-            } else if (dots_mode == 2) { // Horizon Pulse
-                const double d = std::hypot(x - SheetW * 0.5, (y - SheetH * 0.5) * 1.35);
-                const double ring = std::sin(d * 0.022 - t * 1.1) * 0.5 + 0.5;
-                const double n = DotNoise(x / (SheetW * 0.28) + t * 0.08, y / (SheetH * 0.28));
-                val = std::clamp(ring * 0.55 + n * 0.55 - 0.16, 0.0, 1.0);
-            } else { // Gentle Drift
-                const double w1 = std::sin(x * 0.0085 + y * 0.0055 - t * 0.85) * 0.5 + 0.5;
-                const double n = DotFbm(x / (SheetW * 0.30) + t * 0.12, y / (SheetH * 0.30) - t * 0.09);
-                val = std::clamp(w1 * 0.42 + n * 0.68 - 0.15, 0.0, 1.0);
+        if (dots_layer.size() != pixels) {
+            dots_layer = QImage(pixels, QImage::Format_ARGB32_Premultiplied);
+        }
+        dots_layer.fill(Qt::transparent);
+        QPainter q(&dots_layer);
+        const double t = dots_time;
+        const double step = 22.0;
+        const double v1x = SheetW * (0.30 + 0.18 * std::sin(t * 0.36));
+        const double v1y = SheetH * (0.48 + 0.18 * std::cos(t * 0.29));
+        const double v2x = SheetW * (0.72 + 0.15 * std::cos(t * 0.41));
+        const double v2y = SheetH * (0.52 + 0.20 * std::sin(t * 0.33));
+        const double clear_top = 274.0, clear_bot = 496.0, feather = 36.0;
+        for (double y = step * 0.5; y < SheetH; y += step) {
+            double mask = 1.0;
+            if (clear_stats_band) {
+                if (y >= clear_top && y <= clear_bot) {
+                    continue;
+                }
+                if (y > clear_top - feather && y < clear_top) {
+                    mask = (clear_top - y) / feather;
+                } else if (y > clear_bot && y < clear_bot + feather) {
+                    mask = (y - clear_bot) / feather;
+                }
             }
-            const double alpha = std::min(0.90, (0.04 + std::pow(val, 1.9) * 0.85) * base_bright) * mask;
-            if (alpha < 0.012) {
-                continue;
+            for (double x = step * 0.5; x < SheetW; x += step) {
+                double val = 0.0;
+                if (dots_mode == 1) { // Vortex Currents
+                    const double a1 = std::atan2(y - v1y, x - v1x), r1 = std::hypot(x - v1x, y - v1y);
+                    const double a2 = std::atan2(y - v2y, x - v2x), r2 = std::hypot(x - v2x, y - v2y);
+                    const double swirl = std::sin(a1 * 3.0 + r1 * 0.022 - t * 1.7) * 0.5 +
+                                         std::cos(a2 * 2.0 - r2 * 0.018 - t * 1.3) * 0.5;
+                    const double turb = DotFbm(x / (SheetW * 0.24) + t * 0.25, y / (SheetH * 0.24) - t * 0.20);
+                    val = std::clamp(((swirl + 1.0) * 0.5) * 0.62 + turb * 0.52 - 0.18, 0.0, 1.0);
+                } else if (dots_mode == 2) { // Horizon Pulse
+                    const double d = std::hypot(x - SheetW * 0.5, (y - SheetH * 0.5) * 1.35);
+                    const double ring = std::sin(d * 0.022 - t * 1.1) * 0.5 + 0.5;
+                    const double n = DotNoise(x / (SheetW * 0.28) + t * 0.08, y / (SheetH * 0.28));
+                    val = std::clamp(ring * 0.55 + n * 0.55 - 0.16, 0.0, 1.0);
+                } else { // Gentle Drift
+                    const double w1 = std::sin(x * 0.0085 + y * 0.0055 - t * 0.85) * 0.5 + 0.5;
+                    const double n = DotFbm(x / (SheetW * 0.30) + t * 0.12, y / (SheetH * 0.30) - t * 0.09);
+                    val = std::clamp(w1 * 0.42 + n * 0.68 - 0.15, 0.0, 1.0);
+                }
+                const double alpha = std::min(0.90, (0.04 + std::pow(val, 1.9) * 0.85) * base_bright) * mask;
+                if (alpha < 0.012) {
+                    continue;
+                }
+                const double rad = 0.8 + std::pow(val, 1.7) * 2.3;
+                const int size = std::clamp(static_cast<int>(std::lround((rad - Smallest) / (Largest - Smallest) * (Sizes - 1))), 0, Sizes - 1);
+                const QImage& sprite = dot_sprites[size];
+                q.setOpacity(alpha);
+                q.drawImage(QPointF(std::round(x * scale - sprite.width() / 2.0), std::round(y * scale - sprite.height() / 2.0)), sprite);
             }
-            const double rad = 0.8 + std::pow(val, 1.7) * 2.3;
-            p.setBrush(Faded(dot_rgb, alpha));
-            p.drawEllipse(QPointF(x, y), rad, rad);
         }
     }
-    p.restore();
+    // Onto the sheet: the picture has the screen's pixels of it, so it is copied one to one.
+    p.drawImage(QRectF(0, 0, SheetW, SheetH), dots_layer);
 }
 
 void HomeWindow::PaintTopTabs(QPainter& p, int active_tab, const QString& right_note) {
@@ -2740,26 +2784,39 @@ void HomeWindow::PaintTopTabs(QPainter& p, int active_tab, const QString& right_
         const double w = Put(p, small, x, 49, QStringLiteral("‹  BACK TO GAME"), Mix(l.muted, l.ink, Ease(7, 0, ShelfHovered(7, 0))));
         shelf_hits.append({QRectF(x - 4, 28, w + 12, 34), 7, 0});
     } else {
+        // The places along the top (the maintainer, 2026-11-27: "the rail should still be on top on
+        // PC"), the one shown turned over: a block of ink under it that slides and stretches to the
+        // next place as Furochibi's rail and Android's do (StepRail), each word in the ground's
+        // colour as far as the ink covers it.
         struct TabDef {
             int id;
             QString label;
+            double left{}, right{};
         };
         QList<TabDef> tabs{{0, QStringLiteral("LIBRARY")}};
         if (show_stats_tab) {
             tabs.append({1, QStringLiteral("STATISTICS")});
         }
         tabs.append({2, QStringLiteral("SETTINGS")});
-        for (const TabDef& tab : tabs) {
-            const bool on = tab.id == active_tab;
-            const double lit = Ease(20, tab.id, ShelfHovered(20, tab.id));
-            const double w = on ? PutHalo(p, tab_face, x, 49, tab.label, l.ink, l.accent, dots_time, light_ground)
-                                : Put(p, tab_face, x, 49, tab.label, Mix(l.muted, l.ink, lit));
-            if (on) {
-                p.fillRect(QRectF(x, 62, w, 2.5), l.accent);
-            }
-            shelf_hits.append({QRectF(x - 6, 26, w + 12, 38), 20, tab.id});
-            x += w + 28;
+        constexpr double Pad = 10;
+        for (TabDef& tab : tabs) {
+            tab.left = x - Pad;
+            tab.right = x + Advance(tab_face, tab.label) + Pad;
+            x = tab.right + 18;
         }
+        for (const TabDef& tab : tabs) {
+            if (tab.id == active_tab) {
+                AimRail(tab.left, tab.right);
+            }
+        }
+        p.fillRect(QRectF(rail.lead, 33, std::max(0.0, rail.tail - rail.lead), 24), l.ink);
+        for (const TabDef& tab : tabs) {
+            const double covered = std::clamp((std::min(rail.tail, tab.right) - std::max(rail.lead, tab.left)) / (tab.right - tab.left), 0.0, 1.0);
+            const double lit = Ease(20, tab.id, ShelfHovered(20, tab.id));
+            Put(p, tab_face, tab.left + Pad, 49, tab.label, Mix(Mix(l.muted, l.ink, lit), l.ground, covered));
+            shelf_hits.append({QRectF(tab.left, 26, tab.right - tab.left, 38), 20, tab.id});
+        }
+        (void)light_ground;
     }
 
     double right = ShelfRight;
@@ -2775,6 +2832,56 @@ void HomeWindow::PaintTopTabs(QPainter& p, int active_tab, const QString& right_
         Put(p, small, right, 49, right_note, l.muted, 1);
     }
     p.fillRect(QRectF(ShelfLeft, 64, ShelfRight - ShelfLeft, 1), l.rule);
+}
+
+namespace {
+/// Compose's springs as Furochibi's rail has them (Shell.kt, stretchTo): damping ratio, stiffness.
+constexpr double RailQuick[2] = {0.78, 620}, RailSlow[2] = {0.86, 260};
+} // namespace
+
+void HomeWindow::AimRail(double left, double right) {
+    // At once the first time (or where motion is unwanted), else on springs: the edge in front
+    // goes quickly and the other follows, so the ink stretches and then gathers.
+    if (rail.lead < 0 || SystemWantsStillness()) {
+        rail = RailMark{left, right, 0, 0, left, right};
+        return;
+    }
+    if (left == rail.to_lead && right == rail.to_tail) {
+        return;
+    }
+    const bool forward = left > rail.to_lead;
+    rail.lead_z = forward ? RailSlow[0] : RailQuick[0];
+    rail.lead_k = forward ? RailSlow[1] : RailQuick[1];
+    rail.tail_z = forward ? RailQuick[0] : RailSlow[0];
+    rail.tail_k = forward ? RailQuick[1] : RailSlow[1];
+    rail.to_lead = left;
+    rail.to_tail = right;
+    rail.last_ms = clock.elapsed();
+}
+
+bool HomeWindow::StepRail() {
+    if (rail.lead < 0) {
+        return false;
+    }
+    const qint64 now = clock.elapsed();
+    const double dt = std::clamp((now - rail.last_ms) / 1000.0, 0.001, 0.034);
+    rail.last_ms = now;
+    const auto step = [dt](double& x, double& v, double to, double k, double z) {
+        // Semi-implicit Euler on a mass of 1: the spring's pull and its damping.
+        v += (-k * (x - to) - 2 * z * std::sqrt(k) * v) * dt;
+        x += v * dt;
+    };
+    const bool moving = std::fabs(rail.lead - rail.to_lead) > 0.2 || std::fabs(rail.tail - rail.to_tail) > 0.2 ||
+                        std::fabs(rail.lead_speed) > 1 || std::fabs(rail.tail_speed) > 1;
+    if (!moving) {
+        rail.lead = rail.to_lead;
+        rail.tail = rail.to_tail;
+        rail.lead_speed = rail.tail_speed = 0;
+        return false;
+    }
+    step(rail.lead, rail.lead_speed, rail.to_lead, rail.lead_k, rail.lead_z);
+    step(rail.tail, rail.tail_speed, rail.to_tail, rail.tail_k, rail.tail_z);
+    return true;
 }
 
 void HomeWindow::OpenGoal(int which) {

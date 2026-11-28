@@ -159,8 +159,21 @@ void DrawSessionLine(QPainter& painter, const QString& style, const QString& lin
     // A row: the pause sign, then each figure with its unit smaller, a separator between.
     const bool ink = style == QStringLiteral("ink");
     const bool dark = style == QStringLiteral("paper-dark");
-    const QFont number = ink ? GothicFont(size * 1.05, QFont::ExtraBold) : SerifFont(size, QFont::DemiBold);
-    const QFont unit = ink ? GothicFont(size * 0.72, QFont::Medium) : SerifFont(size * 0.72, QFont::DemiBold);
+    // With a family of the host's (Furoshiki's Michroma) the figures are set in it, a Japanese
+    // unit such as 字 falling back to the gothic faces; Michroma is wide, so a little smaller.
+    const auto themed = [&](qreal pixels) {
+        QFont font;
+        font.setFamilies(QStringList{theme.family} + Style::JapaneseFamilies());
+        font.setPixelSize(std::max(1, static_cast<int>(std::lround(pixels))));
+        return font;
+    };
+    const bool own_face = theme.active && !theme.family.isEmpty();
+    const QFont number = own_face ? themed(size * 0.86)
+                         : ink    ? GothicFont(size * 1.05, QFont::ExtraBold)
+                                  : SerifFont(size, QFont::DemiBold);
+    const QFont unit = own_face ? themed(size * 0.62)
+                       : ink    ? GothicFont(size * 0.72, QFont::Medium)
+                                : SerifFont(size * 0.72, QFont::DemiBold);
     const QFontMetricsF number_metrics(number), unit_metrics(unit);
     const qreal sep = ink ? size * 1.1 : size * 1.0;
     const qreal bars_height = number_metrics.ascent() * 0.72;

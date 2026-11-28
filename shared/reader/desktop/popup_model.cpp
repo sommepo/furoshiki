@@ -697,6 +697,7 @@ QJsonObject Entry(const LookupResult& result, const QString& history, const QHas
                                        {QStringLiteral("value"), frequency.display}});
     }
     QJsonObject entry{{QStringLiteral("expression"), result.expression},
+                      {QStringLiteral("matched"), result.matched_text},
                       {QStringLiteral("reading"), result.DisplayReading()},
                       {QStringLiteral("reasons"), QJsonArray::fromStringList(result.reasons)},
                       {QStringLiteral("pitches"), pitches},

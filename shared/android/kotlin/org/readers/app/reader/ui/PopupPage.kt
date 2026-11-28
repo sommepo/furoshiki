@@ -146,6 +146,39 @@ class PopupPage(context: Context, private val onMessage: (JSONObject) -> Unit) :
                 ""
             }
 
+        /**
+         * A popup theme's colours for the session line over a game ([StatsLineView.Colours]): the
+         * page's defaults (base.css), then the theme's own variables (the first of each), `var()`
+         * followed; the console's colours for "console" and "classic". Null where none can be read.
+         */
+        fun themeColours(context: Context, theme: String): StatsLineView.Colours? = runCatching {
+            val vars = HashMap<String, String>()
+            fun read(css: String) {
+                val seen = HashSet<String>()
+                Regex("--([a-z-]+)\\s*:\\s*([^;\\}]+)").findAll(css).forEach { match ->
+                    if (seen.add(match.groupValues[1])) vars[match.groupValues[1]] = match.groupValues[2].trim()
+                }
+            }
+            read(context.assets.open("reader/popup/base.css").bufferedReader().use { it.readText() })
+            read(if (theme == "console" || theme == "classic") consoleCss(context) else themeCss(context, theme))
+            val rgba = Regex("rgba?\\(\\s*([\\d.]+)\\s*,\\s*([\\d.]+)\\s*,\\s*([\\d.]+)\\s*(?:,\\s*([\\d.]+)\\s*)?\\)")
+            val reference = Regex("var\\(--([a-z-]+)\\)")
+            fun colour(name: String, depth: Int = 0): Int? {
+                val value = vars[name] ?: return null
+                reference.matchEntire(value)?.let { return if (depth < 4) colour(it.groupValues[1], depth + 1) else null }
+                rgba.matchEntire(value)?.let {
+                    val alpha = (it.groupValues[4].ifEmpty { "1" }.toFloat() * 255).toInt().coerceIn(0, 255)
+                    return Color.argb(alpha, it.groupValues[1].toFloat().toInt(), it.groupValues[2].toFloat().toInt(),
+                        it.groupValues[3].toFloat().toInt())
+                }
+                return runCatching { Color.parseColor(value) }.getOrNull()
+            }
+            val ground = colour("raised") ?: colour("ground") ?: return@runCatching null
+            val text = colour("text") ?: return@runCatching null
+            StatsLineView.Colours(ground, text, colour("dim") ?: text, colour("accent") ?: text,
+                colour("rule") ?: colour("edge") ?: colour("dim") ?: text)
+        }.getOrNull()
+
         /** The console's colours as the page's CSS variables; its ground is a painting, its middle stands for it. */
         fun consoleCss(context: Context): String {
             val ground = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)

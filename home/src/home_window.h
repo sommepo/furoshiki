@@ -704,6 +704,13 @@ private:
     int shelf_layout{0};   ///< Library layout: 0 Spine shelf, 1 Case stage, 2 Cover flow
     int dots_mode{0};      ///< Randomly chosen on startup: 0 drift, 1 vortex, 2 pulse
     double dots_time{0};   ///< Elapsed animation phase in seconds
+    /// The dot matrix as last drawn, at the screen's pixels, and what it was drawn for: it is
+    /// drawn again at most thirty times a second, from a dot of each size drawn once (dot_sprites).
+    QImage dots_layer;
+    double dots_layer_time{-1};
+    QString dots_layer_key;
+    QList<QImage> dot_sprites;
+    QString dot_sprites_key;
     qint64 dots_last_ms{0};
     void SetStats(bool on);
     void PaintStats(QPainter& p);
@@ -717,6 +724,16 @@ private:
     void PaintLibraryCoverFlow(QPainter& p);
     void PaintDotMatrix(QPainter& p, bool clear_stats_band);
     void PaintTopTabs(QPainter& p, int active_tab, const QString& right_note);
+    /// The ink under the place shown along the top (Library, Statistics, Settings) to [left, right]
+    /// on the sheet; it slides and stretches there as Furochibi's rail does.
+    void AimRail(double left, double right);
+    /// One step of the rail mark's springs; true while it still moves.
+    bool StepRail();
+    struct RailMark {
+        double lead{-1}, tail{-1}, lead_speed{}, tail_speed{}, to_lead{}, to_tail{};
+        double lead_k{}, tail_k{}, lead_z{}, tail_z{};
+        qint64 last_ms{};
+    } rail;
     bool pages_rows{};     ///< On the pages, the rows have the keys (else the sections at the left)
     bool pages_visited{};  ///< They were shown before in this run: they open where they were left
     QHash<QString, QPair<QString, QString>> elsewhere; ///< A game's ID: the device, the day

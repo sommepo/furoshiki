@@ -83,6 +83,9 @@ GameBacklogOverlay::GameBacklogOverlay(QWidget* over, const ChoicePicker::Colour
     setObjectName(QStringLiteral("game-backlog-overlay"));
     setGeometry(over->rect());
     setMouseTracking(true);
+    // Its own pointer, the reader's: before the game's first line the game's window shows none,
+    // and the backlog was read without one (the maintainer, 2026-11-27).
+    setCursor(ReaderUi::Style::PointerCursor(ReaderUi::Style::PointerSize(over), over->devicePixelRatioF()));
     setFocusPolicy(Qt::StrongFocus);
     lookups = std::make_unique<ReaderUi::LookupFlow>(over->window() ? over->window() : over);
     lookups->mark = [this](qint64 id, int first, int last) {
@@ -293,13 +296,15 @@ void GameBacklogOverlay::BuildWordsForChosen() {
     });
 }
 
-void GameBacklogOverlay::LookupAt(int index, int offset) {
+void GameBacklogOverlay::LookupAt(int index, int offset, bool scroll) {
     if (!lookups || index < 0 || index >= entries.size()) {
         return;
     }
     chosen = index;
-    EnsureVisible(chosen);
-    scroll_y = scroll_target;
+    if (scroll) {
+        EnsureVisible(chosen);
+        scroll_y = scroll_target;
+    }
     const QRectF lr = ListRect();
     const double text_x = lr.left() + MetaColWidth();
     const double text_w = TextWidth();
@@ -429,6 +434,12 @@ bool GameBacklogOverlay::Key(int key) {
             return true;
         case Qt::Key_Left:
         case Qt::Key_Right:
+            // On the Kanji tab of a word of several characters they go along its characters, as
+            // over the game (the maintainer, 2026-11-27); else to the word before or after.
+            if (lookups->Popup() != nullptr && lookups->Popup()->KanjiRail()) {
+                lookups->OnPad(key == Qt::Key_Right ? PK::KanjiNext : PK::KanjiBefore);
+                return true;
+            }
             if (chosen >= 0 && chosen < entries.size()) {
                 BuildWordsForChosen();
                 if (!words.isEmpty()) {
@@ -761,14 +772,33 @@ void GameBacklogOverlay::paintEvent(QPaintEvent*) {
 void GameBacklogOverlay::mouseMoveEvent(QMouseEvent* event) {
     const QRectF lr = ListRect();
     hover = -1;
+    int offset = -1;
     if (lr.contains(event->position())) {
         const double y = event->position().y() - lr.top() + scroll_y;
         for (int i = 0; i < row_tops.size(); ++i) {
             if (y >= row_tops[i] && y < row_tops[i] + row_heights[i]) {
                 hover = i;
+                offset = CharOffsetAt(i, event->position(), lr.top() + row_tops[i] - scroll_y, lr.left() + MetaColWidth(), TextWidth());
                 break;
             }
         }
+    }
+    // A word under the pointer is looked up at once, as over the game (the maintainer,
+    // 2026-11-27: "Backlog shouldnt need click only hover"), as the reader's hover setting says:
+    // always, with Shift held, or never (a click still does).
+    const QString hover_lookup = ReaderUi::ReaderSession::Instance().Settings().HoverLookup();
+    const bool wanted = hover_lookup == QStringLiteral("always") ||
+                        (hover_lookup == QStringLiteral("shift") && (event->modifiers() & Qt::ShiftModifier) != 0);
+    if (lookups && wanted && hover >= 0 && offset >= 0 && event->buttons() == Qt::NoButton) {
+        if (!lookups->IsAbout(entries[hover].id, offset)) {
+            words_row = -1;
+            word_at = -1;
+            LookupAt(hover, offset, false);
+        }
+        lookups->PointerMoved(true);
+    } else if (lookups && lookups->IsOpen()) {
+        // Off the words a popup that is open stays, unless the reader's settings close it then.
+        lookups->PointerMoved(false);
     }
     update();
 }

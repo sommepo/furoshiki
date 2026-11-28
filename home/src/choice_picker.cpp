@@ -363,8 +363,9 @@ void ChoicePicker::paintEvent(QPaintEvent*) {
 
     p.setFont(colours.title);
     p.setPen(WithAlpha(colours.dim, 0.8));
+    const QString pad_foot = PadFoot() ? PadFoot()() : QString();
     p.drawText(QRectF(card.left() + Side(), card.bottom() - Foot(), card.width() - 2 * Side(), Foot()), Qt::AlignLeft | Qt::AlignVCenter,
-               QStringLiteral("ENTER SELECT · ESC BACK"));
+               pad_foot.isEmpty() ? QStringLiteral("ENTER SELECT · ESC BACK") : pad_foot);
 }
 
 } // namespace Home

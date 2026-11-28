@@ -34,6 +34,32 @@ class StatsLineView(context: Context) : TextView(context) {
             }
         }
 
+    /**
+     * The popup's colours, where the line takes them (Furoshiki, the maintainer, 2026-11-27: "match
+     * the popup there too"): a rounded pill in the popup's ground at 80%, its text, muted units and
+     * accent, as the desktop draws it over a game with the shelf's look. Null: the style's own.
+     */
+    class Colours(val ground: Int, val text: Int, val dim: Int, val accent: Int, val rule: Int)
+
+    var colours: Colours? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                requestLayout()
+                invalidate()
+            }
+        }
+
+    /** The figures' face (Furoshiki's Michroma), where the app has one; null: the style's own. */
+    var face: Typeface? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                requestLayout()
+                invalidate()
+            }
+        }
+
     /** The statistics are paused: two bars before the line. */
     var paused = false
         set(value) {
@@ -111,13 +137,19 @@ class StatsLineView(context: Context) : TextView(context) {
 
     // ---- A row: pause sign, each figure with its unit smaller, a separator between ----
 
-    private fun numberPaint() = if (style == "ink") ink.set(sans, size * 1.05f, 0) else ink.set(serif, size, 0)
-    private fun unitPaint() = if (style == "ink") ink.set(sans, size * 0.72f, 0) else ink.set(serif, size * 0.72f, 0)
+    /** "ink" without the popup's colours: no box, a halo round the letters. */
+    private val bare get() = style == "ink" && colours == null
+
+    // Michroma is wide: a little smaller than the serif. A unit such as 字 falls back to the system's.
+    private fun numberPaint() = face?.let { ink.set(it, size * 0.86f, 0) }
+        ?: if (style == "ink") ink.set(sans, size * 1.05f, 0) else ink.set(serif, size, 0)
+    private fun unitPaint() = face?.let { ink.set(it, size * 0.62f, 0) }
+        ?: if (style == "ink") ink.set(sans, size * 0.72f, 0) else ink.set(serif, size * 0.72f, 0)
 
     private fun rowWidth(): Float {
         val s = size
         val figures = figures()
-        val sep = if (style == "ink") s * 1.1f else s
+        val sep = if (bare) s * 1.1f else s
         val barsHeight = numberPaint().fontMetrics.let { -it.ascent } * 0.72f
         var width = if (paused) max(2f, barsHeight * 0.28f) * 2.6f + (if (figures.isEmpty()) 0f else s * 0.55f) else 0f
         figures.forEachIndexed { i, figure ->
@@ -136,9 +168,9 @@ class StatsLineView(context: Context) : TextView(context) {
             setMeasuredDimension((layout.width + shade * 2).toInt() + 1, (layout.height + shade * 2).toInt() + 1)
             return
         }
-        val pad = if (style == "ink") s * 0.2f else s * 0.7f
+        val pad = if (bare) s * 0.2f else s * 0.7f
         val metrics = numberPaint().fontMetrics
-        val height = metrics.descent - metrics.ascent + (if (style == "ink") s * 0.2f else s * 0.56f)
+        val height = metrics.descent - metrics.ascent + (if (bare) s * 0.2f else s * 0.56f)
         setMeasuredDimension((rowWidth() + pad * 2 + shade * 2).toInt() + 1, (height + shade * 2).toInt() + 1)
     }
 
@@ -209,7 +241,8 @@ class StatsLineView(context: Context) : TextView(context) {
     private fun drawRow(shade: Float) {
         val c = canvas ?: return
         val s = size
-        val inkStyle = style == "ink"
+        val themed = colours
+        val inkStyle = bare
         val dark = style == "paper-dark"
         val figures = figures()
         val width = rowWidth()
@@ -223,6 +256,16 @@ class StatsLineView(context: Context) : TextView(context) {
         val sepColour: Int
         val barsColour: Int
         when {
+            themed != null -> {
+                val radius = s * 0.45f
+                shadow(radius, 95)
+                fill.color = Color.argb(204, Color.red(themed.ground), Color.green(themed.ground), Color.blue(themed.ground))
+                c.drawRoundRect(box, radius, radius, fill)
+                stroke.color = themed.rule; stroke.strokeWidth = 1f
+                c.drawRoundRect(box, radius, radius, stroke)
+                text = themed.text; unit = themed.dim
+                sepColour = themed.dim; barsColour = themed.accent
+            }
             inkStyle -> {
                 text = Color.WHITE; unit = Color.argb(0xCC, 0xFF, 0xFF, 0xFF)
                 sepColour = Color.rgb(0xB9, 0xB0, 0xF2); barsColour = Color.rgb(0x7F, 0xF0, 0xC8)

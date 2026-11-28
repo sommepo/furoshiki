@@ -33,6 +33,12 @@ public:
     /// `focused` (optional) hears the index highlighted as the pointer or keys move over the list,
     /// and -1 when the picker closes without picking. `keep_clear` (optional) keeps a bottom band
     /// (such as the live popup preview) uncovered by placing the card above it.
+    /// The foot's words while a controller is the input ("A SELECT · B BACK", its own letters);
+    /// empty: the keyboard's. The program sets it.
+    static std::function<QString()>& PadFoot() {
+        static std::function<QString()> foot;
+        return foot;
+    }
     static ChoicePicker* Open(QWidget* over, const QString& title, const QStringList& choices, int now,
                               const Colours& colours, std::function<void(int)> picked,
                               std::function<void(int)> focused = {}, const QRect& keep_clear = {});

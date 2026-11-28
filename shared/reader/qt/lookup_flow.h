@@ -94,9 +94,9 @@ public:
         KanjiNext,     ///< d-pad right (kanji tab)
         TabBefore,     ///< L1
         TabNext,       ///< R1
-        Card,          ///< north: a card without the line's audio
-        CardWithAudio, ///< east: a card with it
-        ToggleMore,    ///< expand/collapse "more" and <details> on the chosen entry
+        Card,          ///< north: a card without the line's audio (the popup's right plus)
+        CardWithAudio, ///< west: a card with it (the popup's left plus)
+        ToggleMore,    ///< east: expand/collapse "more" and <details> on the chosen entry
         Close,         ///< south
     };
     /// Does what `key` does in the open popup; false when no popup is open.

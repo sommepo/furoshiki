@@ -166,29 +166,90 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     private var pageFit = 0
     private var fitEase: ValueAnimator? = null
     private var fitTarget = 0
+    /** Visual height during an easeFit animation (-1 when at rest); avoids resizing the WebView each frame. */
+    private var animatedHeight = -1
+    /** True when the popup is placed above the text (bottom edge stays anchored while height eases). */
+    var anchorAbove = false
 
-    /** The entry's height reached in a fifth of a second, from the height shown. */
-    private fun easeFit(to: Int) {
-        if (fitEase?.isRunning == true && fitTarget == to) return
+    private fun updateEaseTranslation(layoutHeight: Int) {
+        translationY = if (anchorAbove && animatedHeight >= 0) {
+            (layoutHeight - animatedHeight).coerceAtLeast(0).toFloat()
+        } else {
+            0f
+        }
+    }
+
+    private fun cancelEase() {
         fitEase?.cancel()
-        fitTarget = to
-        if (to == pageFit) return
-        fitEase = ValueAnimator.ofInt(pageFit, to).apply {
-            duration = 200
-            interpolator = android.view.animation.DecelerateInterpolator(1.6f)
-            addUpdateListener {
-                pageFit = it.animatedValue as Int
+        fitEase = null
+        animatedHeight = -1
+        translationY = 0f
+    }
+
+    /** The entry's height reached in a fifth of a second, without resizing the WebView on each frame. */
+    private fun easeFit(to: Int) {
+        val clampedTo = minOf(to, pageHeight, maxHeight).coerceAtLeast(1)
+        val currentVisual = if (animatedHeight >= 0) animatedHeight
+            else height.takeIf { it > 0 } ?: minOf(pageFit, pageHeight, maxHeight).coerceAtLeast(1)
+        if (fitEase?.isRunning == true && fitTarget == clampedTo) return
+        fitEase?.cancel()
+        fitTarget = clampedTo
+        if (Math.abs(clampedTo - currentVisual) < 2) {
+            animatedHeight = -1
+            translationY = 0f
+            if (pageFit != to) {
+                pageFit = to
                 requestLayout()
                 onLayoutChanged?.invoke()
             }
+            invalidate()
+            return
+        }
+        val layoutHeight = maxOf(currentVisual, clampedTo)
+        // Lay out the WebView once at the larger height; clip + translate on each frame, then
+        // shrink once on end if needed. Zero WebView relayouts during the animation.
+        if (pageFit != layoutHeight) {
+            pageFit = layoutHeight
+            requestLayout()
+            onLayoutChanged?.invoke()
+        }
+        animatedHeight = currentVisual
+        updateEaseTranslation(height.takeIf { it > 0 } ?: layoutHeight)
+        fitEase = ValueAnimator.ofInt(currentVisual, clampedTo).apply {
+            duration = 200
+            interpolator = android.view.animation.DecelerateInterpolator(1.6f)
+            addUpdateListener {
+                animatedHeight = it.animatedValue as Int
+                updateEaseTranslation(height.takeIf { h -> h > 0 } ?: layoutHeight)
+                invalidate()
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                private var cancelled = false
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    cancelled = true
+                }
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    if (cancelled) return
+                    animatedHeight = -1
+                    translationY = 0f
+                    if (pageFit != to) {
+                        pageFit = to
+                        requestLayout()
+                        onLayoutChanged?.invoke()
+                    } else {
+                        invalidate()
+                    }
+                }
+            })
             start()
         }
     }
 
     private fun takeFit(to: Int) {
+        val clampedTo = minOf(to, pageHeight, maxHeight).coerceAtLeast(1)
         // A report while it eases to the same height lets it go on.
-        if (fitEase?.isRunning == true && fitTarget == to) return
-        fitEase?.cancel()
+        if (fitEase?.isRunning == true && fitTarget == clampedTo) return
+        cancelEase()
         pageFit = to
     }
     private var pageNeed = 0
@@ -251,6 +312,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     }
 
     private fun dropPage() {
+        cancelEase()
         page?.let {
             removeView(it)
             it.destroy()
@@ -260,7 +322,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         elevation = dp(6f)
         scroll.visibility = VISIBLE
         alpha = 1f
-        // Its native entries were made without their definitions: made again whole.
+        // Its native entries were skipped while the page drew them: make them now.
         if (leanEntries && shownResults.isNotEmpty()) showResults(shownResults, shownHistory, shownWithWhere)
     }
 
@@ -269,7 +331,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     private fun showOnPage(entries: JSONArray, message: JSONObject?) = showOnPage(entries.toString(), JSONObject(), message)
 
     /** [entries] as JSON text already; [pictures] those they name that the page was not given. */
-    private fun showOnPage(entries: String, pictures: JSONObject, message: JSONObject?) {
+    private fun showOnPage(entries: String, pictures: JSONObject, message: JSONObject?, styles: Map<String, String>? = null) {
         val page = page() ?: return
         scroll.visibility = GONE
         // Seen once the page has said how tall it is.
@@ -297,8 +359,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         }
         // The dictionaries' own stylesheets (styles.css), each for its own senses: only when they
         // are not what the page has (it keeps them, scoped, between lookups).
-        runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database.styles() }
-            .getOrNull()?.let { styles ->
+        (styles ?: runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database.styles() }.getOrNull())
+            ?.let { styles ->
                 if (styles != pageStyles) {
                     model.put("styles", JSONObject(styles))
                     pageStyles = styles
@@ -318,13 +380,22 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             pageStyles = null
         }
         when (message.optString("type")) {
+            "timing" -> ReaderLog.info("[Reader] popup page: ${message.optInt("entries")} entries drawn in " +
+                "${message.optInt("draw")} ms (marks ${message.optInt("marks")}, report ${message.optInt("report")}), " +
+                "on screen after ${message.optInt("shown")} ms")
             "size" -> {
                 val density = resources.displayMetrics.density
+                val prevWanted = if (fitEntry && pageFit > 0) minOf(pageFit, pageHeight) else pageHeight
+                val prevNeed = pageNeed
+                val prevRadius = blurRadius
+                val prevBox = blurBox
+                val wasHidden = alpha < 1f
                 pageHeight = (message.optDouble("height", 0.0) * density).toInt()
                 val fit = (message.optDouble("fit", message.optDouble("height", 0.0)) * density).toInt()
+                val easing = message.optBoolean("ease") && fitEntry && pageFit > 0 && isShown && !wasHidden
                 // A step to another entry (the d-pad, or the height following the scroll) eases the
                 // height to it; anything else takes it at once.
-                if (message.optBoolean("ease") && fitEntry && pageFit > 0 && isShown) easeFit(fit) else takeFit(fit)
+                if (easing) easeFit(fit) else takeFit(fit)
                 pageNeed = (message.optDouble("need", 0.0) * density).toInt()
                 pageBoxes.clear()
                 message.optJSONArray("boxes")?.let { boxes ->
@@ -341,9 +412,15 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
                 blurRadius = (message.optDouble("radius", 0.0) * density).toFloat()
                 blurBox = (message.optDouble("box", 0.0) * density).toFloat()
                 alpha = 1f
-                requestLayout()
-                onLayoutChanged?.invoke()
-                refreshBlur()
+                val newWanted = if (fitEntry && pageFit > 0) minOf(pageFit, pageHeight) else pageHeight
+                val layoutNeeded = wasHidden || (!easing && newWanted != prevWanted) || pageNeed != prevNeed
+                if (layoutNeeded) {
+                    requestLayout()
+                    onLayoutChanged?.invoke()
+                } else if (blurRadius != prevRadius || blurBox != prevBox) {
+                    invalidate()
+                }
+                if (blurBitmap == null) refreshBlur()
             }
 
             "add" -> shownResults.getOrNull(index)?.let { result ->
@@ -470,7 +547,11 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         lateinit var view: View
     }
 
+    /** Lightweight state for results when the WebView page draws them (no native views created). */
+    private class PageState(var state: CardState = CardState.ADD, var unknown: Boolean = false)
+
     private val entries = IdentityHashMap<LookupResult, Entry>()
+    private val pageStates = IdentityHashMap<LookupResult, PageState>()
 
     init {
         background = ConsoleLook.ground(resources.displayMetrics.density)
@@ -490,79 +571,110 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        placeBoxes()
-        // Moved or another size: what is behind it now, from the picture in hand, at once.
-        if (changed) cutBlur()
+        if (!leanEntries) placeBoxes()
+        if (animatedHeight >= 0) updateEaseTranslation(bottom - top)
     }
 
-    // The game blurred behind a see-through popup (PopupBlur): a small copy of the game's picture,
-    // what of it lies under the popup blurred, drawn behind the page within the popup's corners.
-    private var blurFrame: PopupBlur.Picture? = null
+    // The game blurred behind a see-through popup (PopupBlur): a small copy of the game's picture
+    // is blurred once off the main thread, and dispatchDraw draws the sub-rect under the popup
+    // with zero per-frame or per-resize CPU blur work.
+    private var blurBitmap: Bitmap? = null
     private var blurSurface: PopupBlur.Box? = null
-    private var blurShrink = PopupBlur.SHRINK.toFloat()
-    private var blurPicture: Bitmap? = null
     private var blurRadius = 0f
     // How tall the page has drawn the popup: the view is taller for a moment as it grows, and
     // the blur is not drawn where the page has no ground over it yet.
     private var blurBox = 0f
     private var blurAsked = false
+    private var blurGeneration = 0
     private val blurPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val blurBlackPaint = Paint().apply { color = 0xff000000.toInt() }
     private val blurClip = Path()
     private val blurPlace = RectF()
+    private val blurSrc = android.graphics.Rect()
+    private val blurDst = RectF()
+    private val screenLoc = IntArray(2)
     private val blurAgain = Runnable { refreshBlur() }
+    private var blurCopies = 0
+    private var blurCopyMs = 0L
+    private var blurCutMs = 0L
 
     private val blurWanted: Boolean
         get() = isPage && isShown && PopupBlur.on(theme, look?.optInt("opacity", 100) ?: 100)
 
-    /** Takes the game's picture again, while a see-through popup is shown; else lets the blur go. */
+    /** Takes the game's picture once per word and blurs it off the main thread; else lets it go. */
     private fun refreshBlur() {
         removeCallbacks(blurAgain)
         val surface = PopupBlur.surface?.get()
         // A game on another display (a handheld's second screen) is not behind this popup.
         if (!blurWanted || surface == null || !surface.isShown || surface.display?.displayId != display?.displayId) {
-            if (blurPicture != null || blurFrame != null) {
-                blurFrame = null
-                blurPicture = null
+            blurGeneration++
+            if (blurBitmap != null) {
+                blurBitmap = null
+                blurSurface = null
                 invalidate()
             }
             return
         }
+        if (blurBitmap != null) return
         if (blurAsked) return
         blurAsked = true
         val maxWidth = maxOf(1, surface.width / PopupBlur.SHRINK)
+        val copyFrom = android.os.SystemClock.elapsedRealtime()
+        val generation = blurGeneration
         ReaderHost.copyFrame(surface, maxWidth) { copy ->
             blurAsked = false
-            if (copy != null && blurWanted) {
-                val pixels = IntArray(copy.width * copy.height)
-                copy.getPixels(pixels, 0, copy.width, 0, 0, copy.width, copy.height)
+            blurCopies++
+            blurCopyMs += android.os.SystemClock.elapsedRealtime() - copyFrom
+            if (copy != null && blurWanted && generation == blurGeneration) {
                 val at = IntArray(2).also { surface.getLocationOnScreen(it) }
-                blurFrame = PopupBlur.Picture(copy.width, copy.height, pixels)
-                blurSurface = PopupBlur.Box(at[0], at[1], at[0] + surface.width, at[1] + surface.height)
-                blurShrink = surface.width.toFloat() / copy.width
-                cutBlur()
+                val surfaceBox = PopupBlur.Box(at[0], at[1], at[0] + surface.width, at[1] + surface.height)
+                val density = resources.displayMetrics.density
+                val shrink = surface.width.toFloat() / copy.width
+                blurWorker.execute {
+                    val blurFrom = android.os.SystemClock.elapsedRealtime()
+                    val w = copy.width
+                    val h = copy.height
+                    val pixels = IntArray(w * h)
+                    copy.getPixels(pixels, 0, w, 0, 0, w, h)
+                    copy.recycle()
+                    val picture = PopupBlur.Picture(w, h, pixels)
+                    PopupBlur.blur(picture, PopupBlur.reach(density, shrink))
+                    val blurred = Bitmap.createBitmap(picture.pixels, w, h, Bitmap.Config.ARGB_8888)
+                    val elapsed = android.os.SystemClock.elapsedRealtime() - blurFrom
+                    post {
+                        blurCutMs += elapsed
+                        if (blurCopies % 20 == 0) {
+                            ReaderLog.info("[Reader] popup blur: $blurCopies copies, ${blurCopyMs / blurCopies} ms a copy, ${blurCutMs / blurCopies} ms a blur")
+                        }
+                        if (generation == blurGeneration && blurWanted) {
+                            blurBitmap = blurred
+                            blurSurface = surfaceBox
+                            invalidate()
+                        } else {
+                            blurred.recycle()
+                        }
+                    }
+                }
+            } else {
+                copy?.recycle()
             }
-            copy?.recycle()
-            if (blurWanted) postDelayed(blurAgain, PopupBlur.REFRESH_MS)
         }
     }
 
-    /** What of the picture in hand lies under the popup where it stands now, blurred. */
-    private fun cutBlur() {
-        val frame = blurFrame ?: return
-        val surface = blurSurface ?: return
-        if (width <= 0 || height <= 0) return
-        val at = IntArray(2).also { getLocationOnScreen(it) }
-        val under = PopupBlur.under(frame, surface, PopupBlur.Box(at[0], at[1], at[0] + width, at[1] + height)) ?: return
-        PopupBlur.blur(under, PopupBlur.reach(resources.displayMetrics.density, blurShrink))
-        blurPicture = Bitmap.createBitmap(under.pixels, under.width, under.height, Bitmap.Config.ARGB_8888)
-        invalidate()
+    /** A new word: the next blur is made from a new copy of the game's picture. */
+    fun forgetBlur() {
+        blurGeneration++
+        blurBitmap = null
+        blurSurface = null
     }
 
     override fun dispatchDraw(canvas: Canvas) {
-        val picture = blurPicture
-        if (picture != null && isPage) {
+        val visibleHeight = if (animatedHeight >= 0 && animatedHeight < height) animatedHeight.toFloat() else height.toFloat()
+        val picture = blurBitmap
+        val surface = blurSurface
+        if (picture != null && surface != null && isPage && width > 0 && visibleHeight > 0f) {
             val save = canvas.save()
-            val drawn = if (blurBox > 0f && blurBox < height) Math.ceil(blurBox.toDouble()).toFloat() else height.toFloat()
+            val drawn = if (blurBox > 0f && blurBox < visibleHeight) Math.ceil(blurBox.toDouble()).toFloat() else visibleHeight
             blurPlace.set(0f, 0f, width.toFloat(), drawn)
             if (blurRadius > 0f) {
                 blurClip.rewind()
@@ -571,22 +683,66 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
             } else {
                 canvas.clipRect(blurPlace)
             }
-            blurPlace.set(0f, 0f, width.toFloat(), height.toFloat())
-            canvas.drawBitmap(picture, null, blurPlace, blurPaint)
+            getLocationOnScreen(screenLoc)
+            val popL = screenLoc[0]
+            val popT = screenLoc[1]
+            val popR = popL + width
+            val popB = popT + drawn.toInt()
+            if (popL < surface.left || popT < surface.top || popR > surface.right || popB > surface.bottom) {
+                canvas.drawRect(blurPlace, blurBlackPaint)
+            }
+            val interL = maxOf(popL, surface.left)
+            val interT = maxOf(popT, surface.top)
+            val interR = minOf(popR, surface.right)
+            val interB = minOf(popB, surface.bottom)
+            if (interR > interL && interB > interT && surface.width > 0 && surface.height > 0) {
+                val scaleX = picture.width.toFloat() / surface.width
+                val scaleY = picture.height.toFloat() / surface.height
+                blurSrc.set(
+                    Math.floor(((interL - surface.left) * scaleX).toDouble()).toInt().coerceIn(0, picture.width - 1),
+                    Math.floor(((interT - surface.top) * scaleY).toDouble()).toInt().coerceIn(0, picture.height - 1),
+                    Math.ceil(((interR - surface.left) * scaleX).toDouble()).toInt().coerceIn(1, picture.width),
+                    Math.ceil(((interB - surface.top) * scaleY).toDouble()).toInt().coerceIn(1, picture.height)
+                )
+                blurDst.set(
+                    (interL - popL).toFloat(),
+                    (interT - popT).toFloat(),
+                    (interR - popL).toFloat(),
+                    (interB - popT).toFloat()
+                )
+                canvas.drawBitmap(picture, blurSrc, blurDst, blurPaint)
+            }
             canvas.restoreToCount(save)
         }
-        super.dispatchDraw(canvas)
+        if (animatedHeight >= 0 && animatedHeight < height && isPage) {
+            val save = canvas.save()
+            blurPlace.set(0f, 0f, width.toFloat(), visibleHeight)
+            if (blurRadius > 0f) {
+                blurClip.rewind()
+                blurClip.addRoundRect(blurPlace, blurRadius, blurRadius, Path.Direction.CW)
+                canvas.clipPath(blurClip)
+            } else {
+                canvas.clipRect(blurPlace)
+            }
+            super.dispatchDraw(canvas)
+            canvas.restoreToCount(save)
+        } else {
+            super.dispatchDraw(canvas)
+        }
     }
 
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
+        if (visibility != VISIBLE) cancelEase()
         post { refreshBlur() }
     }
 
     override fun onDetachedFromWindow() {
+        cancelEase()
         removeCallbacks(blurAgain)
-        blurFrame = null
-        blurPicture = null
+        blurGeneration++
+        blurBitmap = null
+        blurSurface = null
         super.onDetachedFromWindow()
     }
 
@@ -634,10 +790,14 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
      * The words shown, again, once the definitions read after them are in (DictionaryLookup
      * .fillIn): the page keeps its tab, its scroll and the entry in hand.
      */
-    fun fillIn() {
+    fun fillIn(prepared: Prepared? = null) {
         val page = page()
         if (page == null || !leanEntries) {
             if (shownResults.isNotEmpty()) showResults(shownResults, shownHistory, shownWithWhere)
+            return
+        }
+        if (prepared != null) {
+            page.call("Reader.fill({\"entries\":" + prepared.entries + ",\"pictures\":" + prepared.pictures + "})")
             return
         }
         val pictures = JSONObject()
@@ -646,24 +806,54 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     }
 
     /** The page's entries as JSON text: the words, then the first one's kanji. */
-    private fun modelText(results: List<LookupResult>, history: List<LookupHistory>, withWhere: Boolean, pictures: JSONObject): String {
+    private fun modelText(results: List<LookupResult>, history: List<LookupHistory>, withWhere: Boolean, pictures: JSONObject,
+                          kinds: Map<String, String> = dictionaryKinds): String {
         val model = StringBuilder("[")
         for ((index, result) in results.withIndex()) {
             if (index > 0) model.append(',')
-            model.append(PopupModel.entryText(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, dictionaryKinds, pagePictures, pictures))
+            synchronized(pagePictures) {
+                model.append(PopupModel.entryText(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, kinds, pagePictures, pictures))
+            }
         }
-        // Every unique kanji of the looked-up word, from the kanji dictionaries: on the Kanji tab.
+        // Every unique kanji of the looked-up word, from both kanji-bank and term-based kanji dictionaries: on the Kanji tab.
         val first = results.firstOrNull()
         val characters = PopupModel.kanjiListOf(first?.matchedText.orEmpty())
             .ifEmpty { PopupModel.kanjiListOf(first?.expression.orEmpty()) }
         if (characters.isNotEmpty()) {
             val database = runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database }.getOrNull()
             if (database != null) {
+                val coveredTermKanji = HashSet<String>()
+                for (r in results) {
+                    if (r.entries.any { org.readers.app.reader.dict.DictionaryKinds.of(it, kinds) == org.readers.app.reader.dict.DictionaryKinds.KANJI }) {
+                        coveredTermKanji.add(r.expression)
+                    }
+                }
                 for (character in characters) {
                     runCatching {
                         PopupModel.kanjiText(database.findKanji(character), database.findKanjiMeta(character))
                     }.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
                         model.append(if (model.length > 1) "," else "").append(it)
+                    }
+                    if (character !in coveredTermKanji) {
+                        val termKanji = runCatching {
+                            database.findTerms(listOf(character), withGlossaries = true)
+                                .filter { it.expression == character && org.readers.app.reader.dict.DictionaryKinds.of(it, kinds) == org.readers.app.reader.dict.DictionaryKinds.KANJI }
+                        }.getOrDefault(emptyList())
+                        if (termKanji.isNotEmpty()) {
+                            val extra = LookupResult(
+                                expression = character,
+                                reading = termKanji.first().reading,
+                                matchedText = character,
+                                reasons = emptyList(),
+                                entries = termKanji,
+                                frequencies = emptyList(),
+                                pitches = emptyList()
+                            )
+                            synchronized(pagePictures) {
+                                val text = PopupModel.entryText(extra, null, kinds, pagePictures, pictures)
+                                if (text.isNotEmpty()) model.append(if (model.length > 1) "," else "").append(text)
+                            }
+                        }
                     }
                 }
             }
@@ -671,42 +861,83 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         return model.append(']').toString()
     }
 
-    fun showResults(results: List<LookupResult>, history: List<LookupHistory> = emptyList(), withWhere: Boolean = false) {
+    /**
+     * The page's model of [results] made where the lookup was (its worker thread), so that the main
+     * thread only hands it over (the maintainer, 2026-11-28: the popup slow on the Thor; it took 50
+     * to 140 ms there on the main thread, kanji and the dictionaries' stylesheets read from the database).
+     */
+    class Prepared(val results: List<LookupResult>, val entries: String, val pictures: JSONObject, val styles: Map<String, String>?)
+
+    fun prepare(results: List<LookupResult>, history: List<LookupHistory>, withWhere: Boolean, kinds: Map<String, String>): Prepared? {
+        if (!PopupPage.available || theme == "classic") return null
+        val pictures = JSONObject()
+        synchronized(pagePictures) {
+            if (pagePictures.size > 4000) {
+                pagePictures.clear()
+                forgetPictures = true
+            }
+        }
+        val text = modelText(results, history, withWhere, pictures, kinds)
+        val styles = runCatching { org.readers.app.reader.dict.DictionaryStore.get(context).database.styles() }.getOrNull()
+        return Prepared(results, text, pictures, styles)
+    }
+
+    fun showResults(results: List<LookupResult>, history: List<LookupHistory> = emptyList(), withWhere: Boolean = false,
+                    prepared: Prepared? = null) {
+        cancelEase()
+        forgetBlur()
         uniform = true
-        list.removeAllViews()
+        if (list.childCount > 0) list.removeAllViews()
         entries.clear()
+        pageStates.clear()
         scroll.scrollTo(0, 0)
         shownResults = results
         shownHistory = history
         shownWithWhere = withWhere
         val onPage = page() != null
         if (onPage) {
-            // As JSON text: the glossaries go as they are stored, each headword's kept
-            // (PopupModel.entryText), each picture sent once.
-            if (pagePictures.size > 4000) {
-                pagePictures.clear()
-                forgetPictures = true
+            if (prepared != null && prepared.results === results) {
+                showOnPage(prepared.entries, prepared.pictures, null, prepared.styles)
+            } else {
+                // As JSON text: the glossaries go as they are stored, each headword's kept
+                // (PopupModel.entryText), each picture sent once.
+                synchronized(pagePictures) {
+                    if (pagePictures.size > 4000) {
+                        pagePictures.clear()
+                        forgetPictures = true
+                    }
+                }
+                val pictures = JSONObject()
+                showOnPage(modelText(results, history, withWhere, pictures), pictures, null)
             }
-            val pictures = JSONObject()
-            showOnPage(modelText(results, history, withWhere, pictures), pictures, null)
+            leanEntries = true
+            // When the WebView page draws the popup, keep only lightweight state (no native views).
+            for (result in results) pageStates[result] = PageState()
+            return
         }
-        leanEntries = onPage
+        leanEntries = false
         for ((index, result) in results.withIndex()) {
-            // As wide as the popup, so that every button box sits at its right edge. Behind a
-            // page, only what keeps each entry's box and marks: the page draws the definitions.
+            // As wide as the popup, so that every button box sits at its right edge.
             list.addView(
-                resultView(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, lean = onPage),
+                resultView(result, history.getOrNull(index)?.takeIf { it.count > 0 }?.let { historyLine(it, withWhere) }, lean = false),
                 LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             )
         }
     }
 
     fun showMessage(message: String, offerDictionaries: Boolean) {
+        cancelEase()
         uniform = false
         shownResults = emptyList()
-        if (page() != null) showOnPage(JSONArray(), JSONObject().put("text", message).put("dictionaries", offerDictionaries))
-        list.removeAllViews()
+        if (list.childCount > 0) list.removeAllViews()
         entries.clear()
+        pageStates.clear()
+        if (page() != null) {
+            leanEntries = true
+            showOnPage(JSONArray(), JSONObject().put("text", message).put("dictionaries", offerDictionaries))
+            return
+        }
+        leanEntries = false
         list.addView(label(message, SENSE_SP, ReaderStyle.POPUP_TEXT).apply { setPadding(0, 0, dp(4f).toInt(), 0) })
         if (offerDictionaries) {
             list.addView(
@@ -720,6 +951,13 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** Marks [result]'s headword as not in Anki, or takes the mark away. */
     fun setUnknown(result: LookupResult, unknown: Boolean) {
+        if (leanEntries) {
+            val ps = pageStates[result] ?: return
+            if (ps.unknown == unknown) return
+            ps.unknown = unknown
+            page?.call("Reader.setUnknown(${shownResults.indexOf(result)}, $unknown)")
+            return
+        }
         val entry = entries[result] ?: return
         if (entry.unknown == unknown) return
         entry.unknown = unknown
@@ -730,7 +968,8 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     }
 
     /** Whether [result]'s headword is marked as not in Anki. For tests. */
-    fun isUnknown(result: LookupResult): Boolean = entries[result]?.unknown == true
+    fun isUnknown(result: LookupResult): Boolean =
+        if (leanEntries) pageStates[result]?.unknown == true else entries[result]?.unknown == true
 
     private fun historyLine(history: LookupHistory, withWhere: Boolean): String {
         val count = if (history.count == 1) {
@@ -749,11 +988,53 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
     }
 
     /** What the box of [result] offers, or null when the popup no longer shows it. */
-    fun cardState(result: LookupResult): CardState? = entries[result]?.state
+    fun cardState(result: LookupResult): CardState? =
+        if (leanEntries) pageStates[result]?.state else entries[result]?.state
+
+    /** Batched Anki state update for [LookupLayer.askAnki]: one JS bridge call instead of 2*N. */
+    class StateUpdate(val result: LookupResult, val state: CardState? = null, val unknown: Boolean? = null)
+
+    fun setAnkiStates(updates: List<StateUpdate>) {
+        if (updates.isEmpty()) return
+        if (!leanEntries) {
+            for (u in updates) {
+                u.unknown?.let { setUnknown(u.result, it) }
+                u.state?.let { setCardState(u.result, it) }
+            }
+            return
+        }
+        val arr = JSONArray()
+        for (u in updates) {
+            val ps = pageStates[u.result] ?: continue
+            var changed = false
+            val obj = JSONObject()
+            if (u.unknown != null && ps.unknown != u.unknown) {
+                ps.unknown = u.unknown
+                obj.put("unknown", u.unknown)
+                changed = true
+            }
+            if (u.state != null && ps.state != u.state) {
+                ps.state = u.state
+                obj.put("state", PopupModel.stateName(u.state))
+                changed = true
+            }
+            if (changed) {
+                obj.put("index", shownResults.indexOf(u.result))
+                arr.put(obj)
+            }
+        }
+        if (arr.length() > 0) page?.call("Reader.setStates($arr)")
+    }
 
     /** Cycles characters on the Kanji tab (d-pad Left / Right on a controller). */
     fun kanjiStep(step: Int) {
         page?.call("Reader.kanjiStep(${if (step < 0) -1 else 1})")
+    }
+
+    /** Opens or closes the chosen entry's "more" (a controller's east): a grammar entry's, for one. */
+    fun toggleMore() {
+        val page = page ?: return
+        if (scroll.visibility == GONE) page.call("Reader.toggleMore()")
     }
 
     /** Presses the chosen entry's card button ([audio]: with the line's audio) through the page. */
@@ -765,6 +1046,13 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
 
     /** Changes what the box of [result] offers. Does nothing when it is no longer shown. */
     fun setCardState(result: LookupResult, state: CardState) {
+        if (leanEntries) {
+            val ps = pageStates[result] ?: return
+            if (ps.state == state) return
+            ps.state = state
+            page?.call("Reader.setBox(${shownResults.indexOf(result)}, ${JSONObject.quote(PopupModel.stateName(state))})")
+            return
+        }
         val entry = entries[result] ?: return
         entry.state = state
         page?.call("Reader.setBox(${shownResults.indexOf(result)}, ${JSONObject.quote(PopupModel.stateName(state))})")
@@ -1133,5 +1421,7 @@ class LookupPopupView(context: Context) : FrameLayout(context) {
         const val SMALL_SP = 11f
         const val BOX_DP = 24f
         const val BOTTOM_DP = 8f
+        val blurWorker: java.util.concurrent.ExecutorService =
+            java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "ReaderBlur") }
     }
 }

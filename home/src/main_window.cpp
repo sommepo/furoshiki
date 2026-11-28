@@ -652,7 +652,15 @@ MainWindow::MainWindow() {
                 const int need = static_cast<int>(std::ceil(message.value(QStringLiteral("need")).toDouble(0)));
                 const int tall = settings.PopupFitEntry() ? std::min(entry, height() * ReaderApp::ReaderSettings::PopupFitLimitPercent / 100)
                                                           : std::min(content, std::max(need, height() * settings.PopupHeightPercent() / 100));
-                popup_preview->resize(popup_preview->width(), std::clamp(tall, 40, popup_preview_place.height()));
+                // Resized after the page's message is handled, never inside it: WebView2 resized from
+                // within its own message callback can stop answering (a freeze while themes were
+                // stepped through quickly on the Z13, 2026-11-27).
+                const int wanted = std::clamp(tall, 40, popup_preview_place.height());
+                QTimer::singleShot(0, this, [this, wanted] {
+                    if (popup_preview != nullptr && popup_preview->height() != wanted) {
+                        popup_preview->resize(popup_preview->width(), wanted);
+                    }
+                });
             });
             popup_preview_timer = new QTimer(this);
             popup_preview_timer->setInterval(350);
@@ -676,7 +684,7 @@ MainWindow::MainWindow() {
     home->SetPopupThemePreview([this, popup_theme_setting](int index) {
         const PlaySetting theme = popup_theme_setting();
         popup_preview_override_theme = index >= 0 && index < theme.choices.size() ? theme.choices[index] : QString();
-        ShowPopupPreview();
+        ShowPopupPreviewSoon();
     });
     // The Reader settings' popup page opens this program's customiser (the settings window's Popup tab).
     ReaderUi::PopupCustomiser() = [this] { OpenSettings(QStringLiteral("Popup")); };
@@ -784,7 +792,7 @@ MainWindow::MainWindow() {
                 play_settings.Save();
                 popup_preview_override_theme.clear();
                 ApplyPlaySettings(playing_id);
-                ShowPopupPreview();
+                ShowPopupPreviewSoon();
             }
             return;
         }
@@ -1251,6 +1259,14 @@ MainWindow::MainWindow() {
             home->Tick(true);
         }
     });
+    // A menu's foot names the controller's buttons while it is the input (the maintainer,
+    // 2026-11-27: no keyboard keys with a controller in use).
+    Home::ChoicePicker::PadFoot() = [this] {
+        if (!ReaderUi::LookupPopup::PadInUse()) {
+            return QString();
+        }
+        return QStringLiteral("%1 SELECT · %2 BACK").arg(pad_names.south.toUpper(), pad_names.east.toUpper());
+    };
     home->SetPadInput([this] { return ReaderUi::LookupPopup::PadInUse() ? pad_style : -1; },
                       [] { ReaderUi::LookupPopup::SetPadInUse(false); });
     // The titles read from lines, listed as a console's games are; the page's own commands for them.
@@ -3434,6 +3450,18 @@ void MainWindow::SendWindow() {
     current->session->SetWindow(window);
 }
 
+void MainWindow::ShowPopupPreviewSoon() {
+    // Steps a key held down makes come faster than the page can draw a theme: only the last of
+    // them in a moment is shown, so that the page is not sent the whole look many times over.
+    if (popup_preview_soon == nullptr) {
+        popup_preview_soon = new QTimer(this);
+        popup_preview_soon->setSingleShot(true);
+        popup_preview_soon->setInterval(70);
+        connect(popup_preview_soon, &QTimer::timeout, this, &MainWindow::ShowPopupPreview);
+    }
+    popup_preview_soon->start();
+}
+
 void MainWindow::ShowPopupPreview() {
     if (popup_preview == nullptr || popup_preview_place.isEmpty()) {
         return;
@@ -3764,7 +3792,9 @@ void MainWindow::PollPads() {
     }
     // An open dictionary popup is modal, as on Android (PopupKeys): the d-pad goes from entry to
     // entry, L1 and R1 from tab to tab (words, grammar, kanji, names), north makes a card of the
-    // entry without the line's audio and east one with it, south closes it, and the left stick
+    // entry without the line's audio and west one with it (the popup's two pluses stand in that
+    // order, the left one west's), east opens or closes the chosen entry's "more" (the maintainer,
+    // 2026-11-27: a grammar entry's "more" had no button), south closes it, and the left stick
     // scrolls. By position, as SDL numbers them: on the Steam Controller Y is north, B east, A
     // south, X west. The game hears none of the controller meanwhile, and a button pressed in the
     // popup stays away from it until it is let go (A closing the popup does not press A in the
@@ -3814,8 +3844,9 @@ void MainWindow::PollPads() {
         // Reading with the d-pad, no pointer (docs/furoshiki-3.md, 31; the cursor and its words are
         // ReaderController's). On the text the d-pad goes from word to word and line to line, the
         // bumpers to the next word not in Anki, the right stick makes the match shorter or longer
-        // and scrolls the popup, north and east make cards, west goes into the popup (the modal
-        // layer below, where west or south come back). South, Start, the left stick and the
+        // and scrolls the popup, north and west make cards (west's with the line's audio), east opens
+        // or closes the chosen entry's "more", R3 goes into the popup (L3 where R3 starts reading;
+        // the modal layer below, where that button or south comes back). South, Start, the left stick and the
         // triggers stay the game's, so the game is advanced without leaving. While a choice is up
         // every button is the game's. What the reader takes stays from the game until let go.
         using ReadState = ReaderUi::ReaderController::ReadState;
@@ -3832,6 +3863,11 @@ void MainWindow::PollPads() {
             : read_start == QStringLiteral("l3+r3")      ? bit(SDL_CONTROLLER_BUTTON_LEFTSTICK) | bit(SDL_CONTROLLER_BUTTON_RIGHTSTICK)
             : read_start == QStringLiteral("lb+rb")      ? bit(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) | bit(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
                                                          : bit(SDL_CONTROLLER_BUTTON_BACK);
+        // The button that goes into the popup and back to the text: R3, else L3 where R3 starts reading.
+        const int into_popup = (start_mask & bit(SDL_CONTROLLER_BUTTON_RIGHTSTICK)) == 0 ? SDL_CONTROLLER_BUTTON_RIGHTSTICK
+                               : (start_mask & bit(SDL_CONTROLLER_BUTTON_LEFTSTICK)) == 0 ? SDL_CONTROLLER_BUTTON_LEFTSTICK
+                                                                                          : -1;
+        const uint32_t into_bit = into_popup >= 0 ? bit(into_popup) : 0;
         const bool can_read = reader != nullptr && game_shown && ReaderUi::ReaderSession::Instance().IsActive();
         static uint32_t start_held = 0;
         static bool start_tap = false;
@@ -3932,7 +3968,7 @@ void MainWindow::PollPads() {
             uint32_t taken = bit(SDL_CONTROLLER_BUTTON_DPAD_UP) | bit(SDL_CONTROLLER_BUTTON_DPAD_DOWN) | bit(SDL_CONTROLLER_BUTTON_DPAD_LEFT) |
                              bit(SDL_CONTROLLER_BUTTON_DPAD_RIGHT) | bit(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) |
                              bit(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) | bit(SDL_CONTROLLER_BUTTON_X) | bit(SDL_CONTROLLER_BUTTON_Y) |
-                             bit(SDL_CONTROLLER_BUTTON_B);
+                             bit(SDL_CONTROLLER_BUTTON_B) | into_bit;
             // The d-pad and the bumpers repeat while held, faster as they go.
             static const std::pair<int, ReadKey> repeating[] = {
                 {SDL_CONTROLLER_BUTTON_DPAD_LEFT, ReadKey::Left},             {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, ReadKey::Right},
@@ -3958,15 +3994,18 @@ void MainWindow::PollPads() {
                 }
             }
             if (read_state == ReadState::Text) {
-                if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_X)) != 0) {
+                if ((seen_pressed & into_bit) != 0) {
                     reader->ReadKeyPressed(ReadKey::Popup);
                 }
                 if (open_popup != nullptr && open_popup == &reader->Lookups()) {
                     if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_Y)) != 0) {
                         open_popup->OnPad(ReaderUi::LookupFlow::PadKey::Card);
                     }
-                    if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_B)) != 0) {
+                    if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_X)) != 0) {
                         open_popup->OnPad(ReaderUi::LookupFlow::PadKey::CardWithAudio);
+                    }
+                    if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_B)) != 0) {
+                        open_popup->OnPad(ReaderUi::LookupFlow::PadKey::ToggleMore);
                     }
                     if (open_popup->IsAsking()) {
                         // A card's question about its audio is up: south answers "neither", and
@@ -3997,9 +4036,10 @@ void MainWindow::PollPads() {
             }
             popup_swallow |= down_now & taken;
         } else if (read_state == ReadState::Popup) {
-            // In the popup west goes back to the text; south expands/collapses "more" on the chosen entry.
-            popup_skip = bit(SDL_CONTROLLER_BUTTON_A) | bit(SDL_CONTROLLER_BUTTON_X);
-            if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_X)) != 0) {
+            // In the popup the same button goes back to the text; south, as east, opens or closes
+            // "more" on the chosen entry (the modal table below has east and the cards).
+            popup_skip = bit(SDL_CONTROLLER_BUTTON_A) | into_bit;
+            if ((seen_pressed & into_bit) != 0) {
                 reader->ReadKeyPressed(ReadKey::Text);
             } else if ((seen_pressed & bit(SDL_CONTROLLER_BUTTON_A)) != 0 && open_popup != nullptr) {
                 open_popup->OnPad(ReaderUi::LookupFlow::PadKey::ToggleMore);
@@ -4036,8 +4076,8 @@ void MainWindow::PollPads() {
                 {SDL_CONTROLLER_BUTTON_DPAD_UP, Key::EntryBefore},   {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Key::EntryNext},
                 {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Key::KanjiBefore}, {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Key::KanjiNext},
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Key::TabBefore}, {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Key::TabNext},
-                {SDL_CONTROLLER_BUTTON_Y, Key::Card},                {SDL_CONTROLLER_BUTTON_B, Key::CardWithAudio},
-                {SDL_CONTROLLER_BUTTON_A, Key::Close},
+                {SDL_CONTROLLER_BUTTON_Y, Key::Card},                {SDL_CONTROLLER_BUTTON_X, Key::CardWithAudio},
+                {SDL_CONTROLLER_BUTTON_B, Key::ToggleMore},          {SDL_CONTROLLER_BUTTON_A, Key::Close},
             };
             // Select held: its chords with L1 and R1 are the guide's, not the tabs'.
             const uint32_t pressed = button(SDL_CONTROLLER_BUTTON_BACK) ? 0 : down_now & ~popup_held & ~popup_swallow & ~popup_skip;
@@ -4342,7 +4382,8 @@ void MainWindow::SetPopupKeys() {
     const bool reading = reader != nullptr && reader->Reading();
     ReaderUi::LookupPopup::SetPadKeys(QJsonObject{
         {QStringLiteral("add"), pad_names.north},
-        {QStringLiteral("addAudio"), pad_names.east},
+        {QStringLiteral("addAudio"), pad_names.west},
+        {QStringLiteral("more"), pad_names.east},
         {QStringLiteral("left"), reading ? pad_names.l2 : pad_names.l1},
         {QStringLiteral("right"), reading ? pad_names.r2 : pad_names.r1}});
 }
@@ -4784,19 +4825,29 @@ void MainWindow::ShowReadHud() {
         const QString west = pad_names.west;
         const QString north = pad_names.north;
         const QStringList bumpers{pad_names.l1, pad_names.r1};
+        // The button into the popup and back: R3, else L3 where R3 starts reading (PollPads).
+        const QString into = start != QStringLiteral("r3") && start != QStringLiteral("l3+r3") ? pad_names.r3
+                             : start == QStringLiteral("r3")                                    ? pad_names.l3
+                                                                                                : QString();
         if (state == ReadState::Text) {
             hints = {{{QStringLiteral("←"), QStringLiteral("→")}, QStringLiteral("WORD")},
                      {{QStringLiteral("↑"), QStringLiteral("↓")}, QStringLiteral("LINE")},
                      {bumpers, QStringLiteral("NOT IN ANKI")},
                      {{south}, QStringLiteral("NEXT LINE")},
+                     {{west}, QStringLiteral("CARD + AUDIO")},
                      {{north}, QStringLiteral("CARD")},
-                     {{east}, QStringLiteral("CARD + AUDIO")},
-                     {{west}, QStringLiteral("POPUP")}};
+                     {{east}, QStringLiteral("MORE")}};
+            if (!into.isEmpty()) {
+                hints.append({{into}, QStringLiteral("POPUP")});
+            }
         } else {
             hints = {{{QStringLiteral("↑"), QStringLiteral("↓")}, QStringLiteral("ENTRY")},
+                     {{west}, QStringLiteral("CARD + AUDIO")},
                      {{north}, QStringLiteral("CARD")},
-                     {{east}, QStringLiteral("CARD + AUDIO")},
-                     {{west}, QStringLiteral("TEXT")}};
+                     {{east}, QStringLiteral("MORE")}};
+            if (!into.isEmpty()) {
+                hints.append({{into}, QStringLiteral("TEXT")});
+            }
         }
         // The triggers go from tab to tab, where the popup showing has more than one.
         if (const ReaderUi::LookupPopup* popup = reader->Lookups().Popup();
@@ -4862,11 +4913,12 @@ QString MainWindow::ReadCommand(const QString& what) {
         // A pointer really used: two places far apart, as the game's window would say them.
         reader->OnPointerMove(QPointF(40, 40));
         reader->OnPointerMove(QPointF(140, 120));
-    } else if (what == QStringLiteral("x")) {
+    } else if (what == QStringLiteral("into")) {
         reader->ReadKeyPressed(state == ReadState::Popup ? ReadKey::Text : ReadKey::Popup);
-    } else if (what == QStringLiteral("y") || what == QStringLiteral("b")) {
+    } else if (what == QStringLiteral("y") || what == QStringLiteral("x") || what == QStringLiteral("b")) {
         if (state == ReadState::Text || state == ReadState::Popup) {
-            reader->Lookups().OnPad(what == QStringLiteral("y") ? ReaderUi::LookupFlow::PadKey::Card : ReaderUi::LookupFlow::PadKey::CardWithAudio);
+            using PK = ReaderUi::LookupFlow::PadKey;
+            reader->Lookups().OnPad(what == QStringLiteral("y") ? PK::Card : what == QStringLiteral("x") ? PK::CardWithAudio : PK::ToggleMore);
         }
     } else if (what == QStringLiteral("a")) {
         if (state == ReadState::Popup) {
@@ -5065,27 +5117,10 @@ void MainWindow::OpenReadingMenu() {
         add(QStringLiteral("Toggle guide step"), [this] { ToggleGuide(); });
     }
 #endif
-    auto& session = ReaderUi::ReaderSession::Instance();
-    const bool click_on = session.Settings().ScreenText();
-    add(QStringLiteral("Click to look up  ·  %1").arg(click_on ? QStringLiteral("ON") : QStringLiteral("OFF")), [this] {
-        auto& s = ReaderUi::ReaderSession::Instance();
-        s.Settings().SetValue(ReaderApp::ReaderSettings::KeyScreenText, !s.Settings().ScreenText());
-        s.Settings().Sync();
-        s.OnSettingsChanged();
-        OpenReadingMenu();
-    });
     if (!playing_id.isEmpty() && !HasScript(playing_id)) {
         add(QStringLiteral("Read text now (OCR)"), [this] { ReadAskedBoxes(); });
     }
-    add(QStringLiteral("Popup"), [this] {
-        ShowSettingsPages();
-        home->ShowSettingsSection(QStringLiteral("Popup"));
-    });
     add(QStringLiteral("Statistics"), [trigger_reader] { trigger_reader("reader_statistics"); });
-    add(QStringLiteral("Dictionaries"), [this] {
-        ShowSettingsPages();
-        home->ShowDictionaries();
-    });
     add(QStringLiteral("Reload game script"), [trigger_reader] { trigger_reader("reader_reload_profile"); });
 #ifndef READER_NO_SAVE_SYNC
     add(QStringLiteral("Save sync…"), [this] { OpenSaveSync(); });
@@ -5116,6 +5151,23 @@ void MainWindow::OpenMenu() {
     const uint32_t features = current->session->Features();
     add(QStringLiteral("Resume"), [] {});
     add(QStringLiteral("Backlog"), [this] { OpenBacklogOverlay(); });
+    // The popup's own rows first, not behind Reading & Tools (the maintainer, 2026-11-27).
+    add(QStringLiteral("Popup"), [this] {
+        ShowSettingsPages();
+        home->ShowSettingsSection(QStringLiteral("Popup"));
+    });
+    const bool click_on = ReaderUi::ReaderSession::Instance().Settings().ScreenText();
+    add(QStringLiteral("Click to look up  ·  %1").arg(click_on ? QStringLiteral("ON") : QStringLiteral("OFF")), [this] {
+        auto& s = ReaderUi::ReaderSession::Instance();
+        s.Settings().SetValue(ReaderApp::ReaderSettings::KeyScreenText, !s.Settings().ScreenText());
+        s.Settings().Sync();
+        s.OnSettingsChanged();
+        OpenMenu();
+    });
+    add(QStringLiteral("Dictionaries"), [this] {
+        ShowSettingsPages();
+        home->ShowDictionaries();
+    });
     add(QStringLiteral("Reading & Tools"), [this] { OpenReadingMenu(); });
     if ((features & READER_CORE_HAS_STATES) != 0) {
         add(QStringLiteral("Save state"), [this] { OpenStatePicker(false); });

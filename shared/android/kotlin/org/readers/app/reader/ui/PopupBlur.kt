@@ -24,8 +24,6 @@ object PopupBlur {
     /** How far the blur reaches, in dp of the screen. */
     const val REACH_DP = 14f
 
-    /** While a popup is shown the picture behind it is taken again this often. */
-    const val REFRESH_MS = 300L
 
     /** The game's surface, where an app plays the game itself ([ReaderHost.provideFrames]). */
     @Volatile

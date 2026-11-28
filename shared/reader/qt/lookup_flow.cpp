@@ -114,7 +114,7 @@ bool LookupFlow::OnPad(PadKey key) {
         return false;
     }
     KeepOpen();
-    // The question about a card's audio, where it stands in the popup: north without, east with,
+    // The question about a card's audio, where it stands in the popup: north without, west with,
     // south neither.
     if (asking_on_page) {
         switch (key) {

@@ -63,7 +63,9 @@ private:
     [[nodiscard]] int CharOffsetAt(int index, const QPointF& pt, double row_y, double text_x, double text_w) const;
     [[nodiscard]] QRectF SpanRect(int index, int first, int last, double row_y, double text_x, double text_w) const;
     void BuildWordsForChosen();
-    void LookupAt(int index, int offset);
+    /// Looks up the word at `offset` of row `index`; `scroll`: the row is scrolled into view
+    /// (keys and clicks), not for a pointer resting on it.
+    void LookupAt(int index, int offset, bool scroll = true);
     void ToggleCounted(int index);
     void ClearDuplicates();
     void EnsureVisible(int index);

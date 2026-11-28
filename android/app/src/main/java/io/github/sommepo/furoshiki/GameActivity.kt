@@ -624,9 +624,6 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         row(if (guide?.shown == true) R.string.game_menu_guide_hide else R.string.game_menu_guide, guide?.offered() == true) { guide?.toggle() }
         row(R.string.game_menu_ocr_now, ocr?.active == true) { ocr?.readNow() }
         row(R.string.game_menu_ocr_setup, ocr != null && started) { setUpOcr() }
-        list.keep(getString(R.string.reader_pref_screen_text), { onOff(settings.screenText) }) {
-            settings.preferences.edit().putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()
-        }
         list.keep(getString(R.string.reader_pref_panel_enabled), { onOff(settings.panelEnabled) }) {
             settings.preferences.edit().putBoolean(ReaderSettings.KEY_PANEL_ENABLED, !settings.panelEnabled).apply()
         }
@@ -635,9 +632,7 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         row(R.string.game_menu_routes, Routes.offer() != null) { Routes.show(this) }
         row(R.string.game_menu_patches, GameNative.features() and 32 != 0) { pickPatches() }
         if (host.gameActions().isNotEmpty()) list.row(getString(R.string.reader_game_actions)) { pickGameAction() }
-        list.row(getString(R.string.reader_section_popup)) { host.openPopupSettings() }
-            .row(getString(R.string.reader_statistics)) { host.openStatistics() }
-            .row(getString(R.string.reader_dictionaries)) { host.openDictionaries() }
+        list.row(getString(R.string.reader_statistics)) { host.openStatistics() }
             .row(getString(R.string.reader_anki_setup)) { host.openAnkiSetup() }
             .row(getString(R.string.reader_reload_profile)) { io.github.sommepo.furoshiki.reader.ReaderNative.reloadProfile() }
             .overGame()
@@ -694,6 +689,15 @@ class GameActivity : Activity(), SurfaceHolder.Callback {
         fun row(label: Int, shown: Boolean = true, act: () -> Unit) { if (shown) list.row(getString(label), act = act) }
         row(R.string.game_menu_resume) {}
         row(R.string.reader_backlog, ReaderGlue.readerHost != null) { ReaderGlue.readerHost?.openBacklog() }
+        // The popup's own rows first, not behind Reading & Tools (the maintainer, 2026-11-27).
+        ReaderGlue.readerHost?.let { host ->
+            val settings = ReaderSettings(this)
+            list.row(getString(R.string.reader_section_popup)) { host.openPopupSettings() }
+            list.keep(getString(R.string.reader_pref_screen_text), { onOff(settings.screenText) }) {
+                settings.preferences.edit().putBoolean(ReaderSettings.KEY_SCREEN_TEXT, !settings.screenText).apply()
+            }
+            list.row(getString(R.string.reader_dictionaries)) { host.openDictionaries() }
+        }
         row(R.string.game_menu_reader) { showReaderMenu() }
         row(R.string.game_menu_save, states) { pickState(save = true) }
         row(R.string.game_menu_load, states) { pickState(save = false) }

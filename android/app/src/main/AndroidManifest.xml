@@ -600,6 +600,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_settings" />
@@ -608,6 +609,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_statistics" />
@@ -615,6 +617,7 @@
         <activity
             android:name=".LicencesActivity"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="Open-source licences" />
@@ -629,6 +632,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Reader"
@@ -638,6 +642,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_games" />
@@ -646,6 +651,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_crt" />
@@ -654,6 +660,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_dictionaries" />
@@ -662,6 +669,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Reader"
@@ -671,6 +679,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:theme="@style/Theme.Reader"
             android:label="@string/reader_start_title" />
@@ -679,6 +688,7 @@
             android:process=":game"
             android:taskAffinity="${applicationId}.play"
             android:exported="false"
+            android:screenOrientation="behind"
             android:configChanges="orientation|screenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Reader"

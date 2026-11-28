@@ -165,15 +165,18 @@ compound there is a word); else words.
 - **A controller's buttons**, marked like the legend on a key cap and only while a controller
   is the input (`Reader.setPad(true)`, or `"pad": true` in the model; Android's `PopupKeys`
   knows: a controller's button or stick last, not a finger): a small **L** and **R** at the ends
-  of the tab row, **△** on the card without audio and **○** on the one with it, in the look's
+  of the tab row, **△** (north) on the card without audio and **□** (west) on the one with it, and
+  **○** (east) after a "more" (2026-11-27: the plus with the audio is always the left one, the one
+  without the right one, whatever the corner, as their buttons stand on a controller), in the look's
   dim colour (`.popup.pad .key-mark`). Never on touch or a mouse.
 - `Reader.tab(±1)` goes to the next tab or the one before, round the row (Android: R1 and L1,
   `PopupKeys`); a tab is also clicked. The page says `{"type": "tab", "kind"}`. `Reader.kinds(entries)`
   gives `{tabs: [{kind, count}], first}` (for tests).
-- **The marks' letters** are the app's where it says them: `"keys": {"add", "addAudio", "left",
-  "right"}` in the model or `Reader.setPad(true, keys)` (else △, ○, L, R). Furoshiki on a computer
-  says the controller's own: **Y** and **B** on the Steam Controller and an Xbox-style pad (Y north,
-  B east), △ ○ L1 R1 on a PlayStation pad, X and A on a Switch Pro Controller.
+- **The marks' letters** are the app's where it says them: `"keys": {"add", "addAudio", "more",
+  "left", "right"}` in the model or `Reader.setPad(true, keys)` (else △, □, ○, L, R). Furoshiki on a
+  computer says the controller's own: **Y**, **X** and **B** on the Steam Controller and an Xbox-style
+  pad (Y north, X west, B east), △ □ ○ L1 R1 on a PlayStation pad, X, Y and A on a Switch Pro
+  Controller. `Reader.toggleMore()` opens or closes the chosen entry's "more" (east).
 - **An entry chosen by the d-pad** (2026-11-19, Furoshiki on a computer; `"choose": true` in the
   model): the first entry of the tab is chosen as it is drawn, `Reader.entry(±1)` goes to the next
   or the one before and brings it into view (past the last, down scrolls on), and
@@ -324,3 +327,33 @@ game never enters it.
 Variables the console's look sets (`base.css`): `--text`, `--dim`, `--accent`, `--ground`,
 `--edge`, `--box`, `--box-pressed`, `--sign`, `--book`, `--font`, and `--scale` from the popup's
 text size.
+
+## Motion: the tab's ink, the entry's panel, the kanji card (2026-11-27)
+
+The maintainer chose these from live mock-ups (`https://claude.ai/artifact/WXom8ZCojiJkWcqD9zi5Kz`:
+tabs "B", entries "B and C at the same time", the kanji rail "B", "no edge line"), as elegant as
+Furochibi's rail. `popup.js`, "The marks that move":
+- **The tab shown is turned over**: one block of `--text` under it (`.tab-ink`) slides and
+  stretches to the next tab, its leading edge on a quick spring (0.78 / 620) and its trailing edge
+  on a slow one (0.86 / 260), and a word takes the ground's colour once the block covers most of
+  it (`.inked`). The new tab's page rises a little into view (`.rising`).
+- **The entry the d-pad is on lies on a raised panel** (`.entry-lift`, `--fold`: the theme's
+  `--raised`, else the text at 8 %), which slides and stretches to the next entry the same way;
+  the other entries step back to half strength. No edge line. With "match height to entry" the
+  host eases the height as before.
+- **The kanji rail is the card's tab**: the character in hand stands on a tab of the card's own
+  ground (`.kanji-tab`) that runs into the card under it without a seam (`.popup.folder`); the tab
+  slides and stretches to the next character, and the character settles in (`.settling`).
+What moves is a transform, an opacity, or the place and size of one absolutely placed mark, which
+lays out nothing else; there is no blur. Positions are read once a draw (and again when the L and R
+marks, a font or the window's size change them), never each frame. With reduced motion every mark
+is where it ends at once. Seen in all twenty themes (headless Chromium, the end states); the
+motion itself only on a device.
+- **The kanji deck** (the same night: the height changed from one character to the next and the text
+  went off and on): every character's card is drawn once into `.kanji-deck`, one grid cell for all,
+  so the deck is as tall as the tallest; a step shows another card (`showKanji`), crossfading with it
+  settling in, with nothing drawn again. **An entry made longer or shorter** ("more", a `<details>`)
+  grows to its new height on the same curve (`grow`), the panel with it, and the host eases the
+  popup's height. The size message says `rail` (the kanji rail is shown), so the desktop's backlog
+  sends left and right to it.
+

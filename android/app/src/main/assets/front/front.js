@@ -1757,23 +1757,120 @@ function places() {
   return list;
 }
 
+/**
+ * The rail's mark moves as Furochibi's does (Shell.kt, stretchTo; the maintainer, 2026-11-27: "the
+ * furochibi style slick slide animation"): one block of ink under the place shown, whose leading
+ * edge goes quickly to the next place and whose trailing edge follows slowly, so it stretches
+ * there and gathers. Springs as Compose's (damping ratio, stiffness), stepped once a frame.
+ */
+const railMark = {lead: null, tail: null, toLead: 0, toTail: 0, speedLead: 0, speedTail: 0, kLead: 0, kTail: 0, zLead: 0, zTail: 0, frame: 0, at: -1};
+const SPRING_QUICK = [.78, 620], SPRING_SLOW = [.86, 260];
+
+function stepRailMark(time) {
+  const m = railMark;
+  const box = $('railmark');
+  if (!box) { m.frame = 0; return; }
+  const dt = Math.min(.034, Math.max(.001, (time - (m.last || time)) / 1000 || .016));
+  m.last = time;
+  const step = (x, v, to, k, z) => {
+    // Semi-implicit Euler: the acceleration of a mass of 1 on a spring with damping.
+    const a = -k * (x - to) - 2 * z * Math.sqrt(k) * v;
+    v += a * dt;
+    return [x + v * dt, v];
+  };
+  [m.lead, m.speedLead] = step(m.lead, m.speedLead, m.toLead, m.kLead, m.zLead);
+  [m.tail, m.speedTail] = step(m.tail, m.speedTail, m.toTail, m.kTail, m.zTail);
+  const resting = Math.abs(m.lead - m.toLead) < .3 && Math.abs(m.tail - m.toTail) < .3 &&
+    Math.abs(m.speedLead) < 2 && Math.abs(m.speedTail) < 2;
+  if (resting) { m.lead = m.toLead; m.tail = m.toTail; }
+  box.style.top = m.lead + 'px';
+  box.style.height = Math.max(0, m.tail - m.lead) + 'px';
+  m.frame = resting ? 0 : requestAnimationFrame(stepRailMark);
+}
+
+/** The mark to the place shown: at once the first time, else on its springs. */
+function moveRailMark(button, index) {
+  const m = railMark;
+  const box = $('railmark');
+  if (!box || !button) { if (box) box.style.height = '0px'; return; }
+  const top = button.offsetTop, bottom = top + button.offsetHeight;
+  if (m.lead === null || reduceMotion()) {
+    m.lead = m.toLead = top; m.tail = m.toTail = bottom; m.at = index;
+    box.style.top = top + 'px';
+    box.style.height = (bottom - top) + 'px';
+    return;
+  }
+  if (top === m.toLead && bottom === m.toTail) return;
+  const forward = top > m.toLead;
+  [m.zLead, m.kLead] = forward ? SPRING_SLOW : SPRING_QUICK;
+  [m.zTail, m.kTail] = forward ? SPRING_QUICK : SPRING_SLOW;
+  m.toLead = top; m.toTail = bottom;
+  if (!m.frame) { m.last = 0; m.frame = requestAnimationFrame(stepRailMark); }
+}
+
+// A new size (the device turned, the second display): the mark goes to its place at once.
+window.addEventListener('resize', () => {
+  railMark.lead = null;
+  const rail = $('rail');
+  const buttons = rail ? Array.from(rail.querySelectorAll('button')) : [];
+  if (railMark.at >= 0) requestAnimationFrame(() => moveRailMark(buttons[railMark.at], railMark.at));
+});
+
+function reduceMotion() {
+  return !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function drawRail() {
   const rail = $('rail');
   if (!rail || LOWER) return;
-  rail.textContent = '';
-  const mark = letter => Object.assign(document.createElement('span'), {className: 'lr', textContent: letter});
-  rail.append(mark('L'));
-  for (const place of places()) {
-    const button = document.createElement('button');
-    button.type = 'button';
+  const list = places();
+  const names = list.map(place => place.name).join('|');
+  // Built again only when the places change, so that the mark can go from one to the next.
+  if (rail.dataset.places !== names) {
+    rail.dataset.places = names;
+    rail.textContent = '';
+    const mark = letter => Object.assign(document.createElement('span'), {className: 'lr', textContent: letter});
+    rail.append(Object.assign(document.createElement('i'), {id: 'railmark'}));
+    rail.append(mark('R ▲'));
+    list.forEach(() => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.append(document.createElement('b'));
+      rail.append(button);
+    });
+    rail.append(mark('L ▼'));
+    railMark.lead = null;
+  }
+  const buttons = Array.from(rail.querySelectorAll('button'));
+  let shown = -1;
+  list.forEach((place, i) => {
+    const button = buttons[i];
     button.className = place.on ? 'on' : '';
     button.setAttribute('aria-current', place.on ? 'page' : 'false');
-    button.append(Object.assign(document.createElement('b'), {textContent: place.name}));
+    button.firstChild.textContent = place.name;
     button.onclick = () => goTo(place.at);
-    rail.append(button);
+    if (place.on) shown = i;
+  });
+  // Another place: its page comes in as Furochibi's does (Turns.place), a fade with the page
+  // settling from a touch further away.
+  if (railMark.at >= 0 && shown >= 0 && shown !== railMark.at && !reduceMotion()) {
+    const sheet = $('sheet');
+    if (sheet) {
+      sheet.classList.remove('placein');
+      void sheet.offsetWidth;
+      sheet.classList.add('placein');
+      sheet.addEventListener('animationend', () => sheet.classList.remove('placein'), {once: true});
+    }
   }
-  rail.append(mark('R'));
+  railMark.at = shown;
+  requestAnimationFrame(() => moveRailMark(buttons[shown], shown));
 }
+
+/**
+ * The shoulders along the rail (the maintainer, 2026-11-27): R goes up it and L down, as the marks
+ * at its ends say (R ▲ at the top, L ▼ at the foot). PageUp is L, PageDown is R.
+ */
+const railStep = name => name === 'PageDown' ? -1 : 1;
 
 /** The next place down the rail (1) or the one before (-1), round the ends. */
 function goPlace(by) {
@@ -2446,14 +2543,14 @@ const Front = {
         if (next >= 0 && next < current.rows.length) choose(next, false);
       } else if (name === 'ArrowUp' || name === 'Escape') setStage(false);
       else if (name === 'ArrowDown' && !$('stage-log').hidden) host.openLog?.(row.game.id);
-      else if (name === 'PageUp' || name === 'PageDown') goPlace(name === 'PageUp' ? -1 : 1);
+      else if (name === 'PageUp' || name === 'PageDown') goPlace(railStep(name));
       return;
     }
     if (current.view === 'stats' && statsKey(name)) return;
     if (!current.shelf && !state.inList) {
       // The rail in hand: along the pages, or into this one's rows.
       if (name === 'ArrowUp' || name === 'ArrowDown' || name === 'PageUp' || name === 'PageDown') {
-        goPlace(name === 'ArrowUp' || name === 'PageUp' ? -1 : 1);
+        goPlace(name === 'ArrowUp' ? -1 : name === 'ArrowDown' ? 1 : railStep(name));
       } else if ((name === 'Enter' || name === 'ArrowRight') && current.rows.length) {
         // Into the page, which lies to the right of the rail.
         setInList(true);
@@ -2490,7 +2587,7 @@ const Front = {
       const next = index + (name === 'ArrowUp' ? -1 : 1);
       if (next >= 0 && next < current.rows.length) choose(next, false);
     } else if (name === 'PageUp' || name === 'PageDown') {
-      goPlace(name === 'PageUp' ? -1 : 1);
+      goPlace(railStep(name));
     } else if (name === 'ArrowLeft' && !current.shelf) {
       // Back to the rail, which lies to the left.
       setInList(false);

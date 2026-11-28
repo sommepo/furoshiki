@@ -1014,28 +1014,36 @@ body { display: flex; }
 #sheet { flex: 1 1 0; min-width: 0; }
 body:not(.lower) #sheet { padding-left: calc(28 * var(--s)); }
 #rail {
-  flex: none; display: flex; flex-direction: column;
+  flex: none; display: flex; flex-direction: column; position: relative;
   width: calc(max(40px, 44 * var(--s)) + env(safe-area-inset-left)); padding-left: env(safe-area-inset-left);
   border-right: 1px solid var(--rule);
 }
 body.lower #rail { display: none; }
 #rail button {
   flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center;
-  border-top: 1px solid var(--rule); color: var(--muted);
-  transition: background-color .18s ease-out, color .18s ease-out;
+  border-top: 1px solid var(--rule); color: var(--muted); position: relative; z-index: 1;
+  background: transparent;
+  transition: color .28s cubic-bezier(.2, .8, .3, 1);
 }
+/* The place shown's ink: one block that slides and stretches from place to place (front.js,
+   moveRailMark), under the words. */
+#railmark { position: absolute; left: 0; right: 0; top: 0; height: 0; background: var(--ink); z-index: 0; pointer-events: none; }
+/* A place's page as it comes in (Furochibi's Turns.place): a fade, the page settling from 97.5%. */
+#sheet.placein { animation: placein .42s cubic-bezier(.2, .9, .25, 1.02) both; transform-origin: 50% 40%; }
+@keyframes placein { 0% { opacity: 0; transform: scale(.975); } 12% { opacity: 0; } 100% { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #sheet.placein { animation: none; } }
 #rail button:first-of-type { border-top: 0; }
 #rail button b {
   writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;
   font: 400 max(11px, calc(10.5 * var(--s))) var(--display); letter-spacing: .2em; text-transform: uppercase;
 }
-#rail button.on { background: var(--ink); color: var(--ground); }
+#rail button.on { color: var(--ground); }
 /* The rail in hand (a controller): the place's edge in the accent. */
 body.rail.pad #rail button.on { box-shadow: inset calc(-4 * var(--s)) 0 0 var(--accent); }
 #rail .lr { display: none; text-align: center; padding: calc(8 * var(--s)) 0; font: max(11px, calc(10 * var(--s))) var(--mono); }
 body.pad #rail .lr { display: block; }
 body.pad #rail .lr:last-child { border-top: 1px solid var(--rule); }
-body.pad #rail .lr:first-child { border-bottom: 1px solid var(--rule); }
+body.pad #rail span.lr:first-of-type { border-bottom: 1px solid var(--rule); }
 body.pad #rail button:first-of-type { border-top: 0; }
 body.nofoot #foot { display: none; }
 

@@ -13,6 +13,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
 import android.util.TypedValue
@@ -559,12 +560,29 @@ class ReaderOverlay(
         }
         sessionView.paused = mark
         sessionView.style = settings.statsStyle
+        // In Furoshiki (its Michroma among the assets) the line takes Michroma and the popup's
+        // colours, as the desktop's does (the maintainer, 2026-11-27).
+        sessionFace?.let { face ->
+            val theme = settings.popupTheme
+            if (theme != SessionFace.theme) {
+                SessionFace.theme = theme
+                SessionFace.colours = PopupPage.themeColours(context, theme)
+            }
+            sessionView.colours = SessionFace.colours
+            sessionView.face = face
+        }
         if (wanted) {
             val text = if (line) SessionSummary.format(counters!!) else ""
             if (sessionView.text.toString() != text) sessionView.text = text
         }
         sessionView.visibility = if (wanted) VISIBLE else GONE
     }
+
+    /**
+     * Furoshiki's Michroma for the session line; null in an app without it. Read once a process,
+     * outside the view's fields: the line is first shown while the view is still being made.
+     */
+    private val sessionFace: Typeface? get() = SessionFace.of(context)
 
     /** True while the mark for paused statistics is in the corner (for tests too). */
     var pauseShown = false
@@ -1288,5 +1306,21 @@ class ReaderOverlay(
                 MeasureSpec.makeMeasureSpec(maxHeight.coerceAtMost(1 shl 29), MeasureSpec.AT_MOST)
             )
         }
+    }
+}
+
+/** The session line's face and the popup's colours for it, worked out once a process (ReaderOverlay.showSession). */
+private object SessionFace {
+    private var tried = false
+    private var face: Typeface? = null
+    var theme: String? = null
+    var colours: StatsLineView.Colours? = null
+
+    fun of(context: android.content.Context): Typeface? {
+        if (!tried) {
+            tried = true
+            face = runCatching { Typeface.createFromAsset(context.assets, "front/fonts/Michroma-Regular.ttf") }.getOrNull()
+        }
+        return face
     }
 }

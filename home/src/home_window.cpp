@@ -3566,6 +3566,9 @@ void HomeWindow::paintEvent(QPaintEvent*) {
             }
         }
         Pace(took.nsecsElapsed() / 1e6);
+        if (TraceFrames()) {
+            Trace().Frame(took.nsecsElapsed() / 1e6, ", shelf");
+        }
         return;
     }
     PlaceDictionaries(false); // the shelf's alone
@@ -3904,6 +3907,9 @@ void HomeWindow::NextScriptLine() {
         wait = rest.toInt();
     } else if (word == QStringLiteral("shot")) {
         grab().save(rest); // as it is this moment, moving or not
+    } else if (word == QStringLiteral("section")) {
+        // A section of the settings pages by its name ("section Popup"), its rows in hand.
+        ShowSettingsSection(rest);
     } else if (word == QStringLiteral("settings")) {
         // The settings window at a tab ("settings Save sync"), for pictures of it.
         if (open_settings) {

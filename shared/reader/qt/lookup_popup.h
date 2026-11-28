@@ -173,6 +173,11 @@ public:
     void PadKanji(int step);
     void PadToggleMore();
     /// How many tabs the popup shows (words, grammar, kanji, names): 0 or 1 is no row of tabs.
+    /// Whether the page shows the kanji rail (the Kanji tab of a word of two or more characters):
+    /// left and right then go along its characters.
+    [[nodiscard]] bool KanjiRail() const {
+        return web && web_rail;
+    }
     [[nodiscard]] int Tabs() const {
         return web ? web_tabs : 0;
     }
@@ -309,6 +314,7 @@ private:
     bool fit_entry{};
     int web_scrolled{};
     int web_tabs{};
+    bool web_rail{};
     QString web_text;
     QHash<int, QRect> web_add;
     QHash<int, QRect> web_book;

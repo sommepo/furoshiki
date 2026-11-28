@@ -38,6 +38,7 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
+html.android .popup, html.android .popup.translucent { -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* The scroll bar is part of the popup, not a thing beside it: no track, no buttons, hidden at
    rest and shown only while actively scrolling. (No scrollbar-width or scrollbar-color here: with
    either, Chromium draws its own bar with a track and passes these rules over.) */
@@ -155,6 +156,8 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 @media (prefers-reduced-motion: reduce) {
   .card[data-state="checking"] svg, .card.pressing, .card.landing, .card.landing svg, .card.pressing::before,
   .card.landing::before, .entry.arriving, .entry.arriving::before { animation: none; }
+  .rising, .settling { animation: none; }
+  .kanji-card, .kanji-card.on { transition: none; }
 }
 .card-buttons.ask .card { width: calc(30px * var(--scale)); }
 .card-buttons.ask .ask-keep { border-color: var(--accent); }
@@ -205,6 +208,17 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 }
 .tab .tab-count { margin-left: 0.5em; font-feature-settings: "tnum" 1; opacity: 0.8; }
 .tab.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+/* The tab shown turned over (popup.js, the marks): one block of the text's colour under it that
+   slides and stretches to the next tab, each word in the ground's colour once the block covers it. */
+.tabs.inked .tab { position: relative; z-index: 1; }
+.tabs.inked .tab.on { box-shadow: none; color: var(--dim); }
+.tabs.inked .tab.inked { color: var(--ground-solid, var(--ground)); }
+.tab-ink {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100px; transform-origin: 0 0;
+  background: var(--text); pointer-events: none; z-index: 0; will-change: transform;
+}
+.rising { animation: reader-rise 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) 0.04s both; }
+@keyframes reader-rise { from { opacity: 0; transform: translateY(calc(8px * var(--scale))) scale(0.985); } to { opacity: 1; transform: none; } }
 /* ---- The controller's buttons, marked like the legend on a key cap: only with a controller ---- */
 .key-mark { display: none; }
 .popup.pad .key-mark {
@@ -227,11 +241,22 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 /* The entry the d-pad is on (Reader.entry): a hairline in the accent down its side, and only its
    card buttons marked, for they are the ones the controller presses. */
 .popup.pad.choosing .entry:not(.chosen) .card .key-mark { display: none; }
-.popup.pad.choosing .entry.chosen::before {
-  content: ""; position: absolute; left: calc(-5px * var(--scale)); top: calc(4px * var(--scale));
-  bottom: calc(5px * var(--scale)); width: calc(2px * var(--scale)); border-radius: 1px;
-  background: var(--accent, currentColor); pointer-events: none;
+/* East opens "more": its mark after the word, on the chosen entry's "more" only. */
+.popup.pad .more .key-mark { display: inline-grid; vertical-align: middle; margin-left: 0.45em; }
+.popup.pad.choosing .entry:not(.chosen) .more .key-mark { display: none; }
+/* Its raised panel (popup.js, aimEntry): one fill under the chosen entry that slides and stretches
+   to the next, with no edge line, and the other entries stepped back. */
+.popup { position: relative; --fold: color-mix(in srgb, var(--raised, color-mix(in srgb, var(--text) 8%, transparent)) calc(var(--opacity) * 100%), transparent); }
+.entry-lift { display: none; }
+.tab-pane { position: relative; }
+.tab-pane.hidden { display: none; }
+.popup.pad.choosing > .entry-lift, .popup.pad.choosing .tab-pane > .entry-lift {
+  display: block; position: absolute; top: 0; height: 0; z-index: 0; pointer-events: none;
+  background: var(--fold); border-radius: min(var(--radius, 4px), 8px);
+  transform-origin: 0 0; will-change: transform;
 }
+.popup.pad.choosing > .entry, .popup.pad.choosing .tab-pane > .entry { z-index: 1; transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.popup.pad.choosing > .entry:not(.chosen), .popup.pad.choosing .tab-pane > .entry:not(.chosen) { opacity: 0.5; }
 /* ---- A dictionary's own layout (every dictionary's with the full layout; grammar and characters
    always): as it set it, in the popup's colours ---- */
 .sense.laid-out { list-style: none; }
@@ -385,24 +410,51 @@ body { font-family: var(--font); color: var(--text); -webkit-user-select: none; 
 .kanji-rows dt { color: var(--dim); font-size: calc(9.5px * var(--scale)); letter-spacing: 0.12em; text-transform: uppercase; padding-top: 0.25em; }
 .kanji-rows dd { margin: 0; }
 .kanji-side { min-width: 0; }
-/* Subtle controller hint for expanding/collapsing "more" and <details> with A */
-.popup.pad .entry.chosen .more::after,
-.popup.pad .entry.chosen details > summary::after {
-  content: " A";
-  color: var(--accent);
-  font-size: 0.85em;
-  opacity: 0.85;
+/* The kanji rail as a card's tab (the maintainer, 2026-11-27, "B"): the character in hand is the tab
+   of the card under it, one ground without a seam; the tab slides and stretches to the next
+   (popup.js, the marks), and the character settles in. */
+.popup.folder .kanji-rail { position: relative; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; gap: calc(2px * var(--scale)); }
+.popup.folder .kanji-chip { position: relative; z-index: 2; border-color: transparent; background: none; font-weight: 600; }
+.popup.folder .kanji-chip.active { background: none; border-color: transparent; }
+.popup.folder .kanji-chip.folded { color: var(--text); }
+.popup.folder .kanji-rail-meta { padding-bottom: calc(4px * var(--scale)); }
+.kanji-tab { display: none; }
+.popup.folder .kanji-tab {
+  display: block; position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+  background: var(--fold);
+  border-radius: min(var(--radius, 4px), 8px) min(var(--radius, 4px), 8px) 0 0;
+  transform-origin: 0 0; will-change: transform;
 }
+.kanji-deck {
+  display: grid; background: var(--fold); border-radius: min(var(--radius, 4px), 8px);
+  padding: calc(8px * var(--scale)) calc(10px * var(--scale)); margin: 0 0 calc(6px * var(--scale));
+}
+/* Every character's card in the one cell: the deck is as tall as the tallest. */
+.kanji-card { grid-area: 1 / 1; align-self: start; min-width: 0; visibility: hidden; opacity: 0; transition: opacity 0.14s ease-out, visibility 0s linear 0.14s; }
+.kanji-card.on { visibility: visible; opacity: 1; transition: opacity 0.26s ease-out 0.04s; }
+.kanji-deck .entry { padding: 0; margin: 0; border: 0; background: none; }
+.kanji-deck .entry + .entry { border-top: 1px solid var(--edge); margin-top: calc(6px * var(--scale)); padding-top: calc(6px * var(--scale)); }
+/* The deck's corner under the tab is square where the tab stands at its very left. */
+.popup.folder.first-char .kanji-deck { border-top-left-radius: 0; }
+/* The card is the mark of the character in hand: a theme's own mark before an entry (Yomitan dark's
+   arrow, the controller's hairline) is not drawn on it. */
+.kanji-deck .entry::before { display: none; }
+.popup.folder.pad.choosing > .entry-lift, .popup.folder.pad.choosing .tab-pane > .entry-lift { display: none; }
+.popup.folder.pad.choosing > .entry:not(.chosen), .popup.folder.pad.choosing .tab-pane > .entry:not(.chosen) { opacity: 1; }
+.settling { animation: reader-settle 0.46s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+@keyframes reader-settle { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 
 /* Where color-mix is not known (the Thor's WebView 109): a color-mix with var() in it is only found
    wrong as it is used, and then counts as unset (no ground at all), so the plain colours are given
    here instead of before it. */
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
-  .popup { background: var(--ground-see, var(--ground)); }
+  .popup { background: var(--ground-see, var(--ground)); --fold: var(--fold-see, var(--raised, rgba(255, 255, 255, 0.08))); }
   .popup.scrolling::-webkit-scrollbar-thumb { background-color: rgba(236, 229, 211, 0.34); }
   .popup::-webkit-scrollbar-thumb:active { background-color: rgba(236, 229, 211, 0.52); }
   .kanji-chip { border-color: var(--edge); background: var(--box); }
   .kanji-chip.active { border-color: var(--accent); background: rgba(217, 71, 43, 0.24); }
+  .popup { --fold: var(--raised, rgba(128, 128, 128, 0.16)); }
+  .popup.folder .kanji-chip, .popup.folder .kanji-chip.active { border-color: transparent; background: none; }
   .entry.unknown .headword { background: rgba(127, 127, 127, 0.25); box-shadow: none; }
   .tag.name { border-color: var(--accent); }
   .card { border-color: var(--edge); }

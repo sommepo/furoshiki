@@ -94,6 +94,8 @@ public:
     struct SessionTheme {
         bool active{};
         QColor bg, ink, muted, accent, rule;
+        /// The figures' face (Furoshiki's Michroma, the maintainer, 2026-11-27); empty: the look's own.
+        QString family;
     };
     static void SetSessionTheme(const SessionTheme& theme);
     [[nodiscard]] bool PauseMark() const {
